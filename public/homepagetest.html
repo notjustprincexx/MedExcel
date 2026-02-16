@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- CORE STYLES --- */
+        :root { --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); }
+        body { 
+            -webkit-user-select: none; user-select: none; 
+            background-color: #0f172a; 
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            overflow: hidden; 
+        }
+
+        /* --- LOADER --- */
+        .loader-screen {
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: #0f172a; z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        .loader-screen.hidden-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid rgba(96, 165, 250, 0.2);
+            border-left-color: #60A5FA; border-radius: 50%; animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loading-text { color: #94a3b8; font-size: 0.875rem; font-weight: 500; animation: pulse 1.5s infinite; }
+
+        /* --- DIALOG --- */
+        .ok-backdrop {
+            position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+            z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+        }
+        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
+        .ok-dialog {
+            width: 90%; max-width: 400px; background: #1e293b; border: 1px solid #334155;
+            border-radius: 16px; padding: 24px; color: white; transform: scale(0.95); opacity: 0;
+            transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        /* --- UTILS --- */
+        .highlight-active { position: relative; z-index: 40; animation: pulse-border 2s infinite; border-radius: 12px; }
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 15px rgba(96, 165, 250, 0.2); }
+            50% { border-color: rgba(96, 165, 250, 1); box-shadow: 0 0 25px rgba(96, 165, 250, 0.5); }
+        }
+        /* Tutorial styles */
+        #tutorialOverlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); pointer-events: auto; }
+        .speech-bubble { background: #1e293b; border: 2px solid #334155; border-radius: 1rem; padding: 1rem; color: white; position: relative; max-width: 200px; }
+        .speech-bubble::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); border-width: 10px 10px 0; border-style: solid; border-color: #334155 transparent transparent transparent; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="text-white h-screen flex flex-col overflow-hidden relative">
+
+    <div id="loaderScreen" class="loader-screen"><div class="loader-content"><div class="spinner"></div><div class="loading-text">LOADING...</div></div></div>
+
+    <div id="okBackdrop" class="ok-backdrop"><div class="ok-dialog"><h3 id="okTitle" class="text-lg font-bold text-white mb-2">Notice</h3><p id="okMessage" class="text-slate-300 text-sm mb-6 leading-relaxed">Message</p><div class="flex justify-end gap-3"><button id="okCancel" class="px-4 py-2 text-slate-400 font-bold text-sm">Cancel</button><button id="okConfirm" class="px-6 py-2 bg-blue-600 rounded-xl text-white font-bold text-sm">OK</button></div></div></div>
+
+    <header class="pt-6 pb-2 px-6 flex items-center justify-between z-10">
+        <div id="searchBar" class="flex-1 bg-slate-800 rounded-full flex items-center px-4 py-3 border border-slate-700 mr-4 shadow-sm">
+            <svg class="w-5 h-5 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" id="searchInput" placeholder="Search decks..." class="bg-transparent border-none outline-none text-sm text-white w-full placeholder-slate-500">
+        </div>
+        <button id="profileBtn" class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 flex items-center justify-center">
+             <img id="userAvatar" src="" alt="Profile" class="w-full h-full object-cover hidden">
+             <span id="userInitial" class="text-sm font-bold text-slate-300 hidden">?</span>
+        </button>
+    </header>
+
+    <main class="flex-1 overflow-y-auto pb-24 px-6">
+        
+        <div class="mt-6 mb-6 flex justify-between items-end">
+            <h1 class="text-2xl font-bold">Recents</h1>
+            <button onclick="window.location.reload()" class="text-xs text-slate-500">Refresh</button>
+        </div>
+
+        <div id="recentsContainer" class="flex flex-col gap-3 mb-8 min-h-[100px]">
+            <div class="animate-pulse bg-slate-800 rounded-2xl p-4 flex items-center gap-4 border border-slate-700/50">
+                <div class="w-12 h-12 rounded-xl bg-slate-700"></div>
+                <div class="flex-1"><div class="h-4 bg-slate-700 rounded w-3/4 mb-2"></div><div class="h-3 bg-slate-700 rounded w-1/2"></div></div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-lg font-bold mb-3">Create New</h2>
+            <div id="createCard" onclick="window.navigateTo('create.html')" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 border border-slate-700 relative overflow-hidden shadow-xl active:scale-98 cursor-pointer">
+                <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-600/20 rounded-full blur-2xl"></div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-900/50">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">Generate with AI</h3>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">Upload notes and let MedExcel create flashcards.</p>
+                    <button class="w-full bg-slate-700 text-blue-300 font-bold py-3 rounded-xl text-sm border border-slate-600 pointer-events-none">Create Set</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="flex justify-between items-end mb-4">
+                <h2 class="text-lg font-bold">Fresh finds</h2>
+                <button class="text-blue-400 text-xs font-bold uppercase tracking-wider">View All</button>
+            </div>
+            <div id="freshFindsContainer" class="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6">
+                 </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
+        <button class="flex flex-col items-center gap-1 text-blue-500">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="text-[10px] font-bold">Home</span>
+        </button>
+        <button onclick="window.navigateTo('create.html')" id="createBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span class="text-[10px] font-medium">Create</span>
+        </button>
+        <button onclick="window.navigateTo('library.html')" id="libraryBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
+            <span class="text-[10px] font-medium">Library</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-medium">Trial</span>
+        </button>
+    </nav>
+
+    <div id="tutorialOverlay" class="fixed inset-0 z-[60] hidden flex-col items-center justify-center">
+        <div id="tutorialMascot" class="absolute transition-all duration-700 ease-in-out z-[70] flex flex-col items-center w-64">
+            <div id="tutorialText" class="speech-bubble mb-4 text-center font-medium text-sm"></div>
+            <div class="w-20 h-20 animate-float filter drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">
+                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/><ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/><path d="M22 35 V42 Q50 55 78 42 V35" fill="#1E293B"/><g stroke="#1E293B" stroke-width="3"><circle cx="35" cy="52" r="12" fill="white"/><circle cx="65" cy="52" r="12" fill="white"/><path d="M47 52 L53 52" stroke-width="3"/></g><g id="mascotEyes"><circle cx="35" cy="52" r="4" fill="#1E293B"/><circle cx="65" cy="52" r="4" fill="#1E293B"/></g><path d="M45 62 L55 62 L50 69 L45 62Z" fill="#F59E0B"/><path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#1E293B"/><circle cx="50" cy="25" r="2" fill="#F59E0B"/><path d="M50 25 Q88 25 88 50" stroke="#F59E0B" stroke-width="2" fill="none"/><circle cx="88" cy="50" r="3" fill="#F59E0B"/></svg>
+            </div>
+            <div class="mt-4"><button onclick="nextStep()" class="bg-blue-500 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-400 transition transform text-xs active:scale-95">Next</button></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, limit, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
+            measurementId: "G-6VQYKEBMSX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- GLOBAL NAVIGATION HELPER ---
+        window.navigateTo = (url) => {
+            console.log("Navigating to:", url);
+            // window.location.href = url; // Uncomment when you have these files
+            alert(`Navigating to ${url}`); // Temporary feedback
+        };
+
+        // --- AUTH & DATA FLOW ---
+        const skip = localStorage.getItem("skip") === "true";
+
+        if (skip) {
+            hideLoader();
+            renderEmptyState("Guest Mode: Log in to save decks.");
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // UI Updates
+                const name = user.displayName || user.email.split('@')[0];
+                updateHeaderUI(name, user.photoURL);
+                
+                // Fetch Data
+                await loadRecents(user.uid);
+                await loadFreshFinds(); // Public decks
+                
+                hideLoader();
+            } else {
+                if (!skip) window.location.href = 'index.html';
+                else updateHeaderUI("Guest", null);
+            }
+        });
+
+        // --- DATABASE FUNCTIONS ---
+
+        // 1. Load Recent Decks
+        async function loadRecents(userId) {
+            const container = document.getElementById('recentsContainer');
+            try {
+                // Query: Decks belonging to user
+                const q = query(collection(db, "decks"), where("userId", "==", userId), limit(5));
+                const querySnapshot = await getDocs(q);
+
+                container.innerHTML = ""; // Clear loader
+
+                if (querySnapshot.empty) {
+                    // AUTO-GENERATE A SAMPLE DECK IF EMPTY (For demonstration)
+                    await createSampleDeck(userId);
+                    return; // The create function will re-trigger or we can just reload
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const cardHTML = `
+                        <div class="bg-slate-800 rounded-2xl p-4 flex items-center gap-4 border border-slate-700/50 mb-2 hover:bg-slate-750 cursor-pointer active:scale-98" onclick="window.navigateTo('study.html?id=${doc.id}')">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <span class="text-xl">${data.icon || '📚'}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-white">${data.title}</h3>
+                                <p class="text-slate-400 text-xs">${data.cardCount || 0} cards • ${new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += cardHTML;
+                });
+
+            } catch (error) {
+                console.error("Error loading recents:", error);
+                container.innerHTML = `<div class="text-slate-500 text-sm p-4">Could not load decks.</div>`;
+            }
+        }
+
+        // 2. Load "Fresh Finds" (Mock or Public Data)
+        async function loadFreshFinds() {
+            const container = document.getElementById('freshFindsContainer');
+            // Hardcoded "Public" examples for now, but you could query DB
+            const freshData = [
+                { title: "Anatomy", count: 120, icon: "🧬", color: "emerald" },
+                { title: "Psych 101", count: 85, icon: "🧠", color: "purple" },
+                { title: "BioChem", count: 40, icon: "⚗️", color: "blue" }
+            ];
+
+            container.innerHTML = freshData.map(item => `
+                <div class="min-w-[160px] bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                    <div class="h-20 bg-${item.color}-500/10 rounded-xl mb-3 flex items-center justify-center">
+                        <span class="text-2xl">${item.icon}</span>
+                    </div>
+                    <h4 class="font-bold text-sm mb-1 text-white">${item.title}</h4>
+                    <p class="text-xs text-slate-500">${item.count} Cards</p>
+                </div>
+            `).join('');
+        }
+
+        // 3. Helper: Create Sample Deck (So the page isn't empty)
+        async function createSampleDeck(userId) {
+            try {
+                const container = document.getElementById('recentsContainer');
+                container.innerHTML = `<div class="text-slate-500 text-sm">Creating your first deck...</div>`;
+                
+                await addDoc(collection(db, "decks"), {
+                    userId: userId,
+                    title: "Welcome to MedExcel",
+                    cardCount: 5,
+                    icon: "👋",
+                    createdAt: serverTimestamp()
+                });
+                
+                // Reload list
+                loadRecents(userId);
+            } catch (e) {
+                console.error("Error creating sample:", e);
+            }
+        }
+
+        function renderEmptyState(msg) {
+            document.getElementById('recentsContainer').innerHTML = `
+                <div class="p-6 text-center border-2 border-dashed border-slate-700 rounded-2xl">
+                    <p class="text-slate-500 text-sm">${msg}</p>
+                </div>
+            `;
+        }
+
+        // --- UI FUNCTIONS ---
+        function hideLoader() {
+            const loader = document.getElementById('loaderScreen');
+            if(loader && !loader.classList.contains('hidden-loader')) {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.classList.add('hidden-loader');
+                    document.body.style.overflow = 'auto';
+                    if (!localStorage.getItem('medExcelTutorialSeen')) setTimeout(window.startTutorial, 1000);
+                }, 400);
+            }
+        }
+
+        function updateHeaderUI(name, photoURL) {
+            const avatarImg = document.getElementById('userAvatar');
+            const initialSpan = document.getElementById('userInitial');
+            if(photoURL) {
+                avatarImg.src = photoURL;
+                avatarImg.classList.remove('hidden');
+                initialSpan.classList.add('hidden');
+            } else {
+                avatarImg.classList.add('hidden');
+                initialSpan.textContent = name.charAt(0).toUpperCase();
+                initialSpan.classList.remove('hidden');
+            }
+        }
+
+        // --- SEARCH LOGIC ---
+        document.getElementById('searchInput').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                alert("Search functionality coming soon! Query: " + e.target.value);
+            }
+        });
+
+        // --- LOGOUT LOGIC ---
+        window.handleProfileClick = async () => {
+            const isGuest = localStorage.getItem("skip") === "true";
+            const title = isGuest ? "Log In?" : "Log Out?";
+            const msg = isGuest ? "Return to login screen?" : "Sign out of your account?";
+            const confirmed = await window.showDialog(msg, title, { okText: isGuest ? "Login" : "Log Out" });
+            
+            if (confirmed) {
+                if (!isGuest) await signOut(auth);
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+        };
+        document.getElementById('profileBtn').addEventListener('click', window.handleProfileClick);
+    </script>
+
+    <script>
+        // Dialog Promise Wrapper
+        window.showDialog = function (message, title = "Notice", options = {}) {
+            return new Promise((resolve) => {
+                const backdrop = document.getElementById("okBackdrop");
+                document.getElementById("okTitle").textContent = title;
+                document.getElementById("okMessage").textContent = message;
+                document.getElementById("okConfirm").textContent = options.okText || "OK";
+                
+                backdrop.style.display = "flex"; void backdrop.offsetWidth; backdrop.classList.add("active");
+                
+                const close = (res) => {
+                    backdrop.classList.remove("active");
+                    setTimeout(() => { backdrop.style.display = "none"; resolve(res); }, 200);
+                };
+                document.getElementById("okConfirm").onclick = () => close(true);
+                document.getElementById("okCancel").onclick = () => close(false);
+            });
+        };
+
+        // Tutorial Logic
+        let currentStep = 0;
+        const steps = [
+            { text: "Hi! I'm Aurora. I can help you study faster.", target: null, position: "center" },
+            { text: "Search for decks here.", target: "searchBar", position: "top" },
+            { text: "Use this to create cards with AI instantly.", target: "createCard", position: "middle" },
+            { text: "Your library is down here.", target: "libraryBtn", position: "bottom" }
+        ];
+
+        window.startTutorial = function() {
+            document.getElementById('tutorialOverlay').classList.remove('hidden');
+            document.getElementById('tutorialOverlay').classList.add('flex');
+            updateStep();
+        }
+
+        window.endTutorial = function() {
+            document.getElementById('tutorialOverlay').classList.add('hidden');
+            document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
+            localStorage.setItem('medExcelTutorialSeen', 'true');
+        }
+
+        window.updateStep = function() {
+            const mascot = document.getElementById('tutorialMascot');
+            const bubble = document.getElementById('tutorialText');
+            const stepData = steps[currentStep];
+
+            document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
+            bubble.textContent = stepData.text;
+            
+            // Simple positioning logic
+            mascot.style.transform = "translateX(-50%)";
+            if (stepData.position === 'center') { mascot.style.top = "30%"; mascot.style.left = "50%"; }
+            else if (stepData.position === 'top') { mascot.style.top = "110px"; mascot.style.left = "50%"; }
+            else if (stepData.position === 'middle') { mascot.style.top = "50%"; mascot.style.left = "50%"; mascot.style.transform = "translate(-50%, -50%)"; }
+            else if (stepData.position === 'bottom') { mascot.style.top = "auto"; mascot.style.bottom = "110px"; mascot.style.left = "50%"; }
+
+            if (stepData.target) {
+                const targetEl = document.getElementById(stepData.target);
+                if (targetEl) targetEl.classList.add('highlight-active');
+            }
+        }
+
+        window.nextStep = function() {
+            currentStep++;
+            if (currentStep >= steps.length) endTutorial();
+            else updateStep();
+        }
+    </script>
+</body>
+</html>
