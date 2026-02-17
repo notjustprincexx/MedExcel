@@ -1,33 +1,397 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Page Not Found</title>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Teach Aurora — Live Mode</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* THEME: "Deep Void" - Pure Immersion */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000000;
+    }
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px 16px; border-radius: 3px; }
-      #message h3 { color: #888; font-weight: normal; font-size: 16px; margin: 16px 0 12px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+    body {
+      /* Use dvh (Dynamic Viewport Height) to avoid hidden areas behind mobile browser bars */
+      height: 100dvh; 
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
+    }
+
+    /* BACKGROUND: Subtle, shifting aurora */
+    .aurora-bg {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: 
+        radial-gradient(circle at 50% 120%, rgba(37, 99, 235, 0.2), transparent 60%),
+        radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.15), transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15), transparent 45%);
+      z-index: 0;
+      transition: opacity 1s ease;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .aurora-bg.active {
+      opacity: 1;
+      filter: brightness(1.3);
+    }
+
+    /* THE PRESENCE (The Orb) */
+    .presence-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+    }
+
+    .orb {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+      backdrop-filter: blur(10px);
+      box-shadow: inset 0 0 20px rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      display: grid;
+      place-items: center;
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+
+    /* Orb Inner Core */
+    .orb::after {
+      content: '';
+      position: absolute;
+      width: 40%;
+      height: 40%;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      filter: blur(20px);
+      opacity: 0.3;
+      transition: all 0.4s ease;
+    }
+
+    /* STATES */
+    
+    /* 1. Listening */
+    .orb.listening {
+      transform: scale(1.1);
+      border-color: rgba(52, 211, 153, 0.3);
+      box-shadow: 0 0 60px rgba(52, 211, 153, 0.1);
+    }
+    .orb.listening::after {
+      background: #34d399;
+      opacity: 0.6;
+      animation: breathe 3s infinite ease-in-out;
+    }
+
+    /* 2. Thinking */
+    .orb.thinking {
+      transform: scale(0.95);
+      border-color: rgba(96, 165, 250, 0.5);
+    }
+    .orb.thinking::after {
+      background: #60a5fa;
+      opacity: 0.8;
+      animation: ping 1s infinite cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    /* 3. Speaking */
+    .orb.speaking {
+      transform: scale(1.05);
+      border-color: rgba(167, 139, 250, 0.4);
+      box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
+    }
+    .orb.speaking::after {
+      background: #a78bfa;
+      opacity: 0.7;
+      animation: voiceWave 1.5s infinite ease-in-out alternate;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+    }
+    
+    @keyframes voiceWave {
+      0% { transform: scale(0.8); opacity: 0.6; filter: blur(25px); }
+      100% { transform: scale(1.5); opacity: 0.9; filter: blur(15px); }
+    }
+
+    /* CONTROLS */
+    .control-bar {
+      /* Padding calculation: 40px base + any system safe area (like iPhone home bar) */
+      padding: 0 20px calc(40px + env(safe-area-inset-bottom));
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end; /* Aligns visually to bottom area */
+      z-index: 20;
+      /* Ensure it doesn't shrink */
+      flex-shrink: 0;
+      min-height: 120px;
+    }
+
+    .btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.2s, box-shadow 0.2s;
+    }
+    .btn:active { transform: scale(0.9); }
+
+    .btn-mic {
+      background: #e2e8f0;
+      color: #0f172a;
+      box-shadow: 0 0 30px rgba(255,255,255,0.1);
+    }
+    .btn-mic.active {
+      background: #ffffff;
+      box-shadow: 0 0 50px rgba(255,255,255,0.5);
+    }
+
+    /* Top Status */
+    .status-pill {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top)); /* Respect notch/status bar */
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #94a3b8;
+    }
+    .status-dot.active { background-color: #34d399; box-shadow: 0 0 8px #34d399; }
+    
+  </style>
+</head>
+<body>
+
+  <div id="auroraBg" class="aurora-bg"></div>
+
+  <div class="status-pill">
+    <div id="statusDot" class="status-dot"></div>
+    <span id="statusText">Live</span>
+  </div>
+
+  <main class="presence-container">
+    <div id="orb" class="orb"></div>
+  </main>
+
+  <footer class="control-bar">
+    <button id="micBtn" class="btn btn-mic" aria-label="Toggle Microphone">
+      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+      </svg>
+    </button>
+  </footer>
+
+  <script>
+    /* -----------------------------------------------------------
+       CONFIGURATION: PROXY ENDPOINT (no API key exposed client-side)
+       ----------------------------------------------------------- */
+    // Use your Cloud Function / proxy to forward requests server-side where the real key is stored
+    const GEMINI_PROXY_URL = "https://us-central1-medxcel.cloudfunctions.net/askGemini";
+
+    // SYSTEM PROMPT
+    const SYSTEM_INSTRUCTION = `
+      You are a casual, curious medical study partner. 
+      Listen to the student's explanation.
+      Your output must be JSON only: { 
+        "good": "Short confirmation.", 
+        "bad": "Short correction.", 
+        "question": "A very natural, short follow-up question (max 8 words) to keep the chat flowing." 
       }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>404</h2>
-      <h1>Page Not Found</h1>
-      <p>The specified file was not found on this website. Please check the URL for mistakes and try again.</p>
-      <h3>Why am I seeing this?</h3>
-      <p>This page was generated by the Firebase Command-Line Interface. To modify it, edit the <code>404.html</code> file in your project's configured <code>public</code> directory.</p>
-    </div>
-  </body>
+    `;
+
+    // UI ELEMENTS
+    const micBtn = document.getElementById('micBtn');
+    const orb = document.getElementById('orb');
+    const auroraBg = document.getElementById('auroraBg');
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+
+    // STATE
+    let recognition;
+    let isListening = false;
+    let isSpeaking = false;
+
+    // --- VISUAL STATE MANAGER ---
+    function setVisualState(state) {
+      orb.classList.remove('listening', 'thinking', 'speaking');
+      micBtn.classList.remove('active');
+      statusDot.classList.remove('active');
+      auroraBg.classList.remove('active');
+
+      switch(state) {
+        case 'IDLE':
+          statusText.textContent = "Live";
+          break;
+        case 'LISTENING':
+          orb.classList.add('listening');
+          micBtn.classList.add('active');
+          statusDot.classList.add('active');
+          auroraBg.classList.add('active');
+          statusText.textContent = "Listening";
+          break;
+        case 'THINKING':
+          orb.classList.add('thinking');
+          statusText.textContent = "Processing";
+          break;
+        case 'SPEAKING':
+          orb.classList.add('speaking');
+          auroraBg.classList.add('active');
+          statusText.textContent = "Aurora";
+          break;
+      }
+    }
+
+    // --- 1. SPEECH RECOGNITION ---
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        setVisualState('LISTENING');
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        if (statusText.textContent !== "Processing" && !isSpeaking) {
+          setVisualState('IDLE');
+        }
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim().length > 0) {
+          setVisualState('THINKING');
+          analyzeWithGemini(transcript);
+        }
+      };
+
+      recognition.onerror = () => setVisualState('IDLE');
+    } else {
+      alert("Voice features require Google Chrome.");
+    }
+
+    // --- 2. BUTTON HANDLERS ---
+    micBtn.addEventListener('click', () => {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+      }
+      if (isListening) recognition.stop();
+      else recognition.start();
+    });
+
+    // --- 3. GEMINI AI (via proxy) ---
+    async function analyzeWithGemini(userText) {
+      // Send userText and system instruction to your Cloud Function which will call Gemini server-side.
+      const url = GEMINI_PROXY_URL;
+      
+      const payload = {
+        contents: [{
+          role: "user",
+          parts: [{ text: SYSTEM_INSTRUCTION + "\nStudent said: " + userText }]
+        }],
+        generationConfig: { response_mime_type: "application/json" }
+      };
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+
+        // Expect the proxy to return the same structure as before.
+        // Adjust the parsing if your proxy returns a different shape.
+        const json = JSON.parse(data.candidates[0].content.parts[0].text);
+        
+        await speakNaturally(json.question);
+
+      } catch (err) {
+        console.error("AI Error", err);
+        setVisualState('IDLE');
+      }
+    }
+
+    // --- 4. NATURAL VOICE ENGINE ---
+    async function speakNaturally(text) {
+      setVisualState('SPEAKING');
+      isSpeaking = true;
+      
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      
+      for (const sentence of sentences) {
+        if (!isSpeaking) break;
+        await playAudioChunk(sentence.trim());
+      }
+      
+      isSpeaking = false;
+      setVisualState('IDLE');
+    }
+
+    function playAudioChunk(text) {
+      return new Promise((resolve) => {
+        if (!text) { resolve(); return; }
+
+        const audio = new Audio();
+        const encoded = encodeURIComponent(text);
+        audio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encoded}`;
+        
+        audio.onended = resolve;
+        audio.onerror = () => {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.rate = 1.1; 
+          utter.pitch = 1.05; 
+          utter.onend = resolve;
+          window.speechSynthesis.speak(utter);
+        };
+        
+        audio.play().catch(() => resolve());
+      });
+    }
+
+  </script>
+</body>
 </html>
