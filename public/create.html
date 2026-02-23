@@ -56,7 +56,7 @@
                 </svg>
             </div>
             <div class="text-blue-400 font-bold tracking-widest text-sm mb-2 uppercase">Aurora is reading...</div>
-            <div class="text-slate-400 text-xs">Extracting key medical concepts</div>
+            <div class="text-slate-400 text-xs" id="loadingText">Uploading file to secure storage...</div>
         </div>
     </div>
 
@@ -103,21 +103,7 @@
             Generate Quiz
         </button>
 
-        <div id="resultsArea" class="hidden mt-8 border-t border-slate-800 pt-8 pb-8">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-bold text-green-400"><i class="fas fa-check-circle mr-2"></i>Generation Complete</h2>
-                <span class="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full text-slate-300">10 Cards</span>
-            </div>
-            <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl relative">
-                <div class="absolute top-3 right-3 text-slate-500 text-xs font-bold">Preview</div>
-                <h3 class="font-bold text-blue-400 text-sm mb-2">Q: What is the primary mechanism?</h3>
-                <p class="text-slate-300 text-sm border-t border-slate-700 pt-2 mt-2">A: It inhibits the enzyme competitively, preventing binding.</p>
-            </div>
-            
-            <button class="w-full mt-4 bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-green-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg">
-                Save & Study Now
-            </button>
-        </div>
+        <div id="resultsArea" class="hidden mt-8 border-t border-slate-800 pt-8 pb-8"></div>
 
     </main>
 
@@ -143,89 +129,171 @@
         </a>
     </nav>
 
-    <script>
-        // --- UI LOGIC ---
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const uploadTitle = document.getElementById('uploadTitle');
-        const uploadSubtitle = document.getElementById('uploadSubtitle');
-        const configSection = document.getElementById('configSection');
-        const generateBtn = document.getElementById('generateBtn');
-        const aiLoader = document.getElementById('aiLoader');
-        const resultsArea = document.getElementById('resultsArea');
-
-        let selectedFile = null;
-        let quizType = "Flashcards";
-
-        // Handle File Selection
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                selectedFile = e.target.files[0];
-                handleFileSelected();
-            }
-        });
-
-        function handleFileSelected() {
-            // Update UI to show file is ready
-            uploadTitle.innerHTML = `<i class="fas fa-file-alt text-blue-400 mr-2"></i> ${selectedFile.name}`;
-            uploadSubtitle.textContent = `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
-            dropZone.classList.add('border-blue-500', 'bg-blue-900/20');
-            
-            // Enable Configuration & Button
-            configSection.style.opacity = '1';
-            configSection.style.pointerEvents = 'auto';
-            
-            generateBtn.disabled = false;
-            generateBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg shadow-blue-900/50";
+<script type="module">
+    // 1. IMPORT FIREBASE SDKs (Auth, Storage, Functions)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+    
+    // 2. YOUR FIREBASE CONFIGURATION
+    const firebaseConfig = {
+        apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+        authDomain: "medxcel.firebaseapp.com",
+        databaseURL: "https://medxcel-default-rtdb.firebaseio.com",
+        projectId: "medxcel",
+        storageBucket: "medxcel.firebasestorage.app",
+        messagingSenderId: "649180317389",
+        appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
+        measurementId: "G-6VQYKEBMSX"
+    };
+    
+    // 3. INITIALIZE FIREBASE
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+    const functions = getFunctions(app);
+    
+    // 4. AUTHENTICATION CHECK
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            // If they aren't logged in, kick them back to the login page!
+            window.location.href = "index.html";
         }
-
-        // Handle Quiz Type Selection
-        document.querySelectorAll('.type-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.type-btn').forEach(b => {
-                    b.className = "type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-3 rounded-xl text-sm font-bold transition hover:bg-slate-700";
-                });
-                e.target.className = "type-btn active bg-blue-600 border-blue-500 border-2 text-white p-3 rounded-xl text-sm font-bold transition";
-                quizType = e.target.textContent;
+    });
+    
+    // --- UI LOGIC ---
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const uploadTitle = document.getElementById('uploadTitle');
+    const uploadSubtitle = document.getElementById('uploadSubtitle');
+    const configSection = document.getElementById('configSection');
+    const generateBtn = document.getElementById('generateBtn');
+    const aiLoader = document.getElementById('aiLoader');
+    const loadingText = document.getElementById('loadingText');
+    const resultsArea = document.getElementById('resultsArea');
+    
+    let selectedFile = null;
+    let quizType = "Flashcards";
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            handleFileSelected();
+        }
+    });
+    
+    function handleFileSelected() {
+        uploadTitle.innerHTML = `<i class="fas fa-file-alt text-blue-400 mr-2"></i> ${selectedFile.name}`;
+        uploadSubtitle.textContent = `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+        dropZone.classList.add('border-blue-500', 'bg-blue-900/20');
+        
+        configSection.style.opacity = '1';
+        configSection.style.pointerEvents = 'auto';
+        
+        generateBtn.disabled = false;
+        generateBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg shadow-blue-900/50";
+    }
+    
+    document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.className = "type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-3 rounded-xl text-sm font-bold transition hover:bg-slate-700";
             });
+            e.target.className = "type-btn active bg-blue-600 border-blue-500 border-2 text-white p-3 rounded-xl text-sm font-bold transition";
+            quizType = e.target.textContent;
         });
-
-        // --- AI GENERATION LOGIC ---
-        generateBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-
-            const topicFocus = document.getElementById('topicFocus').value;
-
-            // 1. Show Aurora Loading Screen
-            aiLoader.classList.remove('hidden-loader');
+    });
+    
+    function displayGeneratedCards(cards) {
+        resultsArea.innerHTML = '';
+        const headerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-green-400">
+                        <i class="fas fa-check-circle mr-2"></i>Generation Complete
+                    </h2>
+                    <span class="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full text-slate-300">
+                        ${cards.length} Cards
+                    </span>
+                </div>
+            `;
+        
+        let cardsHTML = '<div class="space-y-4 max-h-[50vh] overflow-y-auto pr-2">';
+        cards.forEach((card, index) => {
+            cardsHTML += `
+                    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl relative">
+                        <div class="absolute top-3 right-3 text-slate-500 text-xs font-bold">Card ${index + 1}</div>
+                        <h3 class="font-bold text-blue-400 text-sm mb-2">Q: ${card.question}</h3>
+                        <p class="text-slate-300 text-sm border-t border-slate-700 pt-2 mt-2">A: ${card.answer}</p>
+                    </div>
+                `;
+        });
+        cardsHTML += '</div>';
+        
+        const buttonHTML = `
+                <button class="w-full mt-6 bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-green-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg">
+                    Save & Study Now
+                </button>
+            `;
+        
+        resultsArea.innerHTML = headerHTML + cardsHTML + buttonHTML;
+        resultsArea.classList.remove('hidden');
+    }
+    
+    // --- REAL UPLOAD & REAL CLOUD FUNCTION LOGIC ---
+    generateBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+        
+        // Double check that we still have a logged in user before doing work
+        const user = auth.currentUser;
+        if (!user) {
+            alert("You must be logged in to generate a quiz.");
+            return;
+        }
+        
+        const topicFocus = document.getElementById('topicFocus').value;
+        
+        aiLoader.classList.remove('hidden-loader');
+        loadingText.textContent = "Uploading file to secure storage...";
+        
+        try {
+            // 1. Upload to Storage (Using the secure user ID path!)
+            const uniqueFileName = Date.now() + '_' + selectedFile.name;
+            const securePath = `uploads/${user.uid}/${uniqueFileName}`; // Changed this line!
+            const storageReference = ref(storage, securePath);
             
-            // 2. TODO: Implement actual Backend Call here
-            /* * HOW TO CONNECT TO YOUR BACKEND:
-             * Because raw files (PDFs/PPTs) can't be easily parsed by the browser, 
-             * you should upload `selectedFile` to Firebase Storage first.
-             * * Example Flow:
-             * const storageRef = ref(storage, 'uploads/' + selectedFile.name);
-             * await uploadBytes(storageRef, selectedFile);
-             * const downloadURL = await getDownloadURL(storageRef);
-             * * Then, send `downloadURL`, `quizType`, and `topicFocus` to your Gemini Proxy 
-             * (similar to how you did in teach.html). Your cloud function should read 
-             * the file from storage, pass it to Gemini, and return the JSON flashcards.
-             */
-
-            // SIMULATION: Wait 3 seconds to simulate AI reading the file
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // 3. Hide Loader & Show Results
+            await uploadBytes(storageReference, selectedFile);
+            
+            loadingText.textContent = "Aurora is generating your quiz...";
+            
+            // 2. Call the REAL Backend Function
+            const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
+            
+            const response = await generateQuizFunction({
+                filePath: securePath, // Pass the secure path to the backend
+                fileName: selectedFile.name,
+                quizType: quizType,
+                topicFocus: topicFocus
+            });
+            
+            // 3. Extract the real AI data
+            const realServerResponse = response.data.cards;
+            
+            // 4. Update UI
             aiLoader.classList.add('hidden-loader');
-            
-            // Hide the upload/config UI to make room for results
             dropZone.parentElement.style.display = 'none';
             configSection.style.display = 'none';
             generateBtn.style.display = 'none';
-
-            // Show the generated content area
-            resultsArea.classList.remove('hidden');
-        });
-    </script>
+            
+            // 5. Render the REAL data!
+            displayGeneratedCards(realServerResponse);
+            
+        } catch (error) {
+            console.error("Error generating quiz:", error);
+            alert("Something went wrong while generating the quiz. Check the console.");
+            aiLoader.classList.add('hidden-loader');
+        }
+    });
+</script>
 </body>
 </html>
