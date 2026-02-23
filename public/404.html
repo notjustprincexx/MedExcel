@@ -1,397 +1,335 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Teach Aurora — Live Mode</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* THEME: "Deep Void" - Pure Immersion */
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #000000;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - Create Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); }
+        body { 
+            -webkit-user-select: none; user-select: none; 
+            background-color: #0f172a; 
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
 
-    body {
-      /* Use dvh (Dynamic Viewport Height) to avoid hidden areas behind mobile browser bars */
-      height: 100dvh; 
-      width: 100vw;
-      display: flex;
-      flex-direction: column;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #ffffff;
-    }
-
-    /* BACKGROUND: Subtle, shifting aurora */
-    .aurora-bg {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: 
-        radial-gradient(circle at 50% 120%, rgba(37, 99, 235, 0.2), transparent 60%),
-        radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.15), transparent 45%),
-        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15), transparent 45%);
-      z-index: 0;
-      transition: opacity 1s ease;
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    .aurora-bg.active {
-      opacity: 1;
-      filter: brightness(1.3);
-    }
-
-    /* THE PRESENCE (The Orb) */
-    .presence-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      z-index: 10;
-      width: 100%;
-    }
-
-    .orb {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
-      backdrop-filter: blur(10px);
-      box-shadow: inset 0 0 20px rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      display: grid;
-      place-items: center;
-      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      position: relative;
-    }
-
-    /* Orb Inner Core */
-    .orb::after {
-      content: '';
-      position: absolute;
-      width: 40%;
-      height: 40%;
-      background: rgba(255,255,255,0.8);
-      border-radius: 50%;
-      filter: blur(20px);
-      opacity: 0.3;
-      transition: all 0.4s ease;
-    }
-
-    /* STATES */
-    
-    /* 1. Listening */
-    .orb.listening {
-      transform: scale(1.1);
-      border-color: rgba(52, 211, 153, 0.3);
-      box-shadow: 0 0 60px rgba(52, 211, 153, 0.1);
-    }
-    .orb.listening::after {
-      background: #34d399;
-      opacity: 0.6;
-      animation: breathe 3s infinite ease-in-out;
-    }
-
-    /* 2. Thinking */
-    .orb.thinking {
-      transform: scale(0.95);
-      border-color: rgba(96, 165, 250, 0.5);
-    }
-    .orb.thinking::after {
-      background: #60a5fa;
-      opacity: 0.8;
-      animation: ping 1s infinite cubic-bezier(0, 0, 0.2, 1);
-    }
-
-    /* 3. Speaking */
-    .orb.speaking {
-      transform: scale(1.05);
-      border-color: rgba(167, 139, 250, 0.4);
-      box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
-    }
-    .orb.speaking::after {
-      background: #a78bfa;
-      opacity: 0.7;
-      animation: voiceWave 1.5s infinite ease-in-out alternate;
-    }
-
-    @keyframes breathe {
-      0%, 100% { transform: scale(0.95); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 0.8; }
-    }
-    
-    @keyframes voiceWave {
-      0% { transform: scale(0.8); opacity: 0.6; filter: blur(25px); }
-      100% { transform: scale(1.5); opacity: 0.9; filter: blur(15px); }
-    }
-
-    /* CONTROLS */
-    .control-bar {
-      /* Padding calculation: 40px base + any system safe area (like iPhone home bar) */
-      padding: 0 20px calc(40px + env(safe-area-inset-bottom));
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end; /* Aligns visually to bottom area */
-      z-index: 20;
-      /* Ensure it doesn't shrink */
-      flex-shrink: 0;
-      min-height: 120px;
-    }
-
-    .btn {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.1s ease, background 0.2s, box-shadow 0.2s;
-    }
-    .btn:active { transform: scale(0.9); }
-
-    .btn-mic {
-      background: #e2e8f0;
-      color: #0f172a;
-      box-shadow: 0 0 30px rgba(255,255,255,0.1);
-    }
-    .btn-mic.active {
-      background: #ffffff;
-      box-shadow: 0 0 50px rgba(255,255,255,0.5);
-    }
-
-    /* Top Status */
-    .status-pill {
-      position: absolute;
-      top: max(24px, env(safe-area-inset-top)); /* Respect notch/status bar */
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      padding: 8px 16px;
-      border-radius: 99px;
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.7);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      z-index: 20;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: #94a3b8;
-    }
-    .status-dot.active { background-color: #34d399; box-shadow: 0 0 8px #34d399; }
-    
-  </style>
+        /* Shared Loader & Dialog Styles */
+        .loader-screen {
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(4px);
+            z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        .loader-screen.hidden-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid rgba(96, 165, 250, 0.2);
+            border-left-color: #60A5FA; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Upload Area Animations */
+        .upload-zone { transition: all 0.3s ease; }
+        .upload-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); transform: scale(1.02); }
+        
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
 </head>
-<body>
+<body class="text-white h-screen flex flex-col relative">
 
-  <div id="auroraBg" class="aurora-bg"></div>
+    <div id="aiLoader" class="loader-screen hidden-loader" role="status">
+        <div class="text-center flex flex-col items-center">
+            <div class="w-24 h-24 mb-6 animate-pulse filter drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">
+                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/>
+                    <ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/> 
+                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#1E293B"/>
+                    <g stroke="#1E293B" stroke-width="3">
+                        <circle cx="35" cy="52" r="12" fill="white"/>
+                        <circle cx="65" cy="52" r="12" fill="white"/>
+                        <path d="M47 52 L53 52" stroke-width="3"/> 
+                    </g>
+                    <g>
+                        <circle cx="35" cy="48" r="4" fill="#1E293B"/>
+                        <circle cx="65" cy="48" r="4" fill="#1E293B"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="text-blue-400 font-bold tracking-widest text-sm mb-2 uppercase">Aurora is reading...</div>
+            <div class="text-slate-400 text-xs" id="loadingText">Uploading file to secure storage...</div>
+        </div>
+    </div>
 
-  <div class="status-pill">
-    <div id="statusDot" class="status-dot"></div>
-    <span id="statusText">Live</span>
-  </div>
+    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 z-10 border-b border-slate-800">
+        <button onclick="history.back()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="text-xl font-bold flex-1">Create AI Quiz</h1>
+    </header>
 
-  <main class="presence-container">
-    <div id="orb" class="orb"></div>
-  </main>
+    <main class="flex-1 overflow-y-auto pb-24 px-6 pt-6">
+        
+        <div class="mb-8">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">1. Upload Source Material</h2>
+            
+            <div id="dropZone" class="upload-zone border-2 border-dashed border-slate-600 rounded-3xl p-8 bg-slate-800/50 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 relative overflow-hidden">
+                <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt" />
+                
+                <div class="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 text-blue-400">
+                    <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-1" id="uploadTitle">Tap to Upload File</h3>
+                <p class="text-slate-400 text-xs" id="uploadSubtitle">Supports PDF, PPTX, DOCX, or TXT (Max 10MB)</p>
+            </div>
+        </div>
 
-  <footer class="control-bar">
-    <button id="micBtn" class="btn btn-mic" aria-label="Toggle Microphone">
-      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-      </svg>
-    </button>
-  </footer>
+        <div class="mb-8" id="configSection" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">2. Quiz Settings</h2>
+            
+            <div class="space-y-4">
+                <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 focus-within:border-blue-500 transition-colors">
+                    <label class="text-xs text-slate-400 font-bold uppercase mb-1 block">Topic Focus (Optional)</label>
+                    <input type="text" id="topicFocus" placeholder="e.g., Mechanism of Action" class="w-full bg-transparent text-white outline-none text-sm placeholder-slate-500">
+                </div>
 
-  <script>
-    /* -----------------------------------------------------------
-       CONFIGURATION: PROXY ENDPOINT (no API key exposed client-side)
-       ----------------------------------------------------------- */
-    // Use your Cloud Function / proxy to forward requests server-side where the real key is stored
-    const GEMINI_PROXY_URL = "https://us-central1-medxcel.cloudfunctions.net/askGemini";
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="type-btn active bg-blue-600 border-blue-500 border-2 text-white p-3 rounded-xl text-sm font-bold transition">Flashcards</button>
+                    <button class="type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-3 rounded-xl text-sm font-bold transition hover:bg-slate-700">Multiple Choice</button>
+                </div>
+            </div>
+        </div>
 
-    // SYSTEM PROMPT
-    const SYSTEM_INSTRUCTION = `
-      You are a casual, curious medical study partner. 
-      Listen to the student's explanation.
-      Your output must be JSON only: { 
-        "good": "Short confirmation.", 
-        "bad": "Short correction.", 
-        "question": "A very natural, short follow-up question (max 8 words) to keep the chat flowing." 
-      }
-    `;
+        <button id="generateBtn" disabled class="w-full bg-slate-700 text-slate-400 font-extrabold text-sm py-4 rounded-2xl transition-all uppercase tracking-widest shadow-lg opacity-50 cursor-not-allowed">
+            Generate Quiz
+        </button>
 
-    // UI ELEMENTS
-    const micBtn = document.getElementById('micBtn');
-    const orb = document.getElementById('orb');
-    const auroraBg = document.getElementById('auroraBg');
-    const statusText = document.getElementById('statusText');
-    const statusDot = document.getElementById('statusDot');
+        <div id="resultsArea" class="hidden mt-8 border-t border-slate-800 pt-8 pb-8"></div>
 
-    // STATE
-    let recognition;
-    let isListening = false;
-    let isSpeaking = false;
+    </main>
 
-    // --- VISUAL STATE MANAGER ---
-    function setVisualState(state) {
-      orb.classList.remove('listening', 'thinking', 'speaking');
-      micBtn.classList.remove('active');
-      statusDot.classList.remove('active');
-      auroraBg.classList.remove('active');
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
+        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
 
-      switch(state) {
-        case 'IDLE':
-          statusText.textContent = "Live";
-          break;
-        case 'LISTENING':
-          orb.classList.add('listening');
-          micBtn.classList.add('active');
-          statusDot.classList.add('active');
-          auroraBg.classList.add('active');
-          statusText.textContent = "Listening";
-          break;
-        case 'THINKING':
-          orb.classList.add('thinking');
-          statusText.textContent = "Processing";
-          break;
-        case 'SPEAKING':
-          orb.classList.add('speaking');
-          auroraBg.classList.add('active');
-          statusText.textContent = "Aurora";
-          break;
-      }
-    }
+        <a href="create.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span class="text-[10px] font-bold">Create</span>
+        </a>
+        
+        <a href="library.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
+            <span class="text-[10px] font-medium">Library</span>
+        </a>
 
-    // --- 1. SPEECH RECOGNITION ---
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+        <a href="trial.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-medium">Trial</span>
+        </a>
+    </nav>
 
-      recognition.onstart = () => {
-        isListening = true;
-        setVisualState('LISTENING');
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        if (statusText.textContent !== "Processing" && !isSpeaking) {
-          setVisualState('IDLE');
+<script type="module">
+    // 1. IMPORT FIREBASE SDKs (Auth, Storage, Functions)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+    
+    // 2. YOUR FIREBASE CONFIGURATION
+    const firebaseConfig = {
+        apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+        authDomain: "medxcel.firebaseapp.com",
+        databaseURL: "https://medxcel-default-rtdb.firebaseio.com",
+        projectId: "medxcel",
+        storageBucket: "medxcel.firebasestorage.app",
+        messagingSenderId: "649180317389",
+        appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
+        measurementId: "G-6VQYKEBMSX"
+    };
+    
+    // 3. INITIALIZE FIREBASE
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+    const functions = getFunctions(app);
+    
+    // 4. AUTHENTICATION CHECK
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            // If they aren't logged in, kick them back to the login page!
+            window.location.href = "index.html";
         }
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript.trim().length > 0) {
-          setVisualState('THINKING');
-          analyzeWithGemini(transcript);
-        }
-      };
-
-      recognition.onerror = () => setVisualState('IDLE');
-    } else {
-      alert("Voice features require Google Chrome.");
-    }
-
-    // --- 2. BUTTON HANDLERS ---
-    micBtn.addEventListener('click', () => {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        isSpeaking = false;
-      }
-      if (isListening) recognition.stop();
-      else recognition.start();
     });
-
-    // --- 3. GEMINI AI (via proxy) ---
-    async function analyzeWithGemini(userText) {
-      // Send userText and system instruction to your Cloud Function which will call Gemini server-side.
-      const url = GEMINI_PROXY_URL;
-      
-      const payload = {
-        contents: [{
-          role: "user",
-          parts: [{ text: SYSTEM_INSTRUCTION + "\nStudent said: " + userText }]
-        }],
-        generationConfig: { response_mime_type: "application/json" }
-      };
-
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload)
+    
+    // --- UI LOGIC ---
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const uploadTitle = document.getElementById('uploadTitle');
+    const uploadSubtitle = document.getElementById('uploadSubtitle');
+    const configSection = document.getElementById('configSection');
+    const generateBtn = document.getElementById('generateBtn');
+    const aiLoader = document.getElementById('aiLoader');
+    const loadingText = document.getElementById('loadingText');
+    const resultsArea = document.getElementById('resultsArea');
+    
+    let selectedFile = null;
+    let quizType = "Flashcards";
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            handleFileSelected();
+        }
+    });
+    
+    function handleFileSelected() {
+        uploadTitle.innerHTML = `<i class="fas fa-file-alt text-blue-400 mr-2"></i> ${selectedFile.name}`;
+        uploadSubtitle.textContent = `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+        dropZone.classList.add('border-blue-500', 'bg-blue-900/20');
+        
+        configSection.style.opacity = '1';
+        configSection.style.pointerEvents = 'auto';
+        
+        generateBtn.disabled = false;
+        generateBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg shadow-blue-900/50";
+    }
+    
+    document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.className = "type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-3 rounded-xl text-sm font-bold transition hover:bg-slate-700";
+            });
+            e.target.className = "type-btn active bg-blue-600 border-blue-500 border-2 text-white p-3 rounded-xl text-sm font-bold transition";
+            quizType = e.target.textContent;
         });
+    });
+    
+    function displayGeneratedCards(cards) {
+        resultsArea.innerHTML = '';
+        const headerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-green-400">
+                        <i class="fas fa-check-circle mr-2"></i>Generation Complete
+                    </h2>
+                    <span class="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full text-slate-300">
+                        ${cards.length} Cards
+                    </span>
+                </div>
+            `;
         
-        const data = await res.json();
+        let cardsHTML = '<div class="space-y-4 max-h-[50vh] overflow-y-auto pr-2">';
+        cards.forEach((card, index) => {
+            if (card.options) {
+                // MCQ formatting
+                let optionsHTML = '<div class="space-y-2 my-3">';
+                for (const [key, value] of Object.entries(card.options)) {
+                    optionsHTML += `
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50 text-sm">
+                            <span class="font-bold text-blue-500 w-5">${key}.</span>
+                            <span class="text-slate-300 flex-1">${value}</span>
+                        </div>
+                    `;
+                }
+                optionsHTML += '</div>';
 
-        // Expect the proxy to return the same structure as before.
-        // Adjust the parsing if your proxy returns a different shape.
-        const json = JSON.parse(data.candidates[0].content.parts[0].text);
+                let explanationHTML = card.explanation 
+                    ? `<div class="mt-3 text-slate-400 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/50"><span class="font-bold text-slate-300">Explanation:</span> ${card.explanation}</div>`
+                    : '';
+
+                cardsHTML += `
+                    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl relative">
+                        <div class="absolute top-3 right-3 text-slate-500 text-[10px] font-bold uppercase tracking-wider bg-slate-900 px-2 py-1 rounded-md">MCQ ${index + 1}</div>
+                        <h3 class="font-bold text-white text-sm leading-relaxed pr-12">Q: ${card.question}</h3>
+                        ${optionsHTML}
+                        <div class="pt-4 border-t border-slate-700 text-sm flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                                <span class="font-bold text-green-400">Correct Answer: ${card.answer}</span>
+                            </div>
+                            ${explanationHTML}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Flashcard formatting
+                cardsHTML += `
+                    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl relative">
+                        <div class="absolute top-3 right-3 text-slate-500 text-[10px] font-bold uppercase tracking-wider bg-slate-900 px-2 py-1 rounded-md">Card ${index + 1}</div>
+                        <h3 class="font-bold text-blue-400 text-sm mb-3 leading-relaxed pr-12">Q: ${card.question}</h3>
+                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                            <p class="text-slate-300 text-sm font-medium">A: ${card.answer}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        cardsHTML += '</div>';
         
-        await speakNaturally(json.question);
-
-      } catch (err) {
-        console.error("AI Error", err);
-        setVisualState('IDLE');
-      }
+        const buttonHTML = `
+                <button class="w-full mt-6 bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-green-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg">
+                    Save & Study Now
+                </button>
+            `;
+        
+        resultsArea.innerHTML = headerHTML + cardsHTML + buttonHTML;
+        resultsArea.classList.remove('hidden');
     }
-
-    // --- 4. NATURAL VOICE ENGINE ---
-    async function speakNaturally(text) {
-      setVisualState('SPEAKING');
-      isSpeaking = true;
-      
-      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-      
-      for (const sentence of sentences) {
-        if (!isSpeaking) break;
-        await playAudioChunk(sentence.trim());
-      }
-      
-      isSpeaking = false;
-      setVisualState('IDLE');
-    }
-
-    function playAudioChunk(text) {
-      return new Promise((resolve) => {
-        if (!text) { resolve(); return; }
-
-        const audio = new Audio();
-        const encoded = encodeURIComponent(text);
-        audio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encoded}`;
+    
+    // --- REAL UPLOAD & REAL CLOUD FUNCTION LOGIC ---
+    generateBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
         
-        audio.onended = resolve;
-        audio.onerror = () => {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.rate = 1.1; 
-          utter.pitch = 1.05; 
-          utter.onend = resolve;
-          window.speechSynthesis.speak(utter);
-        };
+        // Double check that we still have a logged in user before doing work
+        const user = auth.currentUser;
+        if (!user) {
+            alert("You must be logged in to generate a quiz.");
+            return;
+        }
         
-        audio.play().catch(() => resolve());
-      });
-    }
-
-  </script>
+        const topicFocus = document.getElementById('topicFocus').value;
+        
+        aiLoader.classList.remove('hidden-loader');
+        loadingText.textContent = "Uploading file to secure storage...";
+        
+        try {
+            // 1. Upload to Storage (Using the secure user ID path!)
+            const uniqueFileName = Date.now() + '_' + selectedFile.name;
+            const securePath = `uploads/${user.uid}/${uniqueFileName}`; // Changed this line!
+            const storageReference = ref(storage, securePath);
+            
+            await uploadBytes(storageReference, selectedFile);
+            
+            loadingText.textContent = "Aurora is generating your quiz...";
+            
+            // 2. Call the REAL Backend Function
+            const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
+            
+            const response = await generateQuizFunction({
+                filePath: securePath, // Pass the secure path to the backend
+                fileName: selectedFile.name,
+                quizType: quizType,
+                topicFocus: topicFocus
+            });
+            
+            // 3. Extract the real AI data
+            const realServerResponse = response.data.cards;
+            
+            // 4. Update UI
+            aiLoader.classList.add('hidden-loader');
+            dropZone.parentElement.style.display = 'none';
+            configSection.style.display = 'none';
+            generateBtn.style.display = 'none';
+            
+            // 5. Render the REAL data!
+            displayGeneratedCards(realServerResponse);
+            
+        } catch (error) {
+            console.error("Error generating quiz:", error);
+            alert("Something went wrong while generating the quiz. Check the console.");
+            aiLoader.classList.add('hidden-loader');
+        }
+    });
+</script>
 </body>
 </html>
