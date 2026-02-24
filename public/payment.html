@@ -136,7 +136,6 @@
     </main>
 
 <script type="module">
-  // Using 10.8.0 to exactly match your index file
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
@@ -151,16 +150,15 @@
       measurementId: "G-6VQYKEBMSX"
   };
 
-  const app = initializeApp(firebaseConfig); 
+  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const functions = getFunctions(app);
-  
+
   const verifySubscription = httpsCallable(functions, "verifySubscriptionPayment");
-  
+
   let currentUser = null;
   let paymentInProgress = false;
-  
-  // 🔐 AUTH GUARD
+
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
@@ -169,77 +167,87 @@
       currentUser = null;
     }
   });
-  
+
+  // 🔥 Expose globally so normal script can call it
   window.startPayment = async function(plan) {
-    
-    // User must be logged in to pay. If not, route back to index.html to sign up
+
     if (!currentUser) {
-      alert("Please sign in or create an account to choose a subscription plan.");
+      alert("Please sign in first.");
       window.location.href = "index.html?action=signup";
       return;
     }
-    
+
     if (paymentInProgress) return;
-    
-    // FREE PLAN → Just redirect
+
     if (plan === "free") {
       window.location.href = "homepage.html";
       return;
     }
-    
+
     let amountInKobo = 0;
     if (plan === "premium") amountInKobo = 3500 * 100;
     if (plan === "elite") amountInKobo = 7000 * 100;
-    
+
     paymentInProgress = true;
-    
-    const handler = PaystackPop.setup({
-      key: "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
-      email: currentUser.email,
-      amount: amountInKobo,
-      currency: "NGN",
-      ref: "MEDXCEL_" + Date.now(),
-      
-      metadata: {
-        uid: currentUser.uid,
-        plan: plan
-      },
-      
-      callback: async function(response) {
-        try {
-          alert("Verifying your payment securely. Please wait a moment...");
-          
-          const result = await verifySubscription({
-            reference: response.reference,
-            plan: plan
-          });
-          
-          // Check for success from the Callable function
-          if (result.data && result.data.success) {
-            alert("🎉 Subscription Activated!");
-            setTimeout(() => {
-              window.location.href = "homepage.html";
-            }, 1200);
-          } else {
-            alert("Verification failed. Contact support.");
-          }
-          
-        } catch (error) {
-          console.error("Verification Error:", error);
-          alert("Payment succeeded but verification failed.");
-        }
-        
-        paymentInProgress = false;
-      },
-      
-      onClose: function() {
-        paymentInProgress = false;
-        console.log("Payment popup closed.");
-      }
-    });
-    
-    handler.openIframe();
+
+    // Call Paystack (defined in normal script)
+    openPaystack(
+      currentUser,
+      amountInKobo,
+      plan,
+      verifySubscription,
+      () => { paymentInProgress = false; }
+    );
   };
+</script>
+
+<script>
+function openPaystack(user, amountInKobo, plan, verifySubscription, resetState) {
+
+  const handler = PaystackPop.setup({
+    key: "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
+    email: user.email,
+    amount: amountInKobo,
+    currency: "NGN",
+    ref: "MEDXCEL_" + Date.now(),
+
+    metadata: {
+      uid: user.uid,
+      plan: plan
+    },
+
+    callback: async function(response) {
+      try {
+        alert("Verifying payment...");
+
+        const result = await verifySubscription({
+          reference: response.reference,
+          plan: plan
+        });
+
+        if (result.data && result.data.success) {
+          alert("🎉 Subscription Activated!");
+          window.location.href = "homepage.html";
+        } else {
+          alert("Verification failed. Contact support.");
+        }
+
+      } catch (error) {
+        console.error("Verification error:", error);
+        alert("Payment succeeded but verification failed.");
+      }
+
+      resetState();
+    },
+
+    onClose: function() {
+      console.log("Payment popup closed.");
+      resetState();
+    }
+  });
+
+  handler.openIframe();
+}
 </script>
 </body>
 </html>

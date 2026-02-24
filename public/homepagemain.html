@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MedExcel Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome (free) for consistent "fas" style icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* --- CORE STYLES --- */
         :root {
             --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
         }
@@ -14,11 +16,12 @@
         body { 
             -webkit-user-select: none; 
             user-select: none; 
-            background-color: #0f172a; 
+            background-color: #0f172a; /* Slate 900 */
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow: hidden; 
+            overflow: hidden; /* Prevent scrolling while loader is active */
         }
 
+        /* --- 1. BLOCKING LOADER --- */
         .loader-screen {
             position: fixed;
             inset: 0;
@@ -54,6 +57,7 @@
             animation: pulse 1.5s infinite;
         }
 
+        /* --- 2. OK DIALOG (Custom Modal) --- */
         .ok-backdrop {
             position: fixed;
             inset: 0;
@@ -82,6 +86,7 @@
             opacity: 1;
         }
 
+        /* --- ANIMATIONS --- */
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-5px); }
@@ -122,12 +127,14 @@
             border-color: #334155 transparent transparent transparent;
         }
 
+        /* Hide scrollbar */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
 
+        /* Tutorial Overlay */
         #tutorialOverlay {
             background: rgba(15, 23, 42, 0.6); 
             backdrop-filter: blur(2px);
-            pointer-events: auto; 
+            pointer-events: auto; /* Blocks clicks underneath */
         }
     </style>
 </head>
@@ -151,18 +158,13 @@
         </div>
     </div>
 
-    <header class="pt-6 pb-2 px-6 flex items-center justify-between z-10 gap-3">
-        <div id="searchBar" class="flex-1 bg-slate-800 rounded-full flex items-center px-4 py-3 border border-slate-700 shadow-sm transition-all duration-300">
+    <header class="pt-6 pb-2 px-6 flex items-center justify-between z-10">
+        <div id="searchBar" class="flex-1 bg-slate-800 rounded-full flex items-center px-4 py-3 border border-slate-700 mr-4 shadow-sm transition-all duration-300">
             <svg class="w-5 h-5 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             <input type="text" placeholder="Search decks..." class="bg-transparent border-none outline-none text-sm text-white w-full placeholder-slate-500">
         </div>
 
-        <button onclick="window.location.href='payment.html'" class="flex items-center justify-center gap-1 bg-gradient-to-r from-yellow-600/20 to-yellow-500/20 hover:from-yellow-600/40 hover:to-yellow-500/40 border border-yellow-500/50 text-yellow-500 px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(234,179,8,0.1)] active:scale-95 shrink-0">
-            <i class="fas fa-crown text-[10px]"></i>
-            <span class="hidden sm:inline">Upgrade</span>
-        </button>
-
-        <button id="profileBtn" class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors cursor-pointer flex items-center justify-center shrink-0">
+        <button id="profileBtn" class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors cursor-pointer flex items-center justify-center">
              <img id="userAvatar" src="" alt="Profile" class="w-full h-full object-cover hidden">
              <span id="userInitial" class="text-sm font-bold text-slate-300 hidden">?</span>
         </button>
@@ -215,6 +217,7 @@
                 <button class="text-blue-400 text-xs font-bold uppercase tracking-wider">View All</button>
             </div>
 
+            <!-- Topics grid: Anatomy, Human Physiology, Medical Biochemistry, Pharmacology, Pathology, Pediatrics, Gynecology -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 <a href="topics/anatomy.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Anatomy">
                     <div class="h-14 bg-emerald-500/10 rounded-xl mb-3 flex items-center justify-center">
@@ -276,7 +279,7 @@
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-blue-500">
+        <a href="homepage1 (8).html" class="flex flex-col items-center gap-1 text-blue-500">
             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             <span class="text-[10px] font-bold">Home</span>
         </a>
@@ -332,8 +335,8 @@
         try {
             const avatarImg = document.getElementById('userAvatar');
             const initialSpan = document.getElementById('userInitial');
-            const savedAvatar = localStorage.getItem('userAvatar'); 
-            const savedName = localStorage.getItem('userName'); 
+            const savedAvatar = localStorage.getItem('userAvatar'); // e.g. URL
+            const savedName = localStorage.getItem('userName'); // e.g. "Felix"
 
             if (savedAvatar) {
                 avatarImg.src = savedAvatar;
@@ -342,6 +345,7 @@
                 initialSpan.textContent = savedName.charAt(0).toUpperCase();
                 initialSpan.classList.remove('hidden');
             } else {
+                // Default fallback
                 initialSpan.textContent = "?";
                 initialSpan.classList.remove('hidden');
             }
@@ -366,45 +370,59 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         
+        // --- AUTH CHECKER ---
         const skip = localStorage.getItem("skip") === "true";
 
+        // If Guest, we can hide loader immediately (don't wait for Firebase)
         if (skip) {
             console.log("Guest Access Granted");
             hideLoader();
+            // Show "Guest" UI logic if needed
         }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                // User Found
                 console.log("Verified User:", user.email);
                 
+                // 1. Update LocalStorage for next time (Optimistic UI)
                 const name = user.displayName || user.email.split('@')[0];
                 localStorage.setItem('userName', name);
                 if(user.photoURL) localStorage.setItem('userAvatar', user.photoURL);
                 
+                // 2. Update UI Live
                 updateHeaderUI(name, user.photoURL);
+                
+                // 3. Hide Loader
                 hideLoader();
             } else {
+                // No User Found
                 if (!skip) {
+                    // No user AND No guest flag? Get out.
                     console.log("Unauthorized. Redirecting...");
+                    // Redirect to index sign-in section directly:
                     window.location.href = 'index.html#login';
                 } else {
+                    // Guest is allowed to stay
+                    // Just ensure header shows "Guest"
                     updateHeaderUI("Guest", null);
                 }
             }
         });
 
+        // --- HELPER FUNCTIONS ---
         function hideLoader() {
             const loader = document.getElementById('loaderScreen');
             if(loader && !loader.classList.contains('hidden-loader')) {
                 loader.style.opacity = '0';
                 setTimeout(() => {
                     loader.classList.add('hidden-loader');
-                    document.body.style.overflow = 'auto'; 
+                    document.body.style.overflow = 'auto'; // Re-enable scroll
                     
-                    // You can re-enable this later when ready for production
-                    // if (!localStorage.getItem('medExcelTutorialSeen')) {
-                    //    setTimeout(window.startTutorial, 1000);
-                    // }
+                    // Trigger tutorial check after load
+                    if (!localStorage.getItem('medExcelTutorialSeen')) {
+                        setTimeout(window.startTutorial, 1000);
+                    }
                 }, 400);
             }
         }
@@ -424,6 +442,7 @@
             }
         }
 
+        // --- LOGOUT LOGIC ---
         window.handleProfileClick = async () => {
             const isGuest = localStorage.getItem("skip") === "true";
             const title = isGuest ? "Log In?" : "Log Out?";
@@ -436,14 +455,17 @@
                 if (!isGuest) {
                     try { await signOut(auth); } catch(e) { console.error(e); }
                 }
+                // Clear data
                 localStorage.removeItem("skip");
                 localStorage.removeItem("userName");
                 localStorage.removeItem("userAvatar");
                 
+                // Redirect directly to sign-in part of the index page
                 window.location.href = 'index.html#login';
             }
         };
         
+        // Attach click handler (profile button remains a button)
         document.getElementById('profileBtn').addEventListener('click', window.handleProfileClick);
     </script>
 
@@ -462,7 +484,7 @@
                 btnCancel.textContent = options.cancelText || "Cancel";
 
                 backdrop.style.display = "flex";
-                void backdrop.offsetWidth; 
+                void backdrop.offsetWidth; // Force reflow
                 backdrop.classList.add("active");
 
                 const cleanup = (result) => {
