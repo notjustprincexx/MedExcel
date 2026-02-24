@@ -20,21 +20,20 @@
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* --- LOADER STYLES (From your logic) --- */
+        /* --- LOADER STYLES --- */
         .loader-screen {
             position: fixed;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #0f172a; /* Match body bg */
-            z-index: 10000; /* Highest priority */
+            background: #0f172a;
+            z-index: 10000;
             transition: opacity 0.4s ease;
         }
         
         .loader-content { text-align: center; }
         
-        /* Simple spinner for MedExcel style */
         .spinner {
             width: 50px;
             height: 50px;
@@ -54,7 +53,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* --- OK DIALOG (Blocking Modal) --- */
+        /* --- OK DIALOG --- */
         .ok-backdrop {
             position: fixed;
             inset: 0;
@@ -104,7 +103,6 @@
 
         .aurora-glow { filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.4)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.2)); }
 
-        /* Screen Transitions */
         .screen {
             transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap);
             opacity: 0;
@@ -118,7 +116,6 @@
         }
         .screen.hidden-screen { display: none; }
 
-        /* Confetti */
         .confetti-piece {
             position: absolute;
             width: 8px; height: 12px;
@@ -128,7 +125,6 @@
             pointer-events: none;
             z-index: 60;
         }
-        /* Confetti Keyframes (Same as before) */
         @keyframes explode-1 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-80px, -120px) scale(0.5) rotate(180deg); opacity:0; } }
         @keyframes explode-2 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(40px, -150px) scale(0.5) rotate(-180deg); opacity:0; } }
         @keyframes explode-3 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-120px, -80px) scale(0.5) rotate(90deg); opacity:0; } }
@@ -202,10 +198,11 @@
                 class="w-full bg-slate-800 hover:bg-slate-700 text-blue-400 font-extrabold text-sm py-4 rounded-2xl border-2 border-slate-700 uppercase tracking-widest transition-all">
                 I Already Have An Account
             </button>
-
-            <!-- New Sign Up button (opens the login/signup modal in signup mode) -->
-            <button onclick="toggleSignup()" class="w-full text-slate-300 hover:text-white font-bold text-xs uppercase tracking-widest py-3 border-2 border-slate-800 rounded-2xl transition-colors">
+            <button onclick="toggleSignup()" class="w-full text-slate-300 hover:text-white font-bold text-xs uppercase tracking-widest py-2 rounded-2xl transition-colors">
                 Sign Up
+            </button>
+            <button onclick="window.location.href='payment.html'" class="w-full text-slate-500 hover:text-white font-bold text-xs uppercase tracking-widest py-2 rounded-2xl transition-colors">
+                View Subscription Plans
             </button>
         </div>
     </div>
@@ -289,7 +286,6 @@
         </div>
 
         <div class="w-full max-w-sm mb-8 space-y-4 relative z-10">
-            <!-- Updated: continue button now signs in as guest automatically -->
             <button onclick="continueAsGuest()" 
                 class="w-full bg-blue-500 hover:bg-blue-400 text-slate-900 font-extrabold text-sm py-4 rounded-2xl border-b-[6px] border-blue-700 active:border-b-0 active:translate-y-[6px] transition-all uppercase tracking-widest shadow-lg shadow-blue-900/50">
                 Continue
@@ -301,13 +297,12 @@
         // --- 1. LOADER CONTROLLER ---
         window.__loader = {
             startTime: Date.now(),
-            minMs: 800, // Show loader for at least 800ms to look smooth
+            minMs: 800,
             authResolved: false,
             windowLoaded: false,
             redirecting: false,
             
             checkHide() {
-                // If we are redirecting (Logged in or Guest), KEEP loader up.
                 if (this.redirecting) return;
 
                 if (this.authResolved && this.windowLoaded) {
@@ -320,7 +315,6 @@
                             loader.style.opacity = '0';
                             setTimeout(() => {
                                 loader.style.display = 'none';
-                                // Enable interaction on main body
                                 document.body.style.pointerEvents = 'auto';
                             }, 400);
                         }
@@ -329,7 +323,6 @@
             }
         };
 
-        // Block interaction immediately
         document.body.style.pointerEvents = 'none';
         
         window.addEventListener('load', () => {
@@ -337,7 +330,7 @@
             window.__loader.checkHide();
         });
 
-        // --- 2. DIALOG SYSTEM (Replacing Alert) ---
+        // --- 2. DIALOG SYSTEM ---
         window.showDialog = function (message, title = "Notice", options = {}) {
             return new Promise((resolve) => {
                 const backdrop = document.getElementById("okBackdrop");
@@ -355,7 +348,6 @@
                 else btnCancel.style.display = 'block';
 
                 backdrop.style.display = "flex";
-                // Force reflow
                 void backdrop.offsetWidth;
                 backdrop.classList.add("active");
 
@@ -392,10 +384,8 @@
             }, 300);
         }
 
-        // global flag to track sign-up mode
         window.isSignupMode = false;
 
-        // toggleLogin optionally accepts signup flag
         function toggleLogin(show, signup = false) {
             const login = document.getElementById('loginScreen');
             const titleEl = document.getElementById('loginHeading');
@@ -413,7 +403,6 @@
                 login.classList.add('opacity-0', 'translate-y-10');
                 setTimeout(() => {
                     login.classList.add('hidden');
-                    // reset to sign-in defaults
                     window.isSignupMode = false;
                     titleEl.textContent = 'Enter your details';
                     signInBtn.textContent = 'Sign In';
@@ -421,32 +410,22 @@
             }
         }
 
-        // show signup modal
-        function toggleSignup() {
-            toggleLogin(true, true);
-        }
+        function toggleSignup() { toggleLogin(true, true); }
 
         function togglePassword() {
             const passInput = document.getElementById('loginPassword');
             passInput.type = passInput.type === "password" ? "text" : "password";
         }
 
-        // When user presses Continue on intro screen we mark guest and redirect
         function continueAsGuest() {
-            // mark guest mode so homepage can skip auth
             localStorage.setItem("skip", "true");
-            // keep loader behavior consistent with auth flow
             window.__loader.redirecting = true;
-            // show loader
             const loader = document.getElementById('loaderScreen');
             if (loader) {
                 loader.style.display = 'flex';
                 loader.style.opacity = '1';
             }
-            // go to homepage
-            setTimeout(() => {
-                window.location.href = 'homepage.html';
-            }, 200);
+            setTimeout(() => { window.location.href = 'homepage.html'; }, 200);
         }
 
         function triggerConfetti() {
@@ -468,25 +447,20 @@
                 container.appendChild(piece);
             }
         }
-        // expose continueAsGuest if needed externally
         window.continueAsGuest = continueAsGuest;
         window.toggleSignup = toggleSignup;
     </script>
 
-    <!-- Auto-open login/signup when page loaded with hash or action param -->
     <script>
         (function openAuthFromUrl() {
-            // This should run after toggleLogin / toggleSignup are defined above.
             try {
                 const hash = (location.hash || '').replace('#', '').toLowerCase();
                 const params = new URLSearchParams(location.search);
                 const action = params.get('action') ? params.get('action').toLowerCase() : null;
 
                 if (hash === 'login' || action === 'login') {
-                    // open sign-in modal
                     toggleLogin(true, false);
                 } else if (hash === 'signup' || action === 'signup') {
-                    // open signup modal
                     toggleLogin(true, true);
                 }
             } catch (e) {
@@ -497,7 +471,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -515,38 +489,27 @@
         
         window.suppressAuthRedirect = false;
 
-        // --- AUTH STATE LISTENER ---
         onAuthStateChanged(auth, (user) => {
-            // Signal loader that auth is checked
             window.__loader.authResolved = true;
-
             const skip = localStorage.getItem("skip") === "true";
 
-            if (window.suppressAuthRedirect) {
-                // If we are actively logging in, don't auto-redirect yet
-                return;
-            }
+            if (window.suppressAuthRedirect) return;
 
             if (user || skip) {
-                // Keep loader UP and redirect
                 window.__loader.redirecting = true;
                 window.location.href = 'homepage.html';
             } else {
-                // Not logged in -> Hide Loader
                 window.__loader.checkHide();
             }
         });
 
-        // --- GOOGLE LOGIN ---
         const googleBtn = document.getElementById('googleLoginBtn');
         if (googleBtn) {
             googleBtn.addEventListener('click', async () => {
                 window.suppressAuthRedirect = true;
                 try {
-                    const result = await signInWithPopup(auth, provider);
-                    // Success -> Set redirect flag
+                    await signInWithPopup(auth, provider);
                     window.__loader.redirecting = true;
-                    // Show generic loader text
                     document.querySelector('.loading-text').textContent = "LOGGING IN...";
                     document.getElementById('loaderScreen').style.display = 'flex';
                     document.getElementById('loaderScreen').style.opacity = '1';
@@ -560,7 +523,6 @@
             });
         }
 
-        // --- EMAIL SIGN IN / SIGN UP ---
         const emailBtn = document.getElementById('signInBtn');
         if (emailBtn) {
             emailBtn.addEventListener('click', async () => {
@@ -574,11 +536,9 @@
 
                 window.suppressAuthRedirect = true;
 
-                // If in signup mode, create account instead
                 if (window.isSignupMode) {
                     try {
                         await createUserWithEmailAndPassword(auth, email, pass);
-                        // Signed up and logged in
                         window.__loader.redirecting = true;
                         localStorage.removeItem("skip");
                         window.location.href = 'homepage.html';
