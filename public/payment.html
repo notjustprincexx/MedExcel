@@ -7,8 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <script src="https://js.paystack.co/v1/inline.js"></script>
-
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -138,7 +136,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
   
   const firebaseConfig = {
       apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -152,12 +149,8 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const functions = getFunctions(app);
-
-  const verifySubscription = httpsCallable(functions, "verifySubscriptionPayment");
 
   let currentUser = null;
-  let paymentInProgress = false;
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -168,86 +161,34 @@
     }
   });
 
-  // 🔥 Expose globally so normal script can call it
-  window.startPayment = async function(plan) {
-
+  // Expose globally so button clicks can call it
+  window.startPayment = function(plan) {
+    // 1. Check if the user is logged in
     if (!currentUser) {
       alert("Please sign in first.");
       window.location.href = "index.html?action=signup";
       return;
     }
 
-    if (paymentInProgress) return;
-
+    // 2. Handle the Free plan
     if (plan === "free") {
       window.location.href = "homepage.html";
       return;
     }
 
-    let amountInKobo = 0;
-    if (plan === "premium") amountInKobo = 3500 * 100;
-    if (plan === "elite") amountInKobo = 7000 * 100;
+    // 3. Handle Premium plan redirect
+    if (plan === "premium") {
+        window.location.href = "https://paystack.shop/pay/5wqjry1l0a";
+        return;
+    }
 
-    paymentInProgress = true;
-
-    // Call Paystack (defined in normal script)
-    openPaystack(
-      currentUser,
-      amountInKobo,
-      plan,
-      verifySubscription,
-      () => { paymentInProgress = false; }
-    );
+    // 4. Handle Elite plan redirect
+    if (plan === "elite") {
+        window.location.href = "https://paystack.shop/pay/lw17s2ggpj";
+        return;
+    }
   };
 </script>
 
-<script>
-function openPaystack(user, amountInKobo, plan, verifySubscription, resetState) {
-
-  const handler = PaystackPop.setup({
-    key: "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
-    email: user.email,
-    amount: amountInKobo,
-    currency: "NGN",
-    ref: "MEDXCEL_" + Date.now(),
-
-    metadata: {
-      uid: user.uid,
-      plan: plan
-    },
-
-    callback: async function(response) {
-      try {
-        alert("Verifying payment...");
-
-        const result = await verifySubscription({
-          reference: response.reference,
-          plan: plan
-        });
-
-        if (result.data && result.data.success) {
-          alert("🎉 Subscription Activated!");
-          window.location.href = "homepage.html";
-        } else {
-          alert("Verification failed. Contact support.");
-        }
-
-      } catch (error) {
-        console.error("Verification error:", error);
-        alert("Payment succeeded but verification failed.");
-      }
-
-      resetState();
-    },
-
-    onClose: function() {
-      console.log("Payment popup closed.");
-      resetState();
-    }
-  });
-
-  handler.openIframe();
-}
-</script>
 </body>
 </html>
