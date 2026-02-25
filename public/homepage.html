@@ -136,7 +136,7 @@
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-content">
             <div class="spinner"></div>
-            <div class="loading-text">LOADING...</div>
+            <div id="loaderText" class="loading-text">LOADING...</div>
         </div>
     </div>
 
@@ -352,6 +352,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // 🔹 ADDED THE FUNCTIONS IMPORT 🔹
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -365,6 +367,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const functions = getFunctions(app); // 🔹 Initialize functions
         
         const skip = localStorage.getItem("skip") === "true";
 
@@ -373,7 +376,7 @@
             hideLoader();
         }
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 console.log("Verified User:", user.email);
                 
@@ -382,7 +385,37 @@
                 if(user.photoURL) localStorage.setItem('userAvatar', user.photoURL);
                 
                 updateHeaderUI(name, user.photoURL);
-                hideLoader();
+                
+                // 🔹 NEW PAYMENT REDIRECT LOGIC 🔹
+                const urlParams = new URLSearchParams(window.location.search);
+                const reference = urlParams.get('reference') || urlParams.get('trxref');
+
+                if (reference) {
+                    // Show verifying loader
+                    document.getElementById('loaderText').textContent = "VERIFYING PAYMENT...";
+                    
+                    try {
+                        const verifyPayment = httpsCallable(functions, 'verifySubscriptionPayment');
+                        const result = await verifyPayment({ reference: reference });
+                        
+                        if (result.data && result.data.success) {
+                            const capitalizedPlan = result.data.plan.charAt(0).toUpperCase() + result.data.plan.slice(1);
+                            await window.showDialog(`Welcome to MedExcel ${capitalizedPlan}! Your account has been upgraded successfully.`, "Payment Confirmed");
+                        } else {
+                            await window.showDialog("We couldn't verify your payment right now. Please contact support.", "Verification Failed");
+                        }
+                    } catch (error) {
+                        console.error("Payment verification error:", error);
+                        await window.showDialog("An error occurred while checking your payment.", "Verification Error");
+                    } finally {
+                        // Clean the URL so it doesn't try to verify again if they refresh
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        hideLoader();
+                    }
+                } else {
+                    hideLoader();
+                }
+                
             } else {
                 if (!skip) {
                     console.log("Unauthorized. Redirecting...");
@@ -400,11 +433,6 @@
                 setTimeout(() => {
                     loader.classList.add('hidden-loader');
                     document.body.style.overflow = 'auto'; 
-                    
-                    // You can re-enable this later when ready for production
-                    // if (!localStorage.getItem('medExcelTutorialSeen')) {
-                    //    setTimeout(window.startTutorial, 1000);
-                    // }
                 }, 400);
             }
         }

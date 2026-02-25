@@ -75,7 +75,7 @@
                     <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Access to manual flashcard builder</li>
                 </ul>
 
-                <button onclick="startPayment('free')" class="w-full py-3.5 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium transition-colors border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 mt-auto">
+                <button data-plan="free" class="plan-btn w-full py-3.5 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium transition-colors border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 mt-auto">
                     Continue Free
                 </button>
             </div>
@@ -99,7 +99,7 @@
                     <li class="flex items-start gap-3 font-medium text-white"><svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>AI voice explanation (Feynman mode)</li>
                 </ul>
 
-                <button onclick="startPayment('premium')" class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto">
+                <button data-plan="premium" class="plan-btn w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto">
                     Upgrade to Premium
                 </button>
             </div>
@@ -120,7 +120,7 @@
                     <li class="flex items-start gap-3 font-medium text-white"><svg class="w-5 h-5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Advanced AI Tutor Mode</li>
                 </ul>
 
-                <button onclick="startPayment('elite')" class="w-full py-3.5 px-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-gray-950 rounded-xl font-bold shadow-[0_0_15px_rgba(234,179,8,0.3)] transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto relative z-10">
+                <button data-plan="elite" class="plan-btn w-full py-3.5 px-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-gray-950 rounded-xl font-bold shadow-[0_0_15px_rgba(234,179,8,0.3)] transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto relative z-10">
                     Go Elite
                 </button>
             </div>
@@ -135,8 +135,54 @@
         </div>
     </main>
 
+<script>
+window.openPaystack = function(user, amountInKobo, plan, verifySubscriptionCallable, resetStateCallback) {
+  const handler = PaystackPop.setup({
+    key: "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
+    email: user.email,
+    amount: amountInKobo,
+    currency: "NGN",
+    ref: "MEDXCEL_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+
+    metadata: {
+      uid: user.uid,
+      plan: plan
+    },
+
+    callback: async function(response) {
+      try {
+        alert("Payment successful! Verifying your subscription securely...");
+
+        const result = await verifySubscriptionCallable({
+          reference: response.reference,
+          plan: plan
+        });
+
+        if (result.data && result.data.success) {
+          alert("🎉 Subscription Activated!");
+          window.location.href = "homepage.html";
+        } else {
+          alert("Payment verified, but there was an issue applying your plan. Please contact support.");
+        }
+      } catch (error) {
+        console.error("Verification error:", error);
+        alert("Payment succeeded, but an error occurred during verification. Please contact support.");
+      } finally {
+         resetStateCallback();
+      }
+    },
+
+    onClose: function() {
+      console.log("Payment popup closed by user.");
+      resetStateCallback();
+    }
+  });
+
+  handler.openIframe();
+}
+</script>
+
 <script type="module">
-  // Using 10.8.0 to exactly match your index file
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
@@ -151,16 +197,15 @@
       measurementId: "G-6VQYKEBMSX"
   };
 
-  const app = initializeApp(firebaseConfig); 
+  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const functions = getFunctions(app);
-  
+
   const verifySubscription = httpsCallable(functions, "verifySubscriptionPayment");
-  
+
   let currentUser = null;
   let paymentInProgress = false;
-  
-  // 🔐 AUTH GUARD
+
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
@@ -169,77 +214,61 @@
       currentUser = null;
     }
   });
-  
-  window.startPayment = async function(plan) {
-    
-    // User must be logged in to pay. If not, route back to index.html to sign up
+
+  function handlePaymentClick(event) {
+    const button = event.currentTarget;
+    const plan = button.getAttribute('data-plan');
+
     if (!currentUser) {
-      alert("Please sign in or create an account to choose a subscription plan.");
-      window.location.href = "index.html?action=signup";
+      alert("Please sign in first.");
+      window.location.href = "index.html#login";
       return;
     }
-    
+
     if (paymentInProgress) return;
-    
-    // FREE PLAN → Just redirect
+
     if (plan === "free") {
       window.location.href = "homepage.html";
       return;
     }
-    
+
     let amountInKobo = 0;
     if (plan === "premium") amountInKobo = 3500 * 100;
     if (plan === "elite") amountInKobo = 7000 * 100;
-    
+
     paymentInProgress = true;
-    
-    const handler = PaystackPop.setup({
-      key: "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
-      email: currentUser.email,
-      amount: amountInKobo,
-      currency: "NGN",
-      ref: "MEDXCEL_" + Date.now(),
-      
-      metadata: {
-        uid: currentUser.uid,
-        plan: plan
-      },
-      
-      callback: async function(response) {
-        try {
-          alert("Verifying your payment securely. Please wait a moment...");
-          
-          const result = await verifySubscription({
-            reference: response.reference,
-            plan: plan
-          });
-          
-          // Check for success from the Callable function
-          if (result.data && result.data.success) {
-            alert("🎉 Subscription Activated!");
-            setTimeout(() => {
-              window.location.href = "homepage.html";
-            }, 1200);
-          } else {
-            alert("Verification failed. Contact support.");
-          }
-          
-        } catch (error) {
-          console.error("Verification Error:", error);
-          alert("Payment succeeded but verification failed.");
-        }
-        
-        paymentInProgress = false;
-      },
-      
-      onClose: function() {
-        paymentInProgress = false;
-        console.log("Payment popup closed.");
-      }
+    button.disabled = true; 
+    const originalText = button.innerHTML;
+    button.innerHTML = "Processing...";
+
+    const resetState = () => {
+      paymentInProgress = false;
+      button.disabled = false;
+      button.innerHTML = originalText;
+    };
+
+    if (typeof window.openPaystack === 'function') {
+      window.openPaystack(
+        currentUser,
+        amountInKobo,
+        plan,
+        verifySubscription,
+        resetState
+      );
+    } else {
+      console.error("Paystack initialization function not found.");
+      resetState();
+      alert("An error occurred loading the payment gateway. Please refresh.");
+    }
+  }
+
+  // Attach event listeners to all buttons once DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    const planButtons = document.querySelectorAll(".plan-btn");
+    planButtons.forEach(btn => {
+      btn.addEventListener("click", handlePaymentClick);
     });
-    
-    handler.openIframe();
-  };
+  });
 </script>
 </body>
 </html>
