@@ -136,7 +136,7 @@
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-content">
             <div class="spinner"></div>
-            <div id="loaderText" class="loading-text">LOADING...</div>
+            <div class="loading-text">LOADING...</div>
         </div>
     </div>
 
@@ -286,14 +286,14 @@
             <span class="text-[10px] font-medium">Create</span>
         </a>
         
+        <a href="practice.html" id="practiceBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            <span class="text-[10px] font-medium">Practice</span>
+        </a>
+
         <a href="library.html" id="libraryBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
             <span class="text-[10px] font-medium">Library</span>
-        </a>
-
-        <a href="teach.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
-             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v7"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 17.5L12 20l-4.5-2.5"></path></svg>
-            <span class="text-[10px] font-medium">Teach</span>
         </a>
     </nav>
 
@@ -352,8 +352,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        // 🔹 ADDED THE FUNCTIONS IMPORT 🔹
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -367,7 +365,6 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const functions = getFunctions(app); // 🔹 Initialize functions
         
         const skip = localStorage.getItem("skip") === "true";
 
@@ -376,7 +373,7 @@
             hideLoader();
         }
 
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log("Verified User:", user.email);
                 
@@ -385,37 +382,7 @@
                 if(user.photoURL) localStorage.setItem('userAvatar', user.photoURL);
                 
                 updateHeaderUI(name, user.photoURL);
-                
-                // 🔹 NEW PAYMENT REDIRECT LOGIC 🔹
-                const urlParams = new URLSearchParams(window.location.search);
-                const reference = urlParams.get('reference') || urlParams.get('trxref');
-
-                if (reference) {
-                    // Show verifying loader
-                    document.getElementById('loaderText').textContent = "VERIFYING PAYMENT...";
-                    
-                    try {
-                        const verifyPayment = httpsCallable(functions, 'verifySubscriptionPayment');
-                        const result = await verifyPayment({ reference: reference });
-                        
-                        if (result.data && result.data.success) {
-                            const capitalizedPlan = result.data.plan.charAt(0).toUpperCase() + result.data.plan.slice(1);
-                            await window.showDialog(`Welcome to MedExcel ${capitalizedPlan}! Your account has been upgraded successfully.`, "Payment Confirmed");
-                        } else {
-                            await window.showDialog("We couldn't verify your payment right now. Please contact support.", "Verification Failed");
-                        }
-                    } catch (error) {
-                        console.error("Payment verification error:", error);
-                        await window.showDialog("An error occurred while checking your payment.", "Verification Error");
-                    } finally {
-                        // Clean the URL so it doesn't try to verify again if they refresh
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                        hideLoader();
-                    }
-                } else {
-                    hideLoader();
-                }
-                
+                hideLoader();
             } else {
                 if (!skip) {
                     console.log("Unauthorized. Redirecting...");
@@ -433,6 +400,11 @@
                 setTimeout(() => {
                     loader.classList.add('hidden-loader');
                     document.body.style.overflow = 'auto'; 
+                    
+                    // You can re-enable this later when ready for production
+                    // if (!localStorage.getItem('medExcelTutorialSeen')) {
+                    //    setTimeout(window.startTutorial, 1000);
+                    // }
                 }, 400);
             }
         }

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - Study Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { 
+            background-color: #0f172a; 
+            font-family: ui-sans-serif, system-ui, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-white h-screen flex flex-col overflow-hidden bg-slate-900">
+
+    <div class="flex-1 flex w-full h-full overflow-hidden pb-[80px] lg:pb-0 relative">
+        
+        <aside id="libraryPanel" class="w-full lg:w-1/3 lg:max-w-sm border-r border-slate-800 bg-slate-900/50 flex flex-col h-full z-10 transition-transform duration-300">
+            <div class="p-6 border-b border-slate-800 flex-shrink-0 pt-8 lg:pt-6">
+                <h1 class="text-xl font-bold mb-4 tracking-wide">Library</h1>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-slate-500"></i>
+                    <input type="text" id="searchInput" placeholder="Search quizzes..." class="w-full bg-slate-800 text-sm rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-300 border border-slate-700">
+                </div>
+            </div>
+
+            <div class="flex overflow-x-auto hide-scroll p-4 gap-2 border-b border-slate-800 flex-shrink-0">
+                <button class="tab-btn active px-5 py-2 rounded-full text-xs font-bold bg-blue-600 text-white whitespace-nowrap" data-filter="all">All</button>
+                <button class="tab-btn px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition whitespace-nowrap" data-filter="favorites">Favorites</button>
+                <button class="tab-btn px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition whitespace-nowrap" data-filter="due">Due for Review</button>
+            </div>
+
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+                <div class="flex gap-2 overflow-x-auto hide-scroll" id="folderList">
+                    <span class="text-xs text-slate-500 uppercase font-bold tracking-widest mt-1">Folders</span>
+                </div>
+                <button onclick="openModal('folderModal')" class="w-8 h-8 rounded-full bg-slate-800 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fas fa-plus"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-6" id="quizContainer">
+                </div>
+        </aside>
+
+        <main id="practicePanel" class="hidden lg:flex w-full lg:flex-1 flex-col absolute lg:relative inset-0 bg-slate-900 z-20 h-full transition-transform duration-300">
+            
+            <header class="h-[72px] lg:h-16 border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 bg-slate-900/95 backdrop-blur-md z-30 flex-shrink-0 pt-4 lg:pt-0">
+                <div class="flex items-center gap-3 lg:gap-6 w-full lg:w-auto">
+                    <button onclick="closePracticeMobile()" class="lg:hidden w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 active:scale-95 transition-transform">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    
+                    <div class="flex items-center gap-1.5 lg:gap-2 text-yellow-500 font-bold bg-yellow-500/10 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-sm">
+                        <i class="fas fa-bolt"></i> <span id="xpDisplay">0 XP</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 lg:gap-2 text-orange-500 font-bold bg-orange-500/10 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-sm">
+                        <i class="fas fa-fire"></i> <span id="streakDisplay">0 Day</span>
+                    </div>
+                    <div class="hidden lg:block text-xs text-slate-400 border-l border-slate-700 pl-6" id="weaknessDisplay">
+                        Analyze stats to find weaknesses...
+                    </div>
+                </div>
+                <button id="dailyChallengeBtn" class="hidden lg:block bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg active:scale-95 transition-transform">
+                    Daily Challenge
+                </button>
+            </header>
+
+            <div id="practiceArea" class="flex-1 overflow-y-auto p-4 lg:p-8 flex items-center justify-center pb-8">
+                <div class="text-center text-slate-500 hidden lg:block">
+                    <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
+                    <p class="font-medium tracking-wide">Select a quiz from your library to begin.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <nav class="fixed lg:hidden bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-40">
+        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-home text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="study.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
+            <i class="fas fa-layer-group text-xl mb-0.5"></i>
+            <span class="text-[10px] font-bold">Study</span>
+        </a>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Create</span>
+        </a>
+    </nav>
+
+    <div id="deleteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[100]">
+        <div class="glass-panel rounded-2xl p-6 lg:p-8 max-w-[320px] w-full mx-4 text-center transform scale-95 transition-transform">
+            <i class="fas fa-exclamation-triangle text-3xl text-red-400 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Delete Quiz?</h3>
+            <p class="text-slate-400 text-sm mb-6">This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('deleteModal')" class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-transform">Cancel</button>
+                <button id="confirmDeleteBtn" class="flex-1 py-3.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/50 font-bold active:scale-95 transition-transform">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="folderModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-[100]">
+        <div class="glass-panel rounded-2xl p-6 lg:p-8 max-w-[320px] w-full mx-4 transform scale-95 transition-transform">
+            <h3 class="text-xl font-bold text-white mb-4">Create Folder</h3>
+            <input type="text" id="newFolderName" placeholder="Folder Name" class="w-full bg-slate-800/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none mb-6">
+            <div class="flex gap-3">
+                <button onclick="closeModal('folderModal')" class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-transform">Cancel</button>
+                <button id="createFolderBtn" class="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold active:scale-95 transition-transform">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Structures
+        let userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {
+            xp: 0, level: 1, streak: 0, lastStudyDate: null, weaknesses: {}
+        };
+        let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let isExamMode = false;
+        let examScore = 0;
+
+        // Mobile View Navigation
+        function openPracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.add('hidden');
+                document.getElementById('practicePanel').classList.remove('hidden');
+                document.getElementById('practicePanel').classList.add('flex');
+            }
+        }
+
+        function closePracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.remove('hidden');
+                document.getElementById('practicePanel').classList.add('hidden');
+                document.getElementById('practicePanel').classList.remove('flex');
+            }
+        }
+
+        function updateStatsUI() {
+            document.getElementById('xpDisplay').innerText = `${userStats.xp} XP`;
+            document.getElementById('streakDisplay').innerText = `${userStats.streak} Day`;
+        }
+
+        function addXP(amount) {
+            userStats.xp += amount;
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(userStats));
+            updateStatsUI();
+        }
+
+        function renderLibrary(filter = 'all', searchQuery = '') {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+            
+            let filtered = quizzes.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-500 py-8 text-sm">No quizzes found.</div>`;
+                return;
+            }
+
+            filtered.forEach(quiz => {
+                container.innerHTML += `
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 active:scale-[0.98] transition-all group cursor-pointer relative" onclick="loadQuizOverview(${quiz.id})">
+                        <div class="flex justify-between items-start mb-2 pr-6">
+                            <h3 class="font-bold text-slate-200 text-sm leading-tight">${quiz.title}</h3>
+                            <button onclick="toggleFavorite(event, ${quiz.id})" class="text-${quiz.favorite ? 'yellow-500' : 'slate-600'} absolute right-4 top-4 text-lg p-2 -m-2 z-10">
+                                <i class="fas fa-star"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px] lg:text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">
+                            <span class="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">${quiz.subject}</span>
+                            <span>${quiz.questions.length} Qs</span>
+                        </div>
+                        <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-700/50">
+                            <span class="text-xs font-medium text-slate-400">Best: ${quiz.stats.bestScore}/${quiz.questions.length}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function loadQuizOverview(id) {
+            currentQuiz = quizzes.find(q => q.id === id);
+            openPracticeMobile();
+            
+            const area = document.getElementById('practiceArea');
+            area.innerHTML = `
+                <div class="w-full max-w-2xl bg-slate-800 rounded-3xl p-6 lg:p-10 border border-slate-700 shadow-2xl relative overflow-hidden">
+                    <span class="bg-blue-900/40 text-blue-400 text-[10px] lg:text-xs font-bold px-3 py-1.5 rounded-full border border-blue-500/30 uppercase tracking-widest">${currentQuiz.subject}</span>
+                    <h2 class="text-2xl lg:text-3xl font-bold text-white mt-4 mb-2">${currentQuiz.title}</h2>
+                    <p class="text-slate-400 text-sm mb-8"><i class="fas fa-layer-group mr-2"></i>${currentQuiz.questions.length} Multiple Choice Questions</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 lg:gap-4 mb-8">
+                        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700 text-center lg:text-left">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Previous Best</p>
+                            <p class="text-2xl font-bold text-slate-200">${currentQuiz.stats.bestScore} <span class="text-sm text-slate-500">/ ${currentQuiz.questions.length}</span></p>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700 text-center lg:text-left">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Attempts</p>
+                            <p class="text-2xl font-bold text-slate-200">${currentQuiz.stats.attempts}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col lg:flex-row gap-3 lg:gap-4">
+                        <button onclick="startPractice(false)" class="flex-1 bg-blue-600 text-white font-extrabold py-4 rounded-xl active:scale-[0.98] transition-transform shadow-lg uppercase tracking-wider text-sm">
+                            <i class="fas fa-play mr-2"></i> Start Practice
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startPractice(exam) {
+            isExamMode = exam;
+            currentQuestionIndex = 0;
+            examScore = 0;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= currentQuiz.questions.length) {
+                finishQuiz();
+                return;
+            }
+
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const area = document.getElementById('practiceArea');
+            const progress = ((currentQuestionIndex) / currentQuiz.questions.length) * 100;
+
+            let optionsHtml = q.options.map((opt, idx) => `
+                <button onclick="selectAnswer(${idx})" class="w-full text-left p-4 rounded-xl bg-slate-900 border border-slate-700 active:scale-[0.98] transition-transform flex items-center gap-4">
+                    <span class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 border border-slate-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                        ${String.fromCharCode(65 + idx)}
+                    </span>
+                    <span class="text-slate-300 text-sm leading-relaxed">${opt}</span>
+                </button>
+            `).join('');
+
+            area.innerHTML = `
+                <div class="w-full max-w-3xl flex flex-col h-full py-2 lg:py-8">
+                    <div class="mb-6 lg:mb-8">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                            <span>Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 transition-all duration-300" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 rounded-3xl p-6 lg:p-8 border border-slate-700 shadow-xl mb-6 flex-1 overflow-y-auto hide-scroll">
+                        <h3 class="text-base lg:text-lg font-bold text-white leading-relaxed mb-6">${q.text}</h3>
+                        <div class="space-y-3" id="optionsContainer">${optionsHtml}</div>
+                        <div id="explanationArea" class="hidden mt-6 pt-6 border-t border-slate-700"></div>
+                    </div>
+
+                    <div class="mt-auto pt-4 flex justify-end">
+                        <button id="nextQBtn" onclick="renderQuestion()" class="hidden w-full lg:w-auto bg-blue-600 text-white font-extrabold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform uppercase tracking-wider text-sm shadow-lg">
+                            ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Quiz' : 'Next Question'} <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectAnswer(selectedIndex) {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            const container = document.getElementById('optionsContainer');
+            const explanationArea = document.getElementById('explanationArea');
+            const nextBtn = document.getElementById('nextQBtn');
+
+            if (isCorrect) {
+                examScore++;
+                addXP(10);
+            }
+
+            Array.from(container.children).forEach((btn, idx) => {
+                btn.disabled = true;
+                const letterBox = btn.querySelector('span');
+                
+                if (idx === q.correct) {
+                    btn.classList.add('bg-green-900/30', 'border-green-500');
+                    letterBox.classList.add('bg-green-500', 'text-slate-900', 'border-green-500');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.add('bg-red-900/30', 'border-red-500', 'opacity-60');
+                    letterBox.classList.add('bg-red-500/30', 'text-red-400', 'border-red-500');
+                } else {
+                    btn.classList.add('opacity-40');
+                }
+            });
+
+            explanationArea.innerHTML = `
+                <div class="flex items-center gap-2 mb-3">
+                    ${isCorrect 
+                        ? '<span class="text-green-400 font-bold bg-green-400/10 px-3 py-1.5 rounded-lg text-xs tracking-wider uppercase"><i class="fas fa-check-circle mr-1"></i> Correct</span>' 
+                        : '<span class="text-red-400 font-bold bg-red-400/10 px-3 py-1.5 rounded-lg text-xs tracking-wider uppercase"><i class="fas fa-times-circle mr-1"></i> Incorrect</span>'}
+                </div>
+                <p class="text-slate-300 text-sm leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <span class="font-bold text-slate-400 block mb-1">Explanation:</span> ${q.explanation}
+                </p>
+            `;
+            explanationArea.classList.remove('hidden');
+            nextBtn.classList.remove('hidden');
+            currentQuestionIndex++;
+            
+            // Auto scroll to explanation on mobile
+            explanationArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function finishQuiz() {
+            addXP(50);
+            currentQuiz.stats.attempts++;
+            currentQuiz.stats.lastScore = examScore;
+            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+            renderLibrary();
+
+            const area = document.getElementById('practiceArea');
+            const percentage = Math.round((examScore / currentQuiz.questions.length) * 100);
+            
+            area.innerHTML = `
+                <div class="w-full max-w-md bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center">
+                    <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
+                        <i class="fas ${percentage >= 80 ? 'fa-trophy' : 'fa-check'} text-3xl text-white"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Quiz Complete!</h2>
+                    <p class="text-slate-400 text-sm mb-8">You finished <span class="text-slate-200 font-bold">${currentQuiz.title}</span></p>
+                    
+                    <div class="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">Final Score</p>
+                        <p class="text-4xl font-extrabold text-blue-400">${examScore} <span class="text-lg text-slate-500">/ ${currentQuiz.questions.length}</span></p>
+                        <p class="text-xs mt-3 ${percentage >= 80 ? 'text-green-400' : 'text-yellow-500'} font-bold uppercase tracking-wider">Accuracy: ${percentage}%</p>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <button onclick="startPractice(false)" class="w-full py-4 rounded-xl bg-blue-600 text-white font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform shadow-lg">
+                            Retry Quiz
+                        </button>
+                        <button onclick="closePracticeMobile()" class="w-full py-4 rounded-xl bg-slate-700 text-slate-300 font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform lg:hidden">
+                            Back to Library
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleFavorite(e, id) {
+            e.stopPropagation();
+            const quiz = quizzes.find(q => q.id === id);
+            quiz.favorite = !quiz.favorite;
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+            renderLibrary();
+        }
+
+        function openModal(id) { 
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { modal.firstElementChild.classList.remove('scale-95'); }, 10);
+        }
+        
+        function closeModal(id) { 
+            const modal = document.getElementById(id);
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => { 
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatsUI();
+            renderLibrary();
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('bg-blue-600', 'text-white');
+                        b.classList.add('bg-slate-800', 'text-slate-400');
+                    });
+                    e.target.classList.remove('bg-slate-800', 'text-slate-400');
+                    e.target.classList.add('bg-blue-600', 'text-white');
+                    renderLibrary(e.target.dataset.filter, document.getElementById('searchInput').value);
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const activeTab = document.querySelector('.tab-btn.bg-blue-600').dataset.filter;
+                renderLibrary(activeTab, e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>

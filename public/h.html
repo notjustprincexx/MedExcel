@@ -1,194 +1,349 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedExcel - Choose Your Plan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - Create AI Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], },
-                    colors: {
-                        gray: { 850: '#1f2937', 900: '#111827', 950: '#030712', }
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #030712;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
-            background-attachment: fixed;
+        body { 
+            background-color: #0f172a; 
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         }
-        .glass-card {
-            background: rgba(17, 24, 39, 0.4);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        /* Glassmorphism Classes */
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        ::-webkit-scrollbar { width: 4px; background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        .option-btn.active {
+            background-color: #2563eb; /* blue-600 */
+            border-color: #3b82f6; /* blue-500 */
+            color: #ffffff;
         }
     </style>
 </head>
-<body class="text-gray-100 min-h-screen flex flex-col font-sans antialiased relative overflow-x-hidden selection:bg-blue-500/30">
+<body class="text-white h-screen flex flex-col relative overflow-hidden">
 
-    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-900/10 blur-[120px] pointer-events-none"></div>
-    <div class="absolute top-[20%] left-[50%] translate-x-[-50%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[150px] pointer-events-none"></div>
+    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 z-10 border-b border-slate-800 flex-shrink-0">
+        <h1 class="text-xl font-bold flex-1">Create AI Quiz</h1>
+    </header>
 
-    <main class="flex-grow flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-20 relative z-10">
+    <main class="flex-1 overflow-y-auto pb-24 px-6 pt-6 flex flex-col space-y-8">
         
-        <div class="text-center max-w-3xl mx-auto mb-10">
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400">
-                    Accelerate Your Medical Studies
-                </span>
-            </h1>
-            <p class="text-lg md:text-xl text-gray-400 font-light">
-                Choose the perfect MedExcel plan to master complex concepts, ace your exams, and become a better clinician faster.
-            </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto w-full items-stretch">
-
-            <div class="glass-card border border-gray-800 rounded-2xl p-8 flex flex-col relative transition-all duration-300 hover:-translate-y-2 hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold text-gray-300 mb-2">Free</h3>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-4xl font-bold text-white">₦0</span>
-                        <span class="text-gray-500">/month</span>
-                    </div>
-                    <p class="text-sm text-gray-400 mt-4">Essential tools to get started with AI-assisted learning.</p>
-                </div>
-                
-                <ul class="space-y-4 mb-8 flex-grow text-sm text-gray-300">
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>1 AI generation per day</li>
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Max 5 quiz/flashcards per generation</li>
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Access to manual flashcard builder</li>
-                </ul>
-
-                <button onclick="startPayment('free')" class="w-full py-3.5 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium transition-colors border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 mt-auto">
-                    Continue Free
-                </button>
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">1. Source Material</h2>
+            
+            <div class="flex gap-2 p-1 bg-slate-800 rounded-xl">
+                <button onclick="switchInput('text')" id="tabText" class="flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all">Paste Notes</button>
+                <button onclick="switchInput('file')" id="tabFile" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all">Upload PDF</button>
             </div>
 
-            <div class="glass-card border border-blue-500/50 rounded-2xl p-8 flex flex-col relative transition-all duration-300 hover:-translate-y-2 shadow-[0_0_40px_rgba(59,130,246,0.15)] hover:shadow-[0_0_50px_rgba(59,130,246,0.25)] scale-100 md:scale-105 z-10">
-                <div class="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl tracking-wide uppercase shadow-lg">
-                    Recommended
-                </div>
-                <div class="mb-8 mt-2">
-                    <h3 class="text-xl font-semibold text-blue-400 mb-2">Premium</h3>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-4xl font-bold text-white">₦3,500</span>
-                        <span class="text-gray-400">/month</span>
-                    </div>
-                    <p class="text-sm text-gray-300 mt-4">The ultimate toolkit for serious medical students.</p>
-                </div>
-                
-                <ul class="space-y-4 mb-8 flex-grow text-sm text-gray-200">
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Up to 100 AI generations per month</li>
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Max 25,000 characters per upload</li>
-                    <li class="flex items-start gap-3 font-medium text-white"><svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>AI voice explanation (Feynman mode)</li>
-                </ul>
-
-                <button onclick="startPayment('premium')" class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto">
-                    Upgrade to Premium
-                </button>
+            <div id="textInputArea" class="block">
+                <textarea id="sourceText" rows="6" class="w-full bg-slate-800/50 border border-slate-600 rounded-xl p-4 text-white text-sm focus:border-blue-500 outline-none resize-none transition-colors" placeholder="Paste your lecture notes or textbook content here..."></textarea>
             </div>
 
-            <div class="glass-card border border-yellow-500/30 rounded-2xl p-8 flex flex-col relative transition-all duration-300 hover:-translate-y-2 hover:border-yellow-500/60 shadow-[0_0_20px_rgba(234,179,8,0.05)] hover:shadow-[0_0_40px_rgba(234,179,8,0.15)]">
-                <div class="mb-8 relative z-10">
-                    <h3 class="text-xl font-semibold text-yellow-500 mb-2 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">Elite</h3>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-4xl font-bold text-white">₦7,000</span>
-                        <span class="text-gray-400">/month</span>
-                    </div>
-                    <p class="text-sm text-gray-300 mt-4">Unrestricted access for top-tier board prep and mastery.</p>
+            <div id="fileInputArea" class="hidden border-2 border-dashed border-slate-600 rounded-xl p-8 bg-slate-800/50 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 transition-colors relative">
+                <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.doc,.docx,.txt" />
+                <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3 text-blue-400">
+                    <i class="fas fa-file-upload text-xl"></i>
                 </div>
-                
-                <ul class="space-y-4 mb-8 flex-grow text-sm text-gray-200 relative z-10">
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Unlimited AI generations</li>
-                    <li class="flex items-start gap-3"><svg class="w-5 h-5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Max 30,000 characters per upload</li>
-                    <li class="flex items-start gap-3 font-medium text-white"><svg class="w-5 h-5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Advanced AI Tutor Mode</li>
-                </ul>
+                <h3 class="font-bold text-sm mb-1" id="fileNameDisplay">Tap to Upload Document</h3>
+                <p class="text-slate-400 text-xs">Supports PDF, DOCX, TXT</p>
+            </div>
+        </section>
 
-                <button onclick="startPayment('elite')" class="w-full py-3.5 px-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-gray-950 rounded-xl font-bold shadow-[0_0_15px_rgba(234,179,8,0.3)] transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900 mt-auto relative z-10">
-                    Go Elite
-                </button>
+        <section class="space-y-6">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">2. Quiz Settings</h2>
+            
+            <div class="space-y-2">
+                <label class="text-xs text-slate-500 font-bold uppercase block">Subject</label>
+                <input type="text" id="quizSubject" placeholder="e.g., Pathology, Pharmacology..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-sm outline-none focus:border-blue-500 transition-colors">
             </div>
 
-        </div>
+            <div class="space-y-2">
+                <label class="text-xs text-slate-500 font-bold uppercase block">Number of Questions</label>
+                <div class="grid grid-cols-4 gap-2" id="numQsContainer">
+                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="5">5</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="10">10</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="20">20</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="30">30</button>
+                </div>
+            </div>
 
-        <div class="mt-12 flex flex-col items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
-            <p class="text-sm text-gray-400 flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                Secure payments powered by Paystack
-            </p>
-        </div>
+            <div class="space-y-2">
+                <label class="text-xs text-slate-500 font-bold uppercase block">Difficulty</label>
+                <div class="grid grid-cols-3 gap-2" id="difficultyContainer">
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Easy">Easy</button>
+                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Medium">Medium</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Hard">Hard</button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs text-slate-500 font-bold uppercase block">Question Type</label>
+                <div class="grid grid-cols-3 gap-2" id="typeContainer">
+                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="MCQ">MCQ</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Flashcards">Flashcards</button>
+                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Mixed">Mixed</button>
+                </div>
+            </div>
+        </section>
+
+        <button onclick="generateQuiz()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all uppercase tracking-widest active:scale-[0.98]">
+            Generate Quiz
+        </button>
+
+        <section class="mt-8 border-t border-slate-800 pt-6">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Recent Quizzes</h2>
+            <div id="recentQuizzesContainer" class="space-y-3">
+                </div>
+        </section>
+
     </main>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  
-  const firebaseConfig = {
-      apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
-      authDomain: "medxcel.firebaseapp.com",
-      projectId: "medxcel",
-      storageBucket: "medxcel.firebasestorage.app",
-      messagingSenderId: "649180317389",
-      appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
-      measurementId: "G-6VQYKEBMSX"
-  };
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-40">
+        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-layer-group text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Study</span>
+        </a>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
+            <i class="fas fa-plus-circle text-xl mb-1"></i>
+            <span class="text-[10px] font-bold">Create</span>
+        </a>
+    </nav>
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+    <div id="loadingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center transition-opacity">
+        <div class="glass-modal rounded-2xl p-8 max-w-[280px] w-full text-center flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <h3 class="text-lg font-bold text-white mb-1">Generating Quiz...</h3>
+            <p class="text-slate-300 text-xs">AI is creating your questions</p>
+        </div>
+    </div>
 
-  let currentUser = null;
+    <div id="errorModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center transition-opacity">
+        <div class="glass-modal rounded-2xl p-8 max-w-[280px] w-full text-center flex flex-col items-center">
+            <i class="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
+            <h3 class="text-lg font-bold text-white mb-1">Generation Failed</h3>
+            <p class="text-slate-300 text-xs mb-6">Something went wrong. Please try again.</p>
+            <button onclick="closeError()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors">Close</button>
+        </div>
+    </div>
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-      console.log("Logged in:", user.email);
-    } else {
-      currentUser = null;
+<script>
+    // --- State Management ---
+    const config = {
+        inputMethod: 'text',
+        numQs: 5,
+        difficulty: 'Medium',
+        type: 'MCQ'
+    };
+
+    // --- UI Interactions ---
+    function switchInput(method) {
+        config.inputMethod = method;
+        const tabText = document.getElementById('tabText');
+        const tabFile = document.getElementById('tabFile');
+        const textInputArea = document.getElementById('textInputArea');
+        const fileInputArea = document.getElementById('fileInputArea');
+
+        if (method === 'text') {
+            tabText.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all";
+            tabFile.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all bg-transparent";
+            textInputArea.classList.remove('hidden');
+            fileInputArea.classList.add('hidden');
+        } else {
+            tabFile.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all";
+            tabText.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all bg-transparent";
+            fileInputArea.classList.remove('hidden');
+            textInputArea.classList.add('hidden');
+            fileInputArea.classList.add('flex');
+        }
     }
-  });
 
-  // Expose globally so button clicks can call it
-  window.startPayment = function(plan) {
-    // 1. Check if the user is logged in
-    if (!currentUser) {
-      alert("Please sign in first.");
-      window.location.href = "index.html?action=signup";
-      return;
+    // Option Button Setup
+    function setupOptionGroup(containerId, configKey) {
+        const container = document.getElementById(containerId);
+        const buttons = container.querySelectorAll('.option-btn');
+        
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => {
+                    b.classList.remove('active', 'bg-blue-600', 'border-blue-500', 'text-white');
+                    b.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-300');
+                });
+                btn.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-300');
+                btn.classList.add('active', 'bg-blue-600', 'border-blue-500', 'text-white');
+                
+                config[configKey] = configKey === 'numQs' ? parseInt(btn.dataset.val) : btn.dataset.val;
+            });
+        });
     }
 
-    // 2. Handle the Free plan
-    if (plan === "free") {
-      window.location.href = "homepage.html";
-      return;
+    setupOptionGroup('numQsContainer', 'numQs');
+    setupOptionGroup('difficultyContainer', 'difficulty');
+    setupOptionGroup('typeContainer', 'type');
+
+    // File Input UI Update
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            document.getElementById('fileNameDisplay').textContent = e.target.files[0].name;
+            document.getElementById('fileInputArea').classList.add('border-blue-500', 'bg-blue-900/20');
+        }
+    });
+
+    // --- Generation & Save Logic ---
+    async function generateQuiz() {
+        const subject = document.getElementById('quizSubject').value || "General Subject";
+        const contentText = document.getElementById('sourceText').value;
+        const fileInput = document.getElementById('fileUpload').files.length;
+
+        if (config.inputMethod === 'text' && contentText.trim() === '') {
+            alert('Please paste some notes or switch to file upload.');
+            return;
+        }
+        if (config.inputMethod === 'file' && fileInput === 0) {
+            alert('Please upload a file.');
+            return;
+        }
+
+        // Show Loading
+        const loader = document.getElementById('loadingModal');
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+
+        try {
+            // Simulate API Call / Generation delay
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            // Generate mock medical data based on requested quantity
+            const mockQuestions = generateMockMedicalQuestions(config.numQs);
+
+            // Structure per prompt requirements
+            const newQuiz = {
+                id: Date.now(),
+                title: `${subject} - ${config.difficulty} ${config.type}`,
+                subject: subject,
+                dateCreated: new Date().toISOString(),
+                questions: mockQuestions,
+                stats: {
+                    attempts: 0,
+                    bestScore: 0,
+                    lastScore: 0
+                },
+                favorite: false,
+                folder: "General",
+                spacedRepetition: {
+                    nextReview: new Date().toISOString(),
+                    difficulty: config.difficulty
+                }
+            };
+
+            // Auto Save to localStorage
+            const existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            existingQuizzes.push(newQuiz);
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
+
+            // Redirect to unified study page
+            window.location.href = 'study.html';
+
+        } catch (error) {
+            console.error(error);
+            loader.classList.remove('flex');
+            loader.classList.add('hidden');
+            
+            const errorModal = document.getElementById('errorModal');
+            errorModal.classList.remove('hidden');
+            errorModal.classList.add('flex');
+        }
     }
 
-    // 3. Handle Premium plan redirect
-    if (plan === "premium") {
-        window.location.href = "https://paystack.shop/pay/5wqjry1l0a";
-        return;
+    function closeError() {
+        const errorModal = document.getElementById('errorModal');
+        errorModal.classList.add('hidden');
+        errorModal.classList.remove('flex');
     }
 
-    // 4. Handle Elite plan redirect
-    if (plan === "elite") {
-        window.location.href = "https://paystack.shop/pay/lw17s2ggpj";
-        return;
+    // --- Recent Quizzes Rendering ---
+    function renderRecentQuizzes() {
+        const container = document.getElementById('recentQuizzesContainer');
+        const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+        
+        if (quizzes.length === 0) {
+            container.innerHTML = `<p class="text-sm text-slate-500 italic">No quizzes generated yet.</p>`;
+            return;
+        }
+
+        // Sort by newest and take top 3
+        const recent = quizzes.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated)).slice(0, 3);
+
+        container.innerHTML = recent.map(quiz => `
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col gap-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-slate-200 text-sm">${quiz.title}</h3>
+                        <p class="text-xs text-slate-500 mt-1">${new Date(quiz.dateCreated).toLocaleDateString()} • ${quiz.questions.length} Questions</p>
+                    </div>
+                </div>
+                <button onclick="window.location.href='study.html'" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold py-2 rounded-lg transition-colors">
+                    Open in Study Page
+                </button>
+            </div>
+        `).join('');
     }
-  };
+
+    // --- Medical Data Mock Generator ---
+    function generateMockMedicalQuestions(count) {
+        const pool = [
+            {
+                text: "A patient presents with acute exacerbation of heart failure. Which loop diuretic is most appropriate for rapid symptomatic relief?",
+                options: ["Hydrochlorothiazide", "Furosemide", "Spironolactone", "Acetazolamide"],
+                correct: 1,
+                explanation: "Furosemide is a potent loop diuretic that acts on the thick ascending limb of the loop of Henle. It is the drug of choice for rapid diuresis in acute pulmonary edema and heart failure exacerbations."
+            },
+            {
+                text: "During a radical neck dissection, the surgeon carefully preserves a nerve that descends superficial to the anterior scalene muscle. Damage to this nerve would result in which deficit?",
+                options: ["Inability to elevate the scapula", "Loss of sensation to the anterior neck", "Paralysis of the hemidiaphragm", "Hoarseness of voice"],
+                correct: 2,
+                explanation: "The phrenic nerve descends anteriorly over the anterior scalene muscle in the neck. It provides sole motor innervation to the diaphragm; injury results in diaphragmatic paralysis."
+            },
+            {
+                text: "Which of the following cellular changes is considered the hallmark of reversible cell injury?",
+                options: ["Karyorrhexis", "Cellular swelling", "Membrane disruption", "Apoptotic body formation"],
+                correct: 1,
+                explanation: "Cellular swelling (hydropic change) is the first manifestation of almost all forms of injury to cells and is a hallmark of reversible injury, resulting from failure of energy-dependent ion pumps in the plasma membrane."
+            },
+            {
+                text: "A 45-year-old male develops peptic ulcer disease. He is prescribed a proton pump inhibitor (PPI). What is the specific molecular target of this medication?",
+                options: ["H2 histamine receptor", "Gastrin receptor", "H+/K+ ATPase enzyme", "Acetylcholine receptor"],
+                correct: 2,
+                explanation: "Proton pump inhibitors (like Omeprazole) irreversibly bind to and inhibit the H+/K+ ATPase enzyme system (the proton pump) on the apical surface of the parietal cell, profoundly decreasing gastric acid secretion."
+            },
+            {
+                text: "Which artery provides the primary blood supply to the visual cortex located in the occipital lobe?",
+                options: ["Anterior cerebral artery", "Middle cerebral artery", "Posterior cerebral artery", "Basilar artery"],
+                correct: 2,
+                explanation: "The posterior cerebral artery (PCA) supplies the occipital lobe, including the primary visual cortex (Brodmann area 17). Occlusion can lead to contralateral homonymous hemianopia with macular sparing."
+            }
+        ];
+
+        let result = [];
+        for (let i = 0; i < count; i++) {
+            // Loop through the pool if count exceeds the pool length
+            result.push(pool[i % pool.length]); 
+        }
+        return result;
+    }
+
+    // Initialization
+    document.addEventListener('DOMContentLoaded', renderRecentQuizzes);
+
 </script>
-
 </body>
 </html>

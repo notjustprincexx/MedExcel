@@ -95,7 +95,7 @@
     </div>
 
     <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 z-10 border-b border-slate-800 flex-shrink-0">
-        <button onclick="window.location.href='homepage.html'" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
+        <button onclick="window.location.href='homepage1.html'" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
             <i class="fas fa-arrow-left"></i>
         </button>
         <h1 class="text-xl font-bold flex-1">Create AI Quiz</h1>
@@ -154,18 +154,21 @@
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             <span class="text-[10px] font-medium">Home</span>
         </a>
+
         <a href="create.html" id="createBtn" class="flex flex-col items-center gap-1 text-blue-500 transition-all duration-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             <span class="text-[10px] font-bold">Create</span>
         </a>
+        
         <a href="practice.html" id="practiceBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
             <span class="text-[10px] font-medium">Practice</span>
         </a>
+
         <a href="library.html" id="libraryBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
             <span class="text-[10px] font-medium">Library</span>
@@ -173,12 +176,14 @@
     </nav>
 
 <script type="module">
+    // 1. IMPORT FIREBASE SDKs (Added writeBatch and collection for saving data)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
     import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
     import { getFirestore, doc, getDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     
+    // 2. FIREBASE CONFIGURATION
     const firebaseConfig = {
         apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
         authDomain: "medxcel.firebaseapp.com",
@@ -188,12 +193,14 @@
         appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
     };
     
+    // 3. INITIALIZE FIREBASE
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const storage = getStorage(app);
     const functions = getFunctions(app, "us-central1");
     const db = getFirestore(app);
     
+    // 4. GLOBAL STATE
     let currentUser = null;
     let userPlan = "free";
     let allowedMaxItems = 5;
@@ -203,9 +210,11 @@
             window.location.href = "index.html";
         } else {
             currentUser = user;
+            
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
+                
                 if (userDoc.exists()) {
                     const data = userDoc.data();
                     userPlan = data.plan || "free";
@@ -220,16 +229,21 @@
         }
     });
 
+    // --- UI CONFIGURATION BASED ON PLAN ---
     function configureUIForPlan(plan, data) {
         let isLimitReached = false;
-        if (plan === "elite") { allowedMaxItems = 30; } 
-        else if (plan === "premium") {
+
+        if (plan === "elite") {
+            allowedMaxItems = 30;
+        } else if (plan === "premium") {
             allowedMaxItems = 20;
             if (data.monthlyUsage && data.monthlyUsage >= 100) isLimitReached = true;
         } else {
             allowedMaxItems = 5;
             const today = new Date().toISOString().split("T")[0];
-            if (data.lastDailyReset === today && data.dailyUsage >= 1) isLimitReached = true;
+            if (data.lastDailyReset === today && data.dailyUsage >= 1) {
+                isLimitReached = true;
+            }
         }
 
         document.getElementById('maxLimitText').textContent = `(Your limit: ${allowedMaxItems})`;
@@ -244,10 +258,12 @@
         if (isLimitReached) {
             const dropZone = document.getElementById('dropZone');
             const fileInput = document.getElementById('fileInput');
+            
             dropZone.classList.add('opacity-50', 'border-red-500/50', 'bg-red-900/10');
             dropZone.classList.remove('hover:border-blue-500', 'cursor-pointer');
             fileInput.disabled = true;
             fileInput.classList.remove('cursor-pointer');
+            
             document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-lock text-red-400 text-2xl"></i>';
             document.getElementById('uploadTitle').textContent = "Generation Limit Reached";
             document.getElementById('uploadSubtitle').innerHTML = `You've reached your ${plan === 'free' ? 'daily' : 'monthly'} limit. <br><br> <a href="payment.html" class="inline-block mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition z-50 relative pointer-events-auto">Upgrade to Generate More</a>`;
@@ -280,6 +296,7 @@
     const MAX_FILE_SIZE = 10 * 1024 * 1024; 
     const ALLOWED_EXTENSIONS = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'txt'];
     
+    // --- CUSTOM MODAL CONTROLLER ---
     function showCustomUpgradeModal(limit) {
         return new Promise((resolve) => {
             const backdrop = document.getElementById('upgradeModalBackdrop');
@@ -287,6 +304,7 @@
             document.getElementById('modalLimitSpan').textContent = limit;
             
             backdrop.classList.remove('hidden');
+            
             requestAnimationFrame(() => {
                 backdrop.classList.remove('opacity-0');
                 modal.classList.remove('scale-95');
@@ -297,6 +315,7 @@
                 backdrop.classList.add('opacity-0');
                 modal.classList.remove('scale-100');
                 modal.classList.add('scale-95');
+                
                 setTimeout(() => {
                     backdrop.classList.add('hidden');
                     resolve(result);
@@ -308,8 +327,10 @@
         });
     }
 
+    // --- SMART SLIDER LOGIC ---
     itemSlider.addEventListener('input', (e) => {
         let val = parseInt(e.target.value, 10);
+        
         if (val > allowedMaxItems) {
             sliderValue.innerHTML = `${val} <i class="fas fa-lock text-[10px] ml-1"></i>`;
             sliderValue.classList.replace('text-blue-400', 'text-yellow-500');
@@ -325,8 +346,10 @@
 
     itemSlider.addEventListener('change', async (e) => {
         let val = parseInt(e.target.value, 10);
+        
         if (val > allowedMaxItems) {
             const wantToUpgrade = await showCustomUpgradeModal(allowedMaxItems);
+            
             if (wantToUpgrade) {
                 window.location.href = 'payment.html';
             } else {
@@ -339,6 +362,7 @@
         }
     });
 
+    // File Selection
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             const file = e.target.files[0];
@@ -359,13 +383,16 @@
             uploadTitle.innerHTML = `<i class="fas fa-file-alt text-blue-400 mr-2"></i> ${escapeHTML(file.name)}`;
             uploadSubtitle.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
             dropZone.classList.add('border-blue-500', 'bg-blue-900/20');
+            
             configSection.classList.remove('opacity-40', 'pointer-events-none');
+            
             generateBtn.disabled = false;
             generateBtn.classList.remove('bg-slate-700', 'text-slate-400', 'opacity-50', 'cursor-not-allowed');
             generateBtn.classList.add('bg-blue-600', 'hover:bg-blue-500', 'text-white', 'border-b-[4px]', 'border-blue-800', 'active:border-b-0', 'active:translate-y-[4px]', 'shadow-blue-900/50');
         }
     });
     
+    // Type Selection
     document.querySelectorAll('.type-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const target = e.currentTarget;
@@ -375,10 +402,12 @@
             });
             target.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-400', 'hover:bg-slate-700');
             target.classList.add('active', 'bg-blue-600', 'border-blue-500', 'text-white');
+            
             quizType = target.textContent.trim();
         });
     });
 
+    // --- INTERACTIVE DECK LOGIC ---
     let generatedCards = [];
     let currentCardIndex = 0;
     let isMCQMode = false;
@@ -388,6 +417,7 @@
         const ans = String(correctAnswer).trim().toLowerCase();
         const k = String(selectedKey).trim().toLowerCase();
         const v = String(selectedValue).trim().toLowerCase();
+        
         return ans === k || ans === v || ans === `${k}. ${v}` || ans.startsWith(k + '.') || ans.startsWith(k + ')');
     }
 
@@ -541,6 +571,7 @@
                 document.getElementById('navigationControls').classList.add('hidden');
                 document.getElementById('saveStudyBtn').classList.remove('hidden');
                 
+                // --- NEW: FIREBASE SAVING LOGIC HERE ---
                 document.getElementById('saveStudyBtn').addEventListener('click', async () => {
                     const btn = document.getElementById('saveStudyBtn');
                     btn.disabled = true;
@@ -551,14 +582,17 @@
                         const subjectName = topicFocusInput.value || selectedFile.name.split('.')[0] || "General Subject";
 
                         generatedCards.forEach(card => {
+                            // Create a new document in the 'mcqs' collection
                             const docRef = doc(collection(db, "mcqs"));
 
+                            // Format options so they are perfectly compatible with practice.html
                             let optionsArr = [];
                             let correctIdx = 0;
 
                             if (card.options) {
                                 const keys = Object.keys(card.options);
                                 optionsArr = Object.values(card.options);
+                                // Find the index of the correct answer
                                 for (let i = 0; i < keys.length; i++) {
                                     if (checkAnswerMatch(keys[i], optionsArr[i], card.answer)) {
                                         correctIdx = i;
@@ -567,6 +601,7 @@
                                 }
                             }
 
+                            // Add this document to our batch write
                             batch.set(docRef, {
                                 subject: subjectName,
                                 text: card.question || "No question text",
@@ -574,14 +609,16 @@
                                 correct: correctIdx,
                                 explanation: card.explanation || "",
                                 userId: currentUser.uid,
-                                type: quizType, // e.g. "Multiple Choice" or "Flashcards"
+                                type: quizType,
                                 createdAt: new Date().toISOString()
                             });
                         });
 
+                        // Commit all questions to Firebase at once
                         await batch.commit();
+                        
                         alert("Deck saved successfully! Taking you to the Practice Center.");
-                        window.location.href = "practice.html"; 
+                        window.location.href = "practice.html"; // Go to practice
 
                     } catch (err) {
                         console.error("Error saving to database:", err);
@@ -594,6 +631,7 @@
         });
     }
 
+    // --- UPLOAD & GENERATION TRIGGER ---
     generateBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
         if (!currentUser) {
@@ -613,6 +651,7 @@
         aiLoader.classList.remove('hidden-loader');
         
         try {
+            // 1. Upload
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
             const securePath = `uploads/${currentUser.uid}/${uniqueFileName}`;
             const storageReference = ref(storage, securePath);
@@ -620,6 +659,7 @@
             
             loadingText.textContent = `Aurora is generating ${quizType}...`;
             
+            // 2. Call Functions (USING RAW CLOUD RUN URL)
             const generateQuizFunction = httpsCallableFromURL(functions, 'https://generatequizfromfile-w2b2eq6c5q-uc.a.run.app');
             
             const response = await generateQuizFunction({
@@ -630,18 +670,16 @@
                 numberOfItems: requestedItems
             });
             
-            // --- UPDATED AI RESPONSE PARSING ---
-            const payload = response.data;
-            // Check for various ways the AI might name the array in its response
-            const cards = payload.cards || payload.flashcards || payload.items || payload.questions;
+            const cards = response.data.cards;
             
             if (!cards || !Array.isArray(cards) || cards.length === 0) {
-                console.error("Unexpected AI structure:", payload);
                 throw new Error("Generation returned empty data.");
             }
 
+            // 3. Init View
             generatedCards = cards.map(card => ({ ...card, answered: false }));
             currentCardIndex = 0;
+            
             isMCQMode = quizType === "Multiple Choice";
 
             aiLoader.classList.add('hidden-loader');
@@ -652,12 +690,14 @@
             
         } catch (error) {
             console.error("Error generating quiz:", error);
+            
             if (error.message.includes("limit reached") || error.message.includes("resource-exhausted")) {
                 alert("You have reached your AI generation limit! Please upgrade your plan to generate more.");
                 window.location.href = "payment.html";
             } else {
                 alert("Something went wrong while generating the quiz. Please try again.");
             }
+            
             aiLoader.classList.add('hidden-loader');
             generateBtn.disabled = false;
             generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
