@@ -89,17 +89,21 @@
     </div>
 
     <nav class="fixed lg:hidden bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-40">
-        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
             <i class="fas fa-home text-xl mb-0.5"></i>
             <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Create</span>
         </a>
         <a href="study.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
             <i class="fas fa-layer-group text-xl mb-0.5"></i>
             <span class="text-[10px] font-bold">Study</span>
         </a>
-        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
-            <span class="text-[10px] font-medium">Create</span>
+        <a href="profile.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-user text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Profile</span>
         </a>
     </nav>
 
@@ -110,7 +114,7 @@
             <p class="text-slate-400 text-sm mb-6">This action cannot be undone.</p>
             <div class="flex gap-3">
                 <button onclick="closeModal('deleteModal')" class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-transform">Cancel</button>
-                <button id="confirmDeleteBtn" class="flex-1 py-3.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/50 font-bold active:scale-95 transition-transform">Delete</button>
+                <button id="confirmDeleteBtn" onclick="executeDelete()" class="flex-1 py-3.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/50 font-bold active:scale-95 transition-transform">Delete</button>
             </div>
         </div>
     </div>
@@ -132,10 +136,21 @@
             xp: 0, level: 1, streak: 0, lastStudyDate: null, weaknesses: {}
         };
         let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+        
+        // --- REMOVE PLACEHOLDER QUIZ ---
+        // Purges "autonomic system" quizzes stored in user's localStorage
+        const originalLength = quizzes.length;
+        quizzes = quizzes.filter(q => q.title && !q.title.toLowerCase().includes('autonomic system'));
+        if (quizzes.length !== originalLength) {
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+        }
+        // -------------------------------
+
         let currentQuiz = null;
         let currentQuestionIndex = 0;
         let isExamMode = false;
         let examScore = 0;
+        let quizToDelete = null; // Stores the ID of the quiz queued for deletion
 
         // Mobile View Navigation
         function openPracticeMobile() {
@@ -180,22 +195,59 @@
             filtered.forEach(quiz => {
                 container.innerHTML += `
                     <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 active:scale-[0.98] transition-all group cursor-pointer relative" onclick="loadQuizOverview(${quiz.id})">
-                        <div class="flex justify-between items-start mb-2 pr-6">
+                        <div class="flex justify-between items-start mb-2 pr-8">
                             <h3 class="font-bold text-slate-200 text-sm leading-tight">${quiz.title}</h3>
-                            <button onclick="toggleFavorite(event, ${quiz.id})" class="text-${quiz.favorite ? 'yellow-500' : 'slate-600'} absolute right-4 top-4 text-lg p-2 -m-2 z-10">
+                            <button onclick="toggleFavorite(event, ${quiz.id})" class="text-${quiz.favorite ? 'yellow-500' : 'slate-600'} absolute right-4 top-4 text-lg p-2 -m-2 z-10 transition-colors hover:text-yellow-400">
                                 <i class="fas fa-star"></i>
                             </button>
                         </div>
                         <div class="flex items-center gap-3 text-[10px] lg:text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">
-                            <span class="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">${quiz.subject}</span>
+                            <span class="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700 truncate max-w-[150px]">${quiz.subject}</span>
                             <span>${quiz.questions.length} Qs</span>
                         </div>
                         <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-700/50">
                             <span class="text-xs font-medium text-slate-400">Best: ${quiz.stats.bestScore}/${quiz.questions.length}</span>
+                            
+                            <button onclick="promptDelete(event, ${quiz.id})" class="text-slate-600 hover:text-red-400 p-2 -m-2 z-10 transition-colors" title="Delete Quiz">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     </div>
                 `;
             });
+        }
+
+        // Feature: Prompt & Execute Deletion
+        function promptDelete(e, id) {
+            e.stopPropagation(); // Prevents clicking the trash can from opening the quiz
+            quizToDelete = id;
+            openModal('deleteModal');
+        }
+
+        function executeDelete() {
+            if (quizToDelete !== null) {
+                // Filter out the deleted quiz
+                quizzes = quizzes.filter(q => q.id !== quizToDelete);
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+                
+                // Re-render the UI based on active tab
+                const activeTab = document.querySelector('.tab-btn.bg-blue-600').dataset.filter;
+                renderLibrary(activeTab, document.getElementById('searchInput').value);
+                closeModal('deleteModal');
+                
+                // If the user deleted the quiz while viewing it, clear the screen
+                if (currentQuiz && currentQuiz.id === quizToDelete) {
+                    currentQuiz = null;
+                    document.getElementById('practiceArea').innerHTML = `
+                        <div class="text-center text-slate-500 hidden lg:block">
+                            <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
+                            <p class="font-medium tracking-wide">Select a quiz from your library to begin.</p>
+                        </div>
+                    `;
+                    closePracticeMobile(); // Navigate back to library on mobile
+                }
+                quizToDelete = null;
+            }
         }
 
         function loadQuizOverview(id) {
@@ -207,7 +259,7 @@
                 <div class="w-full max-w-2xl bg-slate-800 rounded-3xl p-6 lg:p-10 border border-slate-700 shadow-2xl relative overflow-hidden">
                     <span class="bg-blue-900/40 text-blue-400 text-[10px] lg:text-xs font-bold px-3 py-1.5 rounded-full border border-blue-500/30 uppercase tracking-widest">${currentQuiz.subject}</span>
                     <h2 class="text-2xl lg:text-3xl font-bold text-white mt-4 mb-2">${currentQuiz.title}</h2>
-                    <p class="text-slate-400 text-sm mb-8"><i class="fas fa-layer-group mr-2"></i>${currentQuiz.questions.length} Multiple Choice Questions</p>
+                    <p class="text-slate-400 text-sm mb-8"><i class="fas fa-layer-group mr-2"></i>${currentQuiz.questions.length} Items</p>
                     
                     <div class="grid grid-cols-2 gap-3 lg:gap-4 mb-8">
                         <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700 text-center lg:text-left">
@@ -221,7 +273,7 @@
                     </div>
 
                     <div class="flex flex-col lg:flex-row gap-3 lg:gap-4">
-                        <button onclick="startPractice(false)" class="flex-1 bg-blue-600 text-white font-extrabold py-4 rounded-xl active:scale-[0.98] transition-transform shadow-lg uppercase tracking-wider text-sm">
+                        <button onclick="startPractice(false)" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all shadow-lg uppercase tracking-wider text-sm border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px]">
                             <i class="fas fa-play mr-2"></i> Start Practice
                         </button>
                     </div>
@@ -273,7 +325,7 @@
                     </div>
 
                     <div class="mt-auto pt-4 flex justify-end">
-                        <button id="nextQBtn" onclick="renderQuestion()" class="hidden w-full lg:w-auto bg-blue-600 text-white font-extrabold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform uppercase tracking-wider text-sm shadow-lg">
+                        <button id="nextQBtn" onclick="renderQuestion()" class="hidden w-full lg:w-auto bg-blue-600 text-white font-extrabold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform uppercase tracking-wider text-sm shadow-lg border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px]">
                             ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Quiz' : 'Next Question'} <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
@@ -322,7 +374,6 @@
             nextBtn.classList.remove('hidden');
             currentQuestionIndex++;
             
-            // Auto scroll to explanation on mobile
             explanationArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
@@ -352,10 +403,10 @@
                     </div>
 
                     <div class="flex flex-col gap-3">
-                        <button onclick="startPractice(false)" class="w-full py-4 rounded-xl bg-blue-600 text-white font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform shadow-lg">
+                        <button onclick="startPractice(false)" class="w-full py-4 rounded-xl bg-blue-600 text-white font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform shadow-lg border-b-[4px] border-blue-800 active:border-b-0 active:translate-y-[4px]">
                             Retry Quiz
                         </button>
-                        <button onclick="closePracticeMobile()" class="w-full py-4 rounded-xl bg-slate-700 text-slate-300 font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform lg:hidden">
+                        <button onclick="closePracticeMobile()" class="w-full py-4 rounded-xl bg-slate-700 text-slate-300 font-extrabold text-sm uppercase tracking-wider active:scale-95 transition-transform lg:hidden border-b-[4px] border-slate-900 active:border-b-0 active:translate-y-[4px]">
                             Back to Library
                         </button>
                     </div>
@@ -387,7 +438,6 @@
             }, 200);
         }
 
-        // Initialization
         document.addEventListener('DOMContentLoaded', () => {
             updateStatsUI();
             renderLibrary();

@@ -12,10 +12,9 @@
             -webkit-user-select: none; user-select: none; 
             background-color: #0f172a; 
             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-            overflow-x: hidden;
+            overflow: hidden; 
         }
 
-        /* Shared Loader & Dialog Styles */
         .loader-screen {
             position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
@@ -23,29 +22,26 @@
         }
         .loader-screen.hidden-loader { opacity: 0; visibility: hidden; pointer-events: none; }
 
-        /* Upload Area Animations */
         .upload-zone { transition: all 0.3s ease; }
         .upload-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); transform: scale(1.02); }
 
-        /* Custom Slider */
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
             background: #3b82f6; cursor: pointer; border: 3px solid #1e293b;
             transition: background 0.2s, border-color 0.2s;
         }
         
-        /* 3D Flip Card Utilities */
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .backface-hidden { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
         .flipped .flip-inner { transform: rotateY(180deg); }
 
-        /* Hide scrollbar */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col relative">
+<body class="text-white h-screen flex flex-col relative w-full overflow-hidden">
 
     <div id="aiLoader" class="loader-screen hidden-loader" role="status">
         <div class="text-center flex flex-col items-center">
@@ -80,7 +76,7 @@
             
             <h3 class="text-xl font-bold text-white mb-2">Unlock More Items</h3>
             <p class="text-slate-400 text-sm mb-8 leading-relaxed">
-                Your current plan limits you to <span id="modalLimitSpan" class="font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"></span> items per generation. Upgrade to generate up to 30 items at once!
+                Your current plan limits you to <span id="modalLimitSpan" class="font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"></span> items per generation. Upgrade to generate up to 40 items at once!
             </p>
             
             <div class="flex flex-col gap-3">
@@ -94,16 +90,15 @@
         </div>
     </div>
 
-    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 z-10 border-b border-slate-800 flex-shrink-0">
-        <button onclick="window.location.href='homepage.html'" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
-            <i class="fas fa-arrow-left"></i>
+    <div id="topHeader" class="px-5 pt-5 pb-0 flex-shrink-0 z-10 bg-transparent w-full max-w-3xl mx-auto">
+        <button onclick="window.location.href='homepage1.html'" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white transition active:scale-95 shadow-lg border border-slate-700">
+            <i class="fas fa-arrow-left text-sm"></i>
         </button>
-        <h1 class="text-xl font-bold flex-1">Create AI Quiz</h1>
-    </header>
+    </div>
 
-    <main class="flex-1 overflow-y-auto pb-24 px-6 pt-6 flex flex-col">
+    <main id="mainContainer" class="flex-1 overflow-y-auto pb-24 px-5 pt-4 flex flex-col min-h-0 w-full max-w-3xl mx-auto">
         
-        <div id="setupView" class="space-y-8">
+        <div id="setupView" class="space-y-6">
             <div id="planBadgeContainer"></div>
 
             <div id="uploadSection">
@@ -116,7 +111,7 @@
                         <i class="fas fa-cloud-upload-alt text-2xl"></i>
                     </div>
                     <h3 class="font-bold text-lg mb-1" id="uploadTitle">Tap to Upload File</h3>
-                    <p class="text-slate-400 text-xs" id="uploadSubtitle">Supports PDF, PPTX, DOCX, or TXT (Max 10MB)</p>
+                    <p class="text-slate-400 text-sm" id="uploadSubtitle">Supports PDF, PPTX, DOCX, or TXT (Max 10MB)</p>
                 </div>
             </div>
 
@@ -126,49 +121,49 @@
                 <div class="space-y-4">
                     <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 focus-within:border-blue-500 transition-colors">
                         <label class="text-xs text-slate-400 font-bold uppercase mb-1 block">Topic Focus (Optional)</label>
-                        <input type="text" id="topicFocus" placeholder="e.g., Mechanism of Action" class="w-full bg-transparent text-white outline-none text-sm placeholder-slate-500">
+                        <input type="text" id="topicFocus" placeholder="e.g., Mechanism of Action" class="w-full bg-transparent text-white outline-none text-base placeholder-slate-500">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
-                        <button class="type-btn active bg-blue-600 border-blue-500 border-2 text-white p-3 rounded-xl text-sm font-bold transition">Flashcards</button>
-                        <button class="type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-3 rounded-xl text-sm font-bold transition hover:bg-slate-700">Multiple Choice</button>
+                        <button class="type-btn active bg-blue-600 border-blue-500 border-2 text-white p-4 rounded-xl text-sm font-bold transition">Flashcards</button>
+                        <button class="type-btn bg-slate-800 border-slate-700 border-2 text-slate-400 p-4 rounded-xl text-sm font-bold transition hover:bg-slate-700">Multiple Choice</button>
                     </div>
 
                     <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-                        <div class="flex justify-between items-center mb-3">
+                        <div class="flex justify-between items-center mb-4">
                             <label class="text-xs text-slate-400 font-bold uppercase block">Number of Items <span id="maxLimitText" class="text-slate-500 font-normal lowercase"></span></label>
-                            <span id="sliderValue" class="text-sm font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg transition-colors">5</span>
+                            <span id="sliderValue" class="text-base font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg transition-colors">5</span>
                         </div>
-                        <input type="range" id="itemSlider" min="1" max="30" value="5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                        <input type="range" id="itemSlider" min="1" max="40" value="5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                     </div>
                 </div>
             </div>
 
-            <button id="generateBtn" disabled class="w-full bg-slate-700 text-slate-400 font-extrabold text-sm py-4 rounded-2xl transition-all uppercase tracking-widest shadow-lg opacity-50 cursor-not-allowed">
+            <button id="generateBtn" disabled class="w-full bg-slate-700 text-slate-400 font-extrabold text-sm py-4 rounded-2xl transition-all uppercase tracking-widest shadow-lg opacity-50 cursor-not-allowed mb-6">
                 Generate Content
             </button>
         </div>
 
-        <div id="interactiveView" class="hidden flex-1 flex flex-col justify-center"></div>
+        <div id="interactiveView" class="hidden flex-1 flex flex-col min-h-0 w-full"></div>
 
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-            <span class="text-[10px] font-medium">Home</span>
+    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-home text-xl mb-0.5"></i>
+            <span class="text-xs font-medium">Home</span>
         </a>
-        <a href="create.html" id="createBtn" class="flex flex-col items-center gap-1 text-blue-500 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            <span class="text-[10px] font-bold">Create</span>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
+            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
+            <span class="text-xs font-bold">Create</span>
         </a>
-        <a href="practice.html" id="practiceBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            <span class="text-[10px] font-medium">Practice</span>
+        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-layer-group text-xl mb-0.5"></i>
+            <span class="text-xs font-medium">Study</span>
         </a>
-        <a href="library.html" id="libraryBtn" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
-            <span class="text-[10px] font-medium">Library</span>
+        <a href="profile.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-user text-xl mb-0.5"></i>
+            <span class="text-xs font-medium">Profile</span>
         </a>
     </nav>
 
@@ -176,7 +171,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-    import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
     import { getFirestore, doc, getDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     
     const firebaseConfig = {
@@ -196,7 +191,7 @@
     
     let currentUser = null;
     let userPlan = "free";
-    let allowedMaxItems = 5;
+    let allowedMaxItems = 15;
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
@@ -222,14 +217,20 @@
 
     function configureUIForPlan(plan, data) {
         let isLimitReached = false;
-        if (plan === "elite") { allowedMaxItems = 30; } 
+        const today = new Date().toISOString().split("T")[0];
+        const isToday = data.lastDailyReset === today;
+        const dailyUsage = isToday ? (data.dailyUsage || 0) : 0;
+
+        if (plan === "elite") { 
+            allowedMaxItems = 40; 
+            if (dailyUsage >= 50) isLimitReached = true;
+        } 
         else if (plan === "premium") {
-            allowedMaxItems = 20;
-            if (data.monthlyUsage && data.monthlyUsage >= 100) isLimitReached = true;
+            allowedMaxItems = 30;
+            if (dailyUsage >= 20) isLimitReached = true;
         } else {
-            allowedMaxItems = 5;
-            const today = new Date().toISOString().split("T")[0];
-            if (data.lastDailyReset === today && data.dailyUsage >= 1) isLimitReached = true;
+            allowedMaxItems = 15;
+            if (dailyUsage >= 3) isLimitReached = true;
         }
 
         document.getElementById('maxLimitText').textContent = `(Your limit: ${allowedMaxItems})`;
@@ -239,7 +240,7 @@
         if (plan === 'elite') badgeStyle = "text-yellow-500 border-yellow-500/50 bg-yellow-500/10";
         if (plan === 'premium') badgeStyle = "text-blue-400 border-blue-500/50 bg-blue-500/10";
         
-        badgeContainer.innerHTML = `<div class="text-[10px] font-bold uppercase tracking-wider inline-block px-3 py-1 rounded-full border ${badgeStyle} mb-2"><i class="fas fa-layer-group mr-1"></i> Current Plan: ${plan}</div>`;
+        badgeContainer.innerHTML = `<div class="text-xs font-bold uppercase tracking-wider inline-block px-4 py-1.5 rounded-full border ${badgeStyle} mb-2"><i class="fas fa-layer-group mr-1"></i> Current Plan: ${plan}</div>`;
 
         if (isLimitReached) {
             const dropZone = document.getElementById('dropZone');
@@ -248,9 +249,9 @@
             dropZone.classList.remove('hover:border-blue-500', 'cursor-pointer');
             fileInput.disabled = true;
             fileInput.classList.remove('cursor-pointer');
-            document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-lock text-red-400 text-2xl"></i>';
-            document.getElementById('uploadTitle').textContent = "Generation Limit Reached";
-            document.getElementById('uploadSubtitle').innerHTML = `You've reached your ${plan === 'free' ? 'daily' : 'monthly'} limit. <br><br> <a href="payment.html" class="inline-block mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition z-50 relative pointer-events-auto">Upgrade to Generate More</a>`;
+            document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-lock text-red-400 text-3xl"></i>';
+            document.getElementById('uploadTitle').textContent = "Daily Limit Reached";
+            document.getElementById('uploadSubtitle').innerHTML = `You've reached your daily generation limit. <br><br> <a href="payment.html" class="inline-block mt-3 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition z-50 relative pointer-events-auto">Upgrade to Generate More</a>`;
         }
     }
     
@@ -271,14 +272,21 @@
     const aiLoader = document.getElementById('aiLoader');
     const loadingText = document.getElementById('loadingText');
     const interactiveView = document.getElementById('interactiveView');
+    const mainContainer = document.getElementById('mainContainer');
     const itemSlider = document.getElementById('itemSlider');
     const sliderValue = document.getElementById('sliderValue');
     const topicFocusInput = document.getElementById('topicFocus');
+    const bottomNav = document.getElementById('bottomNav');
     
     let selectedFile = null;
     let quizType = "Flashcards";
     const MAX_FILE_SIZE = 10 * 1024 * 1024; 
     const ALLOWED_EXTENSIONS = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'txt'];
+    
+    let generatedCards = [];
+    let currentCardIndex = 0;
+    let isMCQMode = false;
+    let sessionScore = 0; 
     
     function showCustomUpgradeModal(limit) {
         return new Promise((resolve) => {
@@ -311,7 +319,7 @@
     itemSlider.addEventListener('input', (e) => {
         let val = parseInt(e.target.value, 10);
         if (val > allowedMaxItems) {
-            sliderValue.innerHTML = `${val} <i class="fas fa-lock text-[10px] ml-1"></i>`;
+            sliderValue.innerHTML = `${val} <i class="fas fa-lock text-xs ml-1"></i>`;
             sliderValue.classList.replace('text-blue-400', 'text-yellow-500');
             sliderValue.classList.replace('bg-blue-500/10', 'bg-yellow-500/10');
             itemSlider.style.border = "2px solid #eab308"; 
@@ -379,10 +387,6 @@
         });
     });
 
-    let generatedCards = [];
-    let currentCardIndex = 0;
-    let isMCQMode = false;
-
     function checkAnswerMatch(selectedKey, selectedValue, correctAnswer) {
         if (!correctAnswer) return false;
         const ans = String(correctAnswer).trim().toLowerCase();
@@ -409,7 +413,10 @@
             if (isThisCorrect) {
                 btn.classList.remove('bg-slate-900', 'border-slate-700');
                 btn.classList.add('bg-green-900/40', 'border-green-500', 'text-green-400');
-                if (key === selectedKey) selectedIsCorrect = true;
+                if (key === selectedKey) {
+                    selectedIsCorrect = true;
+                    sessionScore++; 
+                }
             } else if (key === selectedKey) {
                 btn.classList.remove('bg-slate-900', 'border-slate-700');
                 btn.classList.add('bg-red-900/40', 'border-red-500', 'text-red-400');
@@ -418,14 +425,17 @@
 
         const explArea = document.getElementById('explanationArea');
         explArea.innerHTML = `
-            <div class="mb-2 text-sm">
+            <div class="mb-3 flex-shrink-0 text-sm md:text-base">
                 ${selectedIsCorrect 
-                    ? '<span class="text-green-400 font-bold"><i class="fas fa-check-circle mr-1"></i> Correct!</span>' 
-                    : `<span class="text-red-400 font-bold"><i class="fas fa-times-circle mr-1"></i> Incorrect.</span> <span class="text-slate-300 ml-1 block mt-1">The correct answer is: <b>${escapeHTML(cardData.answer)}</b></span>`}
+                    ? '<span class="text-green-400 font-bold"><i class="fas fa-check-circle mr-2"></i> Correct!</span>' 
+                    : `<span class="text-red-400 font-bold"><i class="fas fa-times-circle mr-2"></i> Incorrect.</span> <span class="text-slate-300 ml-2">Answer: <b>${escapeHTML(cardData.answer)}</b></span>`}
             </div>
-            ${cardData.explanation ? `<div class="text-slate-400 text-xs mt-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 leading-relaxed"><span class="text-slate-300 font-bold block mb-1">Explanation:</span> ${escapeHTML(cardData.explanation)}</div>` : ''}
+            ${cardData.explanation ? `<div class="text-slate-300 text-sm md:text-base leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50"><span class="font-bold text-slate-400 block mb-1">Explanation:</span> ${escapeHTML(cardData.explanation)}</div>` : ''}
         `;
         explArea.classList.remove('hidden');
+        explArea.classList.add('flex');
+        
+        explArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
         const nextBtn = document.getElementById('nextBtn');
         nextBtn.disabled = false;
@@ -438,25 +448,24 @@
         const safeAnswer = escapeHTML(card.answer || "No answer provided");
 
         let html = `
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
                 <h2 class="text-sm font-bold text-slate-400 tracking-widest uppercase">
                     ${isMCQMode ? 'Quiz Mode' : 'Flashcards'}
                 </h2>
-                <span class="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full text-blue-400 border border-slate-700">
+                <span class="text-xs font-bold bg-slate-800 px-3 py-1.5 rounded-full text-blue-400 border border-slate-700">
                     ${currentCardIndex + 1} / ${generatedCards.length}
                 </span>
             </div>
-            <div id="cardContainer" class="flex-1 flex flex-col justify-center min-h-[350px]">
         `;
 
         if (isMCQMode) {
-            let optionsHTML = '<div class="space-y-3 mt-6">';
+            let optionsHTML = '<div class="space-y-3 flex-shrink-0 w-full" id="optionsContainer">';
             if (card.options && typeof card.options === 'object') {
                 for (const [key, value] of Object.entries(card.options)) {
                     optionsHTML += `
-                        <button class="mcq-option w-full text-left p-4 rounded-xl bg-slate-900 border border-slate-700 hover:border-blue-500 transition-all flex items-center gap-3 active:scale-[0.98] cursor-pointer" data-key="${escapeHTML(key)}" data-value="${escapeHTML(value)}">
-                            <span class="font-bold text-blue-500 bg-blue-500/10 w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0">${escapeHTML(key)}</span>
-                            <span class="text-slate-300 flex-1 text-sm leading-relaxed">${escapeHTML(value)}</span>
+                        <button class="mcq-option w-full text-left p-4 rounded-xl bg-slate-900 border border-slate-700 hover:border-blue-500 transition-all flex items-start gap-3 active:scale-[0.98] cursor-pointer" data-key="${escapeHTML(key)}" data-value="${escapeHTML(value)}">
+                            <span class="font-bold text-blue-500 bg-blue-500/10 w-8 h-8 flex items-center justify-center rounded-lg text-sm flex-shrink-0 mt-0.5">${escapeHTML(key)}</span>
+                            <span class="text-slate-300 flex-1 text-sm md:text-base leading-snug mt-1">${escapeHTML(value)}</span>
                         </button>
                     `;
                 }
@@ -466,46 +475,42 @@
             optionsHTML += '</div>';
 
             html += `
-                <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl w-full">
-                    <h3 class="font-bold text-white text-lg leading-relaxed">Q: ${safeQuestion}</h3>
-                    ${optionsHTML}
-                    <div id="explanationArea" class="hidden mt-6 pt-5 border-t border-slate-700 text-sm animate-[fadeIn_0.3s_ease-out]"></div>
+                <div id="cardContainer" class="flex-1 w-full bg-slate-800 rounded-3xl p-5 md:p-8 border border-slate-700 shadow-xl flex flex-col min-h-0 overflow-hidden relative">
+                    <div class="flex-1 overflow-y-auto hide-scroll flex flex-col min-h-0">
+                        <h3 class="font-bold text-white text-lg md:text-xl leading-relaxed mb-5 flex-shrink-0">Q: ${safeQuestion}</h3>
+                        ${optionsHTML}
+                        <div id="explanationArea" class="hidden flex-shrink-0 flex-col mt-5 pt-5 border-t border-slate-700 animate-[fadeIn_0.3s_ease-out]"></div>
+                    </div>
                 </div>
             `;
         } else {
             html += `
-                <div id="flashcardElement" class="group perspective-1000 w-full h-[350px] cursor-pointer">
+                <div id="flashcardElement" class="flex-1 w-full relative perspective-1000 cursor-pointer min-h-0">
                     <div class="flip-inner relative w-full h-full transform-style-3d shadow-xl rounded-3xl">
-                        <div class="absolute inset-0 backface-hidden bg-slate-800 rounded-3xl p-8 border border-slate-700 flex flex-col items-center justify-center text-center">
-                            <span class="absolute top-6 text-slate-500 text-xs font-bold uppercase tracking-widest"><i class="fas fa-question-circle mr-1"></i> Question</span>
-                            <h3 class="font-bold text-blue-400 text-xl leading-relaxed">${safeQuestion}</h3>
-                            <p class="text-slate-500 text-xs absolute bottom-6 flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                        <div class="absolute inset-0 backface-hidden bg-slate-800 rounded-3xl p-8 lg:p-10 border border-slate-700 flex flex-col items-center justify-center text-center overflow-y-auto hide-scroll">
+                            <span class="absolute top-6 text-slate-500 text-xs font-bold uppercase tracking-widest"><i class="fas fa-question-circle mr-2"></i> Question</span>
+                            <h3 class="font-bold text-blue-400 text-xl lg:text-2xl leading-relaxed mt-4">${safeQuestion}</h3>
+                            <p class="text-slate-500 text-xs absolute bottom-6 flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full shadow-md"><i class="fas fa-sync-alt"></i> Tap to flip</p>
                         </div>
-                        <div class="absolute inset-0 backface-hidden bg-blue-600 rounded-3xl p-8 border border-blue-500 flex flex-col items-center justify-center text-center rotate-y-180">
-                            <span class="absolute top-6 text-blue-300 text-xs font-bold uppercase tracking-widest"><i class="fas fa-lightbulb mr-1"></i> Answer</span>
-                            <p class="text-white text-lg font-medium leading-relaxed">${safeAnswer}</p>
-                            <p class="text-blue-300 text-xs absolute bottom-6 flex items-center gap-2 bg-blue-800/50 px-4 py-2 rounded-full"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                        <div class="absolute inset-0 backface-hidden bg-blue-600 rounded-3xl p-8 lg:p-10 border border-blue-500 flex flex-col items-center justify-center text-center rotate-y-180 overflow-y-auto hide-scroll">
+                            <span class="absolute top-6 text-blue-300 text-xs font-bold uppercase tracking-widest"><i class="fas fa-lightbulb mr-2"></i> Answer</span>
+                            <p class="text-white text-lg lg:text-xl font-medium leading-relaxed mt-4">${safeAnswer}</p>
+                            <p class="text-blue-300 text-xs absolute bottom-6 flex items-center gap-2 bg-blue-800/50 px-4 py-2 rounded-full shadow-md"><i class="fas fa-sync-alt"></i> Tap to flip</p>
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        html += `</div>`; 
-        
         html += `
-            <div id="navigationControls" class="flex justify-between gap-4 mt-8">
-                <button id="prevBtn" class="flex-1 bg-slate-800 text-slate-300 font-bold py-4 rounded-xl border border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-slate-700 active:scale-[0.98]" ${currentCardIndex === 0 ? 'disabled' : ''}>
+            <div id="navigationControls" class="flex justify-between gap-4 mt-5 flex-shrink-0">
+                <button id="prevBtn" class="flex-1 bg-slate-800 text-slate-300 text-base font-bold py-4 rounded-xl border border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-slate-700 active:scale-[0.98]" ${currentCardIndex === 0 ? 'disabled' : ''}>
                     <i class="fas fa-chevron-left mr-2"></i> Previous
                 </button>
-                <button id="nextBtn" class="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl border border-blue-500 transition hover:bg-blue-500 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed" ${(isMCQMode && !card.answered) ? 'disabled' : ''}>
+                <button id="nextBtn" class="flex-1 bg-blue-600 text-white text-base font-bold py-4 rounded-xl border border-blue-500 transition hover:bg-blue-500 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed" ${(isMCQMode && !card.answered) ? 'disabled' : ''}>
                     ${currentCardIndex === generatedCards.length - 1 ? 'Finish <i class="fas fa-check ml-2"></i>' : 'Next <i class="fas fa-chevron-right ml-2"></i>'}
                 </button>
             </div>
-            
-            <button id="saveStudyBtn" class="w-full mt-8 bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm py-4 rounded-2xl border-b-[4px] border-green-800 active:border-b-0 active:translate-y-[4px] transition-all uppercase tracking-widest shadow-lg hidden">
-                Save & Finish Session
-            </button>
         `;
 
         interactiveView.innerHTML = html;
@@ -515,9 +520,17 @@
             buttons.forEach(btn => {
                 btn.addEventListener('click', () => handleMCQSelection(btn, card, buttons));
             });
+            
             if (card.answered) {
                 document.getElementById('nextBtn').disabled = false;
                 document.getElementById('nextBtn').classList.remove('opacity-30', 'cursor-not-allowed');
+                
+                const explArea = document.getElementById('explanationArea');
+                explArea.innerHTML = `
+                    <div class="text-slate-300 text-sm md:text-base leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50"><span class="font-bold text-slate-400 block mb-1">Explanation:</span> ${escapeHTML(card.explanation)}</div>
+                `;
+                explArea.classList.remove('hidden');
+                explArea.classList.add('flex', 'flex-col');
             }
         } else {
             const fc = document.getElementById('flashcardElement');
@@ -538,60 +551,44 @@
                 currentCardIndex++; 
                 renderCurrentCard(); 
             } else {
-                document.getElementById('navigationControls').classList.add('hidden');
-                document.getElementById('saveStudyBtn').classList.remove('hidden');
-                
-                document.getElementById('saveStudyBtn').addEventListener('click', async () => {
-                    const btn = document.getElementById('saveStudyBtn');
-                    btn.disabled = true;
-                    btn.innerText = "Saving to Database...";
-
-                    try {
-                        const batch = writeBatch(db);
-                        const subjectName = topicFocusInput.value || selectedFile.name.split('.')[0] || "General Subject";
-
-                        generatedCards.forEach(card => {
-                            const docRef = doc(collection(db, "mcqs"));
-
-                            let optionsArr = [];
-                            let correctIdx = 0;
-
-                            if (card.options) {
-                                const keys = Object.keys(card.options);
-                                optionsArr = Object.values(card.options);
-                                for (let i = 0; i < keys.length; i++) {
-                                    if (checkAnswerMatch(keys[i], optionsArr[i], card.answer)) {
-                                        correctIdx = i;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            batch.set(docRef, {
-                                subject: subjectName,
-                                text: card.question || "No question text",
-                                options: optionsArr,
-                                correct: correctIdx,
-                                explanation: card.explanation || "",
-                                userId: currentUser.uid,
-                                type: quizType, // e.g. "Multiple Choice" or "Flashcards"
-                                createdAt: new Date().toISOString()
-                            });
-                        });
-
-                        await batch.commit();
-                        alert("Deck saved successfully! Taking you to the Practice Center.");
-                        window.location.href = "practice.html"; 
-
-                    } catch (err) {
-                        console.error("Error saving to database:", err);
-                        alert("Failed to save. Check your connection.");
-                        btn.disabled = false;
-                        btn.innerText = "Save & Finish Session";
-                    }
-                });
+                showResults();
             }
         });
+    }
+
+    function showResults() {
+        const percentage = Math.round((sessionScore / generatedCards.length) * 100);
+        
+        let html = `
+            <div class="flex-1 flex flex-col min-h-0 items-center justify-center w-full">
+                <div class="w-full bg-slate-800 rounded-3xl p-8 lg:p-10 border border-slate-700 shadow-2xl text-center">
+                    <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
+                        <i class="fas ${percentage >= 80 ? 'fa-trophy' : 'fa-check'} text-4xl text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white mb-3">Session Complete!</h2>
+                    <p class="text-slate-400 text-base mb-8">You finished reviewing your generated material.</p>
+        `;
+
+        if (isMCQMode) {
+            html += `
+                    <div class="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mb-3">Score Received</p>
+                        <p class="text-5xl font-extrabold text-blue-400">${sessionScore} <span class="text-2xl text-slate-500">/ ${generatedCards.length}</span></p>
+                        <p class="text-sm mt-4 ${percentage >= 80 ? 'text-green-400' : 'text-yellow-500'} font-bold uppercase tracking-wider">Accuracy: ${percentage}%</p>
+                    </div>
+            `;
+        }
+
+        html += `
+                    <div class="flex flex-col gap-4">
+                        <button onclick="window.location.href='study.html'" class="w-full py-4 rounded-xl bg-blue-600 text-white font-extrabold text-base uppercase tracking-wider active:scale-95 transition-transform shadow-lg">
+                            Go to Study Center
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        interactiveView.innerHTML = html;
     }
 
     generateBtn.addEventListener('click', async () => {
@@ -620,7 +617,7 @@
             
             loadingText.textContent = `Aurora is generating ${quizType}...`;
             
-            const generateQuizFunction = httpsCallableFromURL(functions, 'https://generatequizfromfile-w2b2eq6c5q-uc.a.run.app');
+            const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
             
             const response = await generateQuizFunction({
                 filePath: securePath,
@@ -630,9 +627,7 @@
                 numberOfItems: requestedItems
             });
             
-            // --- UPDATED AI RESPONSE PARSING ---
             const payload = response.data;
-            // Check for various ways the AI might name the array in its response
             const cards = payload.cards || payload.flashcards || payload.items || payload.questions;
             
             if (!cards || !Array.isArray(cards) || cards.length === 0) {
@@ -640,9 +635,53 @@
                 throw new Error("Generation returned empty data.");
             }
 
+            mainContainer.className = 'flex-1 overflow-hidden px-5 pb-6 flex flex-col min-h-0 w-full max-w-3xl mx-auto';
+            bottomNav.classList.add('hidden'); 
+
             generatedCards = cards.map(card => ({ ...card, answered: false }));
             currentCardIndex = 0;
+            sessionScore = 0; 
             isMCQMode = quizType === "Multiple Choice";
+
+            const subjectName = topicFocusInput.value || "General Subject";
+            const quizTitle = selectedFile.name.split('.')[0] + " Quiz";
+            
+            const newQuiz = {
+                id: Date.now(),
+                title: quizTitle,
+                subject: subjectName,
+                favorite: false,
+                stats: { bestScore: 0, attempts: 0, lastScore: 0 },
+                questions: generatedCards.map(card => {
+                    let optionsArr = [];
+                    let correctIdx = 0;
+
+                    if (card.options && typeof card.options === 'object') {
+                        const keys = Object.keys(card.options);
+                        optionsArr = Object.values(card.options);
+                        for (let i = 0; i < keys.length; i++) {
+                            if (checkAnswerMatch(keys[i], optionsArr[i], card.answer)) {
+                                correctIdx = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        optionsArr = [card.answer || "True", "False"];
+                        correctIdx = 0;
+                    }
+
+                    return {
+                        text: card.question || "No question text",
+                        options: optionsArr,
+                        correct: correctIdx,
+                        explanation: card.explanation || ""
+                    };
+                })
+            };
+
+            let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            existingQuizzes.push(newQuiz);
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
 
             aiLoader.classList.add('hidden-loader');
             setupView.classList.add('hidden');
