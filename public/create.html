@@ -105,13 +105,13 @@
                 <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">1. Upload Source Material</h2>
                 
                 <div id="dropZone" class="upload-zone border-2 border-dashed border-slate-600 rounded-3xl p-8 bg-slate-800/50 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 relative overflow-hidden">
-                    <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt" />
+                    <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
                     
                     <div class="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 text-blue-400" id="uploadIcon">
                         <i class="fas fa-cloud-upload-alt text-2xl"></i>
                     </div>
                     <h3 class="font-bold text-lg mb-1" id="uploadTitle">Tap to Upload File</h3>
-                    <p class="text-slate-400 text-sm" id="uploadSubtitle">Supports PDF, PPTX, DOCX, or TXT (Max 10MB)</p>
+                    <p class="text-slate-400 text-sm" id="uploadSubtitle">Supports PDF, PPTX, DOCX, TXT, or Images (Max 10MB)</p>
                 </div>
             </div>
 
@@ -281,7 +281,9 @@
     let selectedFile = null;
     let quizType = "Flashcards";
     const MAX_FILE_SIZE = 10 * 1024 * 1024; 
-    const ALLOWED_EXTENSIONS = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'txt'];
+    
+    // Expanded array to allow common image formats
+    const ALLOWED_EXTENSIONS = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'txt', 'png', 'jpg', 'jpeg', 'webp', 'heic', 'gif'];
     
     let generatedCards = [];
     let currentCardIndex = 0;
@@ -353,7 +355,8 @@
             const ext = file.name.split('.').pop().toLowerCase();
             
             if (!ALLOWED_EXTENSIONS.includes(ext)) {
-                alert("Invalid file type. Please upload a supported document.");
+                // Updated alert to explicitly state image support
+                alert("Invalid file type. Please upload a supported document or image.");
                 fileInput.value = '';
                 return;
             }
@@ -402,10 +405,12 @@
         const selectedKey = selectedBtn.dataset.key;
         let selectedIsCorrect = false;
 
+        const answer = cardData.back || cardData.answer || "No answer provided";
+
         allButtons.forEach(btn => {
             const key = btn.dataset.key;
             const value = btn.dataset.value;
-            const isThisCorrect = checkAnswerMatch(key, value, cardData.answer);
+            const isThisCorrect = checkAnswerMatch(key, value, answer);
             
             btn.disabled = true;
             btn.classList.remove('hover:border-blue-500', 'cursor-pointer', 'active:scale-[0.98]');
@@ -428,7 +433,7 @@
             <div class="mb-3 flex-shrink-0 text-sm md:text-base">
                 ${selectedIsCorrect 
                     ? '<span class="text-green-400 font-bold"><i class="fas fa-check-circle mr-2"></i> Correct!</span>' 
-                    : `<span class="text-red-400 font-bold"><i class="fas fa-times-circle mr-2"></i> Incorrect.</span> <span class="text-slate-300 ml-2">Answer: <b>${escapeHTML(cardData.answer)}</b></span>`}
+                    : `<span class="text-red-400 font-bold"><i class="fas fa-times-circle mr-2"></i> Incorrect.</span> <span class="text-slate-300 ml-2">Answer: <b>${escapeHTML(answer)}</b></span>`}
             </div>
             ${cardData.explanation ? `<div class="text-slate-300 text-sm md:text-base leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50"><span class="font-bold text-slate-400 block mb-1">Explanation:</span> ${escapeHTML(cardData.explanation)}</div>` : ''}
         `;
@@ -444,8 +449,12 @@
 
     function renderCurrentCard() {
         const card = generatedCards[currentCardIndex];
-        const safeQuestion = escapeHTML(card.question || "No question provided");
-        const safeAnswer = escapeHTML(card.answer || "No answer provided");
+        
+        const question = card.front || card.question || "";
+        const answer = card.back || card.answer || "No answer provided";
+
+        const safeQuestion = escapeHTML(question || "No question provided");
+        const safeAnswer = escapeHTML(answer);
 
         let html = `
             <div class="flex items-center justify-between mb-4 flex-shrink-0">
@@ -656,22 +665,25 @@
                     let optionsArr = [];
                     let correctIdx = 0;
 
+                    const question = card.front || card.question || "";
+                    const answer = card.back || card.answer || "No answer provided";
+
                     if (card.options && typeof card.options === 'object') {
                         const keys = Object.keys(card.options);
                         optionsArr = Object.values(card.options);
                         for (let i = 0; i < keys.length; i++) {
-                            if (checkAnswerMatch(keys[i], optionsArr[i], card.answer)) {
+                            if (checkAnswerMatch(keys[i], optionsArr[i], answer)) {
                                 correctIdx = i;
                                 break;
                             }
                         }
                     } else {
-                        optionsArr = [card.answer || "True", "False"];
+                        optionsArr = [answer !== "No answer provided" ? answer : "True", "False"];
                         correctIdx = 0;
                     }
 
                     return {
-                        text: card.question || "No question text",
+                        text: question || "No question text",
                         options: optionsArr,
                         correct: correctIdx,
                         explanation: card.explanation || ""

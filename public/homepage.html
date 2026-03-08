@@ -14,9 +14,21 @@
         body { 
             -webkit-user-select: none; 
             user-select: none; 
-            background-color: #0f172a; 
+            background-color: #0B1120; 
+            background-image: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             overflow: hidden; 
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            will-change: transform, backdrop-filter;
         }
 
         .loader-screen {
@@ -27,7 +39,8 @@
             justify-content: center;
             background: #0f172a;
             z-index: 10000;
-            transition: opacity 0.4s ease, visibility 0.4s;
+            transition: opacity 0.3s ease, visibility 0.3s;
+            transform: translateZ(0);
         }
         .loader-screen.hidden-loader {
             opacity: 0;
@@ -43,6 +56,7 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem auto;
+            will-change: transform;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
@@ -63,19 +77,22 @@
             z-index: 99999;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            transform: translateZ(0);
         }
         .ok-dialog {
             width: 90%;
             max-width: 400px;
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             color: white;
             transform: scale(0.95);
             opacity: 0;
-            transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+            transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s ease;
+            will-change: transform, opacity;
         }
         .ok-backdrop.active .ok-dialog {
             transform: scale(1);
@@ -86,7 +103,7 @@
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-5px); }
         }
-        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-float { animation: float 3s ease-in-out infinite; will-change: transform; }
 
         @keyframes pulse-border {
             0%, 100% { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 15px rgba(96, 165, 250, 0.2); }
@@ -97,7 +114,7 @@
             position: relative;
             z-index: 40; 
             animation: pulse-border 2s infinite;
-            border-radius: 12px;
+            border-radius: 16px;
         }
 
         .speech-bubble {
@@ -109,6 +126,7 @@
             color: white;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             max-width: 200px;
+            transform: translateZ(0);
         }
         
         .speech-bubble::after {
@@ -127,14 +145,21 @@
         #tutorialOverlay {
             background: rgba(15, 23, 42, 0.6); 
             backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
             pointer-events: auto; 
+            transform: translateZ(0);
+        }
+        
+        .scroll-container {
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>
 <body class="text-white h-screen flex flex-col overflow-hidden relative">
 
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
-        <div class="loader-content">
+        <div class="loader-content text-center">
             <div class="spinner"></div>
             <div class="loading-text">LOADING...</div>
         </div>
@@ -145,157 +170,188 @@
             <h3 id="okTitle" class="text-lg font-bold text-white mb-2">Notice</h3>
             <p id="okMessage" class="text-slate-300 text-sm mb-6 leading-relaxed">Message goes here</p>
             <div class="flex justify-end gap-3">
-                <button id="okCancel" class="px-4 py-2 rounded-xl text-slate-400 font-bold text-sm hover:text-white transition">Cancel</button>
-                <button id="okConfirm" class="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-900/50 transition transform active:scale-95">OK</button>
+                <button id="okCancel" class="px-4 py-2 rounded-xl text-slate-400 font-bold text-sm hover:text-white transition-colors">Cancel</button>
+                <button id="okConfirm" class="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-900/50 transition-transform transform active:scale-95">OK</button>
             </div>
         </div>
     </div>
 
-    <header class="pt-6 pb-2 px-6 flex items-center justify-between z-10 gap-3">
-        <div id="searchBar" class="flex-1 bg-slate-800 rounded-full flex items-center px-4 py-3 border border-slate-700 shadow-sm transition-all duration-300">
-            <svg class="w-5 h-5 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <input type="text" placeholder="Search decks..." class="bg-transparent border-none outline-none text-sm text-white w-full placeholder-slate-500">
+    <div id="searchBar" class="hidden"></div>
+
+    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#0f172a]/80 backdrop-blur-lg border-b border-white/5 transform-gpu">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                <i class="fas fa-stethoscope text-white text-sm"></i>
+            </div>
+            <span class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300 tracking-tight">MedExcel</span>
         </div>
 
-        <button onclick="window.location.href='payment.html'" class="flex items-center justify-center gap-1 bg-gradient-to-r from-yellow-600/20 to-yellow-500/20 hover:from-yellow-600/40 hover:to-yellow-500/40 border border-yellow-500/50 text-yellow-500 px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(234,179,8,0.1)] active:scale-95 shrink-0">
-            <i class="fas fa-crown text-[10px]"></i>
-            <span class="hidden sm:inline">Upgrade</span>
-        </button>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center gap-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-500 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-[0_0_10px_rgba(249,115,22,0.1)] shrink-0">
+                <i class="fas fa-fire text-orange-500"></i>
+                <span id="headerStreakDisplay">12</span>
+            </div>
 
-        <button id="profileBtn" class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors cursor-pointer flex items-center justify-center shrink-0">
-             <img id="userAvatar" src="" alt="Profile" class="w-full h-full object-cover hidden">
-             <span id="userInitial" class="text-sm font-bold text-slate-300 hidden">?</span>
-        </button>
+            <button id="profileBtn" class="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-md transform-gpu active:scale-95">
+                 <img id="userAvatar" src="" alt="Profile" class="w-full h-full object-cover hidden">
+                 <span id="userInitial" class="text-sm font-bold text-slate-300 hidden">?</span>
+            </button>
+        </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto pb-24 px-6">
+    <main class="flex-1 overflow-y-auto scroll-container pb-32 px-6 pt-6 space-y-8 transform-gpu">
         
-        <div class="mt-6 mb-6">
-            <h1 class="text-2xl font-bold">Recents</h1>
+        <div>
+            <h1 class="text-3xl font-extrabold text-white mb-1 tracking-tight">Welcome back 👋</h1>
+            <p class="text-slate-400 text-sm font-medium">Ready to crush your medical exams today?</p>
         </div>
 
-        <div class="bg-slate-800 rounded-2xl p-4 flex items-center gap-4 border border-slate-700/50 mb-8 hover:bg-slate-750 transition-colors cursor-pointer active:scale-98">
-            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-            </div>
-            <div>
-                <h3 class="font-bold text-base">Pharmacology Nursing</h3>
-                <p class="text-slate-400 text-xs">869 cards • by kayde310</p>
-            </div>
-        </div>
-
-        <div class="mb-6">
-            <h2 class="text-lg font-bold mb-3">Create New</h2>
-            
-            <a href="create.html" id="createCard" class="block bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 border border-slate-700 relative overflow-hidden shadow-xl transition-all duration-300 active:scale-98 cursor-pointer">
-                <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-600/20 rounded-full blur-2xl"></div>
+        <div id="continueStudyingSection" class="hidden">
+            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Continue Studying</h2>
+            <a href="study.html" class="glass-panel rounded-2xl p-4 relative overflow-hidden block transform transition-transform active:scale-98 hover:bg-white/5 will-change-transform border border-indigo-500/30 group">
+                <div class="absolute bottom-0 left-0 h-1.5 bg-slate-800 w-full transform-gpu">
+                    <div id="continueProgressBar" class="h-full bg-blue-500 rounded-r-full shadow-sm transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
                 
-                <div class="relative z-10">
-                    <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-900/50">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
+                            <g transform="translate(32, 32)">
+                                <g transform="rotate(45) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#88868A"/>
+                                </g>
+                                <g transform="rotate(25) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#D2D0D6"/>
+                                </g>
+                                <g transform="rotate(5) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#4CBAD6"/>
+                                </g>
+                            </g>
+                        </svg>
                     </div>
-                    
-                    <h3 class="text-xl font-bold mb-2 text-white">Generate with AI</h3>
-                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
-                        Upload your notes and let MedExcel create your flashcards instantly.
-                    </p>
-                    
-                    <div class="w-full">
-                        <button class="w-full bg-slate-700 hover:bg-slate-600 text-blue-300 font-bold py-3 rounded-xl text-sm transition-colors border border-slate-600">
-                            Create Set
-                        </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start mb-1 gap-3">
+                            <h3 id="continueTitle" class="font-bold text-sm text-white leading-tight line-clamp-2">Quiz Title</h3>
+                            <span id="continueProgressText" class="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 shrink-0">0%</span>
+                        </div>
+                        <p class="text-slate-400 text-xs font-medium truncate"><span id="continueCardCount">0</span> items • <span id="continueSubject" class="uppercase">Subject</span></p>
                     </div>
                 </div>
             </a>
         </div>
 
-        <div class="mb-4">
-            <div class="flex justify-between items-end mb-4">
-                <h2 class="text-lg font-bold">Topics</h2>
-                <button class="text-blue-400 text-xs font-bold uppercase tracking-wider">View All</button>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                <a href="topics/anatomy.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Anatomy">
-                    <div class="h-14 bg-emerald-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-bone text-2xl text-emerald-300" aria-hidden="true"></i>
+        <div>
+            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Quick Actions</h2>
+            <div class="grid grid-cols-2 gap-3">
+                
+                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                            Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i>
+                        </h3>
+                        <p class="text-blue-100 text-xs font-medium opacity-90">Upload notes to create materials instantly.</p>
                     </div>
-                    <h4 class="font-bold text-sm mb-1">Anatomy</h4>
-                    <p class="text-xs text-slate-500">Explore structural systems</p>
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 relative z-10 backdrop-blur-md border border-white/20">
+                        <i class="fas fa-arrow-right text-white text-sm"></i>
+                    </div>
+                </a>
+                
+                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
+                            <g transform="translate(32, 32)">
+                                <g transform="rotate(45) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#88868A"/>
+                                </g>
+                                <g transform="rotate(25) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#D2D0D6"/>
+                                </g>
+                                <g transform="rotate(5) translate(-14, -20)">
+                                    <rect width="28" height="40" rx="3" fill="#4CBAD6"/>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-sm text-slate-200 mt-2">Create Flashcards</span>
                 </a>
 
-                <a href="topics/human-physiology.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Human Physiology">
-                    <div class="h-14 bg-cyan-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-heart-pulse text-2xl text-cyan-300" aria-hidden="true"></i>
+                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
+                            <g transform="translate(32, 32)">
+                                <g transform="rotate(-5) translate(-18, -22)">
+                                    <rect width="36" height="44" rx="3" fill="#EAE8EC"/>
+                                    <path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/>
+                                    <circle cx="8" cy="20" r="3" fill="#F4A261"/>
+                                    <rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/>
+                                    <circle cx="8" cy="30" r="3" fill="#C5C3C8"/>
+                                    <rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/>
+                                    <circle cx="8" cy="40" r="3" fill="#C5C3C8"/>
+                                    <rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/>
+                                </g>
+                            </g>
+                        </svg>
                     </div>
-                    <h4 class="font-bold text-sm mb-1">Human Physiology</h4>
-                    <p class="text-xs text-slate-500">Function & regulation</p>
+                    <span class="font-bold text-sm text-slate-200 mt-2 leading-tight">Create Multiple Choice Questions</span>
                 </a>
 
-                <a href="topics/medical-biochemistry.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Medical Biochemistry">
-                    <div class="h-14 bg-yellow-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-flask-vial text-2xl text-yellow-300" aria-hidden="true"></i>
+                <a href="tutor.html" class="col-span-2 glass-panel rounded-2xl p-4 flex flex-row items-center gap-4 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
+                            <g transform="translate(32, 32)">
+                                <g transform="translate(-16, -12)">
+                                     <rect width="32" height="36" rx="3" fill="#EAE8EC"/>
+                                     <rect x="6" y="8" width="14" height="3" rx="1.5" fill="#C5C3C8"/>
+                                     <rect x="6" y="16" width="20" height="3" rx="1.5" fill="#C5C3C8"/>
+                                     <rect x="6" y="24" width="12" height="3" rx="1.5" fill="#C5C3C8"/>
+                                </g>
+                                <path d="M -4 16 L 16 -10" stroke="#E76F51" stroke-width="4" stroke-linecap="round"/>
+                                <circle cx="16" cy="-10" r="3" fill="#F4A261"/>
+                                <path d="M 18 -22 L 19 -18 L 23 -17 L 19 -16 L 18 -12 L 17 -16 L 13 -17 L 17 -18 Z" fill="#E9C46A"/>
+                                <path d="M 2 -14 L 2.5 -12 L 4.5 -11.5 L 2.5 -11 L 2 -9 L 1.5 -11 L -0.5 -11.5 L 1.5 -12 Z" fill="#E9C46A"/>
+                                <path d="M 26 -2 L 26.5 -0 L 28.5 0.5 L 26.5 1 L 26 3 L 25.5 1 L 23.5 0.5 L 25.5 -0 Z" fill="#E9C46A"/>
+                            </g>
+                        </svg>
                     </div>
-                    <h4 class="font-bold text-sm mb-1">Medical Biochemistry</h4>
-                    <p class="text-xs text-slate-500">Metabolism & pathways</p>
-                </a>
-
-                <a href="topics/pharmacology.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Pharmacology">
-                    <div class="h-14 bg-indigo-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-pills text-2xl text-indigo-300" aria-hidden="true"></i>
+                    <div>
+                        <span class="font-bold text-sm text-slate-200 block">Simplify Materials</span>
+                        <span class="text-xs text-slate-400 mt-0.5 block">Let AI break down complex topics</span>
                     </div>
-                    <h4 class="font-bold text-sm mb-1">Pharmacology</h4>
-                    <p class="text-xs text-slate-500">Drugs & mechanisms</p>
-                </a>
-
-                <a href="topics/pathology.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Pathology">
-                    <div class="h-14 bg-red-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-microscope text-2xl text-red-300" aria-hidden="true"></i>
-                    </div>
-                    <h4 class="font-bold text-sm mb-1">Pathology</h4>
-                    <p class="text-xs text-slate-500">Disease processes</p>
-                </a>
-
-                <a href="topics/pediatrics.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Pediatrics">
-                    <div class="h-14 bg-pink-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-baby text-2xl text-pink-300" aria-hidden="true"></i>
-                    </div>
-                    <h4 class="font-bold text-sm mb-1">Pediatrics</h4>
-                    <p class="text-xs text-slate-500">Child health</p>
-                </a>
-
-                <a href="topics/gynecology.html" class="block min-h-[96px] bg-slate-800 p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors" aria-label="Gynecology">
-                    <div class="h-14 bg-rose-500/10 rounded-xl mb-3 flex items-center justify-center">
-                        <i class="fas fa-venus text-2xl text-rose-300" aria-hidden="true"></i>
-                    </div>
-                    <h4 class="font-bold text-sm mb-1">Gynecology</h4>
-                    <p class="text-xs text-slate-500">Women's health</p>
                 </a>
             </div>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
-            <i class="fas fa-home text-xl mb-0.5"></i>
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a]/90 backdrop-blur-lg border-t border-white/5 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-blue-500 transition-colors">
+            <div class="w-10 h-8 flex items-center justify-center bg-blue-500/10 rounded-full">
+                <i class="fas fa-home text-lg"></i>
+            </div>
             <span class="text-[10px] font-bold">Home</span>
         </a>
-        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
-            <span class="text-[10px] font-medium">Create</span>
+        <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <div class="w-10 h-8 flex items-center justify-center rounded-full">
+                <i class="fas fa-compass text-lg"></i>
+            </div>
+            <span class="text-[10px] font-medium">Explore</span>
         </a>
-        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-layer-group text-xl mb-0.5"></i>
-            <span class="text-[10px] font-medium">Study</span>
+        <a href="study.html" id="libraryBtn" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <div class="w-10 h-8 flex items-center justify-center rounded-full">
+                <i class="fas fa-layer-group text-lg"></i>
+            </div>
+            <span class="text-[10px] font-medium">Library</span>
         </a>
-        <a href="profile.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-user text-xl mb-0.5"></i>
+        <a href="profile.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <div class="w-10 h-8 flex items-center justify-center rounded-full">
+                <i class="fas fa-user text-lg"></i>
+            </div>
             <span class="text-[10px] font-medium">Profile</span>
         </a>
     </nav>
 
     <div id="tutorialOverlay" class="fixed inset-0 z-[60] hidden flex-col items-center justify-center">
-        <div id="tutorialMascot" class="absolute transition-all duration-700 ease-in-out z-[70] flex flex-col items-center w-64">
+        <div id="tutorialMascot" class="absolute transition-transform duration-700 ease-in-out z-[70] flex flex-col items-center w-64 will-change-transform transform-gpu">
             <div id="tutorialText" class="speech-bubble mb-4 text-center font-medium text-sm"></div>
             <div class="w-20 h-20 animate-float filter drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">
                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -319,7 +375,7 @@
                 </svg>
             </div>
             <div class="mt-4">
-                <button onclick="nextStep()" class="bg-blue-500 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-400 transition transform text-xs active:scale-95">Next</button>
+                <button onclick="nextStep()" class="bg-blue-500 text-white px-6 py-2 rounded-full font-bold shadow-md hover:bg-blue-400 transition-transform transform active:scale-95 text-xs will-change-transform">Next</button>
             </div>
         </div>
     </div>
@@ -341,6 +397,31 @@
             } else {
                 initialSpan.textContent = "?";
                 initialSpan.classList.remove('hidden');
+            }
+
+            const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            const userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { streak: 0 };
+            
+            document.getElementById('headerStreakDisplay').textContent = userStats.streak;
+
+            const continueSection = document.getElementById('continueStudyingSection');
+            if (quizzes.length > 0) {
+                const lastQuiz = quizzes[quizzes.length - 1];
+                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
+                
+                let progress = 0;
+                if (totalQs > 0) {
+                    progress = Math.round((bestScore / totalQs) * 100);
+                }
+                
+                document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
+                document.getElementById('continueProgressText').textContent = `${progress}%`;
+                document.getElementById('continueProgressBar').style.width = `${progress}%`;
+                document.getElementById('continueCardCount').textContent = totalQs;
+                document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
+                
+                continueSection.classList.remove('hidden');
             }
         } catch(e) { console.warn("UI Init failed", e); }
     })();
@@ -397,11 +478,6 @@
                 setTimeout(() => {
                     loader.classList.add('hidden-loader');
                     document.body.style.overflow = 'auto'; 
-                    
-                    // You can re-enable this later when ready for production
-                    // if (!localStorage.getItem('medExcelTutorialSeen')) {
-                    //    setTimeout(window.startTutorial, 1000);
-                    // }
                 }, 400);
             }
         }
