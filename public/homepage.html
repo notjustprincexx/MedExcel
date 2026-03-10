@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MedExcel Home</title>
+    
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -17,7 +22,8 @@
             background-color: #0B1120; 
             background-image: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow: hidden; 
+            overflow-x: hidden;
+            overscroll-behavior-y: none;
         }
 
         .glass-panel {
@@ -28,44 +34,8 @@
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
             backface-visibility: hidden;
-            will-change: transform, backdrop-filter;
-        }
-
-        .loader-screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f172a;
-            z-index: 10000;
-            transition: opacity 0.3s ease, visibility 0.3s;
-            transform: translateZ(0);
-        }
-        .loader-screen.hidden-loader {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(96, 165, 250, 0.2);
-            border-left-color: #60A5FA;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem auto;
             will-change: transform;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .loading-text {
-            color: #94a3b8;
-            font-size: 0.875rem;
-            font-weight: 500;
-            letter-spacing: 0.05em;
-            animation: pulse 1.5s infinite;
+            contain: paint layout;
         }
 
         .ok-backdrop {
@@ -79,6 +49,7 @@
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
             transform: translateZ(0);
+            contain: strict;
         }
         .ok-dialog {
             width: 90%;
@@ -127,6 +98,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             max-width: 200px;
             transform: translateZ(0);
+            contain: content;
         }
         
         .speech-bubble::after {
@@ -148,22 +120,17 @@
             -webkit-backdrop-filter: blur(2px);
             pointer-events: auto; 
             transform: translateZ(0);
+            contain: strict;
         }
         
         .scroll-container {
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
+            contain: layout size;
         }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col overflow-hidden relative">
-
-    <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
-        <div class="loader-content text-center">
-            <div class="spinner"></div>
-            <div class="loading-text">LOADING...</div>
-        </div>
-    </div>
+<body class="text-white h-screen flex flex-col relative">
 
     <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
         <div class="ok-dialog" role="document">
@@ -178,34 +145,19 @@
 
     <div id="searchBar" class="hidden"></div>
 
-    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#0f172a]/80 backdrop-blur-lg border-b border-white/5 transform-gpu">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                <i class="fas fa-stethoscope text-white text-sm"></i>
-            </div>
-            <span class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300 tracking-tight">MedExcel</span>
-        </div>
+    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-transparent transform-gpu">
+        <h1 id="greetingTitle" class="text-lg font-bold text-white tracking-tight">Welcome back</h1>
 
         <div class="flex items-center gap-3">
             <div class="flex items-center justify-center gap-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-500 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-[0_0_10px_rgba(249,115,22,0.1)] shrink-0">
                 <i class="fas fa-fire text-orange-500"></i>
                 <span id="headerStreakDisplay">12</span>
             </div>
-
-            <button id="profileBtn" class="relative w-9 h-9 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-md transform-gpu active:scale-95">
-                 <img id="userAvatar" src="" alt="Profile" class="w-full h-full object-cover hidden">
-                 <span id="userInitial" class="text-sm font-bold text-slate-300 hidden">?</span>
-            </button>
         </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto scroll-container pb-32 px-6 pt-6 space-y-8 transform-gpu">
+    <main class="flex-1 min-h-0 overflow-y-auto scroll-container pb-40 px-6 pt-4 space-y-8 transform-gpu">
         
-        <div>
-            <h1 class="text-3xl font-extrabold text-white mb-1 tracking-tight">Welcome back 👋</h1>
-            <p class="text-slate-400 text-sm font-medium">Ready to crush your medical exams today?</p>
-        </div>
-
         <div id="continueStudyingSection" class="hidden">
             <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Continue Studying</h2>
             <a href="study.html" class="glass-panel rounded-2xl p-4 relative overflow-hidden block transform transition-transform active:scale-98 hover:bg-white/5 will-change-transform border border-indigo-500/30 group">
@@ -244,7 +196,7 @@
             <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Quick Actions</h2>
             <div class="grid grid-cols-2 gap-3">
                 
-                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform">
+                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform" style="contain: paint layout;">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="relative z-10">
                         <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
@@ -257,7 +209,7 @@
                     </div>
                 </a>
                 
-                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -276,7 +228,7 @@
                     <span class="font-bold text-sm text-slate-200 mt-2">Create Flashcards</span>
                 </a>
 
-                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -296,7 +248,7 @@
                     <span class="font-bold text-sm text-slate-200 mt-2 leading-tight">Create Multiple Choice Questions</span>
                 </a>
 
-                <a href="tutor.html" class="col-span-2 glass-panel rounded-2xl p-4 flex flex-row items-center gap-4 transform transition-transform active:scale-95 hover:bg-white/5 will-change-transform group">
+                <a href="tutor.html" class="col-span-2 glass-panel rounded-2xl p-4 flex flex-row items-center gap-4 transform transition-transform active:scale-95 hover:bg-white/5 group">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -319,11 +271,43 @@
                         <span class="text-xs text-slate-400 mt-0.5 block">Let AI break down complex topics</span>
                     </div>
                 </a>
+
+                <a href="teach.html" class="col-span-2 glass-panel border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] rounded-2xl p-5 flex flex-col gap-3 transform transition-transform active:scale-95 hover:bg-white/5 group relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors duration-500 pointer-events-none"></div>
+
+                    <div class="flex items-start gap-4 relative z-10">
+                        <div class="w-14 h-14 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+                            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
+                                <g transform="translate(32, 32)">
+                                    <g transform="rotate(10) translate(-16, -18)">
+                                        <rect width="32" height="36" rx="3" fill="#D2D0D6"/>
+                                    </g>
+                                    <g transform="rotate(-5) translate(-18, -20)">
+                                        <rect width="36" height="40" rx="3" fill="#EAE8EC"/>
+                                        <rect x="8" y="12" width="4" height="16" rx="2" fill="#4CBAD6"/>
+                                        <rect x="16" y="8" width="4" height="24" rx="2" fill="#F4A261"/>
+                                        <rect x="24" y="14" width="4" height="12" rx="2" fill="#E76F51"/>
+                                    </g>
+                                </g>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-extrabold uppercase tracking-wider mb-1.5 shadow-[0_0_10px_rgba(249,115,22,0.1)]">
+                                🔥 Most Powerful
+                            </div>
+                            <h3 class="font-bold text-base text-white leading-tight">Teach MedExcel</h3>
+                            <p class="text-xs text-blue-200 mt-1 leading-snug">Explain a concept out loud. Aurora listens, finds gaps, and challenges you.</p>
+                        </div>
+                    </div>
+                    <div class="relative z-10 bg-[#0f172a]/80 rounded-xl p-3 border border-white/5">
+                        <p class="text-[11px] text-slate-300 leading-relaxed"><span class="font-semibold text-white">Active Mastery:</span> Teaching helps you discover what you truly understand. Students who explain concepts remember them longer.</p>
+                    </div>
+                </a>
             </div>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a]/90 backdrop-blur-lg border-t border-white/5 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu">
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a]/90 backdrop-blur-lg border-t border-white/5 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu" style="contain: paint layout;">
         <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-blue-500 transition-colors">
             <div class="w-10 h-8 flex items-center justify-center bg-blue-500/10 rounded-full">
                 <i class="fas fa-home text-lg"></i>
@@ -332,9 +316,9 @@
         </a>
         <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
             <div class="w-10 h-8 flex items-center justify-center rounded-full">
-                <i class="fas fa-compass text-lg"></i>
+                <i class="fas fa-plus-circle text-lg"></i>
             </div>
-            <span class="text-[10px] font-medium">Explore</span>
+            <span class="text-[10px] font-medium">Create</span>
         </a>
         <a href="study.html" id="libraryBtn" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
             <div class="w-10 h-8 flex items-center justify-center rounded-full">
@@ -383,20 +367,11 @@
     <script>
     (function fastInitUserUI() {
         try {
-            const avatarImg = document.getElementById('userAvatar');
-            const initialSpan = document.getElementById('userInitial');
-            const savedAvatar = localStorage.getItem('userAvatar'); 
             const savedName = localStorage.getItem('userName'); 
+            const greetingTitle = document.getElementById('greetingTitle');
 
-            if (savedAvatar) {
-                avatarImg.src = savedAvatar;
-                avatarImg.classList.remove('hidden');
-            } else if (savedName) {
-                initialSpan.textContent = savedName.charAt(0).toUpperCase();
-                initialSpan.classList.remove('hidden');
-            } else {
-                initialSpan.textContent = "?";
-                initialSpan.classList.remove('hidden');
+            if (savedName && savedName !== "Guest" && greetingTitle) {
+                greetingTitle.innerHTML = `Hi, ${savedName}`;
             }
 
             const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
@@ -446,78 +421,28 @@
         
         const skip = localStorage.getItem("skip") === "true";
 
-        if (skip) {
-            console.log("Guest Access Granted");
-            hideLoader();
-        }
-
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("Verified User:", user.email);
-                
                 const name = user.displayName || user.email.split('@')[0];
                 localStorage.setItem('userName', name);
-                if(user.photoURL) localStorage.setItem('userAvatar', user.photoURL);
-                
-                updateHeaderUI(name, user.photoURL);
-                hideLoader();
+                updateHeaderUI(name);
             } else {
                 if (!skip) {
-                    console.log("Unauthorized. Redirecting...");
                     window.location.href = 'index.html#login';
                 } else {
-                    updateHeaderUI("Guest", null);
+                    updateHeaderUI("Guest");
                 }
             }
         });
 
-        function hideLoader() {
-            const loader = document.getElementById('loaderScreen');
-            if(loader && !loader.classList.contains('hidden-loader')) {
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    loader.classList.add('hidden-loader');
-                    document.body.style.overflow = 'auto'; 
-                }, 400);
+        function updateHeaderUI(name) {
+            const greetingTitle = document.getElementById('greetingTitle');
+            if (greetingTitle && name && name !== "Guest") {
+                greetingTitle.innerHTML = `Hi, ${name}`;
+            } else if (greetingTitle) {
+                greetingTitle.innerHTML = `Welcome back`;
             }
         }
-
-        function updateHeaderUI(name, photoURL) {
-            const avatarImg = document.getElementById('userAvatar');
-            const initialSpan = document.getElementById('userInitial');
-            
-            if(photoURL) {
-                avatarImg.src = photoURL;
-                avatarImg.classList.remove('hidden');
-                initialSpan.classList.add('hidden');
-            } else {
-                avatarImg.classList.add('hidden');
-                initialSpan.textContent = name.charAt(0).toUpperCase();
-                initialSpan.classList.remove('hidden');
-            }
-        }
-
-        window.handleProfileClick = async () => {
-            const isGuest = localStorage.getItem("skip") === "true";
-            const title = isGuest ? "Log In?" : "Log Out?";
-            const msg = isGuest ? "Return to login screen to create an account." : "Are you sure you want to sign out?";
-            const okText = isGuest ? "Go to Login" : "Log Out";
-
-            const confirmed = await window.showDialog(msg, title, { okText: okText, cancelText: "Cancel" });
-            
-            if (confirmed) {
-                if (!isGuest) {
-                    try { await signOut(auth); } catch(e) { console.error(e); }
-                }
-                localStorage.removeItem("skip");
-                localStorage.removeItem("userName");
-                localStorage.removeItem("userAvatar");
-                
-                window.location.href = 'index.html#login';
-            }
-        };
-        
-        document.getElementById('profileBtn').addEventListener('click', window.handleProfileClick);
     </script>
 
     <script>

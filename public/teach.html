@@ -3,147 +3,116 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Teach Aurora — Live Mode</title>
+  <title>MedExcel Tutor — Live Mode</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* THEME: "Deep Void" - Pure Immersion */
+    /* THEME: "Deep Void" - Matched to Screenshot */
     html, body {
       height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #000000;
+      background-color: #121214;
     }
 
     body {
-      /* Use dvh (Dynamic Viewport Height) to avoid hidden areas behind mobile browser bars */
       height: 100dvh; 
       width: 100vw;
       display: flex;
       flex-direction: column;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #ffffff;
+      position: relative;
     }
 
-    /* BACKGROUND: Subtle, shifting aurora */
+    /* BACKGROUND: Subtle top gradient matching the screenshot's dark canvas */
     .aurora-bg {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: 
-        radial-gradient(circle at 50% 120%, rgba(37, 99, 235, 0.2), transparent 60%),
-        radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.15), transparent 45%),
-        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15), transparent 45%);
+      background: linear-gradient(to bottom, #09090b 0%, #121214 70%);
       z-index: 0;
-      transition: opacity 1s ease;
-      opacity: 0.6;
       pointer-events: none;
     }
 
-    .aurora-bg.active {
-      opacity: 1;
-      filter: brightness(1.3);
-    }
-
-    /* THE PRESENCE (The Orb) */
+    /* THE PRESENCE (Seamless Glowing Wave at the bottom) */
     .presence-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      z-index: 10;
+      position: absolute;
+      bottom: 0;
+      left: 0;
       width: 100%;
+      height: 50vh; 
+      z-index: 0;
+      pointer-events: none;
     }
 
     .orb {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
-      backdrop-filter: blur(10px);
-      box-shadow: inset 0 0 20px rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      display: grid;
-      place-items: center;
-      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      position: relative;
-    }
-
-    /* Orb Inner Core */
-    .orb::after {
-      content: '';
       position: absolute;
-      width: 40%;
-      height: 40%;
-      background: rgba(255,255,255,0.8);
+      bottom: -30vh;
+      left: -50vw;
+      width: 200vw;
+      height: 80vh;
       border-radius: 50%;
-      filter: blur(20px);
-      opacity: 0.3;
-      transition: all 0.4s ease;
+      background: radial-gradient(ellipse at center bottom, rgba(255,255,255,0.85) 0%, rgba(138, 180, 248, 0.35) 40%, transparent 70%);
+      filter: blur(55px);
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform-origin: center bottom;
     }
 
-    /* STATES */
-    
-    /* 1. Listening */
+    /* Wave States */
     .orb.listening {
-      transform: scale(1.1);
-      border-color: rgba(52, 211, 153, 0.3);
-      box-shadow: 0 0 60px rgba(52, 211, 153, 0.1);
-    }
-    .orb.listening::after {
-      background: #34d399;
-      opacity: 0.6;
-      animation: breathe 3s infinite ease-in-out;
+      background: radial-gradient(ellipse at center bottom, rgba(52, 211, 153, 0.7) 0%, rgba(52, 211, 153, 0.25) 40%, transparent 70%);
+      animation: waveBreathe 3s infinite ease-in-out;
     }
 
-    /* 2. Thinking */
     .orb.thinking {
-      transform: scale(0.95);
-      border-color: rgba(96, 165, 250, 0.5);
-    }
-    .orb.thinking::after {
-      background: #60a5fa;
-      opacity: 0.8;
-      animation: ping 1s infinite cubic-bezier(0, 0, 0.2, 1);
+      background: radial-gradient(ellipse at center bottom, rgba(96, 165, 250, 0.7) 0%, rgba(96, 165, 250, 0.25) 40%, transparent 70%);
+      animation: wavePulse 1.5s infinite ease-in-out;
     }
 
-    /* 3. Speaking */
     .orb.speaking {
-      transform: scale(1.05);
-      border-color: rgba(167, 139, 250, 0.4);
-      box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
-    }
-    .orb.speaking::after {
-      background: #a78bfa;
-      opacity: 0.7;
-      animation: voiceWave 1.5s infinite ease-in-out alternate;
+      background: radial-gradient(ellipse at center bottom, rgba(167, 139, 250, 0.7) 0%, rgba(167, 139, 250, 0.25) 40%, transparent 70%);
+      animation: waveSpeak 1.5s infinite ease-in-out alternate;
     }
 
-    @keyframes breathe {
-      0%, 100% { transform: scale(0.95); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 0.8; }
+    @keyframes waveBreathe {
+      0%, 100% { transform: scaleY(1.1); opacity: 0.8; }
+      50% { transform: scaleY(1.35); opacity: 1; }
     }
-    
-    @keyframes voiceWave {
-      0% { transform: scale(0.8); opacity: 0.6; filter: blur(25px); }
-      100% { transform: scale(1.5); opacity: 0.9; filter: blur(15px); }
+    @keyframes wavePulse {
+      0%, 100% { transform: scaleY(1); opacity: 0.6; }
+      50% { transform: scaleY(1.05); opacity: 0.9; }
+    }
+    @keyframes waveSpeak {
+      0% { transform: scaleY(1.1); opacity: 0.7; filter: blur(65px); }
+      100% { transform: scaleY(1.45); opacity: 1; filter: blur(45px); }
     }
 
     /* CONTROLS */
     .control-bar {
-      /* Padding calculation: 40px base + any system safe area (like iPhone home bar) */
-      padding: 0 20px calc(40px + env(safe-area-inset-bottom));
+      position: absolute;
+      bottom: 0;
+      left: 0;
       width: 100%;
+      padding: 0 24px calc(40px + env(safe-area-inset-bottom));
       display: flex;
-      justify-content: center;
-      align-items: flex-end; /* Aligns visually to bottom area */
+      flex-direction: column;
+      align-items: center;
       z-index: 20;
-      /* Ensure it doesn't shrink */
-      flex-shrink: 0;
-      min-height: 120px;
     }
 
-    .btn {
+    .subtitle-area {
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 0 20px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+
+    .btn-mic {
       width: 72px;
       height: 72px;
       border-radius: 50%;
@@ -152,107 +121,99 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.1s ease, background 0.2s, box-shadow 0.2s;
-    }
-    .btn:active { transform: scale(0.9); }
-
-    .btn-mic {
-      background: #e2e8f0;
-      color: #0f172a;
-      box-shadow: 0 0 30px rgba(255,255,255,0.1);
-    }
-    .btn-mic.active {
-      background: #ffffff;
-      box-shadow: 0 0 50px rgba(255,255,255,0.5);
-    }
-
-    /* Top Status */
-    .status-pill {
-      position: absolute;
-      top: max(24px, env(safe-area-inset-top)); /* Respect notch/status bar */
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      padding: 8px 16px;
-      border-radius: 99px;
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.7);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      z-index: 20;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-size: 24px;
+      transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+      background: #27272a; 
+      color: #ffffff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
     
+    .btn-mic:active { transform: scale(0.9); }
+
+    .btn-mic.active {
+      background: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 40px rgba(255,255,255,0.4);
+    }
+
+    /* Top Header */
+    .top-header {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top));
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0 24px;
+      z-index: 20;
+    }
+
     .status-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background-color: #94a3b8;
+      transition: all 0.3s;
     }
-    .status-dot.active { background-color: #34d399; box-shadow: 0 0 8px #34d399; }
-    
+    .status-dot.active { 
+      background-color: #34d399; 
+      box-shadow: 0 0 8px #34d399; 
+    }
   </style>
 </head>
 <body>
 
   <div id="auroraBg" class="aurora-bg"></div>
 
-  <div class="status-pill">
-    <div id="statusDot" class="status-dot"></div>
-    <span id="statusText">Live</span>
-  </div>
+  <header class="top-header mt-2">
+    <a href="homepage1.html" class="w-10 h-10 flex items-center justify-start text-white/80 hover:text-white transition-colors text-xl">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    
+    <div class="flex flex-col items-center">
+      <span class="font-extrabold text-lg tracking-wide text-white drop-shadow-md">MedExcel Tutor</span>
+      <div class="flex items-center gap-2 mt-1 opacity-80">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText" class="text-[11px] font-bold uppercase tracking-widest text-slate-300">Live</span>
+      </div>
+    </div>
+    
+    <div class="w-10"></div> 
+  </header>
 
   <main class="presence-container">
     <div id="orb" class="orb"></div>
   </main>
 
   <footer class="control-bar">
-    <button id="micBtn" class="btn btn-mic" aria-label="Toggle Microphone">
-      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-      </svg>
+    <div class="subtitle-area">
+      <p id="subtitleText" class="text-white text-xl font-medium leading-relaxed tracking-wide transition-all duration-300">
+        Tap the mic to start speaking immediately
+      </p>
+    </div>
+
+    <button id="micBtn" class="btn-mic" aria-label="Toggle Microphone">
+      <i class="fas fa-microphone"></i>
     </button>
   </footer>
 
   <script>
-    /* -----------------------------------------------------------
-       CONFIGURATION: PROXY ENDPOINTS (no API key exposed client-side)
-       ----------------------------------------------------------- */
-    // Proxy that calls Gemini for analysis (already used)
-    const GEMINI_PROXY_URL = "https://us-central1-medxcel.cloudfunctions.net/askGemini";
-
-    // New: Proxy endpoint that synthesizes natural TTS server-side
-    // This Cloud Function should accept { text } and return { audio: "<base64>", contentType: "audio/mpeg" }
+    const AUDIO_ANALYSIS_URL = "https://us-central1-medxcel.cloudfunctions.net/analyzeTeachingAudio";
     const GEMINI_TTS_PROXY_URL = "https://us-central1-medxcel.cloudfunctions.net/speakGemini";
 
-    // SYSTEM PROMPT
-    const SYSTEM_INSTRUCTION = `
-      You are a casual, curious medical study partner. 
-      Listen to the student's explanation.
-      Your output must be JSON only: { 
-        "good": "Short confirmation.", 
-        "bad": "Short correction.", 
-        "question": "A very natural, short follow-up question (max 8 words) to keep the chat flowing." 
-      }
-    `;
-
-    // UI ELEMENTS
     const micBtn = document.getElementById('micBtn');
     const orb = document.getElementById('orb');
     const auroraBg = document.getElementById('auroraBg');
     const statusText = document.getElementById('statusText');
     const statusDot = document.getElementById('statusDot');
+    const subtitleText = document.getElementById('subtitleText');
 
-    // STATE
-    let recognition;
-    let isListening = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
     let isSpeaking = false;
 
-    // --- VISUAL STATE MANAGER ---
     function setVisualState(state) {
       orb.classList.remove('listening', 'thinking', 'speaking');
       micBtn.classList.remove('active');
@@ -262,6 +223,9 @@
       switch(state) {
         case 'IDLE':
           statusText.textContent = "Live";
+          if(!isSpeaking && !isRecording) {
+             subtitleText.textContent = "Tap the mic to start speaking immediately";
+          }
           break;
         case 'LISTENING':
           orb.classList.add('listening');
@@ -269,10 +233,12 @@
           statusDot.classList.add('active');
           auroraBg.classList.add('active');
           statusText.textContent = "Listening";
+          subtitleText.textContent = "Tap the mic again when you are done speaking";
           break;
         case 'THINKING':
           orb.classList.add('thinking');
           statusText.textContent = "Processing";
+          subtitleText.textContent = "Analyzing your explanation...";
           break;
         case 'SPEAKING':
           orb.classList.add('speaking');
@@ -282,77 +248,82 @@
       }
     }
 
-    // --- 1. SPEECH RECOGNITION ---
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        isListening = true;
-        setVisualState('LISTENING');
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        if (statusText.textContent !== "Processing" && !isSpeaking) {
-          setVisualState('IDLE');
-        }
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript.trim().length > 0) {
-          setVisualState('THINKING');
-          analyzeWithGemini(transcript);
-        }
-      };
-
-      recognition.onerror = () => setVisualState('IDLE');
-    } else {
-      alert("Voice features require Google Chrome.");
-    }
-
-    // --- 2. BUTTON HANDLERS ---
-    micBtn.addEventListener('click', () => {
+    micBtn.addEventListener('click', async () => {
       if (isSpeaking) {
         window.speechSynthesis.cancel();
         isSpeaking = false;
+        setVisualState('IDLE');
+        return;
       }
-      if (isListening) recognition.stop();
-      else recognition.start();
-    });
-
-    // --- 3. GEMINI AI (via proxy) ---
-    async function analyzeWithGemini(userText) {
-      // Send userText and system instruction to your Cloud Function which will call Gemini server-side.
-      const url = GEMINI_PROXY_URL;
       
-      const payload = {
-        contents: [{
-          role: "user",
-          parts: [{ text: SYSTEM_INSTRUCTION + "\nStudent said: " + userText }]
-        }],
-        generationConfig: { response_mime_type: "application/json" }
-      };
+      if (isRecording) {
+        isRecording = false;
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+        return;
+      }
 
       try {
-        const res = await fetch(url, {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        const options = { mimeType: 'audio/webm' };
+        if (!MediaRecorder.isTypeSupported('audio/webm')) {
+            options.mimeType = 'audio/mp4'; 
+        }
+
+        mediaRecorder = new MediaRecorder(stream, options);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          
+          if (audioChunks.length === 0) {
+            setVisualState('IDLE');
+            return;
+          }
+
+          setVisualState('THINKING');
+          const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+          
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64String = reader.result.split(',')[1];
+            await sendAudioToBackend(base64String, options.mimeType);
+          };
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        setVisualState('LISTENING');
+
+      } catch (err) {
+        console.error("Mic access denied or failed", err);
+        alert("Microphone access is required to use this feature.");
+      }
+    });
+
+    async function sendAudioToBackend(base64Audio, mimeType) {
+      try {
+        const res = await fetch(AUDIO_ANALYSIS_URL, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ audioBase64: base64Audio, mimeType: mimeType })
         });
         
         const data = await res.json();
-
-        // Expect the proxy to return the same structure as before.
-        // Adjust the parsing if your proxy returns a different shape.
-        const json = JSON.parse(data.candidates[0].content.parts[0].text);
+        if (data.error) throw new Error(data.error);
         
-        // Speak the follow-up question (or other JSON fields) using server-side TTS
-        await speakNaturally(json.question);
+        const cleanText = data.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const json = JSON.parse(cleanText);
+        
+        subtitleText.textContent = json.feedback;
+        await speakNaturally(json.feedback + " " + json.question);
 
       } catch (err) {
         console.error("AI Error", err);
@@ -360,12 +331,10 @@
       }
     }
 
-    // --- 4. NATURAL VOICE ENGINE (client requests server-side TTS) ---
     async function speakNaturally(text) {
       setVisualState('SPEAKING');
       isSpeaking = true;
       
-      // Naive sentence splitter; keeps punctuation
       const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
       
       for (const sentence of sentences) {
@@ -377,7 +346,6 @@
       setVisualState('IDLE');
     }
 
-    // Play by calling server-side TTS proxy that returns base64 audio
     async function playAudioChunk(text) {
       return new Promise(async (resolve) => {
         if (!text) { resolve(); return; }
@@ -392,57 +360,36 @@
           if (!res.ok) throw new Error('TTS proxy failed');
 
           const data = await res.json();
-          // Expect { audio: "<base64>", contentType: "audio/mpeg" }
           if (!data.audio) throw new Error('No audio in response');
 
-          // Convert base64 to binary
           const binary = atob(data.audio);
           const len = binary.length;
           const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binary.charCodeAt(i);
-          }
+          for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
 
           const blob = new Blob([bytes.buffer], { type: data.contentType || 'audio/mpeg' });
           const url = URL.createObjectURL(blob);
           const audio = new Audio(url);
 
-          audio.onended = () => {
-            URL.revokeObjectURL(url);
-            resolve();
-          };
-          audio.onerror = (e) => {
-            URL.revokeObjectURL(url);
-            // fallback to SpeechSynthesis
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.rate = 1.0;
-            utter.pitch = 1.0;
-            utter.onend = resolve;
-            window.speechSynthesis.speak(utter);
-          };
+          audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+          audio.onerror = () => { URL.revokeObjectURL(url); fallbackTTS(text, resolve); };
 
-          // Play
-          audio.play().catch((err) => {
-            // fallback
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.rate = 1.0;
-            utter.pitch = 1.0;
-            utter.onend = resolve;
-            window.speechSynthesis.speak(utter);
-          });
+          audio.play().catch(() => fallbackTTS(text, resolve));
 
         } catch (err) {
           console.error('TTS error', err);
-          // fallback to browser TTS
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.rate = 1.0;
-          utter.pitch = 1.0;
-          utter.onend = resolve;
-          window.speechSynthesis.speak(utter);
+          fallbackTTS(text, resolve);
         }
       });
     }
 
+    function fallbackTTS(text, resolveCallback) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.onend = resolveCallback;
+      window.speechSynthesis.speak(utter);
+    }
   </script>
 </body>
 </html>

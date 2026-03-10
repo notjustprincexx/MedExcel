@@ -26,25 +26,9 @@
             opacity: 0.5;
             border-color: rgba(51, 65, 85, 0.5);
         }
-        
-        /* Spinner */
-        .spinner {
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden relative">
-
-    <div id="pageLoader" class="fixed inset-0 bg-[#0f172a] z-[9999] flex flex-col items-center justify-center transition-opacity duration-300">
-        <div class="spinner mb-4 w-10 h-10 border-4"></div>
-        <p class="text-slate-400 text-sm font-medium tracking-widest uppercase">Loading Profile</p>
-    </div>
 
     <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
         <button onclick="window.history.back()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
@@ -94,7 +78,7 @@
             </h3>
             
             <div id="achievementsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                </div>
+            </div>
         </section>
 
         <section id="subscriptionSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
@@ -180,7 +164,7 @@
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
             <i class="fas fa-home text-xl mb-0.5"></i>
             <span class="text-[10px] font-medium">Home</span>
         </a>
@@ -216,7 +200,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Master list of possible achievements
         const MASTER_ACHIEVEMENTS = [
             { id: "first_quiz", title: "First Steps", desc: "Generated your first set", icon: "fa-seedling" },
             { id: "streak_3", title: "On Fire", desc: "3 day study streak", icon: "fa-fire" },
@@ -238,7 +221,6 @@
         });
 
         async function loadUserProfile(user) {
-            // 1. Populate Auth Data
             const nameEl = document.getElementById('userName');
             const emailEl = document.getElementById('userEmail');
             const initialEl = document.getElementById('userInitial');
@@ -255,7 +237,6 @@
                 initialEl.textContent = (user.displayName || user.email).charAt(0).toUpperCase();
             }
 
-            // Set Join Date based on Auth creation time
             const creationTime = user.metadata.creationTime;
             if (creationTime) {
                 const d = new Date(creationTime);
@@ -263,7 +244,6 @@
             }
 
             try {
-                // 2. Fetch Firestore Data
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 let userData = {};
                 
@@ -278,7 +258,6 @@
                 const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
                 const unlockedIds = userData.achievements || [];
 
-                // 3. Render Hero Data
                 document.getElementById('streakCount').textContent = streak;
                 
                 const badge = document.getElementById('planBadge');
@@ -302,13 +281,11 @@
                     document.getElementById('expiryContainer').classList.add('hidden');
                 }
 
-                // 4. Render Subscription Stats
                 const usageCountEl = document.getElementById('usageCount');
                 const usageRemEl = document.getElementById('usageRemaining');
                 const barEl = document.getElementById('usageProgressBar');
                 const typeBadge = document.getElementById('usageTypeBadge');
                 
-                // Reset mini cards opacity
                 document.getElementById('miniFree').classList.add('opacity-50');
                 document.getElementById('miniPremium').classList.add('opacity-50');
                 document.getElementById('miniElite').classList.add('opacity-50');
@@ -348,7 +325,6 @@
                     barEl.className = "h-full bg-slate-400 transition-all duration-500";
                 }
 
-                // 5. Render Achievements
                 const grid = document.getElementById('achievementsGrid');
                 grid.innerHTML = "";
                 
@@ -371,14 +347,9 @@
 
             } catch (err) {
                 console.error("Error fetching profile:", err);
-            } finally {
-                // Hide loader
-                document.getElementById('pageLoader').classList.add('opacity-0', 'pointer-events-none');
             }
         }
 
-        // --- Event Listeners for Controls ---
-        
         document.getElementById('btnLogout').addEventListener('click', async () => {
             if(confirm("Are you sure you want to log out?")) {
                 await signOut(auth);
