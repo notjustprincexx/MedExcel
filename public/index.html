@@ -606,5 +606,36 @@ if ('serviceWorker' in navigator) {
   .then(() => console.log("Service Worker Registered"));
 }
 </script>
+<script>
+
+let lastBackPress = 0;
+
+document.addEventListener("backbutton", function () {
+
+  if (window.history.length > 1) {
+
+    window.history.back();
+
+  } else {
+
+    const now = new Date().getTime();
+
+    if (now - lastBackPress < 2000) {
+
+      navigator.app.exitApp();
+
+    } else {
+
+      alert("Press back again to exit");
+
+      lastBackPress = now;
+
+    }
+
+  }
+
+});
+
+</script>
 </body>
 </html>

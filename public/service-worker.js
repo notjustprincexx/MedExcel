@@ -1,29 +1,47 @@
-const CACHE_NAME = "medexcel-cache-v1";
+const CACHE_NAME = "medexcel-shell-v1";
 
-const urlsToCache = [
+const APP_SHELL = [
   "/",
   "/index.html",
   "/offline.html"
 ];
 
 self.addEventListener("install", event => {
+  
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME)
+    .then(cache => cache.addAll(APP_SHELL))
   );
+  
 });
 
 self.addEventListener("fetch", event => {
-
+  
   if (event.request.mode === "navigate") {
-
+    
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match("/offline.html");
-      })
+      
+      caches.match("/index.html")
+      .then(response => {
+        
+        const fetchPromise = fetch(event.request)
+          .then(networkResponse => {
+            
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, networkResponse.clone());
+              });
+            
+            return networkResponse;
+            
+          });
+        
+        return response || fetchPromise;
+        
+      }).catch(() => caches.match("/offline.html"))
+      
     );
-
+    
   }
-
+  
 });
