@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - User Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        .achievement-unlocked {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        .achievement-locked {
+            filter: grayscale(100%);
+            opacity: 0.5;
+            border-color: rgba(51, 65, 85, 0.5);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden relative">
+
+    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
+        <button onclick="window.history.back()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="text-xl font-bold flex-1">Profile</h1>
+    </header>
+
+    <main class="flex-1 overflow-y-auto pb-24 px-4 sm:px-6 pt-6 space-y-6">
+
+        <section id="heroSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 flex flex-col items-center text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-700/50 to-transparent"></div>
+            
+            <div class="relative z-10 mb-4">
+                <div id="avatarContainer" class="w-24 h-24 rounded-full border-4 border-slate-800 bg-slate-700 flex items-center justify-center text-3xl font-bold text-slate-300 shadow-xl overflow-hidden">
+                    <span id="userInitial">?</span>
+                    <img id="userPhoto" src="" alt="Profile" class="w-full h-full object-cover hidden">
+                </div>
+                <div id="planBadge" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-600 border-slate-500 text-white">
+                    Free Plan
+                </div>
+            </div>
+
+            <h2 id="userName" class="text-xl font-bold text-white relative z-10">User Name</h2>
+            <p id="userEmail" class="text-sm text-slate-400 relative z-10 mb-4">user@example.com</p>
+
+            <div class="flex items-center justify-center gap-6 w-full pt-4 border-t border-slate-700/50 relative z-10">
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Study Streak</p>
+                    <p class="text-lg font-bold text-amber-400"><i class="fas fa-fire mr-1"></i><span id="streakCount">0</span></p>
+                </div>
+                <div class="w-px h-8 bg-slate-700"></div>
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Member Since</p>
+                    <p class="text-sm font-bold text-slate-300 mt-1" id="joinDate">--</p>
+                </div>
+            </div>
+            
+            <div id="expiryContainer" class="hidden w-full mt-4 bg-slate-900/50 rounded-lg p-2 border border-slate-700/50 relative z-10">
+                <p class="text-xs text-slate-400">Renews on: <span id="expiryDate" class="font-bold text-slate-200"></span></p>
+            </div>
+        </section>
+
+        <section id="achievementsSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
+            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fas fa-trophy text-yellow-500"></i> Achievements
+            </h3>
+            
+            <div id="achievementsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            </div>
+        </section>
+
+        <section id="subscriptionSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-chart-line text-blue-400"></i> Usage & Plan
+                </h3>
+                <span id="usageTypeBadge" class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-bold uppercase">Daily</span>
+            </div>
+
+            <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700 mb-5">
+                <div class="flex justify-between items-end mb-2">
+                    <div>
+                        <p class="text-2xl font-black text-white" id="usageCount">0</p>
+                        <p class="text-xs text-slate-400">Generations used</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-blue-400" id="usageRemaining">5 left</p>
+                    </div>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-5">
+                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 text-center opacity-50" id="miniFree">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Free</p>
+                    <p class="text-xs font-bold text-white mt-1">5/day</p>
+                </div>
+                <div class="bg-slate-900 p-2 rounded-lg border border-blue-900 text-center opacity-50" id="miniPremium">
+                    <p class="text-[10px] font-bold text-blue-400 uppercase">Premium</p>
+                    <p class="text-xs font-bold text-white mt-1">100/mo</p>
+                </div>
+                <div class="bg-slate-900 p-2 rounded-lg border border-yellow-900 text-center opacity-50" id="miniElite">
+                    <p class="text-[10px] font-bold text-yellow-500 uppercase">Elite</p>
+                    <p class="text-xs font-bold text-white mt-1">Unlimited</p>
+                </div>
+            </div>
+
+            <button onclick="window.location.href='payment.html'" id="upgradeBtn" class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">
+                Upgrade Plan
+            </button>
+        </section>
+
+        <section id="controlsSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
+            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fas fa-cog text-slate-400"></i> Account Settings
+            </h3>
+            
+            <div class="space-y-3">
+                <button id="btnResetPassword" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-lock text-slate-400 w-5"></i>
+                        <span class="text-sm font-bold text-slate-200">Change Password</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-500 text-xs"></i>
+                </button>
+
+                <button id="btnManageSub" onclick="window.location.href='payment.html'" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-credit-card text-blue-400 w-5"></i>
+                        <span class="text-sm font-bold text-slate-200">Manage Subscription</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-500 text-xs"></i>
+                </button>
+
+                <button id="btnLogout" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-sign-out-alt text-slate-400 w-5"></i>
+                        <span class="text-sm font-bold text-slate-200">Log Out</span>
+                    </div>
+                </button>
+
+                <div class="pt-4 mt-2 border-t border-slate-700/50">
+                    <button id="btnDeleteAccount" class="w-full p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded-xl text-sm font-bold transition-colors">
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
+        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-home text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Create</span>
+        </a>
+        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fas fa-layer-group text-xl mb-0.5"></i>
+            <span class="text-[10px] font-medium">Study</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
+            <i class="fas fa-user text-xl mb-0.5"></i>
+            <span class="text-[10px] font-bold">Profile</span>
+        </a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const MASTER_ACHIEVEMENTS = [
+            { id: "first_quiz", title: "First Steps", desc: "Generated your first set", icon: "fa-seedling" },
+            { id: "streak_3", title: "On Fire", desc: "3 day study streak", icon: "fa-fire" },
+            { id: "accuracy_80", title: "Sharpshooter", desc: "Averaged 80%+ accuracy", icon: "fa-bullseye" },
+            { id: "mcq_100", title: "Century Club", desc: "Answered 100 MCQs", icon: "fa-check-double" },
+            { id: "elite_member", title: "Elite Scholar", desc: "Subscribed to Elite", icon: "fa-crown" },
+            { id: "night_owl", title: "Night Owl", desc: "Studied past midnight", icon: "fa-moon" }
+        ];
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "index.html";
+                return;
+            }
+            currentUser = user;
+            await loadUserProfile(user);
+        });
+
+        async function loadUserProfile(user) {
+            const nameEl = document.getElementById('userName');
+            const emailEl = document.getElementById('userEmail');
+            const initialEl = document.getElementById('userInitial');
+            const photoEl = document.getElementById('userPhoto');
+            
+            nameEl.textContent = user.displayName || "Medical Student";
+            emailEl.textContent = user.email;
+            
+            if (user.photoURL) {
+                photoEl.src = user.photoURL;
+                photoEl.classList.remove('hidden');
+                initialEl.classList.add('hidden');
+            } else {
+                initialEl.textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+            }
+
+            const creationTime = user.metadata.creationTime;
+            if (creationTime) {
+                const d = new Date(creationTime);
+                document.getElementById('joinDate').textContent = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+            }
+
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                let userData = {};
+                
+                if (userDoc.exists()) {
+                    userData = userDoc.data();
+                }
+
+                const plan = userData.plan || "free";
+                const streak = userData.streak || 0;
+                const dailyUsage = userData.dailyUsage || 0;
+                const monthlyUsage = userData.monthlyUsage || 0;
+                const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
+                const unlockedIds = userData.achievements || [];
+
+                document.getElementById('streakCount').textContent = streak;
+                
+                const badge = document.getElementById('planBadge');
+                badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap";
+                
+                if (plan === "elite") {
+                    badge.classList.add("bg-gradient-to-r", "from-yellow-600", "to-yellow-500", "border-yellow-400", "text-slate-900");
+                    badge.innerHTML = `<i class="fas fa-crown mr-1"></i> Elite`;
+                } else if (plan === "premium") {
+                    badge.classList.add("bg-blue-600", "border-blue-400", "text-white");
+                    badge.innerHTML = `<i class="fas fa-star mr-1"></i> Premium`;
+                } else {
+                    badge.classList.add("bg-slate-600", "border-slate-500", "text-white");
+                    badge.textContent = "Free Plan";
+                }
+
+                if (expiry && plan !== "free") {
+                    document.getElementById('expiryContainer').classList.remove('hidden');
+                    document.getElementById('expiryDate').textContent = expiry.toLocaleDateString();
+                } else {
+                    document.getElementById('expiryContainer').classList.add('hidden');
+                }
+
+                const usageCountEl = document.getElementById('usageCount');
+                const usageRemEl = document.getElementById('usageRemaining');
+                const barEl = document.getElementById('usageProgressBar');
+                const typeBadge = document.getElementById('usageTypeBadge');
+                
+                document.getElementById('miniFree').classList.add('opacity-50');
+                document.getElementById('miniPremium').classList.add('opacity-50');
+                document.getElementById('miniElite').classList.add('opacity-50');
+                document.getElementById('miniFree').classList.remove('ring-2', 'ring-slate-400');
+                document.getElementById('miniPremium').classList.remove('ring-2', 'ring-blue-400');
+                document.getElementById('miniElite').classList.remove('ring-2', 'ring-yellow-400');
+
+                if (plan === "elite") {
+                    document.getElementById('miniElite').classList.remove('opacity-50');
+                    document.getElementById('miniElite').classList.add('ring-2', 'ring-yellow-400');
+                    typeBadge.textContent = "Monthly";
+                    usageCountEl.textContent = monthlyUsage;
+                    usageRemEl.textContent = "Unlimited";
+                    usageRemEl.className = "text-sm font-bold text-yellow-500";
+                    barEl.style.width = "100%";
+                    barEl.className = "h-full bg-yellow-500 transition-all duration-500";
+                    document.getElementById('upgradeBtn').classList.add('hidden');
+                } 
+                else if (plan === "premium") {
+                    document.getElementById('miniPremium').classList.remove('opacity-50');
+                    document.getElementById('miniPremium').classList.add('ring-2', 'ring-blue-400');
+                    typeBadge.textContent = "Monthly";
+                    usageCountEl.textContent = monthlyUsage;
+                    const rem = Math.max(0, 100 - monthlyUsage);
+                    usageRemEl.textContent = `${rem} left`;
+                    barEl.style.width = `${Math.min(100, (monthlyUsage / 100) * 100)}%`;
+                } 
+                else {
+                    document.getElementById('miniFree').classList.remove('opacity-50');
+                    document.getElementById('miniFree').classList.add('ring-2', 'ring-slate-400');
+                    typeBadge.textContent = "Daily";
+                    usageCountEl.textContent = dailyUsage;
+                    const rem = Math.max(0, 5 - dailyUsage);
+                    usageRemEl.textContent = `${rem} left`;
+                    usageRemEl.className = "text-sm font-bold text-slate-300";
+                    barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
+                    barEl.className = "h-full bg-slate-400 transition-all duration-500";
+                }
+
+                const grid = document.getElementById('achievementsGrid');
+                grid.innerHTML = "";
+                
+                MASTER_ACHIEVEMENTS.forEach(ach => {
+                    const isUnlocked = unlockedIds.includes(ach.id);
+                    const stateClass = isUnlocked ? "achievement-unlocked bg-slate-800" : "achievement-locked bg-slate-900";
+                    const iconColor = isUnlocked ? "text-blue-400" : "text-slate-500";
+                    
+                    grid.innerHTML += `
+                        <div class="${stateClass} border rounded-xl p-4 flex flex-col items-center text-center transition-all relative overflow-hidden">
+                            ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60"><i class="fas fa-lock text-slate-400 text-xl"></i></div>` : ''}
+                            <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center mb-2 ${iconColor}">
+                                <i class="fas ${ach.icon} text-lg"></i>
+                            </div>
+                            <h4 class="text-xs font-bold text-white mb-1">${ach.title}</h4>
+                            <p class="text-[9px] text-slate-400 leading-tight">${ach.desc}</p>
+                        </div>
+                    `;
+                });
+
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+            }
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            if(confirm("Are you sure you want to log out?")) {
+                await signOut(auth);
+            }
+        });
+
+        document.getElementById('btnResetPassword').addEventListener('click', async () => {
+            if(!currentUser || !currentUser.email) return;
+            if(confirm(`Send password reset email to ${currentUser.email}?`)) {
+                try {
+                    await sendPasswordResetEmail(auth, currentUser.email);
+                    alert("Password reset email sent! Please check your inbox.");
+                } catch (e) {
+                    alert("Error: " + e.message);
+                }
+            }
+        });
+
+        document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
+            if(confirm("DANGER: Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.")) {
+                try {
+                    await deleteUser(currentUser);
+                    alert("Account deleted successfully.");
+                    window.location.href = "index.html";
+                } catch (e) {
+                    if (e.code === 'auth/requires-recent-login') {
+                        alert("For security reasons, please log out and log back in before deleting your account.");
+                    } else {
+                        alert("Error deleting account: " + e.message);
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

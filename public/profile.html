@@ -3,158 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MedExcel - User Profile</title>
+    <title>Aurora - User Profile</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
         body {
-            background-color: #0f172a;
+            background-color: #050A15;
             color: #ffffff;
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
+        
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         
+        .glass-panel {
+            background: #0B1120;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
         .achievement-unlocked {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
         }
         
         .achievement-locked {
             filter: grayscale(100%);
-            opacity: 0.5;
-            border-color: rgba(51, 65, 85, 0.5);
+            opacity: 0.4;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden relative">
+<body class="h-screen flex flex-col overflow-hidden relative bg-[#050A15]">
 
-    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
-        <button onclick="window.history.back()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
-            <i class="fas fa-arrow-left"></i>
+    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-[#050A15]/90 backdrop-blur-md border-b border-white/5 shrink-0 sticky top-0 z-40 transform-gpu">
+        <button onclick="window.history.back()" class="w-10 h-10 rounded-full bg-[#0B1120] border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-95">
+            <i class="fas fa-arrow-left text-sm"></i>
         </button>
-        <h1 class="text-xl font-bold flex-1">Profile</h1>
+        <h1 class="text-2xl font-extrabold flex-1 tracking-tight">Profile</h1>
     </header>
 
-    <main class="flex-1 overflow-y-auto pb-24 px-4 sm:px-6 pt-6 space-y-6">
+    <main class="flex-1 overflow-y-auto pb-32 px-5 pt-6 space-y-6 fade-in" style="-webkit-overflow-scrolling: touch;">
 
-        <section id="heroSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 flex flex-col items-center text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-700/50 to-transparent"></div>
+        <section id="heroSection" class="glass-panel rounded-3xl p-6 shadow-lg flex flex-col items-center text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-blue-900/20 to-transparent pointer-events-none"></div>
             
             <div class="relative z-10 mb-4">
-                <div id="avatarContainer" class="w-24 h-24 rounded-full border-4 border-slate-800 bg-slate-700 flex items-center justify-center text-3xl font-bold text-slate-300 shadow-xl overflow-hidden">
+                <div id="avatarContainer" class="w-24 h-24 rounded-full border-4 border-[#0B1120] bg-[#050A15] flex items-center justify-center text-3xl font-bold text-slate-300 shadow-xl overflow-hidden relative">
                     <span id="userInitial">?</span>
-                    <img id="userPhoto" src="" alt="Profile" class="w-full h-full object-cover hidden">
+                    <img id="userPhoto" src="" alt="Profile" class="w-full h-full object-cover hidden absolute inset-0">
                 </div>
-                <div id="planBadge" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-600 border-slate-500 text-white">
-                    Free Plan
+                <div id="planBadge" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-800 border-slate-600 text-white transition-all">
+                    Loading...
                 </div>
             </div>
 
-            <h2 id="userName" class="text-xl font-bold text-white relative z-10">User Name</h2>
-            <p id="userEmail" class="text-sm text-slate-400 relative z-10 mb-4">user@example.com</p>
+            <h2 id="userName" class="text-xl font-bold text-white relative z-10 leading-tight">Loading...</h2>
+            <p id="userEmail" class="text-sm text-slate-400 relative z-10 mb-5">...</p>
 
-            <div class="flex items-center justify-center gap-6 w-full pt-4 border-t border-slate-700/50 relative z-10">
+            <div class="flex items-center justify-center gap-6 w-full pt-5 border-t border-white/5 relative z-10">
                 <div class="text-center">
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Study Streak</p>
-                    <p class="text-lg font-bold text-amber-400"><i class="fas fa-fire mr-1"></i><span id="streakCount">0</span></p>
+                    <p class="text-[10px] text-slate-500 uppercase font-extrabold mb-1 tracking-widest">Study Streak</p>
+                    <p class="text-xl font-bold text-orange-500"><i class="fas fa-fire mr-1.5 text-orange-500/80"></i><span id="streakCount">0</span></p>
                 </div>
-                <div class="w-px h-8 bg-slate-700"></div>
+                <div class="w-px h-8 bg-white/10"></div>
                 <div class="text-center">
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Member Since</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-extrabold mb-1 tracking-widest">Member Since</p>
                     <p class="text-sm font-bold text-slate-300 mt-1" id="joinDate">--</p>
                 </div>
             </div>
             
-            <div id="expiryContainer" class="hidden w-full mt-4 bg-slate-900/50 rounded-lg p-2 border border-slate-700/50 relative z-10">
+            <div id="expiryContainer" class="hidden w-full mt-5 bg-[#050A15] rounded-xl p-3 border border-white/5 relative z-10">
                 <p class="text-xs text-slate-400">Renews on: <span id="expiryDate" class="font-bold text-slate-200"></span></p>
             </div>
         </section>
 
-        <section id="achievementsSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
-            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <i class="fas fa-trophy text-yellow-500"></i> Achievements
-            </h3>
-            
-            <div id="achievementsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            </div>
-        </section>
-
-        <section id="subscriptionSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+        <section id="subscriptionSection" class="glass-panel rounded-3xl p-6 shadow-lg">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <i class="fas fa-chart-line text-blue-400"></i> Usage & Plan
                 </h3>
-                <span id="usageTypeBadge" class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-bold uppercase">Daily</span>
+                <span id="usageTypeBadge" class="text-[9px] bg-white/5 border border-white/10 px-2 py-1 rounded text-slate-300 font-bold uppercase tracking-wider">Daily</span>
             </div>
 
-            <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700 mb-5">
-                <div class="flex justify-between items-end mb-2">
+            <div class="bg-[#050A15] rounded-2xl p-5 border border-white/5 mb-5 shadow-inner">
+                <div class="flex justify-between items-end mb-3">
                     <div>
-                        <p class="text-2xl font-black text-white" id="usageCount">0</p>
-                        <p class="text-xs text-slate-400">Generations used</p>
+                        <p class="text-3xl font-black text-white" id="usageCount">0</p>
+                        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1">Generations Used</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-sm font-bold text-blue-400" id="usageRemaining">5 left</p>
+                        <p class="text-sm font-bold text-blue-400" id="usageRemaining">...</p>
                     </div>
                 </div>
-                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%;"></div>
+                <div class="w-full h-2 bg-[#0B1120] rounded-full overflow-hidden border border-white/5">
+                    <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-700 ease-out" style="width: 0%;"></div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 mb-5">
-                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 text-center opacity-50" id="miniFree">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Free</p>
-                    <p class="text-xs font-bold text-white mt-1">5/day</p>
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniFree">
+                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Free</p>
+                    <p class="text-xs font-bold text-white mt-1">5 / day</p>
                 </div>
-                <div class="bg-slate-900 p-2 rounded-lg border border-blue-900 text-center opacity-50" id="miniPremium">
-                    <p class="text-[10px] font-bold text-blue-400 uppercase">Premium</p>
-                    <p class="text-xs font-bold text-white mt-1">100/mo</p>
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniPremium">
+                    <p class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">Premium</p>
+                    <p class="text-xs font-bold text-white mt-1">30 / day</p>
                 </div>
-                <div class="bg-slate-900 p-2 rounded-lg border border-yellow-900 text-center opacity-50" id="miniElite">
-                    <p class="text-[10px] font-bold text-yellow-500 uppercase">Elite</p>
-                    <p class="text-xs font-bold text-white mt-1">Unlimited</p>
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniElite">
+                    <p class="text-[10px] font-extrabold text-yellow-500 uppercase tracking-wider">Elite</p>
+                    <p class="text-xs font-bold text-white mt-1">40 / day</p>
                 </div>
             </div>
 
-            <button onclick="window.location.href='payment.html'" id="upgradeBtn" class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">
+            <button onclick="window.location.href='payment.html'" id="upgradeBtn" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-transform active:scale-95 uppercase tracking-wider text-sm">
                 Upgrade Plan
             </button>
         </section>
 
-        <section id="controlsSection" class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700">
-            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <section id="achievementsSection" class="glass-panel rounded-3xl p-6 shadow-lg">
+            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                <i class="fas fa-trophy text-yellow-500"></i> Achievements
+            </h3>
+            
+            <div id="achievementsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                </div>
+        </section>
+
+        <section id="controlsSection" class="glass-panel rounded-3xl p-6 shadow-lg">
+            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
                 <i class="fas fa-cog text-slate-400"></i> Account Settings
             </h3>
             
             <div class="space-y-3">
-                <button id="btnResetPassword" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                <button id="btnResetPassword" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-lock text-slate-400 w-5"></i>
+                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
+                            <i class="fas fa-lock text-xs"></i>
+                        </div>
                         <span class="text-sm font-bold text-slate-200">Change Password</span>
                     </div>
-                    <i class="fas fa-chevron-right text-slate-500 text-xs"></i>
+                    <i class="fas fa-chevron-right text-slate-600 text-xs"></i>
                 </button>
 
-                <button id="btnManageSub" onclick="window.location.href='payment.html'" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                <button id="btnManageSub" onclick="window.location.href='payment.html'" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-credit-card text-blue-400 w-5"></i>
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                            <i class="fas fa-credit-card text-xs"></i>
+                        </div>
                         <span class="text-sm font-bold text-slate-200">Manage Subscription</span>
                     </div>
-                    <i class="fas fa-chevron-right text-slate-500 text-xs"></i>
+                    <i class="fas fa-chevron-right text-slate-600 text-xs"></i>
                 </button>
 
-                <button id="btnLogout" class="w-full flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors">
+                <button id="btnLogout" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-sign-out-alt text-slate-400 w-5"></i>
+                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
+                            <i class="fas fa-sign-out-alt text-xs"></i>
+                        </div>
                         <span class="text-sm font-bold text-slate-200">Log Out</span>
                     </div>
                 </button>
 
-                <div class="pt-4 mt-2 border-t border-slate-700/50">
-                    <button id="btnDeleteAccount" class="w-full p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded-xl text-sm font-bold transition-colors">
+                <div class="pt-5 mt-3 border-t border-white/5">
+                    <button id="btnDeleteAccount" class="w-full p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded-2xl text-sm font-bold transition-colors">
                         Delete Account
                     </button>
                 </div>
@@ -163,24 +187,41 @@
 
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-50">
-        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-home text-xl mb-0.5"></i>
+    <nav class="fixed lg:hidden bottom-0 left-0 right-0 bg-[#050A15]/95 backdrop-blur-lg border-t border-slate-800 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu">
+        <a href="homepage.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-home text-xl"></i>
             <span class="text-[10px] font-medium">Home</span>
         </a>
-        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-plus-circle text-xl mb-0.5"></i>
+        <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-plus text-xl"></i>
             <span class="text-[10px] font-medium">Create</span>
         </a>
-        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-layer-group text-xl mb-0.5"></i>
-            <span class="text-[10px] font-medium">Study</span>
+        <a href="study.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-folder text-xl"></i>
+            <span class="text-[10px] font-medium">Library</span>
         </a>
-        <a href="profile.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
-            <i class="fas fa-user text-xl mb-0.5"></i>
+        <a href="profile.html" class="flex flex-col items-center gap-1.5 text-white transition-colors">
+            <i class="fas fa-user text-xl"></i>
             <span class="text-[10px] font-bold">Profile</span>
         </a>
     </nav>
+
+    <script>
+    (function fastInitUserUI() {
+        try {
+            const savedName = localStorage.getItem('userName'); 
+            if (savedName && savedName !== "Guest") {
+                document.getElementById('userName').textContent = savedName;
+                document.getElementById('userInitial').textContent = savedName.charAt(0).toUpperCase();
+            }
+
+            const userStats = JSON.parse(localStorage.getItem('medexcel_user_stats'));
+            if (userStats) {
+                document.getElementById('streakCount').textContent = userStats.streak || 0;
+            }
+        } catch(e) { console.warn("UI Fast Init failed", e); }
+    })();
+    </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -213,7 +254,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                window.location.href = "index.html";
+                window.location.href = "index.html#login";
                 return;
             }
             currentUser = user;
@@ -233,8 +274,6 @@
                 photoEl.src = user.photoURL;
                 photoEl.classList.remove('hidden');
                 initialEl.classList.add('hidden');
-            } else {
-                initialEl.textContent = (user.displayName || user.email).charAt(0).toUpperCase();
             }
 
             const creationTime = user.metadata.creationTime;
@@ -252,33 +291,37 @@
                 }
 
                 const plan = userData.plan || "free";
-                const streak = userData.streak || 0;
-                const dailyUsage = userData.dailyUsage || 0;
-                const monthlyUsage = userData.monthlyUsage || 0;
+                // Only overwrite if streak exists in DB, otherwise trust local storage
+                if (userData.streak !== undefined) {
+                    document.getElementById('streakCount').textContent = userData.streak;
+                }
+                
+                // --- LIMITS MATCHING APP LOGIC ---
+                // Free: 3/day | Premium: 20/day | Elite: 50/day
+                const today = new Date().toISOString().split("T")[0];
+                const isToday = userData.lastDailyReset === today;
+                const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
+                
                 const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
                 const unlockedIds = userData.achievements || [];
 
-                document.getElementById('streakCount').textContent = streak;
-                
                 const badge = document.getElementById('planBadge');
-                badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap";
+                badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap transition-all";
                 
                 if (plan === "elite") {
-                    badge.classList.add("bg-gradient-to-r", "from-yellow-600", "to-yellow-500", "border-yellow-400", "text-slate-900");
+                    badge.classList.add("bg-yellow-500/20", "border-yellow-500/50", "text-yellow-400");
                     badge.innerHTML = `<i class="fas fa-crown mr-1"></i> Elite`;
                 } else if (plan === "premium") {
                     badge.classList.add("bg-blue-600", "border-blue-400", "text-white");
                     badge.innerHTML = `<i class="fas fa-star mr-1"></i> Premium`;
                 } else {
-                    badge.classList.add("bg-slate-600", "border-slate-500", "text-white");
+                    badge.classList.add("bg-slate-700", "border-slate-500", "text-white");
                     badge.textContent = "Free Plan";
                 }
 
                 if (expiry && plan !== "free") {
                     document.getElementById('expiryContainer').classList.remove('hidden');
                     document.getElementById('expiryDate').textContent = expiry.toLocaleDateString();
-                } else {
-                    document.getElementById('expiryContainer').classList.add('hidden');
                 }
 
                 const usageCountEl = document.getElementById('usageCount');
@@ -286,57 +329,57 @@
                 const barEl = document.getElementById('usageProgressBar');
                 const typeBadge = document.getElementById('usageTypeBadge');
                 
-                document.getElementById('miniFree').classList.add('opacity-50');
-                document.getElementById('miniPremium').classList.add('opacity-50');
-                document.getElementById('miniElite').classList.add('opacity-50');
-                document.getElementById('miniFree').classList.remove('ring-2', 'ring-slate-400');
-                document.getElementById('miniPremium').classList.remove('ring-2', 'ring-blue-400');
-                document.getElementById('miniElite').classList.remove('ring-2', 'ring-yellow-400');
+                document.getElementById('miniFree').classList.add('opacity-40');
+                document.getElementById('miniPremium').classList.add('opacity-40');
+                document.getElementById('miniElite').classList.add('opacity-40');
+
+                // Update Usage UI Based on Correct Limits
+                typeBadge.textContent = "Daily Limit";
+                usageCountEl.textContent = dailyUsage;
 
                 if (plan === "elite") {
-                    document.getElementById('miniElite').classList.remove('opacity-50');
-                    document.getElementById('miniElite').classList.add('ring-2', 'ring-yellow-400');
-                    typeBadge.textContent = "Monthly";
-                    usageCountEl.textContent = monthlyUsage;
-                    usageRemEl.textContent = "Unlimited";
+                    document.getElementById('miniElite').classList.remove('opacity-40');
+                    document.getElementById('miniElite').classList.add('border-yellow-500/50', 'bg-yellow-500/10');
+                    
+                    const rem = Math.max(0, 50 - dailyUsage);
+                    usageRemEl.textContent = `${rem} left`;
                     usageRemEl.className = "text-sm font-bold text-yellow-500";
-                    barEl.style.width = "100%";
-                    barEl.className = "h-full bg-yellow-500 transition-all duration-500";
-                    document.getElementById('upgradeBtn').classList.add('hidden');
+                    barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
+                    barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
+                    document.getElementById('upgradeBtn').classList.add('hidden'); // Hide upgrade if max tier
                 } 
                 else if (plan === "premium") {
-                    document.getElementById('miniPremium').classList.remove('opacity-50');
-                    document.getElementById('miniPremium').classList.add('ring-2', 'ring-blue-400');
-                    typeBadge.textContent = "Monthly";
-                    usageCountEl.textContent = monthlyUsage;
-                    const rem = Math.max(0, 100 - monthlyUsage);
+                    document.getElementById('miniPremium').classList.remove('opacity-40');
+                    document.getElementById('miniPremium').classList.add('border-blue-500/50', 'bg-blue-500/10');
+                    
+                    const rem = Math.max(0, 20 - dailyUsage);
                     usageRemEl.textContent = `${rem} left`;
-                    barEl.style.width = `${Math.min(100, (monthlyUsage / 100) * 100)}%`;
+                    barEl.style.width = `${Math.min(100, (dailyUsage / 20) * 100)}%`;
                 } 
                 else {
-                    document.getElementById('miniFree').classList.remove('opacity-50');
-                    document.getElementById('miniFree').classList.add('ring-2', 'ring-slate-400');
-                    typeBadge.textContent = "Daily";
-                    usageCountEl.textContent = dailyUsage;
-                    const rem = Math.max(0, 5 - dailyUsage);
+                    document.getElementById('miniFree').classList.remove('opacity-40');
+                    document.getElementById('miniFree').classList.add('border-slate-500/50', 'bg-white/5');
+                    
+                    const rem = Math.max(0, 3 - dailyUsage);
                     usageRemEl.textContent = `${rem} left`;
                     usageRemEl.className = "text-sm font-bold text-slate-300";
-                    barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
-                    barEl.className = "h-full bg-slate-400 transition-all duration-500";
+                    barEl.style.width = `${Math.min(100, (dailyUsage / 3) * 100)}%`;
+                    barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
                 }
 
+                // Achievements Render
                 const grid = document.getElementById('achievementsGrid');
                 grid.innerHTML = "";
                 
                 MASTER_ACHIEVEMENTS.forEach(ach => {
                     const isUnlocked = unlockedIds.includes(ach.id);
-                    const stateClass = isUnlocked ? "achievement-unlocked bg-slate-800" : "achievement-locked bg-slate-900";
-                    const iconColor = isUnlocked ? "text-blue-400" : "text-slate-500";
+                    const stateClass = isUnlocked ? "achievement-unlocked bg-[#0B1120]" : "achievement-locked bg-[#050A15]";
+                    const iconColor = isUnlocked ? "text-blue-400" : "text-slate-600";
                     
                     grid.innerHTML += `
-                        <div class="${stateClass} border rounded-xl p-4 flex flex-col items-center text-center transition-all relative overflow-hidden">
-                            ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60"><i class="fas fa-lock text-slate-400 text-xl"></i></div>` : ''}
-                            <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center mb-2 ${iconColor}">
+                        <div class="${stateClass} border rounded-2xl p-4 flex flex-col items-center text-center transition-all relative overflow-hidden">
+                            ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[#050A15]/80"><i class="fas fa-lock text-slate-500 text-xl"></i></div>` : ''}
+                            <div class="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-2 ${iconColor}">
                                 <i class="fas ${ach.icon} text-lg"></i>
                             </div>
                             <h4 class="text-xs font-bold text-white mb-1">${ach.title}</h4>

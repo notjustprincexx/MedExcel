@@ -3,569 +3,553 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MedExcel - Practice Center</title>
+    <title>Aurora - Study Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
         body { 
             -webkit-user-select: none; 
             user-select: none; 
-            background-color: #0f172a; 
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden; 
-        }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        
-        #examUI {
-            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-            transform: translateY(100%);
-        }
-        #examUI.active {
-            transform: translateY(0);
+            background-color: #050A15; /* Darker navy to match screenshot vibe */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .option-btn {
-            transition: all 0.2s ease;
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
-        .option-btn.selected {
-            border-color: #3b82f6;
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s var(--ease-snap);
+        }
+        .glass-button:hover { background: rgba(255, 255, 255, 0.08); }
+        .glass-button:active { transform: scale(0.97); }
+
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
+        /* Smooth fade-in for dynamic content */
+        .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Pill Tab Active State */
+        .tab-btn.active {
             background-color: rgba(59, 130, 246, 0.1);
-        }
-        .option-btn.correct {
-            border-color: #10b981;
-            background-color: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-        .option-btn.wrong {
-            border-color: #ef4444;
-            background-color: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            border-color: #3b82f6;
+            color: #60a5fa;
         }
     </style>
 </head>
 <body class="text-white h-screen flex flex-col overflow-hidden relative">
 
-    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 shrink-0 bg-slate-900/50 backdrop-blur-md border-b border-slate-800">
-        <div>
-            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Practice Center</h1>
-            <p class="text-xs text-slate-400 mt-1">Exam Readiness Dashboard</p>
-        </div>
-        <button id="profileBtn" class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors flex items-center justify-center">
-             <span id="userInitial" class="text-sm font-bold text-slate-300">U</span>
-        </button>
-    </header>
-
-    <main class="flex-1 overflow-y-auto pb-24 px-6 pt-4">
+    <div class="flex-1 flex w-full h-full overflow-hidden pb-[80px] lg:pb-0 relative z-10">
         
-        <section class="mb-8">
-            <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Performance Snapshot</h2>
-                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-md font-bold">This Week</span>
+        <aside id="libraryPanel" class="w-full lg:w-[420px] border-r border-white/5 bg-[#050A15] flex flex-col h-full z-20 transition-transform duration-300">
+            
+            <div class="px-5 pt-8 pb-2 flex-shrink-0">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Library</h1>
+                    <button onclick="openModal('folderModal')" class="text-slate-300 hover:text-white text-2xl active:scale-95 transition-transform p-2 -mr-2">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                        <p class="text-xs text-slate-400 mb-1">Overall Accuracy</p>
-                        <p class="text-2xl font-bold text-emerald-400" id="statAccuracy">0%</p>
-                    </div>
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                        <p class="text-xs text-slate-400 mb-1">Questions Done</p>
-                        <p class="text-2xl font-bold text-white" id="statQs">0</p>
-                    </div>
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                        <p class="text-xs text-slate-400 mb-1">Study Streak</p>
-                        <p class="text-lg font-bold text-amber-400"><i class="fas fa-fire mr-1"></i> <span id="statStreak">0 Days</span></p>
-                    </div>
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                        <p class="text-xs text-slate-400 mb-1">Weakest Subject</p>
-                        <p class="text-sm font-bold text-rose-400 truncate" id="statWeakest">N/A</p>
-                    </div>
+                <div class="flex overflow-x-auto hide-scroll gap-2.5 mb-6 pb-1">
+                    <button class="tab-btn active px-4 py-1.5 rounded-full text-sm font-medium border border-slate-700 bg-transparent text-slate-300 transition-all whitespace-nowrap" data-filter="all">Flashcard sets</button>
+                    <button class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium border border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 transition-all whitespace-nowrap" data-filter="folders">Folders</button>
+                    <button class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium border border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 transition-all whitespace-nowrap" data-filter="favorites">Favorites</button>
                 </div>
-
-                <div class="w-full h-32 mt-2">
-                    <canvas id="performanceChart"></canvas>
+                
+                <div class="relative group mb-2">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                    <input type="text" id="searchInput" placeholder="Search" class="w-full bg-transparent text-sm rounded-xl py-3.5 pl-11 pr-4 outline-none focus:border-blue-500 transition-all text-slate-200 border border-slate-600 focus:bg-slate-800/50">
                 </div>
             </div>
-        </section>
 
-        <section class="mb-8">
-            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">Quick Actions</h2>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="startPractice('timed', null)" class="bg-gradient-to-br from-blue-600 to-blue-800 p-4 rounded-xl border border-blue-500/50 text-left hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-blue-900/20">
-                    <i class="fas fa-stopwatch text-xl text-blue-200 mb-2"></i>
-                    <h3 class="font-bold text-sm">Timed Test</h3>
-                    <p class="text-[10px] text-blue-200 mt-1">20 Qs • 20 Mins</p>
-                </button>
-                <button onclick="startPractice('weak', null)" class="bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-rose-500/50 active:scale-95 transition-all">
-                    <i class="fas fa-dumbbell text-xl text-rose-400 mb-2"></i>
-                    <h3 class="font-bold text-sm">Target Weakness</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">Smart generated set</p>
-                </button>
-                <button onclick="startPractice('flashcard', null)" class="bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-emerald-500/50 active:scale-95 transition-all">
-                    <i class="fas fa-clone text-xl text-emerald-400 mb-2"></i>
-                    <h3 class="font-bold text-sm">Flashcards</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">Untimed review</p>
-                </button>
-                <button onclick="startPractice('mock', null)" class="bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-purple-500/50 active:scale-95 transition-all">
-                    <i class="fas fa-file-contract text-xl text-purple-400 mb-2"></i>
-                    <h3 class="font-bold text-sm">Mock Exam</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">Full 100 Qs simulation</p>
-                </button>
+            <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1 pb-6 hide-scroll">
+                <h3 class="text-xs font-bold text-slate-400 px-3 mb-3 mt-2">Recent Materials</h3>
+                <div id="quizContainer" class="flex flex-col gap-1">
+                    </div>
             </div>
-        </section>
+        </aside>
 
-        <section class="mb-8">
-            <div class="flex justify-between items-end mb-3">
-                <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Top Priorities</h2>
-            </div>
-            <div class="space-y-3" id="weakTopicsContainer">
-                <p class='text-slate-500 text-xs'>Loading priorities...</p>
-            </div>
-        </section>
+        <main id="practicePanel" class="hidden lg:flex w-full lg:flex-1 flex-col absolute lg:relative inset-0 bg-[#0B1120] bg-gradient-to-br from-[#0B1120] to-[#0f172a] z-30 h-full transition-transform duration-300">
+            
+            <header class="h-[72px] lg:h-[88px] border-b border-white/5 flex items-center justify-between px-4 lg:px-8 bg-transparent z-40 flex-shrink-0 pt-4 lg:pt-0">
+                <div class="flex items-center gap-4 w-full lg:w-auto">
+                    <button onclick="closePracticeMobile()" class="lg:hidden w-10 h-10 rounded-full glass-button flex items-center justify-center text-slate-400">
+                        <i class="fas fa-arrow-left text-sm"></i>
+                    </button>
+                    
+                    <div class="flex gap-3">
+                        <div class="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 px-3 py-1.5 rounded-lg text-xs font-extrabold shadow-sm">
+                            <i class="fas fa-bolt"></i> <span id="xpDisplay">0 XP</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-500 px-3 py-1.5 rounded-lg text-xs font-extrabold shadow-sm">
+                            <i class="fas fa-fire"></i> <span id="streakDisplay">0 Day</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="dailyChallengeBtn" class="hidden lg:flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-900/30 transition-transform active:scale-95">
+                    <i class="fas fa-star text-yellow-300"></i> Daily Challenge
+                </button>
+            </header>
 
-        <section class="mb-4">
-            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">Subject Library</h2>
-            <div class="space-y-3" id="subjectGridContainer">
-                <p class='text-slate-500 text-xs'>Loading library...</p>
+            <div id="practiceArea" class="flex-1 overflow-y-auto p-4 lg:p-8 flex items-center justify-center pb-8 hide-scroll">
+                <div class="text-center text-slate-500 hidden lg:flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center mb-6 shadow-inner transform rotate-3">
+                        <i class="fas fa-layer-group text-4xl text-blue-500/50"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-300 mb-2">Ready to Study?</h3>
+                    <p class="text-sm font-medium tracking-wide">Select a deck from your library to begin a session.</p>
+                </div>
             </div>
-        </section>
-    </main>
+        </main>
+    </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-40">
-        <a href="homepage.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <nav class="fixed lg:hidden bottom-0 left-0 right-0 bg-[#050A15]/95 backdrop-blur-lg border-t border-slate-800 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-home text-xl"></i>
             <span class="text-[10px] font-medium">Home</span>
         </a>
-        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-plus text-xl"></i>
             <span class="text-[10px] font-medium">Create</span>
         </a>
-        <a href="practice.html" class="flex flex-col items-center gap-1 text-blue-500">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            <span class="text-[10px] font-bold">Practice</span>
+        <a href="study.html" id="libraryBtn" class="flex flex-col items-center gap-1.5 text-white transition-colors">
+            <i class="fas fa-folder text-xl"></i>
+            <span class="text-[10px] font-bold">Library</span>
         </a>
-        <a href="library.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5z"></path></svg>
-            <span class="text-[10px] font-medium">Library</span>
+        <a href="profile.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-search-plus text-xl"></i>
+            <span class="text-[10px] font-medium">Free trial</span>
         </a>
     </nav>
 
-    <div id="examUI" class="fixed inset-0 bg-[#0f172a] z-50 flex flex-col hidden">
-        <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-            <button onclick="endPractice(false)" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-            <div id="examTimer" class="text-lg font-mono font-bold text-blue-400 bg-blue-900/20 px-4 py-1 rounded-full border border-blue-800">20:00</div>
-            <div class="text-sm font-bold text-slate-300"><span id="currentQIndex">1</span>/<span id="totalQs">20</span></div>
-        </div>
-        
-        <div class="w-full h-1 bg-slate-800">
-            <div id="examProgress" class="h-full bg-blue-500 transition-all duration-300" style="width: 5%"></div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-6 flex flex-col">
-            <p class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider" id="examSubjectLabel">Subject</p>
-            <h2 class="text-lg font-medium leading-relaxed mb-8" id="questionText">Loading question...</h2>
-            
-            <div class="space-y-3 flex-1" id="optionsContainer"></div>
-
-            <div class="mt-8 pt-4 flex justify-between items-center">
-                <button id="btnExplanation" class="hidden text-sm text-blue-400 font-bold hover:text-blue-300"><i class="fas fa-lightbulb mr-1"></i> Explain</button>
-                <button id="btnNext" onclick="nextQuestion()" class="hidden ml-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-900/50 transition-all active:scale-95">Next <i class="fas fa-arrow-right ml-2"></i></button>
+    <div id="deleteModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
+        <div class="bg-[#1e293b] border border-slate-700 rounded-3xl p-6 lg:p-8 max-w-[320px] w-full mx-4 text-center transform scale-95 transition-transform shadow-2xl">
+            <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Delete Deck?</h3>
+            <p class="text-slate-400 text-sm mb-6">This material will be permanently removed from your library.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('deleteModal')" class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-transform">Cancel</button>
+                <button id="confirmDeleteBtn" onclick="executeDelete()" class="flex-1 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold active:scale-95 transition-transform shadow-lg shadow-red-900/30">Delete</button>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs, limit, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    <div id="folderModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
+        <div class="bg-[#1e293b] border border-slate-700 rounded-3xl p-6 lg:p-8 max-w-[320px] w-full mx-4 transform scale-95 transition-transform shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-4">New Folder</h3>
+            <input type="text" id="newFolderName" placeholder="e.g. Pathology" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:border-blue-500 outline-none mb-6 text-sm placeholder-slate-500">
+            <div class="flex gap-3">
+                <button onclick="closeModal('folderModal')" class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-transform">Cancel</button>
+                <button id="createFolderBtn" onclick="closeModal('folderModal')" class="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold active:scale-95 transition-transform shadow-lg shadow-blue-900/30">Create</button>
+            </div>
+        </div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
-            authDomain: "medxcel.firebaseapp.com",
-            projectId: "medxcel",
-            storageBucket: "medxcel.firebasestorage.app",
-            messagingSenderId: "649180317389",
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+    <script>
+        // Data Structures
+        let userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {
+            xp: 0, level: 1, streak: 0, lastStudyDate: null, weaknesses: {}
         };
+        let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+        
+        // Remove Placeholder Bug logic
+        const originalLength = quizzes.length;
+        quizzes = quizzes.filter(q => q.title && !q.title.toLowerCase().includes('autonomic system'));
+        if (quizzes.length !== originalLength) {
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+        }
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let isExamMode = false;
+        let examScore = 0;
+        let quizToDelete = null;
 
-        let currentUser = null;
-
-        // Initialize Chart
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        const performanceChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Scores (%)',
-                    data: [0, 0, 0, 0, 0, 0, 0], // Default zeroed data
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderRadius: 4,
-                    barPercentage: 0.6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94a3b8', stepSize: 25 } },
-                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-                }
-            }
-        });
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadAnalytics();
-            }
-        });
-
-        // --- Analytics Engine ---
-        async function loadAnalytics() {
-            if (!currentUser) return;
-
-            try {
-                const sessionsRef = collection(db, "practice_sessions");
-                const q = query(sessionsRef, where("userId", "==", currentUser.uid));
-                const snapshot = await getDocs(q);
-
-                let totalQs = 0;
-                let totalCorrect = 0;
-                let subjectStats = {};
-                let dailyScores = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }; 
-                let studyDates = new Set();
-
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (!data.timestamp) return;
-
-                    totalQs += (data.totalQuestions || 0);
-                    totalCorrect += (data.correctAnswers || 0);
-
-                    // Subject Aggregation
-                    const subj = data.subject || "General";
-                    if (!subjectStats[subj]) subjectStats[subj] = { total: 0, correct: 0 };
-                    subjectStats[subj].total += data.totalQuestions;
-                    subjectStats[subj].correct += data.correctAnswers;
-
-                    // Date Processing for Chart & Streak
-                    const sessionDate = data.timestamp.toDate();
-                    sessionDate.setHours(0, 0, 0, 0);
-                    studyDates.add(sessionDate.getTime());
-
-                    const diffTime = today.getTime() - sessionDate.getTime();
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                    // If within the last 7 days, map to Mon (0) - Sun (6)
-                    if (diffDays >= 0 && diffDays < 7) {
-                        const dayOfWeek = sessionDate.getDay(); 
-                        const chartIndex = (dayOfWeek + 6) % 7; 
-                        dailyScores[chartIndex].push(data.percentage || 0);
-                    }
-                });
-
-                updateDashboardUI(totalQs, totalCorrect, subjectStats, dailyScores, studyDates, today);
-
-            } catch (error) {
-                console.error("Error loading analytics:", error);
+        // Mobile View Navigation
+        function openPracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.add('hidden');
+                document.getElementById('practicePanel').classList.remove('hidden');
+                document.getElementById('practicePanel').classList.add('flex');
             }
         }
 
-        function updateDashboardUI(totalQs, totalCorrect, subjectStats, dailyScores, studyDates, today) {
-            // 1. Overall Stats
-            document.getElementById('statQs').innerText = totalQs;
-            const overallAcc = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0;
-            document.getElementById('statAccuracy').innerText = `${overallAcc}%`;
-
-            // 2. Study Streak Calculation
-            let streak = 0;
-            let checkDate = today.getTime();
-            const sortedDates = Array.from(studyDates).sort((a, b) => b - a);
-            
-            if (sortedDates.includes(checkDate)) {
-                streak = 1;
-                checkDate -= 86400000; // Subtract 1 day
-                while (sortedDates.includes(checkDate)) {
-                    streak++;
-                    checkDate -= 86400000;
-                }
-            } else if (sortedDates.includes(checkDate - 86400000)) {
-                // Streak maintained if studied yesterday
-                streak = 1;
-                checkDate -= 172800000; 
-                while (sortedDates.includes(checkDate)) {
-                    streak++;
-                    checkDate -= 86400000;
-                }
+        function closePracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.remove('hidden');
+                document.getElementById('practicePanel').classList.add('hidden');
+                document.getElementById('practicePanel').classList.remove('flex');
             }
-            document.getElementById('statStreak').innerText = `${streak} Days`;
+            document.getElementById('practiceArea').innerHTML = `
+                <div class="text-center text-slate-500 hidden lg:flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center mb-6 shadow-inner transform rotate-3">
+                        <i class="fas fa-layer-group text-4xl text-blue-500/50"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-300 mb-2">Ready to Study?</h3>
+                    <p class="text-sm font-medium tracking-wide">Select a deck from your library to begin a session.</p>
+                </div>
+            `;
+            currentQuiz = null;
+        }
 
-            // 3. Subject Analysis (Weakest, Priorities, Library)
-            let weakestSubject = "N/A";
-            let lowestAcc = 101;
-            let libraryHTML = "";
-            let weakHTML = "";
+        function updateStatsUI() {
+            document.getElementById('xpDisplay').innerText = `${userStats.xp} XP`;
+            document.getElementById('streakDisplay').innerText = `${userStats.streak} Day`;
+        }
 
-            for (const [subj, stats] of Object.entries(subjectStats)) {
-                const acc = Math.round((stats.correct / stats.total) * 100);
+        function addXP(amount) {
+            userStats.xp += amount;
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(userStats));
+            updateStatsUI();
+        }
+
+        function renderLibrary(filter = 'all', searchQuery = '') {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+            
+            let filtered = quizzes.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                <div class="text-center py-10 fade-in">
+                    <div class="w-16 h-16 mx-auto rounded-xl bg-slate-800/50 flex items-center justify-center mb-4 transform -rotate-6">
+                        <i class="fas fa-box-open text-2xl text-slate-500"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">No sets found.</p>
+                </div>`;
+                return;
+            }
+
+            // Reverse to show newest first
+            filtered.slice().reverse().forEach(quiz => {
+                const qLength = quiz.questions ? quiz.questions.length : 0;
                 
-                if (acc < lowestAcc) {
-                    lowestAcc = acc;
-                    weakestSubject = subj;
-                }
-
-                // Populate Subject Library
-                libraryHTML += `
-                    <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 hover:border-blue-500/50 transition-colors">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                    <i class="fas fa-book-medical"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-sm">${subj}</h4>
-                                    <p class="text-[10px] text-slate-400">${stats.total} Qs Attempted</p>
-                                </div>
-                            </div>
-                            <span class="text-xs font-bold ${acc >= 70 ? 'text-emerald-400' : 'text-amber-400'}">${acc}% Mastery</span>
+                container.innerHTML += `
+                    <div class="flex items-center gap-4 p-3 hover:bg-slate-800/60 rounded-2xl cursor-pointer transition-colors fade-in border border-transparent hover:border-slate-700" onclick="loadQuizOverview(${quiz.id})">
+                        
+                        <div class="w-[52px] h-[52px] rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                            <i class="fas fa-mobile-alt text-blue-400 text-xl transform -rotate-12"></i>
+                            <div class="absolute inset-0 bg-blue-500/5"></div>
+                            ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-yellow-500 rounded-bl-lg z-10 shadow-sm"></div>' : ''}
                         </div>
-                        <button onclick="startPractice('subject', '${subj}')" class="w-full mt-2 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-white transition-colors">Start Practice</button>
-                    </div>`;
-
-                // Populate Top Priorities (Weak Topics < 70%)
-                if (acc < 70) {
-                    weakHTML += `
-                        <div class="bg-slate-800 rounded-xl p-4 border border-rose-900/50 flex items-center justify-between">
-                            <div class="flex-1 mr-4">
-                                <h4 class="font-bold text-sm truncate">${subj}</h4>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <div class="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                        <div class="h-full bg-rose-500" style="width: ${acc}%"></div>
-                                    </div>
-                                    <span class="text-[10px] text-rose-400 font-bold whitespace-nowrap">${acc}%</span>
-                                </div>
+                        
+                        <div class="flex-1 min-w-0 py-1">
+                            <h3 class="text-slate-100 font-bold text-[15px] truncate leading-tight">${quiz.title}</h3>
+                            <div class="flex items-center gap-1 mt-1 text-slate-400 text-xs font-medium truncate w-full">
+                                <span class="truncate max-w-[100px]">${quiz.subject}</span>
+                                <span class="px-1">•</span>
+                                <span>${qLength} terms</span>
                             </div>
-                            <button onclick="startPractice('topic', '${subj}')" class="px-3 py-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold hover:bg-rose-500/20 active:scale-95 transition-all">Drill</button>
-                        </div>`;
-                }
-            }
+                        </div>
 
-            document.getElementById('statWeakest').innerText = weakestSubject !== "N/A" ? weakestSubject : "None";
-            document.getElementById('subjectGridContainer').innerHTML = libraryHTML || "<p class='text-slate-500 text-xs'>Generate quizzes to build your library.</p>";
-            document.getElementById('weakTopicsContainer').innerHTML = weakHTML || "<p class='text-slate-500 text-xs'>You have no identified weak topics. Keep it up!</p>";
-
-            // 4. Update Chart Data
-            const chartData = [];
-            for (let i = 0; i < 7; i++) {
-                if (dailyScores[i].length > 0) {
-                    const avg = dailyScores[i].reduce((a, b) => a + b, 0) / dailyScores[i].length;
-                    chartData.push(Math.round(avg));
-                } else {
-                    chartData.push(0);
-                }
-            }
-            performanceChart.data.datasets[0].data = chartData;
-            performanceChart.update();
+                        <button onclick="promptDelete(event, ${quiz.id})" class="p-2.5 text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 active:scale-90 rounded-full hover:bg-slate-800">
+                            <i class="fas fa-trash-alt text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            });
         }
 
-        // --- Exam Logic ---
-        let currentQuestions = [];
-        let currentIndex = 0;
-        let score = 0;
-        let timerInterval;
-        let timeLeft = 0;
-        let isAnswered = false;
-        let currentSessionSubject = "General";
+        function promptDelete(e, id) {
+            e.stopPropagation();
+            quizToDelete = id;
+            openModal('deleteModal');
+        }
 
-        window.startPractice = async (mode, filter) => {
-            if (!currentUser) {
-                alert("Please wait a second for your profile to load, or log in.");
-                return;
-            }
-
-            const ui = document.getElementById('examUI');
-            ui.classList.remove('hidden');
-            setTimeout(() => ui.classList.add('active'), 10);
-            
-            document.getElementById('questionText').innerText = "Fetching your questions...";
-            document.getElementById('optionsContainer').innerHTML = "";
-            document.getElementById('btnNext').classList.add('hidden');
-
-            try {
-                const mcqsRef = collection(db, "mcqs"); 
-                let qQuery;
-
-                if (filter) {
-                    currentSessionSubject = filter;
-                    qQuery = query(mcqsRef, 
-                        where("userId", "==", currentUser.uid),
-                        where("subject", "==", filter), 
-                        where("type", "==", "Multiple Choice"), 
-                        limit(20)
-                    );
-                } else {
-                    currentSessionSubject = "Mixed Practice";
-                    qQuery = query(mcqsRef, 
-                        where("userId", "==", currentUser.uid),
-                        where("type", "==", "Multiple Choice"), 
-                        limit(20)
-                    );
-                }
-
-                const snapshot = await getDocs(qQuery);
-                currentQuestions = [];
-                snapshot.forEach(doc => {
-                    currentQuestions.push({ id: doc.id, ...doc.data() });
-                });
-
-                if (currentQuestions.length === 0) {
-                    document.getElementById('questionText').innerText = "No Multiple Choice questions found in your database. Go generate some first!";
-                    return;
-                }
-
-                currentQuestions = currentQuestions.sort(() => 0.5 - Math.random());
+        function executeDelete() {
+            if (quizToDelete !== null) {
+                quizzes = quizzes.filter(q => q.id !== quizToDelete);
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
                 
-                currentIndex = 0;
-                score = 0;
-                document.getElementById('totalQs').innerText = currentQuestions.length;
-
-                if (mode === 'timed' || mode === 'mock') {
-                    timeLeft = mode === 'timed' ? 20 * 60 : 100 * 60;
-                    startTimer();
-                } else {
-                    document.getElementById('examTimer').innerText = "Untimed";
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, document.getElementById('searchInput').value);
+                closeModal('deleteModal');
+                
+                if (currentQuiz && currentQuiz.id === quizToDelete) {
+                    closePracticeMobile(); 
                 }
-
-                renderQuestion();
-
-            } catch (error) {
-                console.error("Error fetching MCQs:", error);
-                if (error.message.includes("index") || error.message.includes("Index")) {
-                    document.getElementById('questionText').innerText = "Database index building! Check your browser console for the setup link.";
-                } else {
-                    document.getElementById('questionText').innerText = "Failed to load questions. Please check connection.";
-                }
+                quizToDelete = null;
             }
-        };
+        }
 
-        window.renderQuestion = () => {
-            if (currentIndex >= currentQuestions.length) {
-                endPractice(true);
-                return;
-            }
-
-            isAnswered = false;
-            const q = currentQuestions[currentIndex];
-            document.getElementById('currentQIndex').innerText = currentIndex + 1;
-            document.getElementById('examSubjectLabel').innerText = q.subject || "General Practice";
-            document.getElementById('questionText').innerText = q.text;
+        function loadQuizOverview(id) {
+            currentQuiz = quizzes.find(q => q.id === id);
+            openPracticeMobile();
             
-            const progress = ((currentIndex) / currentQuestions.length) * 100;
-            document.getElementById('examProgress').style.width = `${progress}%`;
+            const area = document.getElementById('practiceArea');
+            const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
+            const attempts = currentQuiz.stats ? currentQuiz.stats.attempts : 0;
 
-            const optionsContainer = document.getElementById('optionsContainer');
-            optionsContainer.innerHTML = '';
-            document.getElementById('btnNext').classList.add('hidden');
+            area.innerHTML = `
+                <div class="w-full max-w-2xl glass-panel rounded-3xl p-6 lg:p-10 shadow-2xl relative overflow-hidden fade-in">
+                    <div class="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-blue-500/20 text-blue-400 text-[10px] lg:text-xs font-extrabold px-3 py-1.5 rounded border border-blue-500/30 uppercase tracking-widest inline-flex items-center gap-1.5"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
+                        <button onclick="toggleFavoriteCurrent()" class="text-${currentQuiz.favorite ? 'yellow-500' : 'slate-500'} hover:text-yellow-400 text-xl transition-colors active:scale-90 p-2 -m-2">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    </div>
 
-            if (q.options && Array.isArray(q.options)) {
-                q.options.forEach((opt, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = "option-btn w-full text-left p-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 font-medium text-sm";
-                    btn.innerText = `${String.fromCharCode(65 + index)}. ${opt}`;
-                    btn.onclick = () => selectOption(index, q.correct, btn);
-                    optionsContainer.appendChild(btn);
-                });
-            } else {
-                optionsContainer.innerHTML = "<p class='text-red-400'>Error loading options.</p>";
-                document.getElementById('btnNext').classList.remove('hidden');
+                    <h2 class="text-2xl lg:text-3xl font-bold text-white mb-2 leading-tight">${currentQuiz.title}</h2>
+                    <p class="text-slate-400 text-sm mb-8 font-medium"><i class="fas fa-layer-group mr-2 text-slate-500"></i>${qLength} Study Items</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 lg:gap-4 mb-8">
+                        <div class="bg-slate-900/40 p-5 rounded-2xl border border-white/5 text-center lg:text-left">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Previous Best</p>
+                            <p class="text-3xl font-bold text-slate-100">${bScore} <span class="text-sm text-slate-500">/ ${qLength}</span></p>
+                        </div>
+                        <div class="bg-slate-900/40 p-5 rounded-2xl border border-white/5 text-center lg:text-left">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Total Attempts</p>
+                            <p class="text-3xl font-bold text-slate-100">${attempts}</p>
+                        </div>
+                    </div>
+
+                    <button onclick="startPractice(false)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl active:scale-[0.98] transition-all shadow-lg shadow-blue-900/20 uppercase tracking-wider text-sm">
+                        <i class="fas fa-play mr-2"></i> Begin Session
+                    </button>
+                </div>
+            `;
+        }
+
+        function toggleFavoriteCurrent() {
+            if (currentQuiz) {
+                currentQuiz.favorite = !currentQuiz.favorite;
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+                
+                // Refresh overview to update star
+                loadQuizOverview(currentQuiz.id);
+                
+                // Refresh library list
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, document.getElementById('searchInput').value);
             }
-        };
+        }
 
-        window.selectOption = (selectedIndex, correctIndex, btnElement) => {
-            if (isAnswered) return;
-            isAnswered = true;
-
-            const buttons = document.getElementById('optionsContainer').children;
-            
-            if (selectedIndex === correctIndex) {
-                btnElement.classList.add('correct');
-                score++;
-            } else {
-                btnElement.classList.add('wrong');
-                if (buttons[correctIndex]) {
-                    buttons[correctIndex].classList.add('correct');
-                }
-            }
-
-            for(let btn of buttons) {
-                btn.disabled = true;
-                btn.classList.remove('hover:bg-slate-750');
-            }
-
-            document.getElementById('btnNext').classList.remove('hidden');
-        };
-
-        window.nextQuestion = () => {
-            currentIndex++;
+        function startPractice(exam) {
+            isExamMode = exam;
+            currentQuestionIndex = 0;
+            examScore = 0;
             renderQuestion();
-        };
+        }
 
-        window.startTimer = () => {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                const s = (timeLeft % 60).toString().padStart(2, '0');
-                document.getElementById('examTimer').innerText = `${m}:${s}`;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    endPractice(true);
-                }
-            }, 1000);
-        };
-
-        window.endPractice = async (completed) => {
-            clearInterval(timerInterval);
-            
-            // Save analytics to Firestore if practice was completed
-            if (completed && currentQuestions.length > 0) {
-                const finalAccuracy = Math.round((score / currentQuestions.length) * 100);
-                
-                try {
-                    await addDoc(collection(db, "practice_sessions"), {
-                        userId: currentUser.uid,
-                        subject: currentSessionSubject,
-                        totalQuestions: currentQuestions.length,
-                        correctAnswers: score,
-                        percentage: finalAccuracy,
-                        timestamp: serverTimestamp()
-                    });
-                    
-                    alert(`Practice Complete!\nScore: ${score}/${currentQuestions.length} (${finalAccuracy}%)\n\nMetrics saved to your profile.`);
-                    loadAnalytics(); // Refresh the dashboard with new data
-                    
-                } catch (error) {
-                    console.error("Error saving session data:", error);
-                    alert("Practice complete, but failed to save metrics to the database.");
-                }
+        function renderQuestion() {
+            if (!currentQuiz || !currentQuiz.questions) return;
+            if (currentQuestionIndex >= currentQuiz.questions.length) {
+                finishQuiz();
+                return;
             }
 
-            const ui = document.getElementById('examUI');
-            ui.classList.remove('active');
-            setTimeout(() => ui.classList.add('hidden'), 400);
-        };
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const area = document.getElementById('practiceArea');
+            const progress = ((currentQuestionIndex) / currentQuiz.questions.length) * 100;
+
+            let optionsHtml = q.options.map((opt, idx) => `
+                <button onclick="selectAnswer(${idx})" class="w-full text-left p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600 active:scale-[0.99] transition-all flex items-start gap-4 cursor-pointer group option-btn">
+                    <span class="w-8 h-8 rounded border border-slate-600 bg-slate-900/50 flex items-center justify-center font-bold text-sm text-slate-400 group-hover:text-white transition-colors flex-shrink-0 mt-0.5">
+                        ${String.fromCharCode(65 + idx)}
+                    </span>
+                    <span class="text-slate-200 text-sm md:text-base leading-relaxed pt-1">${opt}</span>
+                </button>
+            `).join('');
+
+            area.innerHTML = `
+                <div class="w-full max-w-3xl flex flex-col h-full py-2 lg:py-6 fade-in">
+                    
+                    <div class="mb-6 lg:mb-8 flex-shrink-0">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                            <span>Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden shadow-inner">
+                            <div class="h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-500 ease-out" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-3xl p-6 lg:p-8 flex-1 overflow-y-auto hide-scroll flex flex-col shadow-2xl relative">
+                        <h3 class="text-lg lg:text-xl font-bold text-white leading-relaxed mb-8 flex-shrink-0">${q.text}</h3>
+                        
+                        <div class="space-y-3 flex-shrink-0" id="optionsContainer">${optionsHtml}</div>
+                        
+                        <div id="explanationArea" class="hidden flex-shrink-0 mt-8 pt-6 border-t border-white/5 flex-col gap-3"></div>
+                    </div>
+
+                    <div class="mt-4 flex justify-end flex-shrink-0">
+                        <button id="nextQBtn" onclick="renderQuestion()" class="hidden w-full lg:w-auto bg-blue-600 text-white font-bold py-3.5 px-8 rounded-xl active:scale-95 transition-all uppercase tracking-wider text-sm shadow-lg shadow-blue-900/20">
+                            ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Session' : 'Continue'} <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectAnswer(selectedIndex) {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            const container = document.getElementById('optionsContainer');
+            const explanationArea = document.getElementById('explanationArea');
+            const nextBtn = document.getElementById('nextQBtn');
+
+            if (isCorrect) {
+                examScore++;
+                addXP(10);
+            }
+
+            // Disable and style all buttons
+            Array.from(container.children).forEach((btn, idx) => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-slate-700/50', 'hover:border-slate-600', 'cursor-pointer');
+                
+                const letterBox = btn.querySelector('span:first-child');
+                
+                if (idx === q.correct) {
+                    btn.classList.remove('bg-slate-800/50', 'border-slate-700/50');
+                    btn.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'ring-1', 'ring-emerald-500/20');
+                    letterBox.classList.remove('bg-slate-900/50', 'border-slate-600', 'text-slate-400');
+                    letterBox.classList.add('bg-emerald-500', 'border-emerald-500', 'text-[#0f172a]');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.remove('bg-slate-800/50', 'border-slate-700/50');
+                    btn.classList.add('bg-red-500/10', 'border-red-500/30');
+                    letterBox.classList.remove('bg-slate-900/50', 'border-slate-600', 'text-slate-400');
+                    letterBox.classList.add('bg-red-500/20', 'border-red-500/50', 'text-red-400');
+                } else {
+                    btn.classList.add('opacity-40');
+                }
+            });
+
+            // Populate and show explanation
+            explanationArea.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 ${isCorrect ? 'text-emerald-400' : 'text-red-400'} text-xs font-bold uppercase tracking-wider mb-1">
+                    <i class="fas ${isCorrect ? 'fa-check-circle' : 'fa-times-circle'} text-base"></i> ${isCorrect ? 'Correct' : 'Incorrect'}
+                </div>
+                ${q.explanation ? `
+                <div class="bg-[#0B1120]/50 p-4 rounded-xl border border-white/5">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1.5">Explanation</span>
+                    <p class="text-slate-300 text-sm leading-relaxed">${q.explanation}</p>
+                </div>` : ''}
+            `;
+            
+            explanationArea.classList.remove('hidden');
+            explanationArea.classList.add('flex', 'fade-in');
+            
+            nextBtn.classList.remove('hidden');
+            nextBtn.classList.add('fade-in');
+            
+            currentQuestionIndex++;
+            
+            setTimeout(() => {
+                const practiceArea = document.getElementById('practiceArea');
+                practiceArea.scrollTo({ top: practiceArea.scrollHeight, behavior: 'smooth' });
+            }, 50);
+        }
+
+        function finishQuiz() {
+            addXP(50);
+            if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
+            
+            currentQuiz.stats.attempts++;
+            currentQuiz.stats.lastScore = examScore;
+            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+            
+            const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+            renderLibrary(activeTab, document.getElementById('searchInput').value);
+
+            const area = document.getElementById('practiceArea');
+            const percentage = Math.round((examScore / currentQuiz.questions.length) * 100);
+            
+            area.innerHTML = `
+                <div class="w-full max-w-md glass-panel rounded-3xl p-8 text-center relative overflow-hidden fade-in">
+                    <div class="absolute -top-20 -left-20 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30 relative z-10">
+                        <i class="fas ${percentage >= 80 ? 'fa-award' : 'fa-check'} text-3xl text-white"></i>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-white mb-2 relative z-10">Session Complete!</h2>
+                    <p class="text-slate-400 text-sm mb-8 font-medium line-clamp-1 relative z-10">${currentQuiz.title}</p>
+                    
+                    <div class="bg-[#0B1120]/60 rounded-2xl p-6 border border-white/5 mb-8 relative z-10">
+                        <p class="text-[10px] text-slate-500 uppercase font-extrabold tracking-widest mb-2">Final Score</p>
+                        <p class="text-4xl font-extrabold text-white">${examScore} <span class="text-lg text-slate-500 font-bold">/ ${currentQuiz.questions.length}</span></p>
+                        <p class="text-[11px] mt-3 ${percentage >= 80 ? 'text-emerald-400' : 'text-yellow-500'} font-bold uppercase tracking-wider">Accuracy: ${percentage}%</p>
+                    </div>
+
+                    <div class="flex flex-col gap-3 relative z-10">
+                        <button onclick="startPractice(false)" class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-blue-900/20">
+                            Retry Deck
+                        </button>
+                        <button onclick="closePracticeMobile()" class="w-full py-4 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 font-bold text-sm uppercase tracking-wider active:scale-95 transition-all border border-slate-700/50 lg:hidden">
+                            Return to Library
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openModal(id) { 
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { 
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95'); 
+            }, 10);
+        }
+        
+        function closeModal(id) { 
+            const modal = document.getElementById(id);
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => { 
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatsUI();
+            renderLibrary();
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('active', 'border-slate-700', 'border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+                        b.classList.add('border-slate-700', 'bg-transparent', 'text-slate-300');
+                    });
+                    e.target.classList.remove('border-slate-700', 'bg-transparent', 'text-slate-300');
+                    e.target.classList.add('active'); // CSS handles active state colors
+                    renderLibrary(e.target.dataset.filter, document.getElementById('searchInput').value);
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, e.target.value);
+            });
+        });
     </script>
 </body>
 </html>
