@@ -376,6 +376,12 @@
                 const hash = (location.hash || '').replace('#', '').toLowerCase();
                 const params = new URLSearchParams(location.search);
                 const action = params.get('action') ? params.get('action').toLowerCase() : null;
+                
+                // NEW: Clear guest token if coming here with an auth intent!
+                if (['login', 'signup', 'logout'].includes(hash) || ['login', 'signup', 'logout'].includes(action)) {
+                    localStorage.removeItem('skip');
+                }
+
                 if (hash === 'login' || action === 'login') toggleLogin(true, false);
                 else if (hash === 'signup' || action === 'signup') toggleLogin(true, true);
             } catch (e) { console.warn('openAuthFromUrl failed', e); }
