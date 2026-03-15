@@ -428,5 +428,13 @@
             } catch (error) { alert("Failed to generate content. Please try again."); btnElement.disabled = false; btnElement.innerHTML = originalHTML; }
         }
     </script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  metaTheme.setAttribute("content", "#050A15");
+
+});
+</script>
 </body>
 </html>
