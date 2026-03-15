@@ -12,16 +12,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); }
+        :root { --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1); }
         
         body { 
             -webkit-user-select: none; 
             user-select: none; 
-            background-color: #0B1120; 
-            background-image: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
+            background-color: #050A15; 
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             overflow-x: hidden;
             overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Snappy fade-in animation */
+        .fade-in { 
+            opacity: 0; 
+            animation: fadeIn 0.25s var(--ease-snap) forwards; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .glass-panel {
@@ -43,10 +53,10 @@
         }
         
         .ok-dialog {
-            width: 90%; max-width: 400px; background: #1e293b; border: 1px solid #334155;
+            width: 90%; max-width: 400px; background: #0B1120; border: 1px solid #1e293b;
             border-radius: 20px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             color: white; transform: scale(0.95); opacity: 0;
-            transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s ease;
+            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s ease;
             will-change: transform, opacity;
         }
         
@@ -68,20 +78,20 @@
         }
 
         .speech-bubble {
-            position: relative; background: #1e293b; border: 2px solid #334155; border-radius: 1rem;
+            position: relative; background: #0B1120; border: 2px solid #1e293b; border-radius: 1rem;
             padding: 1rem; color: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             max-width: 200px; transform: translateZ(0); contain: content;
         }
         
         .speech-bubble::after {
             content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-            border-width: 10px 10px 0; border-style: solid; border-color: #334155 transparent transparent transparent;
+            border-width: 10px 10px 0; border-style: solid; border-color: #1e293b transparent transparent transparent;
         }
 
         ::-webkit-scrollbar { width: 0px; background: transparent; }
 
         #tutorialOverlay {
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+            background: rgba(5, 10, 21, 0.6); backdrop-filter: blur(2px);
             -webkit-backdrop-filter: blur(2px); pointer-events: auto; transform: translateZ(0); contain: strict;
         }
         
@@ -89,10 +99,10 @@
             overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; contain: layout size;
         }
 
-        .slide-up-modal { transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); }
+        .slide-up-modal { transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col relative overflow-hidden">
+<body class="text-white h-screen flex flex-col relative overflow-hidden bg-[#050A15]">
 
     <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
         <div class="ok-dialog" role="document">
@@ -107,8 +117,8 @@
 
     <div id="searchBar" class="hidden"></div>
 
-    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-transparent transform-gpu">
-        <h1 id="greetingTitle" class="text-lg font-bold text-white tracking-tight">Welcome back</h1>
+    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#050A15]/90 backdrop-blur-md transform-gpu fade-in" style="animation-delay: 0ms;">
+        <h1 id="greetingTitle" class="text-2xl font-extrabold text-white tracking-tight">Welcome back</h1>
         <div class="flex items-center gap-3">
             <div class="flex items-center justify-center gap-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-500 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-[0_0_10px_rgba(249,115,22,0.1)] shrink-0">
                 <i class="fas fa-fire text-orange-500"></i>
@@ -118,10 +128,11 @@
     </header>
 
     <main class="flex-1 min-h-0 overflow-y-auto scroll-container pb-40 px-6 pt-4 space-y-8 transform-gpu">
-        <div id="continueStudyingSection" class="hidden">
-            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Continue Studying</h2>
+        
+        <div id="continueStudyingSection" class="hidden fade-in" style="animation-delay: 30ms;">
+            <h2 class="text-xs font-extrabold text-slate-400 mb-3 uppercase tracking-widest pl-1">Continue Studying</h2>
             <a href="study.html" class="glass-panel rounded-2xl p-4 relative overflow-hidden block transform transition-transform active:scale-98 hover:bg-white/5 will-change-transform border border-indigo-500/30 group">
-                <div class="absolute bottom-0 left-0 h-1.5 bg-slate-800 w-full transform-gpu">
+                <div class="absolute bottom-0 left-0 h-1.5 bg-[#0B1120] w-full transform-gpu">
                     <div id="continueProgressBar" class="h-full bg-blue-500 rounded-r-full shadow-sm transition-all duration-500 ease-out" style="width: 0%"></div>
                 </div>
                 <div class="flex items-center gap-4 mb-2">
@@ -146,9 +157,10 @@
         </div>
 
         <div>
-            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Quick Actions</h2>
+            <h2 class="text-xs font-extrabold text-slate-400 mb-3 uppercase tracking-widest pl-1 fade-in" style="animation-delay: 60ms;">Quick Actions</h2>
             <div class="grid grid-cols-2 gap-3">
-                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform" style="contain: paint layout;">
+                
+                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform fade-in" style="animation-delay: 90ms; contain: paint layout;">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="relative z-10">
                         <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i></h3>
@@ -159,7 +171,7 @@
                     </div>
                 </a>
                 
-                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
+                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group fade-in" style="animation-delay: 120ms;">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g>
@@ -168,7 +180,7 @@
                     <span class="font-bold text-sm text-slate-200 mt-2">Flashcards</span>
                 </a>
 
-                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
+                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group fade-in" style="animation-delay: 150ms;">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -188,7 +200,7 @@
                     <span class="font-bold text-sm text-slate-200 mt-2 leading-tight">MCQ Quiz</span>
                 </a>
 
-                <a href="tutor.html" class="col-span-1 glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
+                <a href="tutor.html" class="col-span-1 glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group fade-in" style="animation-delay: 180ms;">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -207,7 +219,7 @@
                     <span class="text-[10px] text-slate-400 mt-0.5 block">Break down topics</span>
                 </a>
 
-                <button id="openVideoTutorBtn" class="col-span-1 text-left glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
+                <button id="openVideoTutorBtn" class="col-span-1 text-left glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group fade-in" style="animation-delay: 210ms;">
                     <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)] relative">
                         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
                             <g transform="translate(32, 32)">
@@ -224,7 +236,7 @@
                     <span class="text-[10px] text-slate-400 mt-0.5 block">Find best lectures</span>
                 </button>
 
-                <a href="teach.html" class="col-span-2 glass-panel border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] rounded-2xl p-5 flex flex-col gap-3 transform transition-transform active:scale-95 hover:bg-white/5 group relative overflow-hidden">
+                <a href="teach.html" class="col-span-2 glass-panel border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] rounded-2xl p-5 flex flex-col gap-3 transform transition-transform active:scale-95 hover:bg-white/5 group relative overflow-hidden fade-in" style="animation-delay: 240ms;">
                     <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors duration-500 pointer-events-none"></div>
                     <div class="flex items-start gap-4 relative z-10">
                         <div class="w-14 h-14 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
@@ -243,7 +255,7 @@
                         <div class="flex-1">
                             <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-extrabold uppercase tracking-wider mb-1.5 shadow-[0_0_10px_rgba(249,115,22,0.1)]">🔥 Most Powerful</div>
                             <h3 class="font-bold text-base text-white leading-tight">Teach MedExcel</h3>
-                            <p class="text-xs text-blue-200 mt-1 leading-snug">Explain a concept out loud. Aurora listens, finds gaps, and challenges you.</p>
+                            <p class="text-xs text-blue-200 mt-1 leading-snug">Explain a concept out loud. MedExcel listens, finds gaps, and challenges you.</p>
                         </div>
                     </div>
                 </a>
@@ -251,33 +263,33 @@
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a]/90 backdrop-blur-lg border-t border-white/5 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu" style="contain: paint layout;">
-        <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-blue-500 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center bg-blue-500/10 rounded-full"><i class="fas fa-home text-lg"></i></div>
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#050A15]/95 backdrop-blur-lg border-t border-slate-800 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-white transition-colors">
+            <i class="fas fa-home text-xl"></i>
             <span class="text-[10px] font-bold">Home</span>
         </a>
         <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-plus-circle text-lg"></i></div>
+            <i class="fas fa-plus text-xl"></i>
             <span class="text-[10px] font-medium">Create</span>
         </a>
         <a href="study.html" id="libraryBtn" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-layer-group text-lg"></i></div>
+            <i class="fas fa-folder text-xl"></i>
             <span class="text-[10px] font-medium">Library</span>
         </a>
         <a href="profile.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-user text-lg"></i></div>
+            <i class="fas fa-user text-xl"></i>
             <span class="text-[10px] font-medium">Profile</span>
         </a>
     </nav>
 
     <div id="videoTutorModal" class="fixed inset-0 bg-[#0B1120] z-[100] transform translate-y-full slide-up-modal flex flex-col h-full w-full">
-        <header class="pt-6 pb-4 px-6 flex items-center gap-4 border-b border-white/5 bg-[#0f172a] shrink-0">
+        <header class="pt-6 pb-4 px-6 flex items-center gap-4 border-b border-white/5 bg-[#050A15] shrink-0">
             <button id="closeVideoTutorBtn" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700/50 shrink-0">
                 <i class="fas fa-times text-sm"></i>
             </button>
             <div>
                 <h1 class="text-lg font-bold text-white tracking-tight leading-tight">Video Tutor</h1>
-                <p class="text-[11px] text-blue-400 font-medium tracking-wide uppercase">Powered by Aurora</p>
+                <p class="text-[11px] text-blue-400 font-medium tracking-wide uppercase">Powered by MedExcel</p>
             </div>
         </header>
 
@@ -288,7 +300,7 @@
                     <div class="absolute left-4 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center pointer-events-none">
                         <i class="fas fa-search text-blue-400 text-sm"></i>
                     </div>
-                    <input id="topicInput" type="text" placeholder="e.g. Action Potential" class="w-full bg-slate-800/80 border border-slate-700/50 rounded-2xl pl-14 pr-24 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/70 transition-all shadow-inner text-sm" />
+                    <input id="topicInput" type="text" placeholder="e.g. Action Potential" class="w-full bg-[#050A15] border border-slate-700/50 rounded-2xl pl-14 pr-24 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/70 transition-all shadow-inner text-sm" />
                     <button id="searchVideoBtn" class="absolute right-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-transform transform active:scale-95 shadow-lg shadow-blue-900/20">
                         Find
                     </button>
@@ -301,14 +313,14 @@
                     <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <i class="fas fa-play absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-500 ml-0.5 text-sm"></i>
                 </div>
-                <p class="text-white font-semibold mb-1">Aurora is searching...</p>
+                <p class="text-white font-semibold mb-1">MedExcel is searching...</p>
                 <p class="text-slate-400 text-xs text-center px-4">Finding the highest-yield medical lecture</p>
             </div>
 
-            <div id="videoResultCard" class="hidden glass-panel rounded-3xl overflow-hidden shadow-2xl transform transition-all duration-500 translate-y-4 opacity-0">
+            <div id="videoResultCard" class="hidden glass-panel rounded-3xl overflow-hidden shadow-2xl transform transition-all duration-300 translate-y-4 opacity-0">
                 <div id="videoContainer" class="relative w-full aspect-video bg-black border-b border-slate-700/50 transition-all duration-300">
                     <iframe id="videoPlayer" class="absolute top-0 left-0 w-full h-full" src="" allow="autoplay; fullscreen" frameborder="0" allowfullscreen></iframe>
-                    <button id="closeFullscreenBtn" class="hidden absolute top-6 right-6 z-[100] w-10 h-10 bg-slate-900/80 backdrop-blur-md rounded-full text-white items-center justify-center border border-white/20 shadow-xl transition-transform active:scale-95">
+                    <button id="closeFullscreenBtn" class="hidden absolute top-6 right-6 z-[100] w-10 h-10 bg-[#050A15]/80 backdrop-blur-md rounded-full text-white items-center justify-center border border-white/20 shadow-xl transition-transform active:scale-95">
                         <i class="fas fa-compress text-sm"></i>
                     </button>
                 </div>
@@ -324,7 +336,7 @@
                         </p>
                     </div>
 
-                    <div class="bg-[#0f172a]/80 rounded-2xl p-4 sm:p-5 border border-white/5 relative overflow-hidden">
+                    <div class="bg-[#050A15]/80 rounded-2xl p-4 sm:p-5 border border-white/5 relative overflow-hidden">
                         <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
                         <div class="flex items-start gap-3 relative z-10">
                             <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border border-blue-500/30">
@@ -342,10 +354,10 @@
                             <i class="fas fa-expand text-sm"></i> Watch Fullscreen
                         </button>
                         <div class="grid grid-cols-2 gap-3">
-                            <button id="genFlashcardsBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
+                            <button id="genFlashcardsBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-[#050A15] hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
                                 <i class="fas fa-layer-group text-blue-400"></i> Flashcards
                             </button>
-                            <button id="genQuizBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
+                            <button id="genQuizBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-[#050A15] hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
                                 <i class="fas fa-list-check text-emerald-400"></i> MCQ Quiz
                             </button>
                         </div>
@@ -440,7 +452,7 @@
 
         openModalBtn.addEventListener('click', () => {
             modal.classList.remove('translate-y-full');
-            setTimeout(() => topicInput.focus(), 400); 
+            setTimeout(() => topicInput.focus(), 250); 
         });
 
         closeModalBtn.addEventListener('click', () => {
@@ -516,7 +528,6 @@
         });
 
         // --- AI GENERATION LOGIC FROM VIDEO ---
-        
         document.getElementById('genFlashcardsBtn').addEventListener('click', () => handleGeneration('Flashcards', document.getElementById('genFlashcardsBtn')));
         document.getElementById('genQuizBtn').addEventListener('click', () => handleGeneration('Multiple Choice', document.getElementById('genQuizBtn')));
 
