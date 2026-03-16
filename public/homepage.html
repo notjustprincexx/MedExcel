@@ -300,20 +300,7 @@ font-family:sans-serif;
 MedExcel can generate quizzes from your voice.
 </p>
 
-<button onclick="requestMicrophone()"
-style="
-margin-top:20px;
-padding:12px 20px;
-background:#3b82f6;
-border:none;
-border-radius:8px;
-color:white;
-font-weight:bold;
-">
 
-Enable Microphone
-
-</button>
 
 </div>
             <div id="videoLoader" class="loader-box">
@@ -556,41 +543,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 </script>
-<script>
 
-async function requestMicrophone() {
-
-    try {
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true
-        });
-
-        console.log("Microphone access granted");
-
-        localStorage.setItem("micPermissionAsked", "true");
-
-        document.getElementById("micModal").style.display = "none";
-
-    } catch (error) {
-
-        console.log("Microphone access denied");
-
-    }
-
-}
-
-// Show modal only first time
-document.addEventListener("DOMContentLoaded", () => {
-
-    if (!localStorage.getItem("micPermissionAsked")) {
-
-        document.getElementById("micModal").style.display = "flex";
-
-    }
-
-});
-
-</script>
 </body>
 </html>
