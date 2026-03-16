@@ -391,5 +391,31 @@
       window.speechSynthesis.speak(utter);
     }
   </script>
+  <script>
+
+async function requestMicrophone() {
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true
+        });
+
+        console.log("Microphone access granted");
+
+    } catch (error) {
+
+        console.error("Microphone permission denied", error);
+
+    }
+
+}
+
+</script>
+<script>
+
+document.getElementById("voiceTutorBtn").addEventListener("click", requestMicrophone);
+
+</script>
 </body>
 </html>
