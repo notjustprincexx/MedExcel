@@ -278,7 +278,44 @@
                     <button id="searchVideoBtn" class="btn-search">Find</button>
                 </div>
             </div>
+<div id="micModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#020617;
+align-items:center;
+justify-content:center;
+z-index:9999;
+flex-direction:column;
+color:white;
+font-family:sans-serif;
+">
 
+<h2>Enable Voice Features 🎤</h2>
+
+<p style="opacity:.8">
+MedExcel can generate quizzes from your voice.
+</p>
+
+<button onclick="requestMicrophone()"
+style="
+margin-top:20px;
+padding:12px 20px;
+background:#3b82f6;
+border:none;
+border-radius:8px;
+color:white;
+font-weight:bold;
+">
+
+Enable Microphone
+
+</button>
+
+</div>
             <div id="videoLoader" class="loader-box">
                 <div class="spin-ring"><i class="fas fa-play spin-icon"></i></div>
                 <p style="font-weight:bold; margin-bottom:0.25rem;">MedExcel is searching...</p>
@@ -515,6 +552,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
     });
+
+});
+
+</script>
+<script>
+
+async function requestMicrophone() {
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true
+        });
+
+        console.log("Microphone access granted");
+
+        localStorage.setItem("micPermissionAsked", "true");
+
+        document.getElementById("micModal").style.display = "none";
+
+    } catch (error) {
+
+        console.log("Microphone access denied");
+
+    }
+
+}
+
+// Show modal only first time
+document.addEventListener("DOMContentLoaded", () => {
+
+    if (!localStorage.getItem("micPermissionAsked")) {
+
+        document.getElementById("micModal").style.display = "flex";
+
+    }
 
 });
 
