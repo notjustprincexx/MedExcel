@@ -93,12 +93,31 @@
 
     <div class="waiting-text">Waiting for connection...</div>
 
-    <script>
-        // When the browser detects the internet is back, automatically reload the page
-        // so the service worker can fetch the real homepage.html
-        window.addEventListener('online', () => {
-            window.location.reload();
+<script>
+
+// reload when browser detects connection
+window.addEventListener('online', () => {
+    window.location.reload();
+});
+
+// also actively check internet every 3 seconds
+setInterval(async () => {
+    try {
+
+        await fetch("https://medxcel.web.app", {
+            method: "HEAD",
+            mode: "no-cors"
         });
-    </script>
+
+        // if request succeeds, reload site
+        window.location.href = "https://medxcel.web.app";
+
+    } catch (e) {
+        console.log("Still offline");
+    }
+
+}, 3000);
+
+</script>
 </body>
 </html>
