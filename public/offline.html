@@ -1,48 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Offline</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050A15">
+    <title>Loading MedExcel...</title>
+    <style>
+        :root {
+            --bg-body: #050A15;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            background-color: var(--bg-body); 
+            height: 100vh; 
+            overflow: hidden;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
 
-<style>
-body{
-font-family:sans-serif;
-background:#020617;
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-height:100vh;
-text-align:center;
-padding:20px;
-}
+        /* --- Skeleton Shimmer Effect --- */
+        .skeleton {
+            background: #1e293b; /* Dark slate matching your theme */
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0px,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            background-size: 200% 100%;
+            border-radius: 1rem;
+            animation: shimmer 1.5s infinite linear;
+        }
 
-.card{
-background:#0f172a;
-padding:30px;
-border-radius:20px;
-max-width:300px;
-}
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
 
-button{
-margin-top:15px;
-padding:10px 20px;
-border:none;
-border-radius:10px;
-background:#3b82f6;
-color:white;
-}
-</style>
+        /* --- Layout Blocks --- */
+        .skel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .skel-title { height: 1.5rem; width: 40%; border-radius: 0.5rem; }
+        .skel-badge { height: 2.25rem; width: 4rem; border-radius: 9999px; }
+        
+        .skel-subtitle { height: 1rem; width: 35%; margin-bottom: 0.5rem; border-radius: 0.25rem; margin-top: 1rem; }
+        
+        .skel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .skel-card { height: 7rem; border-radius: 1rem; }
+        .skel-card-large { grid-column: span 2; height: 5rem; border-radius: 1rem; }
+        .skel-card-tall { grid-column: span 2; height: 8rem; border-radius: 1rem; }
 
+        /* Subtle indicator that it's waiting for connection */
+        .waiting-text {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: rgba(11, 17, 32, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.05em;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="card">
-<h2>You are offline</h2>
-<p>Reconnect to continue learning.</p>
-<button onclick="location.reload()">Retry</button>
-</div>
+    <div class="skel-header">
+        <div class="skeleton skel-title"></div>
+        <div class="skeleton skel-badge"></div>
+    </div>
+    
+    <div class="skeleton skel-subtitle"></div>
+    <div class="skeleton skel-card-large"></div>
 
+    <div class="skeleton skel-subtitle" style="margin-top: 1.5rem;"></div>
+    <div class="skel-grid">
+        <div class="skeleton skel-card-large"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card-tall"></div>
+    </div>
+
+    <div class="waiting-text">Waiting for connection...</div>
+
+    <script>
+        // When the browser detects the internet is back, automatically reload the page
+        // so the service worker can fetch the real homepage.html
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
 </body>
 </html>
