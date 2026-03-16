@@ -127,6 +127,20 @@
         </div>
     </main>
 
+    <div id="paymentModal" class="fixed inset-0 bg-black/80 z-[100] hidden opacity-0 transition-opacity duration-300 flex-col justify-end">
+        <div id="paymentSheet" class="bg-white w-full h-[85vh] md:h-[90vh] md:max-w-md md:mx-auto md:rounded-t-3xl rounded-t-2xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col overflow-hidden relative">
+            
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white z-10">
+                <h2 class="text-slate-800 font-bold text-lg">Complete Subscription</h2>
+                <button onclick="closePaymentModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <iframe id="paystackIframe" src="" class="w-full h-full border-none flex-grow bg-slate-50"></iframe>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -154,6 +168,44 @@
             }
         });
 
+        // Function to open the slide-up modal
+        window.openPaymentModal = function(url) {
+            const modal = document.getElementById('paymentModal');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+
+            // Set the Paystack link
+            iframe.src = url;
+
+            // Make modal visible in the DOM
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Small delay to allow CSS transitions to trigger
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        // Function to close the slide-up modal
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModal');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+
+            // Slide down and fade out
+            modal.classList.add('opacity-0');
+            sheet.classList.add('translate-y-full');
+
+            // Wait for animation to finish before hiding from DOM
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                iframe.src = ""; // Clear the iframe
+            }, 300);
+        };
+
         window.startPayment = function(plan) {
             if (!currentUser) {
                 alert("Please sign in first.");
@@ -167,12 +219,14 @@
             }
 
             if (plan === "premium") {
-                window.location.href = "https://paystack.shop/pay/5wqjry1l0a";
+                // Open the modal instead of redirecting the page
+                openPaymentModal("https://paystack.shop/pay/5wqjry1l0a");
                 return;
             }
 
             if (plan === "elite") {
-                window.location.href = "https://paystack.shop/pay/lw17s2ggpj";
+                // Open the modal instead of redirecting the page
+                openPaymentModal("https://paystack.shop/pay/lw17s2ggpj");
                 return;
             }
         };
