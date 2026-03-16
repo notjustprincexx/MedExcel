@@ -455,30 +455,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
-<script type="module">
-
-import { PushNotifications } from '@capacitor/push-notifications';
-
-async function initPush() {
-
-  const permission = await PushNotifications.requestPermissions();
-
-  if (permission.receive === 'granted') {
-    await PushNotifications.register();
-  }
-
-  PushNotifications.addListener('registration', token => {
-    console.log("FCM TOKEN:", token.value);
-  });
-
-  PushNotifications.addListener('pushNotificationReceived', notification => {
-    console.log("Notification:", notification);
-  });
-
-}
-
-initPush();
-
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        
+        const { PushNotifications } = Capacitor.Plugins;
+        
+        const permission = await PushNotifications.requestPermissions();
+        
+        if (permission.receive === "granted") {
+            await PushNotifications.register();
+        }
+        
+        PushNotifications.addListener("registration", token => {
+            console.log("FCM TOKEN:", token.value);
+        });
+        
+        PushNotifications.addListener("pushNotificationReceived", notification => {
+            console.log("Notification received:", notification);
+        });
+        
+    });
 </script>
 </body>
 </html>
