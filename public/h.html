@@ -3,347 +3,714 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MedExcel - Create AI Quiz</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#050A15">
+    <title>MedExcel Home</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
     <style>
+        :root {
+            --bg-body: #050A15; --bg-glass: rgba(255, 255, 255, 0.03); --bg-modal: #0B1120;
+            --text-main: #ffffff; --text-muted: #94a3b8; --text-light: #cbd5e1;
+            --accent-blue: #3b82f6; --accent-blue-dark: #2563eb; --accent-orange: #f97316;
+            --border-glass: rgba(255, 255, 255, 0.05); --border-blue: rgba(96, 165, 250, 0.3);
+            --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Base & Reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            background-color: #0f172a; 
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body); color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
+            overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
         }
-        /* Glassmorphism Classes */
-        .glass-modal {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        ::-webkit-scrollbar { width: 4px; background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+
+        /* Utilities */
+        .fade-in { opacity: 0; animation: fadeIn 0.25s var(--ease-snap) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-panel { background: var(--bg-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-glass); border-radius: 1rem; transform: translateZ(0); }
+
+        /* Layout */
+        .header-bar { padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: sticky; top: 0; background: rgba(5, 10, 21, 0.9); backdrop-filter: blur(12px); transform: translateZ(0); }
         
-        .option-btn.active {
-            background-color: #2563eb; /* blue-600 */
-            border-color: #3b82f6; /* blue-500 */
-            color: #ffffff;
-        }
+        .greeting-title { font-size: 1.125rem; font-weight: 500; letter-spacing: normal; }
+        
+        /* Updated streak-badge with interactive hover/active states */
+        .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); cursor: pointer; transition: transform 0.1s; }
+        .streak-badge:active { transform: scale(0.95); }
+        
+        .main-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
+        .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.25rem; }
+
+        /* Cards */
+        .continue-card { display: block; padding: 1rem; position: relative; overflow: hidden; transition: transform 0.2s, background 0.2s; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .continue-card:active { transform: scale(0.98); }
+        .continue-card:hover { background: rgba(255, 255, 255, 0.05); }
+        .progress-track { position: absolute; bottom: 0; left: 0; height: 0.375rem; background: var(--bg-modal); width: 100%; }
+        .progress-bar { height: 100%; background: var(--accent-blue); border-top-right-radius: 9999px; border-bottom-right-radius: 9999px; transition: width 0.5s ease-out; }
+        .card-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+        .icon-box { width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.25)); }
+        .card-details { flex: 1; min-width: 0; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem; gap: 0.75rem; }
+        .card-title { font-weight: bold; font-size: 0.875rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .progress-text { font-size: 0.625rem; font-weight: 800; color: #60a5fa; background: rgba(59, 130, 246, 0.1); padding: 0.25rem 0.5rem; border-radius: 0.375rem; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .action-card { padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; transition: transform 0.2s, background 0.2s; text-align: left; }
+        .action-card:active { transform: scale(0.95); }
+        .action-card:hover { background: rgba(255, 255, 255, 0.05); }
+        .action-title { font-weight: bold; font-size: 0.875rem; color: #e2e8f0; margin-top: 0.5rem; line-height: 1.25; }
+        .action-sub { font-size: 0.625rem; color: var(--text-muted); margin-top: 0.125rem; display: block; }
+
+        .ai-card { grid-column: span 2; background: linear-gradient(to bottom right, #2563eb, #4338ca); padding: 1.25rem; border: 1px solid var(--border-blue); position: relative; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: space-between; border-radius: 1rem; transition: transform 0.2s; }
+        .ai-card:active { transform: scale(0.95); }
+        .ai-content { position: relative; z-index: 10; }
+        .ai-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        .ai-sub { color: #dbeafe; font-size: 0.75rem; font-weight: 500; opacity: 0.9; }
+        .ai-arrow { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); position: relative; z-index: 10; }
+
+        .teach-card { grid-column: span 2; border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative; overflow: hidden; transition: transform 0.2s; border-radius: 1rem; }
+        .teach-card:active { transform: scale(0.95); }
+        .teach-glow { position: absolute; top: -2.5rem; right: -2.5rem; width: 8rem; height: 8rem; background: rgba(59, 130, 246, 0.2); border-radius: 50%; filter: blur(24px); pointer-events: none; }
+        .badge-powerful { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: #fb923c; font-size: 0.5625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); }
+        .teach-desc { font-size: 0.75rem; color: #bfdbfe; margin-top: 0.25rem; line-height: 1.375; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid #1e293b; padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; transform: translateZ(0); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; }
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 1.25rem; }
+        .nav-label { font-size: 0.625rem; font-weight: 500; }
+        .nav-item.active .nav-label { font-weight: bold; }
+
+        /* Video Modal */
+        .video-modal { position: fixed; inset: 0; background: var(--bg-modal); z-index: 100; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s var(--ease-snap); }
+        .video-modal.show { transform: translateY(0); }
+        .modal-header { padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: var(--bg-body); flex-shrink: 0; }
+        .btn-modal-close { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px solid rgba(51, 65, 85, 0.5); transition: background 0.2s, color 0.2s; flex-shrink: 0; }
+        .btn-modal-close:hover { color: white; background: #334155; }
+        .modal-title { font-size: 1.125rem; font-weight: bold; line-height: 1.25; }
+        .modal-subtitle { font-size: 0.6875rem; color: #60a5fa; font-weight: 500; letter-spacing: 0.025em; text-transform: uppercase; }
+        
+        .modal-body { flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem 2.5rem; width: 100%; max-width: 42rem; margin: 0 auto; }
+        .search-container { position: relative; display: flex; align-items: center; margin-bottom: 1.5rem; }
+        .search-icon { position: absolute; left: 1rem; width: 2rem; height: 2rem; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; pointer-events: none; color: #60a5fa; font-size: 0.875rem; }
+        .search-input { width: 100%; background: var(--bg-body); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 1rem; padding: 1rem 6rem 1rem 3.5rem; color: white; font-size: 0.875rem; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); transition: border-color 0.2s; }
+        .search-input:focus { border-color: rgba(59, 130, 246, 0.7); outline: 1px solid rgba(59, 130, 246, 0.7); }
+        .btn-search { position: absolute; right: 0.5rem; background: var(--accent-blue-dark); color: white; padding: 0.625rem 1.25rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); transition: transform 0.1s; }
+        .btn-search:active { transform: scale(0.95); }
+
+        .loader-box { display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4rem 0; }
+        .loader-box.show { display: flex; }
+        .spin-ring { position: relative; width: 4rem; height: 4rem; margin: 0 auto 1.5rem; }
+        .spin-ring::before { content: ""; position: absolute; inset: 0; border: 4px solid #334155; border-radius: 50%; }
+        .spin-ring::after { content: ""; position: absolute; inset: 0; border: 4px solid var(--accent-blue); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        .spin-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent-blue); margin-left: 2px; font-size: 0.875rem; }
+        
+        .result-card { display: none; background: var(--bg-glass); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .result-card.show { display: block; opacity: 1; transform: translateY(0); }
+        .video-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; background: black; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .result-details { padding: 1.25rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .match-badge { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 9999px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.625rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+        .res-title { font-size: 1.125rem; font-weight: bold; line-height: 1.25; margin-bottom: 0.5rem; }
+        .res-channel { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+        
+        .reason-box { background: rgba(5, 10, 21, 0.8); border-radius: 1rem; padding: 1rem; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; display: flex; align-items: flex-start; gap: 0.75rem; }
+        .reason-glow { position: absolute; top: -1.5rem; right: -1.5rem; width: 6rem; height: 6rem; background: rgba(59, 130, 246, 0.1); border-radius: 50%; filter: blur(24px); pointer-events: none; }
+        .reason-icon { width: 2rem; height: 2rem; border-radius: 50%; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(59, 130, 246, 0.3); flex-shrink: 0; }
+        .reason-title { font-size: 0.625rem; font-weight: bold; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.25rem; }
+        .reason-text { font-size: 0.875rem; color: var(--text-light); line-height: 1.6; }
+
+        .btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem; border-radius: 0.75rem; font-weight: bold; transition: transform 0.1s; }
+        .btn-full:active { transform: scale(0.95); }
+        .btn-watch { background: white; color: #0f172a; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); margin-bottom: 0.75rem; }
+        .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .btn-gen { background: var(--bg-body); color: #e2e8f0; border: 1px solid #334155; font-size: 0.875rem; }
+        .btn-gen:hover { background: #1e293b; }
+
+        /* Fullscreen Override */
+        .video-wrapper.fullscreen { position: fixed; inset: 0; z-index: 99999; height: 100dvh; width: 100vw; }
+        .btn-exit-fs { display: none; position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; width: 2.5rem; height: 2.5rem; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(12px); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .btn-exit-fs.show { display: flex; }
+
+        /* Dialogs and Modals CSS Updated */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.3s;}
+        .ok-backdrop.active { display: flex; }
+        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.15s ease; }
+        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
+        .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .btn-cancel { padding: 0.5rem 1rem; color: var(--text-muted); font-weight: bold; font-size: 0.875rem; transition: color 0.2s; }
+        .btn-cancel:hover { color: var(--text-main); }
+        .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
+        .btn-confirm:active { transform: scale(0.95); }
+
+        /* Streak Modal CSS Added */
+        .streak-dialog { width: 90%; max-width: 340px; background: linear-gradient(to bottom, #2a0b0b, #0a0404); border-radius: 1.5rem; padding: 2.5rem 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s ease; text-align: center; border: 1px solid rgba(255, 127, 63, 0.2); display: flex; flex-direction: column; align-items: center;}
+        .ok-backdrop.active .streak-dialog { transform: scale(1); opacity: 1; }
+        .streak-dialog-title { font-size: 1.5rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.2; text-shadow: 0 2px 10px rgba(255, 127, 63, 0.3);}
+        
+        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2rem; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .day-label { font-size: 0.6875rem; color: #a1a1aa; font-weight: 600; }
+        .day-circle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #a1a1aa; border: 1px solid rgba(255,255,255,0.1); }
+        .day-circle.done { background: transparent; border: none; color: var(--accent-orange); font-size: 1.25rem; }
+        .day-circle.active { background: rgba(255, 127, 63, 0.2); border: 1px solid var(--accent-orange); color: var(--accent-orange); box-shadow: 0 0 15px rgba(255, 127, 63, 0.4); }
+        
+        .btn-checkin { width: 90%; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
+        .btn-checkin:active { transform: scale(0.95); }
+
+        .flying-fire { position: fixed; z-index: 999999; pointer-events: none; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col relative overflow-hidden">
+<body>
 
-    <header class="pt-6 pb-4 px-6 flex items-center gap-4 bg-slate-900 z-10 border-b border-slate-800 flex-shrink-0">
-        <h1 class="text-xl font-bold flex-1">Create AI Quiz</h1>
+    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="ok-dialog" role="document">
+            <h3 id="okTitle" class="dialog-title">Notice</h3>
+            <p id="okMessage" class="dialog-msg">Message goes here</p>
+            <div class="dialog-actions">
+                <button id="okCancel" class="btn-cancel">Cancel</button>
+                <button id="okConfirm" class="btn-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
+        <div class="streak-dialog" id="streakDialog">
+            <div id="modalStreakLottie" style="width: 72px; height: 72px; margin-bottom: 0.25rem;"></div>
+            
+            <div style="font-size: 1.75rem; font-weight: 800; color: white; margin-bottom: 0.25rem;">Day <span id="modalDayCount">1</span></div>
+            
+            <h3 class="streak-dialog-title" style="margin-bottom: 1.5rem; font-size: 1rem; color: var(--text-muted); font-weight: 500;">Keep the fire alive<br>check in today!</h3>
+            
+            <div class="calendar-row" id="calendarRow">
+                </div>
+            
+            <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
+        </div>
+    </div>
+
+    <header class="header-bar fade-in" style="animation-delay: 0ms;">
+        <h1 id="greetingTitle" class="greeting-title">Welcome back</h1>
+        <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+            <i id="headerFireIcon" class="fas fa-fire" style="font-size: 1.125rem;"></i>
+            <span id="headerStreakDisplay">0</span>
+        </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto pb-24 px-6 pt-6 flex flex-col space-y-8">
-        
-        <section class="space-y-4">
-            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">1. Source Material</h2>
-            
-            <div class="flex gap-2 p-1 bg-slate-800 rounded-xl">
-                <button onclick="switchInput('text')" id="tabText" class="flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all">Paste Notes</button>
-                <button onclick="switchInput('file')" id="tabFile" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all">Upload PDF</button>
-            </div>
-
-            <div id="textInputArea" class="block">
-                <textarea id="sourceText" rows="6" class="w-full bg-slate-800/50 border border-slate-600 rounded-xl p-4 text-white text-sm focus:border-blue-500 outline-none resize-none transition-colors" placeholder="Paste your lecture notes or textbook content here..."></textarea>
-            </div>
-
-            <div id="fileInputArea" class="hidden border-2 border-dashed border-slate-600 rounded-xl p-8 bg-slate-800/50 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 transition-colors relative">
-                <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.doc,.docx,.txt" />
-                <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3 text-blue-400">
-                    <i class="fas fa-file-upload text-xl"></i>
+    <main class="main-content">
+        <div id="continueStudyingSection" style="display: none;" class="fade-in" style="animation-delay: 30ms;">
+            <h2 class="section-title">Continue Studying</h2>
+            <a href="study.html" class="continue-card glass-panel group">
+                <div class="progress-track">
+                    <div id="continueProgressBar" class="progress-bar" style="width: 0%"></div>
                 </div>
-                <h3 class="font-bold text-sm mb-1" id="fileNameDisplay">Tap to Upload Document</h3>
-                <p class="text-slate-400 text-xs">Supports PDF, DOCX, TXT</p>
-            </div>
-        </section>
-
-        <section class="space-y-6">
-            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">2. Quiz Settings</h2>
-            
-            <div class="space-y-2">
-                <label class="text-xs text-slate-500 font-bold uppercase block">Subject</label>
-                <input type="text" id="quizSubject" placeholder="e.g., Pathology, Pharmacology..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-sm outline-none focus:border-blue-500 transition-colors">
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs text-slate-500 font-bold uppercase block">Number of Questions</label>
-                <div class="grid grid-cols-4 gap-2" id="numQsContainer">
-                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="5">5</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="10">10</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="20">20</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="30">30</button>
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs text-slate-500 font-bold uppercase block">Difficulty</label>
-                <div class="grid grid-cols-3 gap-2" id="difficultyContainer">
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Easy">Easy</button>
-                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Medium">Medium</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Hard">Hard</button>
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-xs text-slate-500 font-bold uppercase block">Question Type</label>
-                <div class="grid grid-cols-3 gap-2" id="typeContainer">
-                    <button class="option-btn active bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="MCQ">MCQ</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Flashcards">Flashcards</button>
-                    <button class="option-btn bg-slate-800 border border-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold transition-all" data-val="Mixed">Mixed</button>
-                </div>
-            </div>
-        </section>
-
-        <button onclick="generateQuiz()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all uppercase tracking-widest active:scale-[0.98]">
-            Generate Quiz
-        </button>
-
-        <section class="mt-8 border-t border-slate-800 pt-6">
-            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Recent Quizzes</h2>
-            <div id="recentQuizzesContainer" class="space-y-3">
-                </div>
-        </section>
-
-    </main>
-
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-6 py-2 pb-6 flex justify-between items-center z-40">
-        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-all">
-            <i class="fas fa-layer-group text-xl mb-1"></i>
-            <span class="text-[10px] font-medium">Study</span>
-        </a>
-        <a href="create.html" class="flex flex-col items-center gap-1 text-blue-500 transition-all">
-            <i class="fas fa-plus-circle text-xl mb-1"></i>
-            <span class="text-[10px] font-bold">Create</span>
-        </a>
-    </nav>
-
-    <div id="loadingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center transition-opacity">
-        <div class="glass-modal rounded-2xl p-8 max-w-[280px] w-full text-center flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <h3 class="text-lg font-bold text-white mb-1">Generating Quiz...</h3>
-            <p class="text-slate-300 text-xs">AI is creating your questions</p>
-        </div>
-    </div>
-
-    <div id="errorModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center transition-opacity">
-        <div class="glass-modal rounded-2xl p-8 max-w-[280px] w-full text-center flex flex-col items-center">
-            <i class="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
-            <h3 class="text-lg font-bold text-white mb-1">Generation Failed</h3>
-            <p class="text-slate-300 text-xs mb-6">Something went wrong. Please try again.</p>
-            <button onclick="closeError()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors">Close</button>
-        </div>
-    </div>
-
-<script>
-    // --- State Management ---
-    const config = {
-        inputMethod: 'text',
-        numQs: 5,
-        difficulty: 'Medium',
-        type: 'MCQ'
-    };
-
-    // --- UI Interactions ---
-    function switchInput(method) {
-        config.inputMethod = method;
-        const tabText = document.getElementById('tabText');
-        const tabFile = document.getElementById('tabFile');
-        const textInputArea = document.getElementById('textInputArea');
-        const fileInputArea = document.getElementById('fileInputArea');
-
-        if (method === 'text') {
-            tabText.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all";
-            tabFile.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all bg-transparent";
-            textInputArea.classList.remove('hidden');
-            fileInputArea.classList.add('hidden');
-        } else {
-            tabFile.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all";
-            tabText.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all bg-transparent";
-            fileInputArea.classList.remove('hidden');
-            textInputArea.classList.add('hidden');
-            fileInputArea.classList.add('flex');
-        }
-    }
-
-    // Option Button Setup
-    function setupOptionGroup(containerId, configKey) {
-        const container = document.getElementById(containerId);
-        const buttons = container.querySelectorAll('.option-btn');
-        
-        buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                buttons.forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600', 'border-blue-500', 'text-white');
-                    b.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-300');
-                });
-                btn.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-300');
-                btn.classList.add('active', 'bg-blue-600', 'border-blue-500', 'text-white');
-                
-                config[configKey] = configKey === 'numQs' ? parseInt(btn.dataset.val) : btn.dataset.val;
-            });
-        });
-    }
-
-    setupOptionGroup('numQsContainer', 'numQs');
-    setupOptionGroup('difficultyContainer', 'difficulty');
-    setupOptionGroup('typeContainer', 'type');
-
-    // File Input UI Update
-    document.getElementById('fileUpload').addEventListener('change', function(e) {
-        if (e.target.files.length > 0) {
-            document.getElementById('fileNameDisplay').textContent = e.target.files[0].name;
-            document.getElementById('fileInputArea').classList.add('border-blue-500', 'bg-blue-900/20');
-        }
-    });
-
-    // --- Generation & Save Logic ---
-    async function generateQuiz() {
-        const subject = document.getElementById('quizSubject').value || "General Subject";
-        const contentText = document.getElementById('sourceText').value;
-        const fileInput = document.getElementById('fileUpload').files.length;
-
-        if (config.inputMethod === 'text' && contentText.trim() === '') {
-            alert('Please paste some notes or switch to file upload.');
-            return;
-        }
-        if (config.inputMethod === 'file' && fileInput === 0) {
-            alert('Please upload a file.');
-            return;
-        }
-
-        // Show Loading
-        const loader = document.getElementById('loadingModal');
-        loader.classList.remove('hidden');
-        loader.classList.add('flex');
-
-        try {
-            // Simulate API Call / Generation delay
-            await new Promise(resolve => setTimeout(resolve, 2500));
-
-            // Generate mock medical data based on requested quantity
-            const mockQuestions = generateMockMedicalQuestions(config.numQs);
-
-            // Structure per prompt requirements
-            const newQuiz = {
-                id: Date.now(),
-                title: `${subject} - ${config.difficulty} ${config.type}`,
-                subject: subject,
-                dateCreated: new Date().toISOString(),
-                questions: mockQuestions,
-                stats: {
-                    attempts: 0,
-                    bestScore: 0,
-                    lastScore: 0
-                },
-                favorite: false,
-                folder: "General",
-                spacedRepetition: {
-                    nextReview: new Date().toISOString(),
-                    difficulty: config.difficulty
-                }
-            };
-
-            // Auto Save to localStorage
-            const existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            existingQuizzes.push(newQuiz);
-            localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
-
-            // Redirect to unified study page
-            window.location.href = 'study.html';
-
-        } catch (error) {
-            console.error(error);
-            loader.classList.remove('flex');
-            loader.classList.add('hidden');
-            
-            const errorModal = document.getElementById('errorModal');
-            errorModal.classList.remove('hidden');
-            errorModal.classList.add('flex');
-        }
-    }
-
-    function closeError() {
-        const errorModal = document.getElementById('errorModal');
-        errorModal.classList.add('hidden');
-        errorModal.classList.remove('flex');
-    }
-
-    // --- Recent Quizzes Rendering ---
-    function renderRecentQuizzes() {
-        const container = document.getElementById('recentQuizzesContainer');
-        const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-        
-        if (quizzes.length === 0) {
-            container.innerHTML = `<p class="text-sm text-slate-500 italic">No quizzes generated yet.</p>`;
-            return;
-        }
-
-        // Sort by newest and take top 3
-        const recent = quizzes.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated)).slice(0, 3);
-
-        container.innerHTML = recent.map(quiz => `
-            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col gap-3">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-slate-200 text-sm">${quiz.title}</h3>
-                        <p class="text-xs text-slate-500 mt-1">${new Date(quiz.dateCreated).toLocaleDateString()} • ${quiz.questions.length} Questions</p>
+                <div class="card-row">
+                    <div class="icon-box">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
+                            <g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g>
+                        </svg>
+                    </div>
+                    <div class="card-details">
+                        <div class="card-header">
+                            <h3 id="continueTitle" class="card-title">Quiz Title</h3>
+                            <span id="continueProgressText" class="progress-text">0%</span>
+                        </div>
+                        <p class="card-meta"><span id="continueCardCount">0</span> items • <span id="continueSubject" style="text-transform:uppercase;">Subject</span></p>
                     </div>
                 </div>
-                <button onclick="window.location.href='study.html'" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold py-2 rounded-lg transition-colors">
-                    Open in Study Page
+            </a>
+        </div>
+
+        <div>
+            <h2 class="section-title fade-in" style="animation-delay: 60ms;">Quick Actions</h2>
+            <div class="quick-grid">
+                <a href="create.html" class="ai-card fade-in" style="animation-delay: 90ms;">
+                    <div class="ai-content">
+                        <h3 class="ai-title">Generate with AI <i class="fas fa-sparkles" style="color:#fde047; font-size:0.875rem;"></i></h3>
+                        <p class="ai-sub">Upload notes to create materials instantly.</p>
+                    </div>
+                    <div class="ai-arrow"><i class="fas fa-arrow-right" style="color:white; font-size:0.875rem;"></i></div>
+                </a>
+                
+                <a href="create.html" class="action-card glass-panel fade-in" style="animation-delay: 120ms;">
+                    <div class="icon-box">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g></svg>
+                    </div>
+                    <span class="action-title">Flashcards</span>
+                </a>
+
+                <a href="create.html" class="action-card glass-panel fade-in" style="animation-delay: 150ms;">
+                    <div class="icon-box">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(-5) translate(-18, -22)"><rect width="36" height="44" rx="3" fill="#EAE8EC"/><path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/><circle cx="8" cy="20" r="3" fill="#F4A261"/><rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="30" r="3" fill="#C5C3C8"/><rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="40" r="3" fill="#C5C3C8"/><rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/></g></g></svg>
+                    </div>
+                    <span class="action-title">MCQ Quiz</span>
+                </a>
+
+                <a href="tutor.html" class="action-card glass-panel fade-in" style="animation-delay: 180ms;">
+                    <div class="icon-box">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="translate(-16, -12)"><rect width="32" height="36" rx="3" fill="#EAE8EC"/><rect x="6" y="8" width="14" height="3" rx="1.5" fill="#C5C3C8"/><rect x="6" y="16" width="20" height="3" rx="1.5" fill="#C5C3C8"/><rect x="6" y="24" width="12" height="3" rx="1.5" fill="#C5C3C8"/></g><path d="M -4 16 L 16 -10" stroke="#E76F51" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="-10" r="3" fill="#F4A261"/></g></svg>
+                    </div>
+                    <div><span class="action-title">Simplify</span><span class="action-sub">Break down topics</span></div>
+                </a>
+
+                <button id="openVideoTutorBtn" class="action-card glass-panel fade-in" style="animation-delay: 210ms;">
+                    <div class="icon-box" style="position:relative;">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><rect x="-20" y="-14" width="40" height="28" rx="4" fill="#EAE8EC"/><path d="M-4 -6L6 0L-4 6V-6Z" fill="#F4A261"/></g></svg>
+                        <div style="position:absolute; top:-4px; right:-4px; display:flex; width:12px; height:12px;">
+                          <span style="position:absolute; inset:0; border-radius:50%; background:#f87171; opacity:0.75; animation:pulse 2s infinite;"></span>
+                          <span style="position:relative; width:12px; height:12px; border-radius:50%; background:#ef4444;"></span>
+                        </div>
+                    </div>
+                    <div><span class="action-title">Video Tutor</span><span class="action-sub">Find best lectures</span></div>
                 </button>
+
+                <a href="teach.html" class="teach-card glass-panel fade-in" style="animation-delay: 240ms;">
+                    <div class="teach-glow"></div>
+                    <div style="position:relative; z-index:10; display:flex; align-items:flex-start; gap:1rem;">
+                        <div class="icon-box" style="width:3.5rem; height:3.5rem;">
+                            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(10) translate(-16, -18)"><rect width="32" height="36" rx="3" fill="#D2D0D6"/></g><g transform="rotate(-5) translate(-18, -20)"><rect width="36" height="40" rx="3" fill="#EAE8EC"/><rect x="8" y="12" width="4" height="16" rx="2" fill="#4CBAD6"/><rect x="16" y="8" width="4" height="24" rx="2" fill="#F4A261"/><rect x="24" y="14" width="4" height="12" rx="2" fill="#E76F51"/></g></g></svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="badge-powerful">🔥 Most Powerful</div>
+                            <h3 class="action-title" style="margin-top:0;">Teach MedExcel</h3>
+                            <p class="teach-desc">Explain a concept out loud. MedExcel listens, finds gaps, and challenges you.</p>
+                        </div>
+                    </div>
+                </a>
             </div>
-        `).join('');
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="homepage.html" class="nav-item active"><i class="fas fa-home"></i><span class="nav-label">Home</span></a>
+        <a href="create.html" class="nav-item"><i class="fas fa-plus"></i><span class="nav-label">Create</span></a>
+        <a href="study.html" class="nav-item"><i class="fas fa-folder"></i><span class="nav-label">Library</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span class="nav-label">Profile</span></a>
+    </nav>
+
+    <div id="videoTutorModal" class="video-modal">
+        <header class="modal-header">
+            <button id="closeVideoTutorBtn" class="btn-modal-close"><i class="fas fa-times"></i></button>
+            <div>
+                <h1 class="modal-title">Video Tutor</h1>
+                <p class="modal-subtitle">Powered by MedExcel</p>
+            </div>
+        </header>
+
+        <div class="modal-body">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="topicInput" class="section-title">What do you want to learn?</label>
+                <div class="search-container">
+                    <div class="search-icon"><i class="fas fa-search"></i></div>
+                    <input id="topicInput" type="text" placeholder="e.g. Action Potential" class="search-input" />
+                    <button id="searchVideoBtn" class="btn-search">Find</button>
+                </div>
+            </div>
+<div id="micModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#020617;
+align-items:center;
+justify-content:center;
+z-index:9999;
+flex-direction:column;
+color:white;
+font-family:sans-serif;
+">
+
+<h2>Enable Voice Features 🎤</h2>
+
+<p style="opacity:.8">
+MedExcel can generate quizzes from your voice.
+</p>
+
+
+
+</div>
+            <div id="videoLoader" class="loader-box">
+                <div class="spin-ring"><i class="fas fa-play spin-icon"></i></div>
+                <p style="font-weight:bold; margin-bottom:0.25rem;">MedExcel is searching...</p>
+                <p style="font-size:0.75rem; color:var(--text-muted);">Finding the highest-yield medical lecture</p>
+            </div>
+
+            <div id="videoResultCard" class="result-card">
+                <div id="videoContainer" class="video-wrapper">
+                    <iframe id="videoPlayer" src="" allow="autoplay; fullscreen" frameborder="0" allowfullscreen></iframe>
+                    <button id="closeFullscreenBtn" class="btn-exit-fs"><i class="fas fa-compress"></i></button>
+                </div>
+
+                <div class="result-details">
+                    <div>
+                        <div class="match-badge"><i class="fas fa-check-circle"></i> Top Match</div>
+                        <h3 id="videoTitle" class="res-title"></h3>
+                        <p class="res-channel"><i class="fab fa-youtube" style="color:#ef4444;"></i> <span id="videoChannel"></span></p>
+                    </div>
+
+                    <div class="reason-box">
+                        <div class="reason-glow"></div>
+                        <div class="reason-icon"><i class="fas fa-sparkles" style="color:#60a5fa; font-size:0.75rem;"></i></div>
+                        <div>
+                            <span class="reason-title">Why this video?</span>
+                            <p id="videoReason" class="reason-text"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button id="watchBtn" class="btn-full btn-watch"><i class="fas fa-expand"></i> Watch Fullscreen</button>
+                        <div class="action-grid">
+                            <button id="genFlashcardsBtn" class="btn-full btn-gen"><i class="fas fa-layer-group" style="color:#60a5fa;"></i> Flashcards</button>
+                            <button id="genQuizBtn" class="btn-full btn-gen"><i class="fas fa-list-check" style="color:#34d399;"></i> MCQ Quiz</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function getTimeEmoji() {
+        const hour = new Date().getHours();
+        if (hour < 12) return '⛅';
+        if (hour < 18) return '☀️';
+        return '🌙';
     }
 
-    // --- Medical Data Mock Generator ---
-    function generateMockMedicalQuestions(count) {
-        const pool = [
-            {
-                text: "A patient presents with acute exacerbation of heart failure. Which loop diuretic is most appropriate for rapid symptomatic relief?",
-                options: ["Hydrochlorothiazide", "Furosemide", "Spironolactone", "Acetazolamide"],
-                correct: 1,
-                explanation: "Furosemide is a potent loop diuretic that acts on the thick ascending limb of the loop of Henle. It is the drug of choice for rapid diuresis in acute pulmonary edema and heart failure exacerbations."
-            },
-            {
-                text: "During a radical neck dissection, the surgeon carefully preserves a nerve that descends superficial to the anterior scalene muscle. Damage to this nerve would result in which deficit?",
-                options: ["Inability to elevate the scapula", "Loss of sensation to the anterior neck", "Paralysis of the hemidiaphragm", "Hoarseness of voice"],
-                correct: 2,
-                explanation: "The phrenic nerve descends anteriorly over the anterior scalene muscle in the neck. It provides sole motor innervation to the diaphragm; injury results in diaphragmatic paralysis."
-            },
-            {
-                text: "Which of the following cellular changes is considered the hallmark of reversible cell injury?",
-                options: ["Karyorrhexis", "Cellular swelling", "Membrane disruption", "Apoptotic body formation"],
-                correct: 1,
-                explanation: "Cellular swelling (hydropic change) is the first manifestation of almost all forms of injury to cells and is a hallmark of reversible injury, resulting from failure of energy-dependent ion pumps in the plasma membrane."
-            },
-            {
-                text: "A 45-year-old male develops peptic ulcer disease. He is prescribed a proton pump inhibitor (PPI). What is the specific molecular target of this medication?",
-                options: ["H2 histamine receptor", "Gastrin receptor", "H+/K+ ATPase enzyme", "Acetylcholine receptor"],
-                correct: 2,
-                explanation: "Proton pump inhibitors (like Omeprazole) irreversibly bind to and inhibit the H+/K+ ATPase enzyme system (the proton pump) on the apical surface of the parietal cell, profoundly decreasing gastric acid secretion."
-            },
-            {
-                text: "Which artery provides the primary blood supply to the visual cortex located in the occipital lobe?",
-                options: ["Anterior cerebral artery", "Middle cerebral artery", "Posterior cerebral artery", "Basilar artery"],
-                correct: 2,
-                explanation: "The posterior cerebral artery (PCA) supplies the occipital lobe, including the primary visual cortex (Brodmann area 17). Occlusion can lead to contralateral homonymous hemianopia with macular sparing."
-            }
-        ];
+    let currentStreakCount = 0;
+    let hasCheckedInToday = false;
 
-        let result = [];
-        for (let i = 0; i < count; i++) {
-            // Loop through the pool if count exceeds the pool length
-            result.push(pool[i % pool.length]); 
+    function buildCalendarRow() {
+        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        const dates = [];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; 
+        
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - currentDayIndex + i);
+            dates.push(d.getDate());
         }
-        return result;
+
+        let html = '';
+        for(let i=0; i<7; i++) {
+            let circleClass = "day-circle";
+            let content = dates[i];
+            
+            if (i < currentDayIndex) {
+                circleClass += " done";
+                content = '<i class="fas fa-check"></i>';
+            } else if (i === currentDayIndex) {
+                circleClass += " active";
+                if (hasCheckedInToday) {
+                    content = '<i class="fas fa-check"></i>';
+                }
+            }
+
+            html += `
+            <div class="day-col">
+                <span class="day-label">${labels[i]}</span>
+                <div class="${circleClass}">${content}</div>
+            </div>
+            `;
+        }
+        return html;
     }
 
-    // Initialization
-    document.addEventListener('DOMContentLoaded', renderRecentQuizzes);
+    function openStreakModal() {
+        document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+        const btn = document.getElementById('closeStreakModal');
+        
+        document.getElementById('modalDayCount').textContent = currentStreakCount;
+        
+        if (hasCheckedInToday) {
+            btn.textContent = "Awesome!";
+        } else {
+            btn.textContent = "Check in today!";
+        }
+        
+        document.getElementById('streakModalBackdrop').classList.add('active');
+        document.getElementById('streakDialog').style.opacity = '1';
+    }
+
+    (function fastInitUserUI() {
+        try {
+            const savedName = localStorage.getItem('userName'); 
+            const greetingTitle = document.getElementById('greetingTitle');
+            if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+
+            // --- ACCURATE STREAK LOGIC ---
+            const storageKey = 'medexcel_streak_tracker_active';
+            let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
+            
+            const todayStr = new Date().toDateString();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toDateString();
+
+            if (userStats.lastDate === todayStr) {
+                hasCheckedInToday = true;
+                currentStreakCount = userStats.count;
+            } else if (userStats.lastDate === yesterdayStr) {
+                hasCheckedInToday = false;
+                currentStreakCount = userStats.count + 1; 
+            } else {
+                hasCheckedInToday = false;
+                currentStreakCount = 1; 
+            }
+
+            const headerDisplay = document.getElementById('headerStreakDisplay');
+            const headerFireIcon = document.getElementById('headerFireIcon');
+
+            if (!hasCheckedInToday) {
+                headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
+                headerFireIcon.style.opacity = '0.4'; 
+            } else {
+                headerDisplay.textContent = currentStreakCount;
+                headerFireIcon.style.opacity = '1';
+            }
+
+            // Preload Modal Fire
+            lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
+
+            // Auto-open if needed today
+            if (!hasCheckedInToday) {
+                openStreakModal();
+            }
+
+            // Click logic for flight sequence
+            document.getElementById('closeStreakModal').addEventListener('click', () => {
+                if (!hasCheckedInToday) {
+                    userStats.count = currentStreakCount;
+                    userStats.lastDate = todayStr;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                    hasCheckedInToday = true;
+                }
+
+                // Initialize the flight
+                const startRect = document.getElementById('modalStreakLottie').getBoundingClientRect();
+                const endRect = headerFireIcon.getBoundingClientRect();
+                
+                const flyingFire = document.createElement('div');
+                flyingFire.className = 'flying-fire';
+                flyingFire.style.left = startRect.left + 'px';
+                flyingFire.style.top = startRect.top + 'px';
+                flyingFire.style.width = startRect.width + 'px';
+                flyingFire.style.height = startRect.height + 'px';
+                document.body.appendChild(flyingFire);
+
+                lottie.loadAnimation({ container: flyingFire, renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
+
+                document.getElementById('streakDialog').style.opacity = '0';
+                setTimeout(() => document.getElementById('streakModalBackdrop').classList.remove('active'), 200);
+
+                // Force reflow
+                flyingFire.offsetHeight; 
+
+                // Fly to corner
+                flyingFire.style.left = endRect.left + 'px';
+                flyingFire.style.top = endRect.top + 'px';
+                flyingFire.style.width = '24px';
+                flyingFire.style.height = '24px';
+
+                // Complete landing
+                setTimeout(() => {
+                    flyingFire.remove(); 
+                    headerDisplay.textContent = currentStreakCount;
+                    headerFireIcon.style.opacity = '1';
+                }, 800); 
+            });
+
+            // Continue Studying section
+            const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            const continueSection = document.getElementById('continueStudyingSection');
+            if (quizzes.length > 0) {
+                const lastQuiz = quizzes[quizzes.length - 1];
+                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
+                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
+                
+                document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
+                document.getElementById('continueProgressText').textContent = `${progress}%`;
+                document.getElementById('continueProgressBar').style.width = `${progress}%`;
+                document.getElementById('continueCardCount').textContent = totalQs;
+                document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
+                continueSection.style.display = 'block';
+            }
+        } catch(e) { console.warn("UI Init failed", e); }
+    })();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
+        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const functions = getFunctions(app, "us-central1");
+        
+        const findBestVideo = httpsCallable(functions, "findBestVideo");
+        const skip = localStorage.getItem("skip") === "true";
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) { const name = user.displayName || user.email.split('@')[0]; localStorage.setItem('userName', name); updateHeaderUI(name); } 
+            else if (!skip) { window.location.href = 'index.html#login'; } 
+            else { updateHeaderUI("Guest"); }
+        });
+
+        function updateHeaderUI(name) {
+            const greetingTitle = document.getElementById('greetingTitle');
+            const hour = new Date().getHours();
+            let emoji = '⛅';
+            if (hour >= 12 && hour < 18) emoji = '☀️';
+            else if (hour >= 18) emoji = '🌙';
+
+            if (greetingTitle && name && name !== "Guest") greetingTitle.innerHTML = `Hi, ${name} ${emoji}`;
+            else if (greetingTitle) greetingTitle.innerHTML = `Welcome back ${emoji}`;
+        }
+
+        let currentVideoData = null; 
+        
+        const openModalBtn = document.getElementById('openVideoTutorBtn'); const closeModalBtn = document.getElementById('closeVideoTutorBtn');
+        const modal = document.getElementById('videoTutorModal'); const searchBtn = document.getElementById("searchVideoBtn");
+        const topicInput = document.getElementById("topicInput"); const loader = document.getElementById("videoLoader");
+        const resultCard = document.getElementById("videoResultCard"); const videoPlayer = document.getElementById("videoPlayer");
+        const videoContainer = document.getElementById("videoContainer"); const closeFullscreenBtn = document.getElementById("closeFullscreenBtn");
+
+        openModalBtn.addEventListener('click', () => { modal.classList.add('show'); setTimeout(() => topicInput.focus(), 250); });
+        closeModalBtn.addEventListener('click', () => { modal.classList.remove('show'); videoPlayer.src = ""; if(videoContainer.classList.contains('fullscreen')) closeFullscreenBtn.click(); });
+
+        async function searchVideo() {
+            const topic = topicInput.value.trim();
+            if(!topic) { topicInput.focus(); return; }
+
+            topicInput.blur();
+            loader.classList.add("show"); resultCard.classList.remove("show");
+            searchBtn.disabled = true; searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const response = await findBestVideo({topic}); const data = response.data; currentVideoData = data; 
+                document.getElementById("videoTitle").textContent = data.title; document.getElementById("videoChannel").textContent = data.channel;
+                document.getElementById("videoReason").textContent = data.reason; videoPlayer.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=0&rel=0`;
+
+                document.getElementById("watchBtn").onclick = () => {
+                    const enterCSSFullscreen = () => { videoContainer.classList.add("fullscreen"); closeFullscreenBtn.classList.add("show"); };
+                    if (videoContainer.requestFullscreen) { videoContainer.requestFullscreen().catch(() => enterCSSFullscreen()); } 
+                    else if (videoContainer.webkitRequestFullscreen) { videoContainer.webkitRequestFullscreen(); } 
+                    else { enterCSSFullscreen(); }
+                };
+
+                loader.classList.remove("show"); resultCard.classList.add("show");
+            } catch(error) { alert("Could not fetch a video. Please try another topic."); loader.classList.remove("show"); } 
+            finally { searchBtn.disabled = false; searchBtn.innerHTML = 'Find'; }
+        }
+
+        searchBtn.addEventListener("click", searchVideo);
+        topicInput.addEventListener("keypress", (e) => { if(e.key === "Enter") searchVideo(); });
+
+        closeFullscreenBtn.onclick = () => { videoContainer.classList.remove("fullscreen"); closeFullscreenBtn.classList.remove("show"); };
+        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) videoContainer.classList.remove("fullscreen"); });
+
+        document.getElementById('genFlashcardsBtn').addEventListener('click', () => handleGeneration('Flashcards', document.getElementById('genFlashcardsBtn')));
+        document.getElementById('genQuizBtn').addEventListener('click', () => handleGeneration('Multiple Choice', document.getElementById('genQuizBtn')));
+
+        async function handleGeneration(type, btnElement) {
+            if (!currentVideoData) return;
+            const originalHTML = btnElement.innerHTML; btnElement.disabled = true; btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            const prompt = `You are a senior medical professor. Generate exactly 5 distinction-level MBBS ${type} questions based on the topic: "${currentVideoData.title}". Focus strictly on clinical correlations, pathophysiological mechanisms, and exam-standard concepts. Keep explanations formal, concise, and structured with clear subheadings where necessary. Avoid repetition. Return ONLY a raw JSON array of objects formatted exactly like this: [{ "text": "The question or front of flashcard", "options": ["Option A (or back of flashcard)", "Option B", "Option C", "Option D"], "correct": 0, "explanation": "Structured explanation goes here." }]`;
+
+            try {
+                const response = await fetch(`https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net/askGemini`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt }) });
+                const data = await response.json(); if (data.error) throw new Error(data.error);
+                const rawJsonMatch = data.text.match(/\[[\s\S]*\]/); if (!rawJsonMatch) throw new Error("Invalid AI response format");
+                
+                let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+                existingQuizzes.push({ id: Date.now(), title: `${currentVideoData.title} (${type})`, subject: currentVideoData.channel || "Video Subject", favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 }, questions: JSON.parse(rawJsonMatch[0]) });
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes)); window.location.href = 'study.html';
+            } catch (error) { alert("Failed to generate content. Please try again."); btnElement.disabled = false; btnElement.innerHTML = originalHTML; }
+        }
+    </script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  metaTheme.setAttribute("content", "#050A15");
+
+});
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        
+        const { PushNotifications } = Capacitor.Plugins;
+        
+        const permission = await PushNotifications.requestPermissions();
+        
+        if (permission.receive === "granted") {
+            await PushNotifications.register();
+        }
+        
+        PushNotifications.addListener("registration", token => {
+            console.log("FCM TOKEN:", token.value);
+        });
+        
+        PushNotifications.addListener("pushNotificationReceived", notification => {
+            console.log("Notification received:", notification);
+        });
+        
+    });
+</script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "medxcel.firebaseapp.com",
+  projectId: "medxcel",
+  storageBucket: "medxcel.appspot.com",
+  messagingSenderId: "1649180317389",
+  appId: "1:1649180317389:web:YOUR_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const { PushNotifications } = Capacitor.Plugins;
+
+    const permission = await PushNotifications.requestPermissions();
+
+    if (permission.receive === "granted") {
+        await PushNotifications.register();
+    }
+
+    PushNotifications.addListener("registration", async (token) => {
+
+        console.log("FCM TOKEN:", token.value);
+
+        // Save token in Firestore
+        await setDoc(doc(db, "fcmTokens", token.value), {
+            token: token.value,
+            createdAt: new Date(),
+            device: "android"
+        });
+
+    });
+
+});
 
 </script>
+
 </body>
 </html>

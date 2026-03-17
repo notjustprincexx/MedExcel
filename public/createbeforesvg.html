@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MedExcel - Create AI Quiz</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -220,6 +217,7 @@
         /* Results View */
         .results-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 0; text-align: center; }
         .results-box { width: 100%; background: var(--bg-card); border-radius: 1rem; padding: 2rem; border: 1px solid var(--border-default); }
+        .results-icon { width: 4rem; height: 4rem; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
         .results-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
         .results-subtitle { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem; }
         .score-box { background: var(--bg-panel); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-default); margin-bottom: 1.5rem; }
@@ -478,13 +476,15 @@
         });
     }
 
+    // NEW: Intercept clicks on the file input if not logged in
     fileInput.addEventListener('click', (e) => {
         if (!currentUser) {
-            e.preventDefault(); 
+            e.preventDefault(); // Stop the file browser from opening
             document.getElementById('loginModalBackdrop').classList.add('show');
         }
     });
 
+    // NEW: Close Login Modal logic
     document.getElementById('modalCloseLoginBtn').addEventListener('click', () => {
         document.getElementById('loginModalBackdrop').classList.remove('show');
     });
@@ -705,7 +705,7 @@
         let html = `
             <div class="results-container">
                 <div class="results-box">
-                    <div id="result-trophy-container" style="width: 160px; height: 160px; margin: 0 auto 1.25rem;"></div>
+                    <div class="results-icon"><i class="fas ${percentage >= 80 ? 'fa-award' : 'fa-check'}" style="color: ${percentage >= 80 ? 'var(--blue-light)' : 'var(--text-secondary)'};"></i></div>
                     <h2 class="results-title">Session Complete</h2>
                     <p class="results-subtitle">Review finished successfully.</p>
         `;
@@ -726,21 +726,11 @@
             </div>
         `;
         interactiveView.innerHTML = html;
-
-        // Trigger Lottie animation
-        if (window.lottie) {
-            window.lottie.loadAnimation({
-                container: document.getElementById('result-trophy-container'),
-                renderer: 'svg',
-                loop: false,
-                autoplay: true,
-                path: 'trophy.json'
-            });
-        }
     }
 
     generateBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
+        // The generateBtn shouldn't be accessible without being logged in, but we leave this safety net just in case.
         if (!currentUser) { 
             document.getElementById('loginModalBackdrop').classList.add('show');
             return; 
@@ -778,6 +768,7 @@
 
             bottomNav.classList.add('hidden'); 
             
+            // Add interactive mode class to lock scrolling of main padding
             mainContainer.classList.add('interactive-mode');
             
             generatedCards = cards.map(card => ({ ...card, answered: false }));
