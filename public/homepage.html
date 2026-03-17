@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#050A15">
     <title>MedExcel Home</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
     <style>
         :root {
             --bg-body: #050A15; --bg-glass: rgba(255, 255, 255, 0.03); --bg-modal: #0B1120;
@@ -34,10 +35,11 @@
         /* Layout */
         .header-bar { padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: sticky; top: 0; background: rgba(5, 10, 21, 0.9); backdrop-filter: blur(12px); transform: translateZ(0); }
         
-        /* UPDATED: Reduced size and font-weight for the greeting title */
         .greeting-title { font-size: 1.125rem; font-weight: 500; letter-spacing: normal; }
         
-        .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); }
+        /* Updated streak-badge with interactive hover/active states */
+        .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); cursor: pointer; transition: transform 0.1s; }
+        .streak-badge:active { transform: scale(0.95); }
         
         .main-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.25rem; }
@@ -135,8 +137,9 @@
         .btn-exit-fs { display: none; position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; width: 2.5rem; height: 2.5rem; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(12px); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .btn-exit-fs.show { display: flex; }
 
-        /* Dialogs */
-        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+        /* Dialogs and Modals CSS Updated */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.3s;}
+        .ok-backdrop.active { display: flex; }
         .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.15s ease; }
         .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
         .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
@@ -146,6 +149,23 @@
         .btn-cancel:hover { color: var(--text-main); }
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
+
+        /* Streak Modal CSS Added */
+        .streak-dialog { width: 90%; max-width: 340px; background: linear-gradient(to bottom, #2a0b0b, #0a0404); border-radius: 1.5rem; padding: 2.5rem 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s ease; text-align: center; border: 1px solid rgba(255, 127, 63, 0.2); display: flex; flex-direction: column; align-items: center;}
+        .ok-backdrop.active .streak-dialog { transform: scale(1); opacity: 1; }
+        .streak-dialog-title { font-size: 1.5rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.2; text-shadow: 0 2px 10px rgba(255, 127, 63, 0.3);}
+        
+        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2rem; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .day-label { font-size: 0.6875rem; color: #a1a1aa; font-weight: 600; }
+        .day-circle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #a1a1aa; border: 1px solid rgba(255,255,255,0.1); }
+        .day-circle.done { background: transparent; border: none; color: var(--accent-orange); font-size: 1.25rem; }
+        .day-circle.active { background: rgba(255, 127, 63, 0.2); border: 1px solid var(--accent-orange); color: var(--accent-orange); box-shadow: 0 0 15px rgba(255, 127, 63, 0.4); }
+        
+        .btn-checkin { width: 90%; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
+        .btn-checkin:active { transform: scale(0.95); }
+
+        .flying-fire { position: fixed; z-index: 999999; pointer-events: none; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
 <body>
@@ -161,11 +181,26 @@
         </div>
     </div>
 
+    <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
+        <div class="streak-dialog" id="streakDialog">
+            <div id="modalStreakLottie" style="width: 72px; height: 72px; margin-bottom: 0.25rem;"></div>
+            
+            <div style="font-size: 1.75rem; font-weight: 800; color: white; margin-bottom: 0.25rem;">Day <span id="modalDayCount">1</span></div>
+            
+            <h3 class="streak-dialog-title" style="margin-bottom: 1.5rem; font-size: 1rem; color: var(--text-muted); font-weight: 500;">Keep the fire alive<br>check in today!</h3>
+            
+            <div class="calendar-row" id="calendarRow">
+                </div>
+            
+            <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
+        </div>
+    </div>
+
     <header class="header-bar fade-in" style="animation-delay: 0ms;">
         <h1 id="greetingTitle" class="greeting-title">Welcome back</h1>
-        <div class="streak-badge">
-            <i class="fas fa-fire"></i>
-            <span id="headerStreakDisplay">12</span>
+        <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+            <i id="headerFireIcon" class="fas fa-fire" style="font-size: 1.125rem;"></i>
+            <span id="headerStreakDisplay">0</span>
         </div>
     </header>
 
@@ -344,7 +379,6 @@ MedExcel can generate quizzes from your voice.
     </div>
 
     <script>
-    // Helper function to get the right weather/time emoji
     function getTimeEmoji() {
         const hour = new Date().getHours();
         if (hour < 12) return '⛅';
@@ -352,18 +386,152 @@ MedExcel can generate quizzes from your voice.
         return '🌙';
     }
 
+    let currentStreakCount = 0;
+    let hasCheckedInToday = false;
+
+    function buildCalendarRow() {
+        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        const dates = [];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; 
+        
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - currentDayIndex + i);
+            dates.push(d.getDate());
+        }
+
+        let html = '';
+        for(let i=0; i<7; i++) {
+            let circleClass = "day-circle";
+            let content = dates[i];
+            
+            if (i < currentDayIndex) {
+                circleClass += " done";
+                content = '<i class="fas fa-check"></i>';
+            } else if (i === currentDayIndex) {
+                circleClass += " active";
+                if (hasCheckedInToday) {
+                    content = '<i class="fas fa-check"></i>';
+                }
+            }
+
+            html += `
+            <div class="day-col">
+                <span class="day-label">${labels[i]}</span>
+                <div class="${circleClass}">${content}</div>
+            </div>
+            `;
+        }
+        return html;
+    }
+
+    function openStreakModal() {
+        document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+        const btn = document.getElementById('closeStreakModal');
+        
+        document.getElementById('modalDayCount').textContent = currentStreakCount;
+        
+        if (hasCheckedInToday) {
+            btn.textContent = "Awesome!";
+        } else {
+            btn.textContent = "Check in today!";
+        }
+        
+        document.getElementById('streakModalBackdrop').classList.add('active');
+        document.getElementById('streakDialog').style.opacity = '1';
+    }
+
     (function fastInitUserUI() {
         try {
             const savedName = localStorage.getItem('userName'); 
             const greetingTitle = document.getElementById('greetingTitle');
-            const emoji = getTimeEmoji();
+            if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+
+            // --- ACCURATE STREAK LOGIC ---
+            const storageKey = 'medexcel_streak_tracker_active';
+            let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
             
-            if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${emoji}`;
+            const todayStr = new Date().toDateString();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toDateString();
 
+            if (userStats.lastDate === todayStr) {
+                hasCheckedInToday = true;
+                currentStreakCount = userStats.count;
+            } else if (userStats.lastDate === yesterdayStr) {
+                hasCheckedInToday = false;
+                currentStreakCount = userStats.count + 1; 
+            } else {
+                hasCheckedInToday = false;
+                currentStreakCount = 1; 
+            }
+
+            const headerDisplay = document.getElementById('headerStreakDisplay');
+            const headerFireIcon = document.getElementById('headerFireIcon');
+
+            if (!hasCheckedInToday) {
+                headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
+                headerFireIcon.style.opacity = '0.4'; 
+            } else {
+                headerDisplay.textContent = currentStreakCount;
+                headerFireIcon.style.opacity = '1';
+            }
+
+            // Preload Modal Fire
+            lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
+
+            // Auto-open if needed today
+            if (!hasCheckedInToday) {
+                openStreakModal();
+            }
+
+            // Click logic for flight sequence
+            document.getElementById('closeStreakModal').addEventListener('click', () => {
+                if (!hasCheckedInToday) {
+                    userStats.count = currentStreakCount;
+                    userStats.lastDate = todayStr;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                    hasCheckedInToday = true;
+                }
+
+                // Initialize the flight
+                const startRect = document.getElementById('modalStreakLottie').getBoundingClientRect();
+                const endRect = headerFireIcon.getBoundingClientRect();
+                
+                const flyingFire = document.createElement('div');
+                flyingFire.className = 'flying-fire';
+                flyingFire.style.left = startRect.left + 'px';
+                flyingFire.style.top = startRect.top + 'px';
+                flyingFire.style.width = startRect.width + 'px';
+                flyingFire.style.height = startRect.height + 'px';
+                document.body.appendChild(flyingFire);
+
+                lottie.loadAnimation({ container: flyingFire, renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
+
+                document.getElementById('streakDialog').style.opacity = '0';
+                setTimeout(() => document.getElementById('streakModalBackdrop').classList.remove('active'), 200);
+
+                // Force reflow
+                flyingFire.offsetHeight; 
+
+                // Fly to corner
+                flyingFire.style.left = endRect.left + 'px';
+                flyingFire.style.top = endRect.top + 'px';
+                flyingFire.style.width = '24px';
+                flyingFire.style.height = '24px';
+
+                // Complete landing
+                setTimeout(() => {
+                    flyingFire.remove(); 
+                    headerDisplay.textContent = currentStreakCount;
+                    headerFireIcon.style.opacity = '1';
+                }, 800); 
+            });
+
+            // Continue Studying section
             const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            const userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { streak: 0 };
-            document.getElementById('headerStreakDisplay').textContent = userStats.streak;
-
             const continueSection = document.getElementById('continueStudyingSection');
             if (quizzes.length > 0) {
                 const lastQuiz = quizzes[quizzes.length - 1];
