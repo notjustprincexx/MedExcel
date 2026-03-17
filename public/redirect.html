@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logging in...</title>
+    <style>
+        body {
+            background-color: #050A15;
+            color: #cbd5e1;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .modern-spinner { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            border: 3px solid rgba(255, 255, 255, 0.05); 
+            border-top-color: #3b82f6; 
+            border-right-color: #60a5fa; 
+            animation: spin 0.8s linear infinite; 
+            margin-bottom: 20px;
+        }
+        .loading-text { font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div class="modern-spinner"></div>
+    <div class="loading-text" id="statusText">VERIFYING LOGIN...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, getRedirectResult, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        getRedirectResult(auth).then((result) => {
+            if (result && result.user) {
+                const isCapacitorFlow = localStorage.getItem('isCapacitorFlow') === 'true';
+                
+                if (isCapacitorFlow) {
+                    // Extract the secure token to pass to the native app
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    if (credential && credential.idToken) {
+                        document.getElementById('statusText').textContent = "RETURNING TO APP...";
+                        localStorage.removeItem('isCapacitorFlow');
+                        // Trigger the Deep Link back to Android
+                        window.location.href = `medxcel://auth?token=${credential.idToken}`;
+                    } else {
+                        // Fallback if token extraction fails
+                        window.location.href = 'homepage.html';
+                    }
+                } else {
+                    // Normal Web Browser Flow
+                    window.location.href = 'homepage.html';
+                }
+            } else {
+                // If there's no result, they likely opened this page directly by accident
+                window.location.href = 'index.html';
+            }
+        }).catch((error) => {
+            console.error("Auth error:", error);
+            document.getElementById('statusText').textContent = "LOGIN FAILED. REDIRECTING...";
+            setTimeout(() => window.location.href = 'index.html', 2000);
+        });
+    </script>
+</body>
+</html>

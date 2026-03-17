@@ -406,112 +406,147 @@
             } catch (e) { console.warn('openAuthFromUrl failed', e); }
         })();
     </script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithRedirect, 
-            getRedirectResult, 
-            setPersistence, 
-            browserLocalPersistence,
-            signInWithEmailAndPassword, 
-            GoogleAuthProvider, 
-            onAuthStateChanged, 
-            createUserWithEmailAndPassword 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+        getAuth, 
+        signInWithRedirect, 
+        getRedirectResult, 
+        setPersistence, 
+        browserLocalPersistence,
+        signInWithEmailAndPassword, 
+        GoogleAuthProvider, 
+        signInWithCredential, 
+        onAuthStateChanged, 
+        createUserWithEmailAndPassword 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
-        const app = initializeApp(firebaseConfig); 
-        const auth = getAuth(app); 
-        const provider = new GoogleAuthProvider();
-        window.suppressAuthRedirect = false;
+    const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
+    const app = initializeApp(firebaseConfig); 
+    const auth = getAuth(app); 
+    const provider = new GoogleAuthProvider();
+    
+    // REQUIREMENT 2: Force account selection
+    provider.setCustomParameters({ prompt: "select_account" });
 
-        // Force LOCAL persistence, then check if we are coming back from a redirect login
-        setPersistence(auth, browserLocalPersistence)
-            .then(() => {
-                return getRedirectResult(auth);
-            })
-            .then((result) => {
-                if (result && result.user) {
-                    window.__loader.redirecting = true;
-                    window.location.href = 'homepage.html';
-                }
-            })
-            .catch((error) => {
-                console.error("Redirect Auth Error:", error);
-            });
+    window.suppressAuthRedirect = false;
 
-        onAuthStateChanged(auth, (user) => {
-            window.__loader.authResolved = true;
-            const skip = localStorage.getItem("skip") === "true";
-            if (window.suppressAuthRedirect) return;
-            if (user || skip) { window.__loader.redirecting = true; window.location.href = 'homepage.html'; } 
-            else { window.__loader.checkHide(); }
-        });
-
-        const googleBtn = document.getElementById('googleLoginBtn');
-        if (googleBtn) {
-            googleBtn.addEventListener('click', async () => {
-                window.suppressAuthRedirect = true;
+    // --- CAPACITOR DEEP LINK LISTENER ---
+    // If returning from the Custom Tab with a token, catch it and log in the WebView!
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('appUrlOpen', async (data) => {
+            if (data.url.includes('medxcel://auth')) {
+                const url = new URL(data.url);
+                const idToken = url.searchParams.get('token');
                 
-                // 1. Check if the app is running inside Capacitor (Native Platform)
-                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                if (idToken) {
                     try {
-                        // Change loading text to communicate browser opening
-                        document.querySelector('.loading-text').textContent = "OPENING SECURE LOGIN...";
+                        document.querySelector('.loading-text').textContent = "FINALIZING LOGIN...";
                         document.getElementById('loaderScreen').style.display = 'flex';
                         document.getElementById('loaderScreen').style.opacity = '1';
-                        
-                        // 2. Open login in secure external browser Custom Tab
-                        await window.Capacitor.Plugins.Browser.open({ url: 'https://medxcel.web.app/login' });
-                        
-                        setTimeout(() => {
-                            window.suppressAuthRedirect = false;
-                            document.getElementById('loaderScreen').style.opacity = '0';
-                            setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
-                        }, 2000);
 
-                    } catch (error) {
-                        window.suppressAuthRedirect = false; 
-                        document.getElementById('loaderScreen').style.opacity = '0';
-                        setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
-                        await showDialog("Could not open external browser: " + error.message, "Login Failed", { hideCancel: true }); 
-                    }
-                } 
-                else {
-                    // 3. Fallback to normal web login using signInWithRedirect
-                    try {
-                        document.querySelector('.loading-text').textContent = "REDIRECTING...";
-                        document.getElementById('loaderScreen').style.display = 'flex';
-                        document.getElementById('loaderScreen').style.opacity = '1';
+                        const credential = GoogleAuthProvider.credential(idToken);
+                        await signInWithCredential(auth, credential);
                         
-                        await signInWithRedirect(auth, provider);
-                        // No need to redirect manually, the browser handles the Firebase redirect
-                    } catch (error) { 
-                        window.suppressAuthRedirect = false; 
-                        document.getElementById('loaderScreen').style.opacity = '0';
-                        setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
-                        await showDialog(error.message, "Login Failed", { hideCancel: true }); 
+                        // onAuthStateChanged will redirect to homepage upon success
+                    } catch (error) {
+                        console.error("WebView token login error:", error);
+                        await showDialog("Login failed upon returning to app.", "Error", { hideCancel: true });
                     }
                 }
-            });
-        }
+            }
+        });
+    }
 
-        const emailBtn = document.getElementById('signInBtn');
-        if (emailBtn) {
-            emailBtn.addEventListener('click', async () => {
-                const email = document.getElementById('emailInput').value;
-                const pass = document.getElementById('loginPassword').value;
-                if(!email || !pass) { await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); return; }
-                window.suppressAuthRedirect = true;
+    // REQUIREMENT 4: Force LOCAL persistence
+    setPersistence(auth, browserLocalPersistence)
+        .then(() => getRedirectResult(auth))
+        .then((result) => {
+            if (result && result.user) {
+                window.__loader.redirecting = true;
+                window.location.href = 'homepage.html';
+            }
+        })
+        .catch((error) => console.error("Redirect check error:", error));
+
+    onAuthStateChanged(auth, (user) => {
+        window.__loader.authResolved = true;
+        const skip = localStorage.getItem("skip") === "true";
+        if (window.suppressAuthRedirect) return;
+        if (user || skip) { window.__loader.redirecting = true; window.location.href = 'homepage.html'; } 
+        else { window.__loader.checkHide(); }
+    });
+
+    const googleBtn = document.getElementById('googleLoginBtn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            window.suppressAuthRedirect = true;
+            
+            if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                 try {
-                    if (window.isSignupMode) await createUserWithEmailAndPassword(auth, email, pass);
-                    else await signInWithEmailAndPassword(auth, email, pass);
-                    window.__loader.redirecting = true; localStorage.removeItem("skip"); window.location.href = 'homepage.html';
-                } catch (error) { window.suppressAuthRedirect = false; await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true }); }
-            });
-        }
-    </script>
+                    document.querySelector('.loading-text').textContent = "OPENING SECURE LOGIN...";
+                    document.getElementById('loaderScreen').style.display = 'flex';
+                    document.getElementById('loaderScreen').style.opacity = '1';
+                    
+                    // Tell redirect.html that Capacitor initiated this flow
+                    localStorage.setItem('isCapacitorFlow', 'true');
+                    
+                    // We open the index page in the browser to trigger the redirect flow there
+                    await window.Capacitor.Plugins.Browser.open({ url: 'https://medxcel.web.app/index.html?trigger_google=true' });
+                    
+                    setTimeout(() => {
+                        window.suppressAuthRedirect = false;
+                        document.getElementById('loaderScreen').style.opacity = '0';
+                        setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
+                    }, 2000);
+
+                } catch (error) {
+                    window.suppressAuthRedirect = false; 
+                    document.getElementById('loaderScreen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
+                    await showDialog("Could not open browser: " + error.message, "Login Failed", { hideCancel: true }); 
+                }
+            } 
+            else {
+                // NORMAL WEB BROWSER LOGIN
+                try {
+                    document.querySelector('.loading-text').textContent = "REDIRECTING...";
+                    document.getElementById('loaderScreen').style.display = 'flex';
+                    document.getElementById('loaderScreen').style.opacity = '1';
+                    
+                    // Requirement 1: Use Redirect instead of Popup
+                    await signInWithRedirect(auth, provider);
+                } catch (error) { 
+                    window.suppressAuthRedirect = false; 
+                    document.getElementById('loaderScreen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
+                    await showDialog(error.message, "Login Failed", { hideCancel: true }); 
+                }
+            }
+        });
+    }
+
+    // --- HELPER: Trigger Google login automatically if opened by Capacitor Browser ---
+    if (new URLSearchParams(window.location.search).get('trigger_google') === 'true') {
+        if(googleBtn) googleBtn.click();
+    }
+
+    // [KEEP YOUR EXISTING EMAIL LOGIN LOGIC EXACTLY AS IT IS BELOW THIS]
+    const emailBtn = document.getElementById('signInBtn');
+    if (emailBtn) {
+        emailBtn.addEventListener('click', async () => {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('loginPassword').value;
+            if(!email || !pass) { await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); return; }
+            window.suppressAuthRedirect = true;
+            try {
+                if (window.isSignupMode) await createUserWithEmailAndPassword(auth, email, pass);
+                else await signInWithEmailAndPassword(auth, email, pass);
+                window.__loader.redirecting = true; localStorage.removeItem("skip"); window.location.href = 'homepage.html';
+            } catch (error) { window.suppressAuthRedirect = false; await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true }); }
+        });
+    }
+</script>
     <script>
 document.addEventListener("DOMContentLoaded", function () {
   const metaTheme = document.querySelector('meta[name="theme-color"]');

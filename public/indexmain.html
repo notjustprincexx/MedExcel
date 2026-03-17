@@ -408,11 +408,38 @@
     </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { 
+            getAuth, 
+            signInWithRedirect, 
+            getRedirectResult, 
+            setPersistence, 
+            browserLocalPersistence,
+            signInWithEmailAndPassword, 
+            GoogleAuthProvider, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const provider = new GoogleAuthProvider();
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const provider = new GoogleAuthProvider();
         window.suppressAuthRedirect = false;
+
+        // Force LOCAL persistence, then check if we are coming back from a redirect login
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => {
+                return getRedirectResult(auth);
+            })
+            .then((result) => {
+                if (result && result.user) {
+                    window.__loader.redirecting = true;
+                    window.location.href = 'homepage.html';
+                }
+            })
+            .catch((error) => {
+                console.error("Redirect Auth Error:", error);
+            });
 
         onAuthStateChanged(auth, (user) => {
             window.__loader.authResolved = true;
@@ -438,11 +465,6 @@
                         // 2. Open login in secure external browser Custom Tab
                         await window.Capacitor.Plugins.Browser.open({ url: 'https://medxcel.web.app/login' });
                         
-                        // After logging in via the Custom Tab, your app relies on the user returning.
-                        // The onAuthStateChanged listener at the top will fire if the session automatically
-                        // syncs back, or you can manage the redirect via Capacitor Deep Links (App Links).
-                        
-                        // Hide loader so they can click again if they prematurely closed the Custom Tab
                         setTimeout(() => {
                             window.suppressAuthRedirect = false;
                             document.getElementById('loaderScreen').style.opacity = '0';
@@ -457,17 +479,18 @@
                     }
                 } 
                 else {
-                    // 3. Fallback to normal web login for desktop/mobile browsers
+                    // 3. Fallback to normal web login using signInWithRedirect
                     try {
-                        await signInWithPopup(auth, provider);
-                        window.__loader.redirecting = true;
-                        document.querySelector('.loading-text').textContent = "LOGGING IN...";
+                        document.querySelector('.loading-text').textContent = "REDIRECTING...";
                         document.getElementById('loaderScreen').style.display = 'flex';
                         document.getElementById('loaderScreen').style.opacity = '1';
-                        localStorage.removeItem("skip"); 
-                        setTimeout(() => window.location.href = 'homepage.html', 500);
+                        
+                        await signInWithRedirect(auth, provider);
+                        // No need to redirect manually, the browser handles the Firebase redirect
                     } catch (error) { 
                         window.suppressAuthRedirect = false; 
+                        document.getElementById('loaderScreen').style.opacity = '0';
+                        setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
                         await showDialog(error.message, "Login Failed", { hideCancel: true }); 
                     }
                 }
