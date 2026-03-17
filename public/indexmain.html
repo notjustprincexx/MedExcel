@@ -7,16 +7,17 @@
     <title>MedExcel</title>
     <style>
         :root {
-            --bg-main: #0f172a;
-            --bg-card: #1e293b;
-            --bg-card-hover: #334155;
+            /* Updated to match the home page theme exactly */
+            --bg-main: #050A15; 
+            --bg-card: #0B1120; 
+            --bg-card-hover: rgba(255, 255, 255, 0.05); 
             --text-main: #ffffff;
             --text-muted: #94a3b8;
             --text-light: #cbd5e1;
             --accent-blue: #3b82f6;
             --accent-blue-hover: #60a5fa;
-            --accent-blue-dark: #1d4ed8;
-            --border-color: #334155;
+            --accent-blue-dark: #2563eb; 
+            --border-color: rgba(255, 255, 255, 0.05); 
             --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
             --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
         }
@@ -32,11 +33,29 @@
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
         input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
 
-        /* Loader & Dialog (Retained from original) */
+        /* Loader & Dialog */
         .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease; }
-        .loader-content { text-align: center; }
-        .spinner { width: 50px; height: 50px; border: 4px solid rgba(96, 165, 250, 0.2); border-left-color: var(--accent-blue-hover); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem auto; }
-        .loading-text { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; animation: pulse 1.5s infinite; }
+        .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+        
+        .modern-spinner { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            border: 3px solid var(--border-color); 
+            border-top-color: var(--accent-blue); 
+            border-right-color: var(--accent-blue-hover); 
+            animation: spin 0.8s linear infinite; 
+            filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4));
+        }
+        
+        .loading-text { 
+            color: var(--text-light); 
+            font-size: 0.875rem; 
+            font-weight: 600; 
+            letter-spacing: 0.05em; 
+            animation: pulse 1.5s infinite ease-in-out; 
+        }
+        
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -65,12 +84,12 @@
         .button-group { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
 
         /* Buttons */
-        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--bg-main); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; }
+        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; }
         .btn-primary:active { border-bottom-width: 0; transform: translateY(6px); }
         .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.1em; transition: background 0.2s; }
         .btn-secondary:hover { background: var(--bg-card-hover); }
-        .btn-outline { width: 100%; color: var(--text-light); font-weight: bold; font-size: 0.75rem; padding: 0.75rem; border: 2px solid var(--bg-card); border-radius: 1rem; text-transform: uppercase; letter-spacing: 0.1em; transition: color 0.2s; }
-        .btn-outline:hover { color: var(--text-main); }
+        .btn-outline { width: 100%; color: var(--text-light); font-weight: bold; font-size: 0.75rem; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 1rem; text-transform: uppercase; letter-spacing: 0.1em; transition: color 0.2s; }
+        .btn-outline:hover { color: var(--text-main); border-color: var(--text-muted); }
 
         /* Login Modal */
         .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
@@ -130,8 +149,8 @@
 
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-content">
-            <div class="spinner"></div>
-            <div class="loading-text">INITIALIZING...</div>
+            <div class="modern-spinner"></div>
+            <div class="loading-text">Loading MedExcel...</div>
         </div>
     </div>
 
@@ -152,20 +171,20 @@
                 <svg width="200" height="200" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/>
                     <ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/> 
-                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#1E293B"/>
-                    <g stroke="#1E293B" stroke-width="3">
+                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#0B1120"/>
+                    <g stroke="#0B1120" stroke-width="3">
                         <circle cx="35" cy="52" r="12" fill="white"/>
                         <circle cx="65" cy="52" r="12" fill="white"/>
                         <path d="M47 52 L53 52" stroke-width="3"/> 
                     </g>
                     <g class="animate-blink">
-                        <circle cx="35" cy="52" r="4" fill="#1E293B"/>
+                        <circle cx="35" cy="52" r="4" fill="#0B1120"/>
                         <circle cx="37" cy="50" r="1.5" fill="white"/>
-                        <circle cx="65" cy="52" r="4" fill="#1E293B"/>
+                        <circle cx="65" cy="52" r="4" fill="#0B1120"/>
                         <circle cx="67" cy="50" r="1.5" fill="white"/>
                     </g>
                     <path d="M45 62 L55 62 L50 69 L45 62Z" fill="#F59E0B"/>
-                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#1E293B"/>
+                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#0B1120"/>
                     <circle cx="50" cy="25" r="2" fill="#F59E0B"/>
                     <path d="M50 25 Q88 25 88 50" stroke="#F59E0B" stroke-width="2" fill="none"/>
                     <circle cx="88" cy="50" r="3" fill="#F59E0B"/>
@@ -230,18 +249,18 @@
                  <svg width="170" height="170" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/>
                     <ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/> 
-                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#1E293B"/>
-                    <g stroke="#1E293B" stroke-width="3">
+                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#0B1120"/>
+                    <g stroke="#0B1120" stroke-width="3">
                         <circle cx="35" cy="52" r="12" fill="white"/>
                         <circle cx="65" cy="52" r="12" fill="white"/>
                         <path d="M47 52 L53 52" stroke-width="3"/> 
                     </g>
-                    <g stroke="#1E293B" stroke-width="3" stroke-linecap="round">
+                    <g stroke="#0B1120" stroke-width="3" stroke-linecap="round">
                         <path d="M 29 54 Q 35 47 41 54" fill="none" />
                         <path d="M 59 54 Q 65 47 71 54" fill="none" />
                     </g>
                     <path d="M45 62 L55 62 L50 69 L45 62Z" fill="#F59E0B"/>
-                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#1E293B"/>
+                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#0B1120"/>
                     <circle cx="50" cy="25" r="2" fill="#F59E0B"/>
                     <path d="M50 25 Q88 25 88 50" stroke="#F59E0B" stroke-width="2" fill="none"/>
                     <circle cx="88" cy="50" r="3" fill="#F59E0B"/>
@@ -378,7 +397,6 @@
                 const params = new URLSearchParams(location.search);
                 const action = params.get('action') ? params.get('action').toLowerCase() : null;
                 
-                // NEW: Clear guest token if coming here with an auth intent!
                 if (['login', 'signup', 'logout'].includes(hash) || ['login', 'signup', 'logout'].includes(action)) {
                     localStorage.removeItem('skip');
                 }
@@ -436,10 +454,8 @@
     </script>
     <script>
 document.addEventListener("DOMContentLoaded", function () {
-
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   metaTheme.setAttribute("content", "#050A15");
-
 });
 </script>
 </body>
