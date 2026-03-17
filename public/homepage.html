@@ -699,6 +699,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
 
+  // Check if inside Capacitor app
+  if (window.Capacitor) {
+    try {
+      const { Browser } = Capacitor.Plugins;
+      await Browser.close();
+    } catch (e) {
+      console.log("Browser already closed");
+    }
+  }
+
+});
+</script>
 </body>
 </html>
