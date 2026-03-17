@@ -7,7 +7,6 @@
     <title>MedExcel</title>
     <style>
         :root {
-            /* Updated to match the home page theme exactly */
             --bg-main: #050A15; 
             --bg-card: #0B1120; 
             --bg-card-hover: rgba(255, 255, 255, 0.05); 
@@ -23,7 +22,8 @@
         }
 
         /* Base & Reset */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Added -webkit-tap-highlight-color to remove the blue tap highlight */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { 
             background-color: var(--bg-main); color: var(--text-main);
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -211,6 +211,9 @@
         </div>
         <div class="login-form">
             <div class="input-group">
+                <div id="nameRow" class="input-row" style="display: none;">
+                    <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+                </div>
                 <div class="input-row">
                     <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
                 </div>
@@ -341,11 +344,16 @@
             const login = document.getElementById('loginScreen');
             const titleEl = document.getElementById('loginHeading');
             const signInBtn = document.getElementById('signInBtn');
+            const nameRow = document.getElementById('nameRow'); // Reference to the name input row
             window.isSignupMode = !!signup;
 
             if (show) {
                 titleEl.textContent = window.isSignupMode ? 'Create your account' : 'Enter your details';
                 signInBtn.textContent = window.isSignupMode ? 'Sign Up' : 'Sign In';
+                
+                // Show name field if signing up, hide if signing in
+                nameRow.style.display = window.isSignupMode ? 'block' : 'none';
+                
                 login.classList.add('show');
             } else {
                 login.classList.remove('show');
@@ -353,6 +361,7 @@
                     window.isSignupMode = false;
                     titleEl.textContent = 'Enter your details';
                     signInBtn.textContent = 'Sign In';
+                    nameRow.style.display = 'none'; // Reset to hidden when closed
                 }, 300);
             }
         }
@@ -416,7 +425,8 @@
             GoogleAuthProvider, 
             onAuthStateChanged, 
             createUserWithEmailAndPassword,
-            signInWithCredential
+            signInWithCredential,
+            updateProfile // Added to save the user's name
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
@@ -496,16 +506,30 @@
         const emailBtn = document.getElementById('signInBtn');
         if (emailBtn) {
             emailBtn.addEventListener('click', async () => {
-                const email = document.getElementById('emailInput').value;
+                const name = document.getElementById('nameInput').value.trim();
+                const email = document.getElementById('emailInput').value.trim();
                 const pass = document.getElementById('loginPassword').value;
-                if(!email || !pass) { await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); return; }
+                
+                if (window.isSignupMode && !name) {
+                    await showDialog("Please enter your name or nickname.", "Missing Info", { hideCancel: true });
+                    return;
+                }
+
+                if(!email || !pass) { 
+                    await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); 
+                    return; 
+                }
                 
                 window.suppressAuthRedirect = true;
                 
                 try {
                     if (window.isSignupMode) {
-                        await createUserWithEmailAndPassword(auth, email, pass);
+                        // Create the user
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                        // Save their name to the profile
+                        await updateProfile(userCredential.user, { displayName: name });
                     } else {
+                        // Just sign in
                         await signInWithEmailAndPassword(auth, email, pass);
                     }
                     
