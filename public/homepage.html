@@ -13,8 +13,8 @@
             --text-main: #ffffff; --text-muted: #94a3b8; --text-light: #cbd5e1;
             --accent-blue: #3b82f6; --accent-blue-dark: #2563eb; --accent-orange: #f97316;
             --border-glass: rgba(255, 255, 255, 0.05); --border-blue: rgba(96, 165, 250, 0.3);
-            /* Updated for a snappier, spring-like feel */
-            --ease-snap: cubic-bezier(0.34, 1.2, 0.64, 1);
+            /* Updated for a snappy, slightly bouncy spring effect */
+            --ease-snap: cubic-bezier(0.25, 1.25, 0.3, 1);
         }
 
         /* Base & Reset */
@@ -29,8 +29,8 @@
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
 
         /* Utilities */
-        .fade-in { opacity: 0; animation: fadeIn 0.25s var(--ease-snap) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { opacity: 0; animation: fadeIn 0.3s var(--ease-snap) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .glass-panel { background: var(--bg-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-glass); border-radius: 1rem; transform: translateZ(0); }
 
         /* Layout */
@@ -38,18 +38,18 @@
         
         .greeting-title { font-size: 1.125rem; font-weight: 500; letter-spacing: normal; }
         
-        /* Updated streak-badge with interactive hover/active states */
+        /* Updated streak-badge */
         .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); cursor: pointer; transition: transform 0.1s; }
         .streak-badge:active { transform: scale(0.95); }
         
-        /* NEW: Fire Icon Pop Animation */
+        /* Fire Icon Pop Animation */
         @keyframes firePulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.5); filter: drop-shadow(0 0 8px var(--accent-orange)); color: #ffeb3b; }
             100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); color: var(--accent-orange); }
         }
         .fire-pop-anim {
-            display: inline-block; /* Required to transform inline icons */
+            display: inline-block;
             animation: firePulse 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
@@ -98,8 +98,8 @@
         .nav-label { font-size: 0.625rem; font-weight: 500; }
         .nav-item.active .nav-label { font-weight: bold; }
 
-        /* Video Modal */
-        .video-modal { position: fixed; inset: 0; background: var(--bg-modal); z-index: 100; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s var(--ease-snap); }
+        /* Video Modal - snappy slide up */
+        .video-modal { position: fixed; inset: 0; background: var(--bg-modal); z-index: 100; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s var(--ease-snap); }
         .video-modal.show { transform: translateY(0); }
         .modal-header { padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: var(--bg-body); flex-shrink: 0; }
         .btn-modal-close { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px solid rgba(51, 65, 85, 0.5); transition: background 0.2s, color 0.2s; flex-shrink: 0; }
@@ -149,10 +149,11 @@
         .btn-exit-fs { display: none; position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; width: 2.5rem; height: 2.5rem; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(12px); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .btn-exit-fs.show { display: flex; }
 
-        /* Dialogs and Modals CSS Updated for snappiness */
-        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.2s;}
+        /* Dialogs and Modals */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.3s;}
         .ok-backdrop.active { display: flex; }
-        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-snap); }
+        /* OK Dialog scales up slightly */
+        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.3s var(--ease-snap); }
         .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
         .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
         .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
@@ -162,34 +163,23 @@
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
 
-        /* --- UPDATED STREAK MODAL CSS FOR TOP DRAWER EFFECT --- */
-        #streakModalBackdrop {
-            align-items: flex-start;
-        }
+        /* Streak Top Drawer CSS - snappy slide down */
+        #streakModalBackdrop { align-items: flex-start; }
         
         .streak-dialog { 
-            width: 100%; 
-            max-width: 100%; 
+            width: 100%; max-width: 100%; 
             background: linear-gradient(to bottom, #000000, #1a0505); 
             border-radius: 0 0 2rem 2rem; 
             padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
             transform: translateY(-100%); 
             opacity: 0; 
-            transition: transform 0.3s var(--ease-snap), opacity 0.2s ease; 
-            text-align: center; 
-            border: none;
-            border-bottom: 1px solid rgba(255, 127, 63, 0.3); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
+            transition: transform 0.4s var(--ease-snap), opacity 0.3s ease; 
+            text-align: center; border: none; border-bottom: 1px solid rgba(255, 127, 63, 0.3); 
+            display: flex; flex-direction: column; align-items: center;
         }
         
-        .ok-backdrop.active .streak-dialog { 
-            transform: translateY(0);
-            opacity: 1; 
-        }
-        
+        .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
         .streak-dialog-title { font-size: 1.5rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.2; text-shadow: 0 2px 10px rgba(255, 127, 63, 0.3);}
         
         .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2rem; }
@@ -205,7 +195,7 @@
 </head>
 <body>
 
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true" style="z-index: 99998;">
         <div class="ok-dialog" role="document">
             <h3 id="okTitle" class="dialog-title">Notice</h3>
             <p id="okMessage" class="dialog-msg">Message goes here</p>
@@ -521,27 +511,45 @@
                     hasCheckedInToday = true;
                 }
 
-                // Fade out modal text slightly before sliding up for smoothness
                 document.getElementById('streakDialog').style.opacity = '0';
                 
                 setTimeout(() => {
-                    // Close the modal and revert status bar color
                     document.getElementById('streakModalBackdrop').classList.remove('active');
                     updateStatusBar('#050A15'); 
                     
-                    // Update header numbers visually
                     headerDisplay.textContent = currentStreakCount;
                     headerFireIcon.style.opacity = '1';
                     
-                    // Trigger the brief pop animation on the stationary header icon
                     headerFireIcon.classList.add('fire-pop-anim');
-                    
-                    // Remove the class after it finishes so it can run again next time if needed
                     setTimeout(() => {
                         headerFireIcon.classList.remove('fire-pop-anim');
                     }, 600); 
+                }, 300); 
+            });
 
-                }, 300); // Faster timeout matching the snappier slide-up transition time
+            // ADDED: Close overlays when clicking on the backdrop
+            document.getElementById('streakModalBackdrop').addEventListener('click', (e) => {
+                if (e.target.id === 'streakModalBackdrop') {
+                    document.getElementById('closeStreakModal').click();
+                }
+            });
+
+            document.getElementById('okBackdrop').addEventListener('click', (e) => {
+                if (e.target.id === 'okBackdrop') {
+                    // Smooth exit for the OK Dialog
+                    document.querySelector('.ok-dialog').style.transform = 'scale(0.95)';
+                    document.querySelector('.ok-dialog').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('okBackdrop').classList.remove('active');
+                        // Reset for next opening
+                        document.querySelector('.ok-dialog').style.transform = '';
+                        document.querySelector('.ok-dialog').style.opacity = '';
+                    }, 300);
+                }
+            });
+            // Also map the cancel button explicitly to hide the modal safely
+            document.getElementById('okCancel').addEventListener('click', () => {
+                document.getElementById('okBackdrop').click();
             });
 
             // Continue Studying section
