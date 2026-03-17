@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#050A15">
     <title>MedExcel Home</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -150,9 +150,36 @@
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
 
-        /* Streak Modal CSS Added */
-        .streak-dialog { width: 90%; max-width: 340px; background: linear-gradient(to bottom, #2a0b0b, #0a0404); border-radius: 1.5rem; padding: 2.5rem 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s ease; text-align: center; border: 1px solid rgba(255, 127, 63, 0.2); display: flex; flex-direction: column; align-items: center;}
-        .ok-backdrop.active .streak-dialog { transform: scale(1); opacity: 1; }
+        /* --- UPDATED STREAK MODAL CSS FOR TOP DRAWER EFFECT --- */
+        #streakModalBackdrop {
+            align-items: flex-start; /* Aligns the modal to the very top */
+        }
+        
+        .streak-dialog { 
+            width: 100%; 
+            max-width: 100%; 
+            /* Gradient starts with pure black to blend seamlessly with the status bar, then fades to dark red */
+            background: linear-gradient(to bottom, #000000, #1a0505); 
+            border-radius: 0 0 2rem 2rem; /* Rounded at the bottom only */
+            /* Safe area padding handles notches and standard spacing beautifully */
+            padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
+            transform: translateY(-100%); /* Start off-screen at the top */
+            opacity: 0; 
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; 
+            text-align: center; 
+            border: none;
+            border-bottom: 1px solid rgba(255, 127, 63, 0.3); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+        }
+        
+        .ok-backdrop.active .streak-dialog { 
+            transform: translateY(0); /* Slide down seamlessly */
+            opacity: 1; 
+        }
+        
         .streak-dialog-title { font-size: 1.5rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.2; text-shadow: 0 2px 10px rgba(255, 127, 63, 0.3);}
         
         .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2rem; }
@@ -162,7 +189,7 @@
         .day-circle.done { background: transparent; border: none; color: var(--accent-orange); font-size: 1.25rem; }
         .day-circle.active { background: rgba(255, 127, 63, 0.2); border: 1px solid var(--accent-orange); color: var(--accent-orange); box-shadow: 0 0 15px rgba(255, 127, 63, 0.4); }
         
-        .btn-checkin { width: 90%; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
+        .btn-checkin { width: 90%; max-width: 320px; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
         .btn-checkin:active { transform: scale(0.95); }
 
         .flying-fire { position: fixed; z-index: 999999; pointer-events: none; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -389,6 +416,18 @@ MedExcel can generate quizzes from your voice.
     let currentStreakCount = 0;
     let hasCheckedInToday = false;
 
+    // --- CAPACITOR STATUS BAR INTEGRATION ---
+    async function updateStatusBar(color) {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = Capacitor.Plugins;
+                await StatusBar.setBackgroundColor({ color: color });
+            } catch (e) {
+                console.log("Status bar update skipped", e);
+            }
+        }
+    }
+
     function buildCalendarRow() {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
         const dates = [];
@@ -440,6 +479,9 @@ MedExcel can generate quizzes from your voice.
         
         document.getElementById('streakModalBackdrop').classList.add('active');
         document.getElementById('streakDialog').style.opacity = '1';
+        
+        // Match the status bar to the modal's top gradient (#000000)
+        updateStatusBar('#000000');
     }
 
     (function fastInitUserUI() {
@@ -448,7 +490,6 @@ MedExcel can generate quizzes from your voice.
             const greetingTitle = document.getElementById('greetingTitle');
             if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
 
-            // --- ACCURATE STREAK LOGIC ---
             const storageKey = 'medexcel_streak_tracker_active';
             let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
             
@@ -479,15 +520,12 @@ MedExcel can generate quizzes from your voice.
                 headerFireIcon.style.opacity = '1';
             }
 
-            // Preload Modal Fire
             lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
 
-            // Auto-open if needed today
             if (!hasCheckedInToday) {
                 openStreakModal();
             }
 
-            // Click logic for flight sequence
             document.getElementById('closeStreakModal').addEventListener('click', () => {
                 if (!hasCheckedInToday) {
                     userStats.count = currentStreakCount;
@@ -496,7 +534,6 @@ MedExcel can generate quizzes from your voice.
                     hasCheckedInToday = true;
                 }
 
-                // Initialize the flight
                 const startRect = document.getElementById('modalStreakLottie').getBoundingClientRect();
                 const endRect = headerFireIcon.getBoundingClientRect();
                 
@@ -511,18 +548,20 @@ MedExcel can generate quizzes from your voice.
                 lottie.loadAnimation({ container: flyingFire, renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
 
                 document.getElementById('streakDialog').style.opacity = '0';
-                setTimeout(() => document.getElementById('streakModalBackdrop').classList.remove('active'), 200);
+                
+                // Hide modal and revert status bar
+                setTimeout(() => {
+                    document.getElementById('streakModalBackdrop').classList.remove('active');
+                    updateStatusBar('#050A15'); // Revert back to original body color
+                }, 300);
 
-                // Force reflow
                 flyingFire.offsetHeight; 
 
-                // Fly to corner
                 flyingFire.style.left = endRect.left + 'px';
                 flyingFire.style.top = endRect.top + 'px';
                 flyingFire.style.width = '24px';
                 flyingFire.style.height = '24px';
 
-                // Complete landing
                 setTimeout(() => {
                     flyingFire.remove(); 
                     headerDisplay.textContent = currentStreakCount;
@@ -530,7 +569,6 @@ MedExcel can generate quizzes from your voice.
                 }, 800); 
             });
 
-            // Continue Studying section
             const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
             const continueSection = document.getElementById('continueStudyingSection');
             if (quizzes.length > 0) {
@@ -562,21 +600,9 @@ MedExcel can generate quizzes from your voice.
         const skip = localStorage.getItem("skip") === "true";
 
         onAuthStateChanged(auth, (user) => {
-            if (user) { const name = user.displayName || user.email.split('@')[0]; localStorage.setItem('userName', name); updateHeaderUI(name); } 
+            if (user) { const name = user.displayName || user.email.split('@')[0]; localStorage.setItem('userName', name); } 
             else if (!skip) { window.location.href = 'index.html#login'; } 
-            else { updateHeaderUI("Guest"); }
         });
-
-        function updateHeaderUI(name) {
-            const greetingTitle = document.getElementById('greetingTitle');
-            const hour = new Date().getHours();
-            let emoji = '⛅';
-            if (hour >= 12 && hour < 18) emoji = '☀️';
-            else if (hour >= 18) emoji = '🌙';
-
-            if (greetingTitle && name && name !== "Guest") greetingTitle.innerHTML = `Hi, ${name} ${emoji}`;
-            else if (greetingTitle) greetingTitle.innerHTML = `Welcome back ${emoji}`;
-        }
 
         let currentVideoData = null; 
         
@@ -647,29 +673,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
-<script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        
-        const { PushNotifications } = Capacitor.Plugins;
-        
-        const permission = await PushNotifications.requestPermissions();
-        
-        if (permission.receive === "granted") {
-            await PushNotifications.register();
-        }
-        
-        PushNotifications.addListener("registration", token => {
-            console.log("FCM TOKEN:", token.value);
-        });
-        
-        PushNotifications.addListener("pushNotificationReceived", notification => {
-            console.log("Notification received:", notification);
-        });
-        
-    });
-</script>
-<script type="module">
 
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -686,30 +691,29 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Web-safe check added here to prevent "Capacitor is not defined" errors
+    if (typeof Capacitor !== 'undefined') {
+        const { PushNotifications } = Capacitor.Plugins;
+        try {
+            const permission = await PushNotifications.requestPermissions();
+            if (permission.receive === "granted") {
+                await PushNotifications.register();
+            }
 
-    const { PushNotifications } = Capacitor.Plugins;
-
-    const permission = await PushNotifications.requestPermissions();
-
-    if (permission.receive === "granted") {
-        await PushNotifications.register();
+            PushNotifications.addListener("registration", async (token) => {
+                console.log("FCM TOKEN:", token.value);
+                // Save token in Firestore
+                await setDoc(doc(db, "fcmTokens", token.value), {
+                    token: token.value,
+                    createdAt: new Date(),
+                    device: "android"
+                });
+            });
+        } catch (error) {
+            console.log("Push notifications skipped", error);
+        }
     }
-
-    PushNotifications.addListener("registration", async (token) => {
-
-        console.log("FCM TOKEN:", token.value);
-
-        // Save token in Firestore
-        await setDoc(doc(db, "fcmTokens", token.value), {
-            token: token.value,
-            createdAt: new Date(),
-            device: "android"
-        });
-
-    });
-
 });
-
 </script>
 
 </body>
