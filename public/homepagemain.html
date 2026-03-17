@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#050A15">
     <title>MedExcel Home</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,9 +37,20 @@
         
         .greeting-title { font-size: 1.125rem; font-weight: 500; letter-spacing: normal; }
         
-        /* Updated streak-badge with interactive hover/active states */
+        /* Updated streak-badge */
         .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); cursor: pointer; transition: transform 0.1s; }
         .streak-badge:active { transform: scale(0.95); }
+        
+        /* NEW: Fire Icon Pop Animation */
+        @keyframes firePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); filter: drop-shadow(0 0 8px var(--accent-orange)); color: #ffeb3b; }
+            100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); color: var(--accent-orange); }
+        }
+        .fire-pop-anim {
+            display: inline-block; /* Required to transform inline icons */
+            animation: firePulse 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
         
         .main-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.25rem; }
@@ -137,7 +148,7 @@
         .btn-exit-fs { display: none; position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; width: 2.5rem; height: 2.5rem; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(12px); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .btn-exit-fs.show { display: flex; }
 
-        /* Dialogs and Modals CSS Updated */
+        /* Dialogs */
         .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.3s;}
         .ok-backdrop.active { display: flex; }
         .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.15s ease; }
@@ -150,9 +161,23 @@
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
 
-        /* Streak Modal CSS Added */
-        .streak-dialog { width: 90%; max-width: 340px; background: linear-gradient(to bottom, #2a0b0b, #0a0404); border-radius: 1.5rem; padding: 2.5rem 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s ease; text-align: center; border: 1px solid rgba(255, 127, 63, 0.2); display: flex; flex-direction: column; align-items: center;}
-        .ok-backdrop.active .streak-dialog { transform: scale(1); opacity: 1; }
+        /* Streak Top Drawer CSS */
+        #streakModalBackdrop { align-items: flex-start; }
+        
+        .streak-dialog { 
+            width: 100%; max-width: 100%; 
+            background: linear-gradient(to bottom, #000000, #1a0505); 
+            border-radius: 0 0 2rem 2rem; 
+            padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
+            transform: translateY(-100%); 
+            opacity: 0; 
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; 
+            text-align: center; border: none; border-bottom: 1px solid rgba(255, 127, 63, 0.3); 
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
         .streak-dialog-title { font-size: 1.5rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.2; text-shadow: 0 2px 10px rgba(255, 127, 63, 0.3);}
         
         .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2rem; }
@@ -162,21 +187,19 @@
         .day-circle.done { background: transparent; border: none; color: var(--accent-orange); font-size: 1.25rem; }
         .day-circle.active { background: rgba(255, 127, 63, 0.2); border: 1px solid var(--accent-orange); color: var(--accent-orange); box-shadow: 0 0 15px rgba(255, 127, 63, 0.4); }
         
-        .btn-checkin { width: 90%; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
+        .btn-checkin { width: 90%; max-width: 320px; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
         .btn-checkin:active { transform: scale(0.95); }
-
-        .flying-fire { position: fixed; z-index: 999999; pointer-events: none; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
 <body>
 
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="ok-dialog" role="document">
-            <h3 id="okTitle" class="dialog-title">Notice</h3>
-            <p id="okMessage" class="dialog-msg">Message goes here</p>
-            <div class="dialog-actions">
-                <button id="okCancel" class="btn-cancel">Cancel</button>
-                <button id="okConfirm" class="btn-confirm">OK</button>
+    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true" style="z-index: 99998;">
+        <div class="ok-dialog" role="document" style="background: var(--bg-modal); max-width: 400px; padding: 1.5rem; border: 1px solid #1e293b;">
+            <h3 id="okTitle" style="font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; color: white;">Notice</h3>
+            <p id="okMessage" style="color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6;">Message goes here</p>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button id="okCancel" style="padding: 0.5rem 1rem; color: var(--text-muted); font-weight: bold; font-size: 0.875rem;">Cancel</button>
+                <button id="okConfirm" style="padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem;">OK</button>
             </div>
         </div>
     </div>
@@ -241,48 +264,16 @@
                 
                 <a href="create.html" class="action-card glass-panel fade-in" style="animation-delay: 120ms;">
                     <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g></svg>
+                        <i class="fas fa-layer-group" style="font-size: 1.5rem; color: #88868A;"></i>
                     </div>
                     <span class="action-title">Flashcards</span>
                 </a>
 
                 <a href="create.html" class="action-card glass-panel fade-in" style="animation-delay: 150ms;">
                     <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(-5) translate(-18, -22)"><rect width="36" height="44" rx="3" fill="#EAE8EC"/><path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/><circle cx="8" cy="20" r="3" fill="#F4A261"/><rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="30" r="3" fill="#C5C3C8"/><rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="40" r="3" fill="#C5C3C8"/><rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/></g></g></svg>
+                        <i class="fas fa-list-check" style="font-size: 1.5rem; color: #F4A261;"></i>
                     </div>
                     <span class="action-title">MCQ Quiz</span>
-                </a>
-
-                <a href="tutor.html" class="action-card glass-panel fade-in" style="animation-delay: 180ms;">
-                    <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="translate(-16, -12)"><rect width="32" height="36" rx="3" fill="#EAE8EC"/><rect x="6" y="8" width="14" height="3" rx="1.5" fill="#C5C3C8"/><rect x="6" y="16" width="20" height="3" rx="1.5" fill="#C5C3C8"/><rect x="6" y="24" width="12" height="3" rx="1.5" fill="#C5C3C8"/></g><path d="M -4 16 L 16 -10" stroke="#E76F51" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="-10" r="3" fill="#F4A261"/></g></svg>
-                    </div>
-                    <div><span class="action-title">Simplify</span><span class="action-sub">Break down topics</span></div>
-                </a>
-
-                <button id="openVideoTutorBtn" class="action-card glass-panel fade-in" style="animation-delay: 210ms;">
-                    <div class="icon-box" style="position:relative;">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><rect x="-20" y="-14" width="40" height="28" rx="4" fill="#EAE8EC"/><path d="M-4 -6L6 0L-4 6V-6Z" fill="#F4A261"/></g></svg>
-                        <div style="position:absolute; top:-4px; right:-4px; display:flex; width:12px; height:12px;">
-                          <span style="position:absolute; inset:0; border-radius:50%; background:#f87171; opacity:0.75; animation:pulse 2s infinite;"></span>
-                          <span style="position:relative; width:12px; height:12px; border-radius:50%; background:#ef4444;"></span>
-                        </div>
-                    </div>
-                    <div><span class="action-title">Video Tutor</span><span class="action-sub">Find best lectures</span></div>
-                </button>
-
-                <a href="teach.html" class="teach-card glass-panel fade-in" style="animation-delay: 240ms;">
-                    <div class="teach-glow"></div>
-                    <div style="position:relative; z-index:10; display:flex; align-items:flex-start; gap:1rem;">
-                        <div class="icon-box" style="width:3.5rem; height:3.5rem;">
-                            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(10) translate(-16, -18)"><rect width="32" height="36" rx="3" fill="#D2D0D6"/></g><g transform="rotate(-5) translate(-18, -20)"><rect width="36" height="40" rx="3" fill="#EAE8EC"/><rect x="8" y="12" width="4" height="16" rx="2" fill="#4CBAD6"/><rect x="16" y="8" width="4" height="24" rx="2" fill="#F4A261"/><rect x="24" y="14" width="4" height="12" rx="2" fill="#E76F51"/></g></g></svg>
-                        </div>
-                        <div style="flex:1;">
-                            <div class="badge-powerful">🔥 Most Powerful</div>
-                            <h3 class="action-title" style="margin-top:0;">Teach MedExcel</h3>
-                            <p class="teach-desc">Explain a concept out loud. MedExcel listens, finds gaps, and challenges you.</p>
-                        </div>
-                    </div>
                 </a>
             </div>
         </div>
@@ -313,31 +304,10 @@
                     <button id="searchVideoBtn" class="btn-search">Find</button>
                 </div>
             </div>
-<div id="micModal" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:#020617;
-align-items:center;
-justify-content:center;
-z-index:9999;
-flex-direction:column;
-color:white;
-font-family:sans-serif;
-">
-
-<h2>Enable Voice Features 🎤</h2>
-
-<p style="opacity:.8">
-MedExcel can generate quizzes from your voice.
-</p>
-
-
-
-</div>
+            <div id="micModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#020617; align-items:center; justify-content:center; z-index:9999; flex-direction:column; color:white; font-family:sans-serif;">
+                <h2>Enable Voice Features 🎤</h2>
+                <p style="opacity:.8">MedExcel can generate quizzes from your voice.</p>
+            </div>
             <div id="videoLoader" class="loader-box">
                 <div class="spin-ring"><i class="fas fa-play spin-icon"></i></div>
                 <p style="font-weight:bold; margin-bottom:0.25rem;">MedExcel is searching...</p>
@@ -388,6 +358,18 @@ MedExcel can generate quizzes from your voice.
 
     let currentStreakCount = 0;
     let hasCheckedInToday = false;
+
+    // --- CAPACITOR STATUS BAR INTEGRATION ---
+    async function updateStatusBar(color) {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = Capacitor.Plugins;
+                await StatusBar.setBackgroundColor({ color: color });
+            } catch (e) {
+                console.log("Status bar update skipped", e);
+            }
+        }
+    }
 
     function buildCalendarRow() {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -440,6 +422,8 @@ MedExcel can generate quizzes from your voice.
         
         document.getElementById('streakModalBackdrop').classList.add('active');
         document.getElementById('streakDialog').style.opacity = '1';
+        
+        updateStatusBar('#000000');
     }
 
     (function fastInitUserUI() {
@@ -448,7 +432,6 @@ MedExcel can generate quizzes from your voice.
             const greetingTitle = document.getElementById('greetingTitle');
             if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
 
-            // --- ACCURATE STREAK LOGIC ---
             const storageKey = 'medexcel_streak_tracker_active';
             let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
             
@@ -479,15 +462,13 @@ MedExcel can generate quizzes from your voice.
                 headerFireIcon.style.opacity = '1';
             }
 
-            // Preload Modal Fire
             lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
 
-            // Auto-open if needed today
             if (!hasCheckedInToday) {
                 openStreakModal();
             }
 
-            // Click logic for flight sequence
+            // CLEANED UP LOGIC: No more flying Lottie. Just a crisp CSS animation.
             document.getElementById('closeStreakModal').addEventListener('click', () => {
                 if (!hasCheckedInToday) {
                     userStats.count = currentStreakCount;
@@ -496,38 +477,27 @@ MedExcel can generate quizzes from your voice.
                     hasCheckedInToday = true;
                 }
 
-                // Initialize the flight
-                const startRect = document.getElementById('modalStreakLottie').getBoundingClientRect();
-                const endRect = headerFireIcon.getBoundingClientRect();
-                
-                const flyingFire = document.createElement('div');
-                flyingFire.className = 'flying-fire';
-                flyingFire.style.left = startRect.left + 'px';
-                flyingFire.style.top = startRect.top + 'px';
-                flyingFire.style.width = startRect.width + 'px';
-                flyingFire.style.height = startRect.height + 'px';
-                document.body.appendChild(flyingFire);
-
-                lottie.loadAnimation({ container: flyingFire, renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
-
+                // Fade out modal text slightly before sliding up for smoothness
                 document.getElementById('streakDialog').style.opacity = '0';
-                setTimeout(() => document.getElementById('streakModalBackdrop').classList.remove('active'), 200);
-
-                // Force reflow
-                flyingFire.offsetHeight; 
-
-                // Fly to corner
-                flyingFire.style.left = endRect.left + 'px';
-                flyingFire.style.top = endRect.top + 'px';
-                flyingFire.style.width = '24px';
-                flyingFire.style.height = '24px';
-
-                // Complete landing
+                
                 setTimeout(() => {
-                    flyingFire.remove(); 
+                    // Close the modal and revert status bar color
+                    document.getElementById('streakModalBackdrop').classList.remove('active');
+                    updateStatusBar('#050A15'); 
+                    
+                    // Update header numbers visually
                     headerDisplay.textContent = currentStreakCount;
                     headerFireIcon.style.opacity = '1';
-                }, 800); 
+                    
+                    // Trigger the brief pop animation on the stationary header icon
+                    headerFireIcon.classList.add('fire-pop-anim');
+                    
+                    // Remove the class after it finishes so it can run again next time if needed
+                    setTimeout(() => {
+                        headerFireIcon.classList.remove('fire-pop-anim');
+                    }, 600); 
+
+                }, 400); // Matches the modal slide-up transition time
             });
 
             // Continue Studying section
@@ -562,21 +532,9 @@ MedExcel can generate quizzes from your voice.
         const skip = localStorage.getItem("skip") === "true";
 
         onAuthStateChanged(auth, (user) => {
-            if (user) { const name = user.displayName || user.email.split('@')[0]; localStorage.setItem('userName', name); updateHeaderUI(name); } 
+            if (user) { const name = user.displayName || user.email.split('@')[0]; localStorage.setItem('userName', name); } 
             else if (!skip) { window.location.href = 'index.html#login'; } 
-            else { updateHeaderUI("Guest"); }
         });
-
-        function updateHeaderUI(name) {
-            const greetingTitle = document.getElementById('greetingTitle');
-            const hour = new Date().getHours();
-            let emoji = '⛅';
-            if (hour >= 12 && hour < 18) emoji = '☀️';
-            else if (hour >= 18) emoji = '🌙';
-
-            if (greetingTitle && name && name !== "Guest") greetingTitle.innerHTML = `Hi, ${name} ${emoji}`;
-            else if (greetingTitle) greetingTitle.innerHTML = `Welcome back ${emoji}`;
-        }
 
         let currentVideoData = null; 
         
@@ -647,29 +605,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
-<script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        
-        const { PushNotifications } = Capacitor.Plugins;
-        
-        const permission = await PushNotifications.requestPermissions();
-        
-        if (permission.receive === "granted") {
-            await PushNotifications.register();
-        }
-        
-        PushNotifications.addListener("registration", token => {
-            console.log("FCM TOKEN:", token.value);
-        });
-        
-        PushNotifications.addListener("pushNotificationReceived", notification => {
-            console.log("Notification received:", notification);
-        });
-        
-    });
-</script>
-<script type="module">
 
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -686,30 +623,27 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener("DOMContentLoaded", async () => {
+    if (typeof Capacitor !== 'undefined') {
+        const { PushNotifications } = Capacitor.Plugins;
+        try {
+            const permission = await PushNotifications.requestPermissions();
+            if (permission.receive === "granted") {
+                await PushNotifications.register();
+            }
 
-    const { PushNotifications } = Capacitor.Plugins;
-
-    const permission = await PushNotifications.requestPermissions();
-
-    if (permission.receive === "granted") {
-        await PushNotifications.register();
+            PushNotifications.addListener("registration", async (token) => {
+                console.log("FCM TOKEN:", token.value);
+                await setDoc(doc(db, "fcmTokens", token.value), {
+                    token: token.value,
+                    createdAt: new Date(),
+                    device: "android"
+                });
+            });
+        } catch (error) {
+            console.log("Push notifications skipped", error);
+        }
     }
-
-    PushNotifications.addListener("registration", async (token) => {
-
-        console.log("FCM TOKEN:", token.value);
-
-        // Save token in Firestore
-        await setDoc(doc(db, "fcmTokens", token.value), {
-            token: token.value,
-            createdAt: new Date(),
-            device: "android"
-        });
-
-    });
-
 });
-
 </script>
 
 </body>

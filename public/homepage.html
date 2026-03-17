@@ -13,7 +13,8 @@
             --text-main: #ffffff; --text-muted: #94a3b8; --text-light: #cbd5e1;
             --accent-blue: #3b82f6; --accent-blue-dark: #2563eb; --accent-orange: #f97316;
             --border-glass: rgba(255, 255, 255, 0.05); --border-blue: rgba(96, 165, 250, 0.3);
-            --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Updated for a snappier, spring-like feel */
+            --ease-snap: cubic-bezier(0.34, 1.2, 0.64, 1);
         }
 
         /* Base & Reset */
@@ -41,6 +42,17 @@
         .streak-badge { display: flex; align-items: center; justify-content: center; gap: 0.375rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-orange); padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); cursor: pointer; transition: transform 0.1s; }
         .streak-badge:active { transform: scale(0.95); }
         
+        /* NEW: Fire Icon Pop Animation */
+        @keyframes firePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); filter: drop-shadow(0 0 8px var(--accent-orange)); color: #ffeb3b; }
+            100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); color: var(--accent-orange); }
+        }
+        .fire-pop-anim {
+            display: inline-block; /* Required to transform inline icons */
+            animation: firePulse 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
         .main-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.25rem; }
 
@@ -87,7 +99,7 @@
         .nav-item.active .nav-label { font-weight: bold; }
 
         /* Video Modal */
-        .video-modal { position: fixed; inset: 0; background: var(--bg-modal); z-index: 100; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s var(--ease-snap); }
+        .video-modal { position: fixed; inset: 0; background: var(--bg-modal); z-index: 100; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s var(--ease-snap); }
         .video-modal.show { transform: translateY(0); }
         .modal-header { padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: var(--bg-body); flex-shrink: 0; }
         .btn-modal-close { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px solid rgba(51, 65, 85, 0.5); transition: background 0.2s, color 0.2s; flex-shrink: 0; }
@@ -137,10 +149,10 @@
         .btn-exit-fs { display: none; position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; width: 2.5rem; height: 2.5rem; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(12px); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .btn-exit-fs.show { display: flex; }
 
-        /* Dialogs and Modals CSS Updated */
-        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.3s;}
+        /* Dialogs and Modals CSS Updated for snappiness */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); transition: opacity 0.2s;}
         .ok-backdrop.active { display: flex; }
-        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.15s ease; }
+        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-modal); border: 1px solid #1e293b; border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-snap); }
         .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
         .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
         .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
@@ -152,21 +164,19 @@
 
         /* --- UPDATED STREAK MODAL CSS FOR TOP DRAWER EFFECT --- */
         #streakModalBackdrop {
-            align-items: flex-start; /* Aligns the modal to the very top */
+            align-items: flex-start;
         }
         
         .streak-dialog { 
             width: 100%; 
             max-width: 100%; 
-            /* Gradient starts with pure black to blend seamlessly with the status bar, then fades to dark red */
             background: linear-gradient(to bottom, #000000, #1a0505); 
-            border-radius: 0 0 2rem 2rem; /* Rounded at the bottom only */
-            /* Safe area padding handles notches and standard spacing beautifully */
+            border-radius: 0 0 2rem 2rem; 
             padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
-            transform: translateY(-100%); /* Start off-screen at the top */
+            transform: translateY(-100%); 
             opacity: 0; 
-            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; 
+            transition: transform 0.3s var(--ease-snap), opacity 0.2s ease; 
             text-align: center; 
             border: none;
             border-bottom: 1px solid rgba(255, 127, 63, 0.3); 
@@ -176,7 +186,7 @@
         }
         
         .ok-backdrop.active .streak-dialog { 
-            transform: translateY(0); /* Slide down seamlessly */
+            transform: translateY(0);
             opacity: 1; 
         }
         
@@ -191,8 +201,6 @@
         
         .btn-checkin { width: 90%; max-width: 320px; padding: 1rem; background: var(--accent-orange); color: #000000; border-radius: 9999px; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 15px rgba(255, 127, 63, 0.4); transition: transform 0.1s; cursor: pointer; border: none; }
         .btn-checkin:active { transform: scale(0.95); }
-
-        .flying-fire { position: fixed; z-index: 999999; pointer-events: none; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
 <body>
@@ -340,31 +348,10 @@
                     <button id="searchVideoBtn" class="btn-search">Find</button>
                 </div>
             </div>
-<div id="micModal" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:#020617;
-align-items:center;
-justify-content:center;
-z-index:9999;
-flex-direction:column;
-color:white;
-font-family:sans-serif;
-">
-
-<h2>Enable Voice Features 🎤</h2>
-
-<p style="opacity:.8">
-MedExcel can generate quizzes from your voice.
-</p>
-
-
-
-</div>
+            <div id="micModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#020617; align-items:center; justify-content:center; z-index:9999; flex-direction:column; color:white; font-family:sans-serif;">
+                <h2>Enable Voice Features 🎤</h2>
+                <p style="opacity:.8">MedExcel can generate quizzes from your voice.</p>
+            </div>
             <div id="videoLoader" class="loader-box">
                 <div class="spin-ring"><i class="fas fa-play spin-icon"></i></div>
                 <p style="font-weight:bold; margin-bottom:0.25rem;">MedExcel is searching...</p>
@@ -480,7 +467,6 @@ MedExcel can generate quizzes from your voice.
         document.getElementById('streakModalBackdrop').classList.add('active');
         document.getElementById('streakDialog').style.opacity = '1';
         
-        // Match the status bar to the modal's top gradient (#000000)
         updateStatusBar('#000000');
     }
 
@@ -526,6 +512,7 @@ MedExcel can generate quizzes from your voice.
                 openStreakModal();
             }
 
+            // CLEANED UP LOGIC: Snappy CSS animation instead of complex DOM flying animation
             document.getElementById('closeStreakModal').addEventListener('click', () => {
                 if (!hasCheckedInToday) {
                     userStats.count = currentStreakCount;
@@ -534,41 +521,30 @@ MedExcel can generate quizzes from your voice.
                     hasCheckedInToday = true;
                 }
 
-                const startRect = document.getElementById('modalStreakLottie').getBoundingClientRect();
-                const endRect = headerFireIcon.getBoundingClientRect();
-                
-                const flyingFire = document.createElement('div');
-                flyingFire.className = 'flying-fire';
-                flyingFire.style.left = startRect.left + 'px';
-                flyingFire.style.top = startRect.top + 'px';
-                flyingFire.style.width = startRect.width + 'px';
-                flyingFire.style.height = startRect.height + 'px';
-                document.body.appendChild(flyingFire);
-
-                lottie.loadAnimation({ container: flyingFire, renderer: 'svg', loop: true, autoplay: true, path: 'Fire.json' });
-
+                // Fade out modal text slightly before sliding up for smoothness
                 document.getElementById('streakDialog').style.opacity = '0';
                 
-                // Hide modal and revert status bar
                 setTimeout(() => {
+                    // Close the modal and revert status bar color
                     document.getElementById('streakModalBackdrop').classList.remove('active');
-                    updateStatusBar('#050A15'); // Revert back to original body color
-                }, 300);
-
-                flyingFire.offsetHeight; 
-
-                flyingFire.style.left = endRect.left + 'px';
-                flyingFire.style.top = endRect.top + 'px';
-                flyingFire.style.width = '24px';
-                flyingFire.style.height = '24px';
-
-                setTimeout(() => {
-                    flyingFire.remove(); 
+                    updateStatusBar('#050A15'); 
+                    
+                    // Update header numbers visually
                     headerDisplay.textContent = currentStreakCount;
                     headerFireIcon.style.opacity = '1';
-                }, 800); 
+                    
+                    // Trigger the brief pop animation on the stationary header icon
+                    headerFireIcon.classList.add('fire-pop-anim');
+                    
+                    // Remove the class after it finishes so it can run again next time if needed
+                    setTimeout(() => {
+                        headerFireIcon.classList.remove('fire-pop-anim');
+                    }, 600); 
+
+                }, 300); // Faster timeout matching the snappier slide-up transition time
             });
 
+            // Continue Studying section
             const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
             const continueSection = document.getElementById('continueStudyingSection');
             if (quizzes.length > 0) {
