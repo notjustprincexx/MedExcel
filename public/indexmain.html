@@ -6,7 +6,43 @@
     <meta name="theme-color" content="#050A15">
     <title>MedExcel</title>
     
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
+    
+    <script>
+        window.AssetManager = {
+            cache: {},
+            preload: function(key, url) {
+                // Fetch eagerly and store the Promise in memory
+                this.cache[key] = fetch(url)
+                    .then(res => res.json())
+                    .catch(err => console.warn(`Failed to preload ${key}:`, err));
+            },
+            get: async function(key) {
+                return await this.cache[key];
+            }
+        };
+
+        // Fire off network requests INSTANTLY (0ms delay)
+        AssetManager.preload('loader', 'TheBouncingLoader.json');
+        AssetManager.preload('yay', 'YayJump.json');
+        AssetManager.preload('cat', 'Blue Working Cat Animation.json');
+        AssetManager.preload('wonder', 'WonderThings.json');
+        AssetManager.preload('walk', 'Walkinganddrinking.json');
+
+        // SMART PRELOADING: Load future screen data in the background without blocking the main thread
+        const preloadFutureAssets = () => {
+            AssetManager.preload('quiz1', 'quiz.json');
+            AssetManager.preload('trophy', 'trophy.json');
+        };
+        
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(preloadFutureAssets);
+        } else {
+            setTimeout(preloadFutureAssets, 2000);
+        }
+    </script>
+
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" onload="initAnimations()"></script>
 
     <style>
         :root {
@@ -24,24 +60,40 @@
             --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        /* SCROLLBAR HIDING */
+        * { 
+            box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; 
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
         body { 
             background-color: var(--bg-main); color: var(--text-main);
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            height: 100vh; overflow: hidden; -webkit-user-select: none; user-select: none;
-            position: relative;
+            height: 100vh; overflow: hidden; -webkit-user-select: none; user-select: none; position: relative;
         }
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
         input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
 
         /* Loader & Dialog */
-        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease; }
+        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s; }
         .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
-        .modern-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-right-color: var(--accent-blue-hover); animation: spin 0.8s linear infinite; filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)); }
+        
+        .loader-graphic-container { position: relative; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; }
+        .modern-spinner { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-right-color: var(--accent-blue-hover); animation: spin 0.8s linear infinite; transition: opacity 0.3s ease; }
+        .lottie-loader-layer { position: absolute; inset: 0; opacity: 0; transform: scale(0.9); transition: all 0.4s var(--ease-out); }
+        .lottie-loader-layer.active { opacity: 1; transform: scale(1); }
+        
         .loading-text { color: var(--text-light); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; animation: pulse 1.5s infinite ease-in-out; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+        /* Lottie Animation Containers for Onboarding */
+        .lottie-box { width: 250px; height: 250px; opacity: 0; transform: scale(0.95) translateY(10px); transition: all 0.6s var(--ease-out); }
+        .lottie-box.loaded { opacity: 1; transform: scale(1) translateY(0); }
+
+        /* Core UI Layouts */
         .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
         .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-out); }
         .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
@@ -66,15 +118,15 @@
         .button-group { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
 
         /* Buttons */
-        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; }
+        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; white-space: nowrap; }
         .btn-primary:active { border-bottom-width: 0; transform: translateY(6px); }
-        .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.1em; transition: background 0.2s; }
+        .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.05em; transition: background 0.2s; white-space: nowrap; }
         .btn-secondary:hover { background: var(--bg-card-hover); }
 
         /* Login Modal */
         .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
         .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-        .login-header { display: flex; items-center: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
+        .login-header { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
         .btn-close { color: var(--text-muted); padding: 0.5rem; margin-left: -0.5rem; transition: color 0.2s; }
         .btn-close:hover { color: var(--text-main); }
         .login-title { color: var(--text-muted); font-weight: bold; font-size: 1.125rem; flex: 1; text-align: center; margin-right: 1.5rem; }
@@ -97,16 +149,15 @@
         .google-text { color: var(--text-light); font-weight: bold; font-size: 0.875rem; letter-spacing: 0.025em; }
 
         /* Onboarding Carousel Styles */
-        .onboarding-wrapper {
-            display: flex; width: 100vw; height: 100vh; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; 
-        }
-        .onboarding-wrapper::-webkit-scrollbar { display: none; }
-        
-        .slide {
-            flex: 0 0 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; scroll-snap-stop: always; padding: 2rem; text-align: center; position: relative;
-        }
+        .onboarding-wrapper { display: flex; width: 100vw; height: 100vh; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .slide { flex: 0 0 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; scroll-snap-stop: always; padding: 2rem; text-align: center; position: relative; }
         .slide-title { font-size: 2rem; font-weight: 800; margin-top: 1.5rem; color: var(--text-main); letter-spacing: 0.025em; }
         .slide-text { font-size: 1.125rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 85%; line-height: 1.6; }
+        
+        .swipe-indicator { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2rem; opacity: 0.8; animation: swipeBounce 2s infinite ease-in-out; }
+        .swipe-indicator svg { width: 20px; height: 20px; }
+        @keyframes swipeBounce { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+
         .pagination-dots { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; z-index: 100; }
         .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--border-color); transition: all 0.3s var(--ease-out); }
         .dot.active { background-color: var(--accent-blue); width: 24px; border-radius: 4px; }
@@ -116,7 +167,10 @@
 
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-content">
-            <div class="modern-spinner"></div>
+            <div class="loader-graphic-container">
+                <div id="cssSpinner" class="modern-spinner"></div>
+                <div id="lottieLoader" class="lottie-loader-layer"></div>
+            </div>
             <div class="loading-text">Loading MedExcel...</div>
         </div>
     </div>
@@ -137,25 +191,30 @@
     <div id="introScreen" class="screen active" style="padding: 0;">
         <div class="onboarding-wrapper" onscroll="updateDots(this)">
             <div class="slide">
-                <lottie-player src="YayJump.json" background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay></lottie-player>
+                <div id="lottie-yay" class="lottie-box"></div>
                 <h2 class="slide-title">Welcome to MedExcel</h2>
                 <p class="slide-text">Your ultimate AI study buddy.</p>
+                <div class="swipe-indicator">
+                    <span>Swipe</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
             </div>
             <div class="slide">
-                <lottie-player src="Blue Working Cat Animation.json" background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay></lottie-player>
+                <div id="lottie-cat" class="lottie-box"></div>
                 <h2 class="slide-title">Instant Flashcards</h2>
-                <p class="slide-text">Let Aurora create your study materials in seconds.</p>
+                <p class="slide-text">Let MedExcel create your study materials in seconds.</p>
             </div>
             <div class="slide">
-                <lottie-player src="WonderThings.json" background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay></lottie-player>
+                <div id="lottie-wonder" class="lottie-box"></div>
                 <h2 class="slide-title">Remember Forever</h2>
                 <p class="slide-text">Crush your exams and manage your time perfectly.</p>
             </div>
             <div class="slide">
-                <lottie-player src="Walkinganddrinking.json" background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay></lottie-player>
+                <div id="lottie-walk" class="lottie-box"></div>
                 <h2 class="slide-title">Stress-Free Studying</h2>
                 <p class="slide-text">Take a breath. We've got the hard part covered.</p>
-                <div class="button-group" style="margin-top: 2rem; width: 80%;">
+                
+                <div class="button-group" style="margin-top: 2rem; width: 90%; max-width: 24rem;">
                     <button onclick="toggleSignup()" class="btn-primary">Get Started</button>
                     <button onclick="toggleLogin(true)" class="btn-secondary">I Already Have An Account</button>
                 </div>
@@ -202,6 +261,44 @@
     </div>
 
     <script>
+        // Lottie Initialization Logic (Called once library loads)
+        window.initAnimations = function() {
+            // Lottie Optimization: Use raw animationData to skip network requests
+            const injectLottie = async (elementId, cacheKey) => {
+                const data = await AssetManager.get(cacheKey);
+                if(!data) return;
+                
+                const container = document.getElementById(elementId);
+                
+                // If it's the loader, cross-fade from the CSS spinner smoothly
+                if (elementId === 'lottieLoader') {
+                    document.getElementById('cssSpinner').style.opacity = '0';
+                    container.classList.add('active');
+                }
+
+                lottie.loadAnimation({
+                    container: container,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    animationData: data // Direct memory injection - ZERO DELAY
+                });
+
+                // Smoothly fade element in so no pop-in occurs
+                requestAnimationFrame(() => container.classList.add('loaded'));
+            };
+
+            // Inject the loader first
+            injectLottie('lottieLoader', 'loader');
+            
+            // Inject all onboarding screens
+            injectLottie('lottie-yay', 'yay');
+            injectLottie('lottie-cat', 'cat');
+            injectLottie('lottie-wonder', 'wonder');
+            injectLottie('lottie-walk', 'walk');
+        };
+
+        // Window Loader Handling
         window.__loader = {
             startTime: Date.now(),
             minMs: 0, 
@@ -213,7 +310,13 @@
                     const remaining = Math.max(0, this.minMs - elapsed);
                     setTimeout(() => {
                         const loader = document.getElementById('loaderScreen');
-                        if(loader) { loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; document.body.style.pointerEvents = 'auto'; }, 400); }
+                        if(loader) { 
+                            loader.style.opacity = '0'; 
+                            setTimeout(() => { 
+                                loader.style.visibility = 'hidden'; 
+                                document.body.style.pointerEvents = 'auto'; 
+                            }, 400); 
+                        }
                     }, remaining);
                 }
             }
@@ -280,8 +383,7 @@
             const activeIndex = Math.round(scrollPosition / slideWidth);
             const dots = document.querySelectorAll('#dots-container .dot');
             dots.forEach((dot, index) => {
-                if (index === activeIndex) dot.classList.add('active');
-                else dot.classList.remove('active');
+                dot.classList.toggle('active', index === activeIndex);
             });
         }
 
@@ -332,7 +434,7 @@
             window.suppressAuthRedirect = true;
             try {
                 document.querySelector('.loading-text').textContent = "SIGNING IN...";
-                document.getElementById('loaderScreen').style.display = 'flex';
+                document.getElementById('loaderScreen').style.visibility = 'visible';
                 document.getElementById('loaderScreen').style.opacity = '1';
                 
                 if (window.Capacitor && window.Capacitor.Plugins.GoogleAuth) {
@@ -351,7 +453,7 @@
             } catch (error) {
                 window.suppressAuthRedirect = false; 
                 document.getElementById('loaderScreen').style.opacity = '0';
-                setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
+                setTimeout(() => document.getElementById('loaderScreen').style.visibility = 'hidden', 400);
                 if (error.code !== 'auth/popup-closed-by-user') {
                     await showDialog(error.message || "Google login failed.", "Login Failed", { hideCancel: true }); 
                 }

@@ -23,7 +23,7 @@
         };
 
         // Fire off network requests INSTANTLY (0ms delay)
-        AssetManager.preload('loader', 'Loader.json'); // Your custom Lottie loader
+        AssetManager.preload('loader', 'Loader.json');
         AssetManager.preload('yay', 'YayJump.json');
         AssetManager.preload('cat', 'Blue Working Cat Animation.json');
         AssetManager.preload('wonder', 'WonderThings.json');
@@ -81,9 +81,12 @@
         .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
         
         .loader-graphic-container { position: relative; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; }
-        .lottie-loader-layer { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .modern-spinner { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-right-color: var(--accent-blue-hover); animation: spin 0.8s linear infinite; transition: opacity 0.3s ease; }
+        .lottie-loader-layer { position: absolute; inset: 0; opacity: 0; transform: scale(0.9); transition: all 0.4s var(--ease-out); }
+        .lottie-loader-layer.active { opacity: 1; transform: scale(1); }
         
         .loading-text { color: var(--text-light); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* Lottie Animation Containers for Onboarding */
@@ -165,6 +168,7 @@
     <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
         <div class="loader-content">
             <div class="loader-graphic-container">
+                <div id="cssSpinner" class="modern-spinner"></div>
                 <div id="lottieLoader" class="lottie-loader-layer"></div>
             </div>
             <div class="loading-text">Loading MedExcel...</div>
@@ -266,6 +270,12 @@
                 
                 const container = document.getElementById(elementId);
                 
+                // If it's the loader, cross-fade from the CSS spinner smoothly
+                if (elementId === 'lottieLoader') {
+                    document.getElementById('cssSpinner').style.opacity = '0';
+                    container.classList.add('active');
+                }
+
                 lottie.loadAnimation({
                     container: container,
                     renderer: 'svg',
