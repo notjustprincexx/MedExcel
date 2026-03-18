@@ -281,21 +281,11 @@
 
         let currentUser = null;
 
-        // UPDATED: Handle unauthenticated state locally
+        // UPDATED: Handle unauthenticated state locally to redirect straight to login
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                currentUser = null;
-                // Setup Guest Profile
-                document.getElementById('userName').textContent = "Guest User";
-                document.getElementById('userEmail').textContent = "Please log in to save your progress.";
-                document.getElementById('userInitial').textContent = "G";
-                document.getElementById('planBadge').textContent = "No Account";
-                
-                // Change Log Out button to Log In
-                document.getElementById('logoutText').textContent = "Log In / Sign Up";
-                document.getElementById('logoutIcon').className = "fas fa-sign-in-alt text-xs";
-                
-                renderAchievements([]); // Render empty locked achievements
+                // Not signed in: Force redirect directly to the login panel
+                window.location.href = 'index.html#login';
                 return;
             }
             currentUser = user;
@@ -329,8 +319,13 @@
             const initialEl = document.getElementById('userInitial');
             const photoEl = document.getElementById('userPhoto');
             
-            nameEl.textContent = user.displayName || "Medical Student";
+            // UPDATED: Use the logic from the second file to fall back to the email prefix
+            const displayName = user.displayName || user.email.split('@')[0] || "Medical Student";
+            nameEl.textContent = displayName;
             emailEl.textContent = user.email;
+            
+            // Map the initial to the new display name logic
+            initialEl.textContent = displayName.charAt(0).toUpperCase();
             
             if (user.photoURL) {
                 photoEl.src = user.photoURL;
@@ -353,12 +348,10 @@
                 }
 
                 const plan = userData.plan || "free";
-                // Only overwrite if streak exists in DB, otherwise trust local storage
                 if (userData.streak !== undefined) {
                     document.getElementById('streakCount').textContent = userData.streak;
                 }
                 
-                // --- LIMITS MATCHING APP LOGIC ---
                 const today = new Date().toISOString().split("T")[0];
                 const isToday = userData.lastDailyReset === today;
                 const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
@@ -394,7 +387,6 @@
                 document.getElementById('miniPremium').classList.add('opacity-40');
                 document.getElementById('miniElite').classList.add('opacity-40');
 
-                // Update Usage UI Based on Correct Limits
                 typeBadge.textContent = "Daily Limit";
                 usageCountEl.textContent = dailyUsage;
 
@@ -407,7 +399,7 @@
                     usageRemEl.className = "text-sm font-bold text-yellow-500";
                     barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
                     barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
-                    document.getElementById('upgradeBtn').classList.add('hidden'); // Hide upgrade if max tier
+                    document.getElementById('upgradeBtn').classList.add('hidden');
                 } 
                 else if (plan === "premium") {
                     document.getElementById('miniPremium').classList.remove('opacity-40');
@@ -435,14 +427,12 @@
             }
         }
 
-        // NEW: Modal Logout logic
+        // Logout logic - UPDATED to redirect to indexmain (10).html#login
         document.getElementById('btnLogout').addEventListener('click', () => {
             if (!currentUser) {
-                // If not logged in, take them to the login page
                 window.location.href = "index.html#login";
                 return;
             }
-            // Show custom modal
             document.getElementById('logoutModalBackdrop').classList.add('show');
         });
 
@@ -451,9 +441,14 @@
         });
 
         document.getElementById('confirmLogoutBtn').addEventListener('click', async () => {
-            await signOut(auth);
-            document.getElementById('logoutModalBackdrop').classList.remove('show');
-            window.location.href = "index.html"; // Optional, can redirect after logging out
+            try {
+                await signOut(auth);
+                document.getElementById('logoutModalBackdrop').classList.remove('show');
+                window.location.href = "index.html#login";
+            } catch (error) {
+                console.error("Sign out error", error);
+                alert("Failed to sign out. Please try again.");
+            }
         });
 
         document.getElementById('btnResetPassword').addEventListener('click', async () => {
@@ -468,12 +463,13 @@
             }
         });
 
+        // Delete account - UPDATED to redirect to index.html#login
         document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
             if(confirm("DANGER: Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.")) {
                 try {
                     await deleteUser(currentUser);
                     alert("Account deleted successfully.");
-                    window.location.href = "index.html";
+                    window.location.href = "index.html#login";
                 } catch (e) {
                     if (e.code === 'auth/requires-recent-login') {
                         alert("For security reasons, please log out and log back in before deleting your account.");

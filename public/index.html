@@ -284,6 +284,21 @@
                 else dot.classList.remove('active');
             });
         }
+
+        // Listens for the #login tag to open the modal immediately upon loading
+        (function openAuthFromUrl() {
+            try {
+                const hash = (location.hash || '').replace('#', '').toLowerCase();
+                const params = new URLSearchParams(location.search);
+                const action = params.get('action') ? params.get('action').toLowerCase() : null;
+                
+                if (hash === 'login' || action === 'login') {
+                    setTimeout(() => toggleLogin(true, false), 100);
+                } else if (hash === 'signup' || action === 'signup') {
+                    setTimeout(() => toggleLogin(true, true), 100);
+                }
+            } catch (e) { console.warn('openAuthFromUrl failed', e); }
+        })();
     </script>
 
     <script type="module">
@@ -299,17 +314,20 @@
 
         onAuthStateChanged(auth, (user) => {
             window.__loader.authResolved = true;
-            const skip = localStorage.getItem("skip") === "true";
             if (window.suppressAuthRedirect) return;
-            if (user || skip) { window.__loader.redirecting = true; window.location.href = 'homepage.html'; } 
-            else { window.__loader.checkHide(); }
+
+            if (user) { 
+                window.__loader.redirecting = true; 
+                window.location.href = 'homepage.html'; 
+            } else { 
+                window.__loader.checkHide(); 
+            }
         });
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
             window.Capacitor.Plugins.GoogleAuth.initialize();
         }
 
-        // Global auth function called by the Google button
         window.executeFirebaseGoogleAuth = async () => {
             window.suppressAuthRedirect = true;
             try {
@@ -317,32 +335,23 @@
                 document.getElementById('loaderScreen').style.display = 'flex';
                 document.getElementById('loaderScreen').style.opacity = '1';
                 
-                // If running as a native app (Capacitor)
                 if (window.Capacitor && window.Capacitor.Plugins.GoogleAuth) {
                     const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
                     const idToken = googleUser.authentication.idToken;
-                    
                     if (!idToken) throw new Error("No ID token found.");
-
                     const credential = GoogleAuthProvider.credential(idToken);
                     await signInWithCredential(auth, credential);
-                } 
-                // If testing directly on the Web (medexcel.web.app)
-                else {
+                } else {
                     const provider = new GoogleAuthProvider();
                     await signInWithPopup(auth, provider);
                 }
                 
                 window.__loader.redirecting = true;
                 window.location.href = 'homepage.html';
-
             } catch (error) {
                 window.suppressAuthRedirect = false; 
                 document.getElementById('loaderScreen').style.opacity = '0';
                 setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
-                console.error("Google Login Error:", error);
-                
-                // Suppress "User closed popup" errors so they aren't annoying
                 if (error.code !== 'auth/popup-closed-by-user') {
                     await showDialog(error.message || "Google login failed.", "Login Failed", { hideCancel: true }); 
                 }
@@ -368,7 +377,6 @@
                         await signInWithEmailAndPassword(auth, email, pass);
                     }
                     window.__loader.redirecting = true; 
-                    localStorage.removeItem("skip"); 
                     window.location.href = 'homepage.html';
                 } catch (error) { 
                     window.suppressAuthRedirect = false; 
