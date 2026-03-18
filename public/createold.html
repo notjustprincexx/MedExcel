@@ -130,10 +130,8 @@
         /* Modals & Loaders */
         .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 21, 0.9); backdrop-filter: blur(10px); z-index: 10000; transition: opacity 0.3s, visibility 0.3s; }
         .loader-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .spinner { width: 4rem; height: 4rem; margin-bottom: 1rem; color: var(--blue-hover); font-size: 3rem; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .loader-title { color: var(--text-primary); font-weight: 500; font-size: 0.875rem; margin-bottom: 0.25rem; letter-spacing: 0.025em; }
-        .loader-subtitle { color: var(--text-secondary); font-size: 0.75rem; }
+        .loader-title { color: var(--text-primary); font-weight: 500; font-size: 1rem; margin-bottom: 0.25rem; letter-spacing: 0.025em; margin-top: 1rem;}
+        .loader-subtitle { color: var(--text-secondary); font-size: 0.875rem; text-align: center; max-width: 80%; line-height: 1.4; transition: opacity 0.3s;}
 
         .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
         .modal-backdrop.show { opacity: 1; visibility: visible; }
@@ -235,9 +233,9 @@
 
     <div id="aiLoader" class="loader-screen hidden" role="status">
         <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-            <i class="fas fa-circle-notch spinner"></i>
-            <div class="loader-title">Aurora is processing</div>
-            <div class="loader-subtitle" id="loadingText">Uploading file to secure storage...</div>
+            <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
+            <div class="loader-title">Aurora is scanning...</div>
+            <div class="loader-subtitle" id="loadingText">Preparing to analyze document...</div>
         </div>
     </div>
 
@@ -347,6 +345,9 @@
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     
+    // --- LOTTIE JSON DATA ---
+    const scanningLottieData = {"v":"5.5.7","meta":{"g":"LottieFiles AE 0.1.20","a":"","k":"","d":"","tc":"#eaedf1"},"fr":60,"ip":0,"op":227,"w":600,"h":600,"nm":"Scanning","ddd":0,"assets":[{"id":"comp_0","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 10","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 9","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 8","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 7","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy 6","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]},{"id":"comp_1","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 5","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 4","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":60,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.275,"y":0},"t":0,"s":[300,485.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":110,"s":[300,125.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":220,"s":[300,485.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,9],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":4.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"bottom-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":120,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":152,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":199,"s":[40]},{"t":218,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.374,"y":1},"o":{"x":0.274,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-52.833,0],"ti":[0,-7.167,0]},{"i":{"x":0.726,"y":1},"o":{"x":0.621,"y":0},"t":111,"s":[300,146.5,0],"to":[0,7.167,0],"ti":[0,-60,0]},{"t":221,"s":[300,506.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,-100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"top-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":14,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":89,"s":[40]},{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":108,"s":[0]},{"t":221,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.271,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":111,"s":[300,103.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":221,"s":[300,463.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"full","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"hasMask":true,"masksProperties":[{"inv":false,"mode":"i","pt":{"a":1,"k":[{"i":{"x":0.364,"y":1},"o":{"x":0.272,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]},{"i":{"x":0.73,"y":1},"o":{"x":0.631,"y":0},"t":110,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,129.957],[448.801,129.957]],"c":true}]},{"t":220,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]}],"ix":1},"o":{"a":0,"k":100,"ix":3},"x":{"a":0,"k":0,"ix":4},"nm":"Mask 1"}],"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"trans","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0}],"markers":[]};
+
     const firebaseConfig = {
         apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
         authDomain: "medxcel.firebaseapp.com",
@@ -365,6 +366,29 @@
     let currentUser = null;
     let userPlan = "free";
     let allowedMaxItems = 15;
+
+    // --- INITIALIZE LOTTIE ---
+    let lottieAnimation = null;
+    if (window.lottie) {
+        lottieAnimation = window.lottie.loadAnimation({
+            container: document.getElementById('lottieLoaderContainer'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: false, // We will play it manually
+            animationData: scanningLottieData
+        });
+    }
+
+    // --- LOADING MESSAGES ARRAY ---
+    const loadingMessages = [
+        "Analyzing document structure...",
+        "Extracting key concepts and terms...",
+        "Formulating educational questions...",
+        "Reviewing accuracy...",
+        "Finalizing your content...",
+        "Almost there..."
+    ];
+    let messageInterval = null;
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
@@ -726,7 +750,7 @@
         `;
         interactiveView.innerHTML = html;
 
-        // Trigger Lottie animation
+        // Trigger Lottie animation for trophy if exists
         if (window.lottie) {
             window.lottie.loadAnimation({
                 container: document.getElementById('result-trophy-container'),
@@ -756,28 +780,37 @@
         generateBtn.classList.remove('active');
         aiLoader.classList.remove('hidden');
         
+        // --- START ANIMATION & TEXT CYCLING ---
+        if (lottieAnimation) lottieAnimation.play();
+        
+        let msgIndex = 0;
+        loadingText.style.opacity = 0;
+        setTimeout(() => {
+            loadingText.textContent = loadingMessages[0];
+            loadingText.style.opacity = 1;
+        }, 300);
+
+        messageInterval = setInterval(() => {
+            loadingText.style.opacity = 0;
+            setTimeout(() => {
+                msgIndex = (msgIndex + 1) % loadingMessages.length;
+                loadingText.textContent = loadingMessages[msgIndex];
+                loadingText.style.opacity = 1;
+            }, 300); // 300ms transition
+        }, 3500); // Changes text every 3.5 seconds
+        // --------------------------------------
+
         try {
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
             const securePath = `uploads/${currentUser.uid}/${uniqueFileName}`;
             const storageReference = ref(storage, securePath);
             await uploadBytes(storageReference, selectedFile);
             
-            loadingText.textContent = `Generating ${quizType.toLowerCase()}...`;
             const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
             
-            // NEW LOGIC TO FORCE DIRECT QUESTIONS FOR FREE USERS
-            let finalTopicFocus = topicFocusInput.value.trim();
-            if (userPlan === "free" && quizType === "Multiple Choice") {
-                const strictPrompt = "IMPORTANT INSTRUCTION: Generate only short, direct, and factual questions. STRICTLY DO NOT generate long clinical case studies, patient scenarios, or vignettes.";
-                finalTopicFocus = finalTopicFocus ? `${finalTopicFocus}. ${strictPrompt}` : strictPrompt;
-            }
-
             const response = await generateQuizFunction({
-                filePath: securePath, 
-                fileName: selectedFile.name, 
-                quizType: quizType, 
-                topicFocus: finalTopicFocus, // Sending our manipulated prompt here
-                numberOfItems: requestedItems
+                filePath: securePath, fileName: selectedFile.name, quizType: quizType, 
+                topicFocus: topicFocusInput.value, numberOfItems: requestedItems
             });
             
             const payload = response.data;
@@ -786,7 +819,6 @@
             if (!cards || !Array.isArray(cards) || cards.length === 0) throw new Error("Generation returned empty data.");
 
             bottomNav.classList.add('hidden'); 
-            
             mainContainer.classList.add('interactive-mode');
             
             generatedCards = cards.map(card => ({ ...card, answered: false }));
@@ -821,6 +853,10 @@
             existingQuizzes.push(newQuiz);
             localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
 
+            // --- STOP ANIMATION ON SUCCESS ---
+            if (lottieAnimation) lottieAnimation.stop();
+            clearInterval(messageInterval);
+
             aiLoader.classList.add('hidden');
             setupView.style.display = 'none';
             interactiveView.classList.add('active');
@@ -828,6 +864,11 @@
             
         } catch (error) {
             console.error("Error generating quiz:", error);
+            
+            // --- STOP ANIMATION ON ERROR ---
+            if (lottieAnimation) lottieAnimation.stop();
+            clearInterval(messageInterval);
+
             if (error.message.includes("limit reached") || error.message.includes("resource-exhausted")) {
                 alert("You have reached your AI generation limit. Please upgrade your plan to generate more.");
                 window.location.href = "payment.html";
