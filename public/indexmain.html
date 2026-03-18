@@ -285,19 +285,18 @@
             });
         }
 
-        // This built-in function is what catches the #login when you sign out!
+        // Listens for the #login tag to open the modal immediately upon loading
         (function openAuthFromUrl() {
             try {
                 const hash = (location.hash || '').replace('#', '').toLowerCase();
                 const params = new URLSearchParams(location.search);
                 const action = params.get('action') ? params.get('action').toLowerCase() : null;
                 
-                if (['login', 'signup', 'logout'].includes(hash) || ['login', 'signup', 'logout'].includes(action)) {
-                    localStorage.removeItem('skip');
+                if (hash === 'login' || action === 'login') {
+                    setTimeout(() => toggleLogin(true, false), 100);
+                } else if (hash === 'signup' || action === 'signup') {
+                    setTimeout(() => toggleLogin(true, true), 100);
                 }
-
-                if (hash === 'login' || action === 'login') toggleLogin(true, false);
-                else if (hash === 'signup' || action === 'signup') toggleLogin(true, true);
             } catch (e) { console.warn('openAuthFromUrl failed', e); }
         })();
     </script>
@@ -315,14 +314,14 @@
 
         onAuthStateChanged(auth, (user) => {
             window.__loader.authResolved = true;
-            const skip = localStorage.getItem("skip") === "true";
             if (window.suppressAuthRedirect) return;
-            // IMPORTANT: If they hit index.html#login, we want to stay here so they can log in!
-            const hash = (location.hash || '').replace('#', '').toLowerCase();
-            if (hash === 'login') return; 
 
-            if (user || skip) { window.__loader.redirecting = true; window.location.href = 'homepage.html'; } 
-            else { window.__loader.checkHide(); }
+            if (user) { 
+                window.__loader.redirecting = true; 
+                window.location.href = 'homepage.html'; 
+            } else { 
+                window.__loader.checkHide(); 
+            }
         });
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
@@ -378,7 +377,6 @@
                         await signInWithEmailAndPassword(auth, email, pass);
                     }
                     window.__loader.redirecting = true; 
-                    localStorage.removeItem("skip"); 
                     window.location.href = 'homepage.html';
                 } catch (error) { 
                     window.suppressAuthRedirect = false; 
