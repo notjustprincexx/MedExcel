@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#050A15">
     <title>Loading MedExcel...</title>
+
     <style>
         :root {
             --bg-body: #050A15;
@@ -23,9 +24,9 @@
             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         }
 
-        /* --- Skeleton Shimmer Effect --- */
+        /* Skeleton shimmer */
         .skeleton {
-            background: #1e293b; /* Dark slate matching your theme */
+            background: #1e293b;
             background-image: linear-gradient(
                 90deg,
                 rgba(255, 255, 255, 0) 0px,
@@ -42,7 +43,7 @@
             100% { background-position: -200% 0; }
         }
 
-        /* --- Layout Blocks --- */
+        /* Layout */
         .skel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .skel-title { height: 1.5rem; width: 40%; border-radius: 0.5rem; }
         .skel-badge { height: 2.25rem; width: 4rem; border-radius: 9999px; }
@@ -54,7 +55,7 @@
         .skel-card-large { grid-column: span 2; height: 5rem; border-radius: 1rem; }
         .skel-card-tall { grid-column: span 2; height: 8rem; border-radius: 1rem; }
 
-        /* Subtle indicator that it's waiting for connection */
+        /* Status text */
         .waiting-text {
             position: fixed;
             bottom: 2rem;
@@ -68,9 +69,18 @@
             border-radius: 2rem;
             border: 1px solid rgba(255, 255, 255, 0.05);
             letter-spacing: 0.05em;
+            animation: pulse 1.5s infinite;
         }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
     </style>
 </head>
+
 <body>
 
     <div class="skel-header">
@@ -91,33 +101,49 @@
         <div class="skeleton skel-card-tall"></div>
     </div>
 
-    <div class="waiting-text">Waiting for connection...</div>
+    <div class="waiting-text" id="status">Waiting for connection...</div>
 
 <script>
 
-// reload when browser detects connection
-window.addEventListener('online', () => {
-    window.location.reload();
-});
+const SITE_URL = "https://medxcel.web.app";
+const statusText = document.getElementById("status");
 
-// also actively check internet every 3 seconds
-setInterval(async () => {
+let isReloading = false;
+
+// 🔥 Smart connection check
+async function checkConnection() {
+    if (isReloading) return;
+
     try {
-
-        await fetch("https://medxcel.web.app", {
-            method: "HEAD",
-            mode: "no-cors"
+        const response = await fetch(SITE_URL, {
+            method: "GET",
+            cache: "no-store"
         });
 
-        // if request succeeds, reload site
-        window.location.href = "https://medxcel.web.app";
+        if (response.ok || response.type === "opaque") {
+            isReloading = true;
+
+            statusText.innerText = "Back online. Loading...";
+
+            setTimeout(() => {
+                window.location.href = SITE_URL;
+            }, 800);
+        }
 
     } catch (e) {
-        console.log("Still offline");
+        statusText.innerText = "Waiting for connection...";
     }
+}
 
-}, 3000);
+// 🔁 Continuous checking
+setInterval(checkConnection, 3000);
+
+// ⚡ Instant detection when network returns
+window.addEventListener('online', () => {
+    checkConnection();
+});
 
 </script>
+
 </body>
 </html>
