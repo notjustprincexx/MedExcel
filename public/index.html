@@ -12,7 +12,6 @@
         window.AssetManager = {
             cache: {},
             preload: function(key, url) {
-                // Fetch eagerly and store the Promise in memory
                 this.cache[key] = fetch(url)
                     .then(res => res.json())
                     .catch(err => console.warn(`Failed to preload ${key}:`, err));
@@ -22,14 +21,12 @@
             }
         };
 
-        // Fire off network requests INSTANTLY (0ms delay)
-        AssetManager.preload('loader', 'Loader.json'); // Your custom Lottie loader
+        AssetManager.preload('loader', 'Loader.json'); 
         AssetManager.preload('yay', 'YayJump.json');
         AssetManager.preload('cat', 'Blue Working Cat Animation.json');
         AssetManager.preload('wonder', 'WonderThings.json');
         AssetManager.preload('walk', 'Walkinganddrinking.json');
 
-        // SMART PRELOADING: Load future screen data in the background without blocking the main thread
         const preloadFutureAssets = () => {
             AssetManager.preload('quiz1', 'quiz.json');
             AssetManager.preload('trophy', 'trophy.json');
@@ -102,8 +99,8 @@
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
 
-        /* Screen Transitions */
-        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem; z-index: 50; transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap); opacity: 0; pointer-events: none; transform: scale(0.98); }
+        /* Screen Transitions - ADDED OVERFLOW HIDDEN TO CLIP SCROLLBAR */
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem; z-index: 50; transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap); opacity: 0; pointer-events: none; transform: scale(0.98); overflow: hidden; }
         .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
         .screen.hidden-screen { display: none; }
 
@@ -145,9 +142,45 @@
         .btn-google:active { transform: scale(0.95); }
         .google-text { color: var(--text-light); font-weight: bold; font-size: 0.875rem; letter-spacing: 0.025em; }
 
-        /* Onboarding Carousel Styles */
-        .onboarding-wrapper { display: flex; width: 100vw; height: 100vh; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-        .slide { flex: 0 0 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; scroll-snap-stop: always; padding: 2rem; text-align: center; position: relative; }
+        /* Onboarding Carousel Styles - BULLETPROOF WEBVIEW FIX */
+        .onboarding-wrapper { 
+            display: flex; 
+            width: 100%; 
+            height: 100vh; 
+            padding-bottom: 40px; /* Pushes the scrollbar into the hidden overflow area */
+            box-sizing: content-box; /* Ensures the padding adds to the 100vh height */
+            overflow-x: auto; 
+            overflow-y: hidden; 
+            scroll-snap-type: x mandatory; 
+            -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none !important; 
+            -ms-overflow-style: none !important; 
+        }
+        
+        .onboarding-wrapper::-webkit-scrollbar,
+        .onboarding-wrapper::-webkit-scrollbar-track,
+        .onboarding-wrapper::-webkit-scrollbar-thumb { 
+            display: none !important; 
+            width: 0 !important; 
+            height: 0 !important; 
+            background: transparent !important;
+            -webkit-appearance: none !important;
+        }
+
+        .slide { 
+            flex: 0 0 100%; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            scroll-snap-align: start; 
+            scroll-snap-stop: always; 
+            padding: 2rem; 
+            text-align: center; 
+            position: relative; 
+        }
+        
         .slide-title { font-size: 2rem; font-weight: 800; margin-top: 1.5rem; color: var(--text-main); letter-spacing: 0.025em; }
         .slide-text { font-size: 1.125rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 85%; line-height: 1.6; }
         
@@ -257,9 +290,7 @@
     </div>
 
     <script>
-        // Lottie Initialization Logic (Called once library loads)
         window.initAnimations = function() {
-            // Lottie Optimization: Use raw animationData to skip network requests
             const injectLottie = async (elementId, cacheKey) => {
                 const data = await AssetManager.get(cacheKey);
                 if(!data) return;
@@ -271,24 +302,19 @@
                     renderer: 'svg',
                     loop: true,
                     autoplay: true,
-                    animationData: data // Direct memory injection - ZERO DELAY
+                    animationData: data 
                 });
 
-                // Smoothly fade element in so no pop-in occurs
                 requestAnimationFrame(() => container.classList.add('loaded'));
             };
 
-            // Inject the loader first
             injectLottie('lottieLoader', 'loader');
-            
-            // Inject all onboarding screens
             injectLottie('lottie-yay', 'yay');
             injectLottie('lottie-cat', 'cat');
             injectLottie('lottie-wonder', 'wonder');
             injectLottie('lottie-walk', 'walk');
         };
 
-        // Window Loader Handling
         window.__loader = {
             startTime: Date.now(),
             minMs: 0, 
@@ -377,7 +403,6 @@
             });
         }
 
-        // Listens for the #login tag to open the modal immediately upon loading
         (function openAuthFromUrl() {
             try {
                 const hash = (location.hash || '').replace('#', '').toLowerCase();
