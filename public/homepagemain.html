@@ -59,26 +59,41 @@
         .main-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.25rem; }
 
-        /* --- NEW: DEDICATED GO PRO BANNER --- */
+        /* --- DEDICATED GO PRO BANNER WITH DISMISS --- */
         .go-pro-banner {
             display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
             background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(202, 138, 4, 0.05));
             border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 1rem;
             box-shadow: 0 10px 25px -5px rgba(234, 179, 8, 0.1);
-            text-decoration: none; transition: transform 0.2s, background 0.2s;
+            transition: opacity 0.3s, transform 0.3s, background 0.2s;
+            cursor: pointer;
         }
         .go-pro-banner:active { transform: scale(0.98); }
         .go-pro-banner:hover { background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(202, 138, 4, 0.1)); }
         
         .crown-lottie-large { 
-            width: 3.5rem; /* Massive 56px container so animation shows clearly! */
+            width: 3.5rem; /* Massive 56px container */
             height: 3.5rem; 
             flex-shrink: 0; 
             filter: drop-shadow(0 4px 10px rgba(234, 179, 8, 0.4)); 
+            pointer-events: none; /* Let click pass to banner */
         }
-        .banner-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .banner-content { flex: 1; display: flex; flex-direction: column; justify-content: center; pointer-events: none; }
         .banner-title { color: #fde047; font-weight: 800; font-size: 1rem; margin-bottom: 0.125rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .banner-sub { color: rgba(253, 224, 71, 0.8); font-size: 0.75rem; font-weight: 500; }
+
+        /* The Dismiss Button */
+        .btn-dismiss-banner {
+            width: 2rem; height: 2rem; border-radius: 50%;
+            background: rgba(234, 179, 8, 0.1); color: rgba(253, 224, 71, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(234, 179, 8, 0.2);
+            transition: all 0.2s; flex-shrink: 0; margin-left: auto;
+            z-index: 2; /* Ensure it stays above the banner link */
+        }
+        .btn-dismiss-banner:hover {
+            background: rgba(234, 179, 8, 0.3); color: white;
+        }
 
         /* Cards */
         .continue-card { display: block; padding: 1rem; position: relative; overflow: hidden; transition: transform 0.2s, background 0.2s; border: 1px solid rgba(99, 102, 241, 0.3); }
@@ -240,14 +255,16 @@
 
     <main class="main-content">
         
-        <a href="payment.html" id="goProBanner" class="go-pro-banner fade-in" style="display: none; animation-delay: 15ms;">
+        <div id="goProBanner" class="go-pro-banner fade-in" style="display: none; animation-delay: 15ms;">
             <div id="crownLottieContainer" class="crown-lottie-large"></div>
             <div class="banner-content">
                 <h3 class="banner-title">Upgrade to Pro</h3>
                 <p class="banner-sub">Unlock unlimited AI generations</p>
             </div>
-            <i class="fas fa-chevron-right" style="color: #fde047; opacity: 0.5;"></i>
-        </a>
+            <button id="dismissGoProBtn" class="btn-dismiss-banner" aria-label="Dismiss banner">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
 
         <div id="continueStudyingSection" style="display: none;" class="fade-in" style="animation-delay: 30ms;">
             <h2 class="section-title">Continue Studying</h2>
@@ -591,6 +608,36 @@
             }
         } catch(e) { console.warn("UI Init failed", e); }
     })();
+
+    // --- SMART SNOOZE CLICK LOGIC ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const goProBanner = document.getElementById('goProBanner');
+        const dismissBtn = document.getElementById('dismissGoProBtn');
+
+        if (goProBanner) {
+            goProBanner.addEventListener('click', (e) => {
+                // If they didn't click the dismiss button, send them to payment page
+                if (!e.target.closest('#dismissGoProBtn')) {
+                    window.location.href = 'payment.html';
+                }
+            });
+        }
+
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Stop banner click event
+                
+                // Animate out
+                goProBanner.style.opacity = '0';
+                goProBanner.style.transform = 'scale(0.95)';
+                setTimeout(() => { goProBanner.style.display = 'none'; }, 300);
+                
+                // 3 days in milliseconds: 3 * 24 * 60 * 60 * 1000 = 259200000
+                const snoozeUntil = Date.now() + 259200000;
+                localStorage.setItem('medexcel_gopro_snooze', snoozeUntil.toString());
+            });
+        }
+    });
     </script>
 
     <script type="module">
@@ -608,6 +655,15 @@
         const findBestVideo = httpsCallable(functions, "findBestVideo");
         const skip = localStorage.getItem("skip") === "true";
 
+        // --- CHECK IF BANNER IS SNOOZED ---
+        function shouldShowBanner() {
+            const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
+            if (snoozeTime && Date.now() < parseInt(snoozeTime, 10)) {
+                return false; // User snoozed it, and time isn't up yet
+            }
+            return true;
+        }
+
         onAuthStateChanged(auth, async (user) => {
             if (user) { 
                 const name = user.displayName || user.email.split('@')[0]; 
@@ -618,22 +674,20 @@
                     const userDoc = await getDoc(userDocRef);
                     if (userDoc.exists()) {
                         const plan = userDoc.data().plan || "free";
-                        if (plan === "free") {
-                            // Trigger NEW Banner
+                        if (plan === "free" && shouldShowBanner()) {
                             document.getElementById('goProBanner').style.display = 'flex';
                         }
-                    } else {
+                    } else if (shouldShowBanner()) {
                         document.getElementById('goProBanner').style.display = 'flex';
                     }
                 } catch (error) {
                     console.log("Error checking plan status");
-                    document.getElementById('goProBanner').style.display = 'flex';
+                    if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 }
 
             } else if (!skip) { 
                 window.location.href = 'index.html#login'; 
-            } else if (skip) {
-                // Guests see the banner
+            } else if (skip && shouldShowBanner()) {
                 document.getElementById('goProBanner').style.display = 'flex';
             }
         });
