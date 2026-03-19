@@ -9,6 +9,11 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
     
     <script>
+        // Immediate auth guard to prevent UI flicker
+        if (localStorage.getItem("nativeUser")) {
+            window.location.replace("homepage.html");
+        }
+
         window.AssetManager = {
             cache: {},
             preload: function(key, url) {
@@ -406,11 +411,15 @@
         };
 
         window.onNativeLogin = function(email, uid) {
-            console.log("Native login success:", email);
-            window.isNativeLogin = true;
             localStorage.setItem("nativeUser", JSON.stringify({ email, uid }));
             window.__loader.redirecting = true;
             window.location.href = "homepage.html";
+        };
+
+        window.logoutUser = async function() {
+            localStorage.removeItem("nativeUser");
+            localStorage.removeItem("skip");
+            window.location.href = "index.html?action=login";
         };
 
         (function openAuthFromUrl() {
@@ -455,7 +464,7 @@
             }
 
             // Stay on login page
-            window.__loader.checkHide();
+            if (window.__loader) window.__loader.checkHide();
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -463,12 +472,14 @@
             checkAuthAndRedirect(user);
         });
 
+        // Safe global logout
         window.logoutUser = async function() {
             try {
                 await signOut(auth);
             } catch (e) {}
 
             localStorage.removeItem("nativeUser");
+            localStorage.removeItem("skip");
             window.location.href = "index.html?action=login";
         };
 
