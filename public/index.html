@@ -10,10 +10,18 @@
     
     <script>
         const savedUser = localStorage.getItem("nativeUser");
-        if (savedUser) {
-            window.isNativeLogin = true;
+
+if (savedUser) {
+    window.isNativeLogin = true;
+    
+    // Wait for app to initialize before redirect
+    window.addEventListener("load", () => {
+        setTimeout(() => {
+            window.__loader.redirecting = true;
             window.location.href = "homepage.html";
-        }
+        }, 300);
+    });
+}
 
         window.AssetManager = {
             cache: {},

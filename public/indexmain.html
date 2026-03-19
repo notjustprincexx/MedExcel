@@ -9,6 +9,20 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
     
     <script>
+        const savedUser = localStorage.getItem("nativeUser");
+
+if (savedUser) {
+    window.isNativeLogin = true;
+    
+    // Wait for app to initialize before redirect
+    window.addEventListener("load", () => {
+        setTimeout(() => {
+            window.__loader.redirecting = true;
+            window.location.href = "homepage.html";
+        }, 300);
+    });
+}
+
         window.AssetManager = {
             cache: {},
             preload: function(key, url) {
@@ -406,7 +420,9 @@
         };
 
         window.onNativeLogin = function(email, uid) {
-            console.log("Logged in:", email, uid);
+            console.log("Native login success:", email);
+            window.isNativeLogin = true;
+            localStorage.setItem("nativeUser", JSON.stringify({ email, uid }));
             window.__loader.redirecting = true;
             window.location.href = "homepage.html";
         };
@@ -439,13 +455,15 @@
 
         onAuthStateChanged(auth, (user) => {
             window.__loader.authResolved = true;
-            if (window.suppressAuthRedirect) return;
 
-            if (user) { 
-                window.__loader.redirecting = true; 
-                window.location.href = 'homepage.html'; 
-            } else { 
-                window.__loader.checkHide(); 
+            // 🚫 Ignore Firebase auth if native login is used
+            if (window.isNativeLogin) return;
+
+            if (user) {
+                window.__loader.redirecting = true;
+                window.location.href = 'homepage.html';
+            } else {
+                window.__loader.checkHide();
             }
         });
 
