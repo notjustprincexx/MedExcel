@@ -67,6 +67,25 @@
         .nav-item.active { color: white; }
         .nav-item.active span { font-weight: 700; }
     </style>
+    <script>
+        let currentUser = null;
+
+        (function () {
+            const saved = localStorage.getItem("nativeUser");
+
+            if (!saved) {
+                window.location.replace("index.html");
+                return;
+            }
+
+            try {
+                currentUser = JSON.parse(saved);
+            } catch (e) {
+                localStorage.removeItem("nativeUser");
+                window.location.replace("index.html");
+            }
+        })();
+    </script>
 </head>
 <body class="h-screen flex flex-col overflow-hidden relative bg-[#050A15]">
 
@@ -235,26 +254,9 @@
         </a>
     </nav>
 
-    <script>
-    (function fastInitUserUI() {
-        try {
-            const savedName = localStorage.getItem('userName'); 
-            if (savedName && savedName !== "Guest") {
-                document.getElementById('userName').textContent = savedName;
-                document.getElementById('userInitial').textContent = savedName.charAt(0).toUpperCase();
-            }
-
-            const userStats = JSON.parse(localStorage.getItem('medexcel_user_stats'));
-            if (userStats) {
-                document.getElementById('streakCount').textContent = userStats.streak || 0;
-            }
-        } catch(e) { console.warn("UI Fast Init failed", e); }
-    })();
-    </script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -279,19 +281,6 @@
             { id: "night_owl", title: "Night Owl", desc: "Studied past midnight", icon: "fa-moon" }
         ];
 
-        let currentUser = null;
-
-        // UPDATED: Handle unauthenticated state locally to redirect straight to login
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                // Not signed in: Force redirect directly to the login panel
-                window.location.href = 'index.html#login';
-                return;
-            }
-            currentUser = user;
-            await loadUserProfile(user);
-        });
-
         function renderAchievements(unlockedIds) {
             const grid = document.getElementById('achievementsGrid');
             grid.innerHTML = "";
@@ -313,45 +302,25 @@
             });
         }
 
-        async function loadUserProfile(user) {
-            const nameEl = document.getElementById('userName');
-            const emailEl = document.getElementById('userEmail');
-            const initialEl = document.getElementById('userInitial');
-            const photoEl = document.getElementById('userPhoto');
-            
-            // UPDATED: Use the logic from the second file to fall back to the email prefix
-            const displayName = user.displayName || user.email.split('@')[0] || "Medical Student";
-            nameEl.textContent = displayName;
-            emailEl.textContent = user.email;
-            
-            // Map the initial to the new display name logic
-            initialEl.textContent = displayName.charAt(0).toUpperCase();
-            
-            if (user.photoURL) {
-                photoEl.src = user.photoURL;
-                photoEl.classList.remove('hidden');
-                initialEl.classList.add('hidden');
-            }
+        window.addEventListener("load", async () => {
+            if (!currentUser) return;
 
-            const creationTime = user.metadata.creationTime;
-            if (creationTime) {
-                const d = new Date(creationTime);
-                document.getElementById('joinDate').textContent = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-            }
+            document.getElementById("userName").textContent = currentUser.email.split("@")[0];
+            document.getElementById("userEmail").textContent = currentUser.email;
+            document.getElementById("userInitial").textContent = currentUser.email.charAt(0).toUpperCase();
 
+            // 🔥 FIRESTORE LOAD
             try {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
+                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
                 let userData = {};
-                
+
                 if (userDoc.exists()) {
                     userData = userDoc.data();
+                    
+                    document.getElementById("streakCount").textContent = userData.streak || 0;
                 }
 
                 const plan = userData.plan || "free";
-                if (userData.streak !== undefined) {
-                    document.getElementById('streakCount').textContent = userData.streak;
-                }
-                
                 const today = new Date().toISOString().split("T")[0];
                 const isToday = userData.lastDailyReset === today;
                 const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
@@ -422,15 +391,14 @@
 
                 renderAchievements(unlockedIds);
 
-            } catch (err) {
-                console.error("Error fetching profile:", err);
+            } catch (e) {
+                console.error(e);
             }
-        }
+        });
 
-        // Logout logic - UPDATED to redirect to indexmain (10).html#login
         document.getElementById('btnLogout').addEventListener('click', () => {
             if (!currentUser) {
-                window.location.href = "index.html#login";
+                window.location.replace("index.html");
                 return;
             }
             document.getElementById('logoutModalBackdrop').classList.add('show');
@@ -440,16 +408,10 @@
             document.getElementById('logoutModalBackdrop').classList.remove('show');
         });
 
-        document.getElementById('confirmLogoutBtn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                document.getElementById('logoutModalBackdrop').classList.remove('show');
-                window.location.href = "index.html#login";
-            } catch (error) {
-                console.error("Sign out error", error);
-                alert("Failed to sign out. Please try again.");
-            }
-        });
+        document.getElementById('confirmLogoutBtn').onclick = () => {
+            localStorage.removeItem("nativeUser");
+            window.location.replace("index.html");
+        };
 
         document.getElementById('btnResetPassword').addEventListener('click', async () => {
             if(!currentUser || !currentUser.email) return;
@@ -463,13 +425,16 @@
             }
         });
 
-        // Delete account - UPDATED to redirect to index.html#login
         document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
             if(confirm("DANGER: Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.")) {
                 try {
-                    await deleteUser(currentUser);
+                    const user = auth.currentUser;
+                    if(user) {
+                         await deleteUser(user);
+                    }
+                    localStorage.removeItem("nativeUser");
                     alert("Account deleted successfully.");
-                    window.location.href = "index.html#login";
+                    window.location.replace("index.html");
                 } catch (e) {
                     if (e.code === 'auth/requires-recent-login') {
                         alert("For security reasons, please log out and log back in before deleting your account.");
