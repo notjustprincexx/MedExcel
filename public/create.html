@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase
+        // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase Hybrid Auth
         (function () {
             const saved = localStorage.getItem("nativeUser");
             if (saved) {
@@ -39,7 +39,6 @@
             --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        /* Base & Reset */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
         body {
             background-color: var(--bg-main); color: var(--text-primary);
@@ -47,7 +46,6 @@
             -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* Layout & Containers */
         .top-header {
             padding: 1.5rem 1.25rem 1rem; flex-shrink: 0; z-index: 40;
             width: 100%; display: flex; align-items: center; justify-content: center;
@@ -55,9 +53,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             position: sticky; top: 0;
         }
-        .top-header-content {
-            width: 100%; max-width: 42rem; display: flex; align-items: center; justify-content: space-between;
-        }
+        .top-header-content { width: 100%; max-width: 42rem; display: flex; align-items: center; justify-content: space-between; }
         
         .main-container {
             flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem 8rem; 
@@ -65,30 +61,18 @@
             width: 100%; max-width: 42rem; margin: 0 auto; transition: padding 0.3s;
         }
         
-        /* Lock scrolling & maximize space in Interactive Mode */
-        .main-container.interactive-mode { 
-            padding-top: 0.25rem; 
-            padding-bottom: 1.25rem; 
-            overflow: hidden; 
-        }
-        
+        .main-container.interactive-mode { padding-top: 0.25rem; padding-bottom: 1.25rem; overflow: hidden; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .hide-scroll::-webkit-scrollbar { display: none; }
 
-        /* Typography & Buttons */
         h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.025em; margin: 0; }
         h2.section-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
 
-        /* Setup View Elements */
         .setup-view { display: flex; flex-direction: column; flex: 1; gap: 2rem; }
         .config-section { transition: opacity 0.3s; }
         .config-section.disabled { opacity: 0.5; pointer-events: none; }
 
-        .upload-zone {
-            border: 2px dashed var(--border-default); border-radius: 1rem; padding: 2rem;
-            background: var(--bg-card); display: flex; flex-direction: column; align-items: center;
-            text-align: center; cursor: pointer; position: relative; transition: all 0.2s;
-        }
+        .upload-zone { border: 2px dashed var(--border-default); border-radius: 1rem; padding: 2rem; background: var(--bg-card); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative; transition: all 0.2s; }
         .upload-zone:hover, .upload-zone.dragover { border-color: var(--border-hover); background: rgba(30, 41, 59, 0.5); }
         .upload-zone.active { border-color: var(--border-hover); background: rgba(59, 130, 246, 0.05); }
         .upload-zone.limit-reached { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); cursor: not-allowed; opacity: 0.5; }
@@ -97,11 +81,9 @@
         
         .upload-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--bg-panel); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: #cbd5e1; border: 1px solid var(--border-default); transition: 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); font-size: 1.25rem; }
         .upload-icon.success { background: rgba(59, 130, 246, 0.1); color: var(--blue-light); border-color: transparent; }
-        
         .upload-title { font-weight: 500; font-size: 1rem; margin-bottom: 0.25rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .upload-subtitle { color: var(--text-muted); font-size: 0.75rem; }
 
-        /* Configuration Controls */
         .config-group { display: flex; flex-direction: column; gap: 1.25rem; }
         .input-box { background: var(--bg-card); border-radius: 0.75rem; padding: 1rem; border: 1px solid var(--border-default); transition: 0.2s; }
         .input-box:focus-within { border-color: var(--border-hover); background: var(--bg-panel); }
@@ -122,22 +104,15 @@
         input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
         input[type=range].warning::-webkit-slider-thumb { border-color: var(--yellow-main); }
 
-        /* Standard Generate Button */
-        .btn-generate {
-            width: 100%; padding: 1rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500;
-            border: 1px solid rgba(30, 41, 59, 1); background: var(--bg-panel); color: var(--text-muted);
-            cursor: not-allowed; transition: all 0.2s; opacity: 0.5; margin-top: auto;
-        }
+        .btn-generate { width: 100%; padding: 1rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(30, 41, 59, 1); background: var(--bg-panel); color: var(--text-muted); cursor: not-allowed; transition: all 0.2s; opacity: 0.5; margin-top: auto; }
         .btn-generate.active { background: var(--blue-main); color: white; border-color: var(--blue-main); cursor: pointer; opacity: 1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .btn-generate.active:hover { background: var(--blue-hover); }
 
-        /* Plan Badges */
         .plan-badge { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.375rem 0.75rem; border-radius: 9999px; border: 1px solid transparent; margin: 0; }
         .badge-free { color: var(--emerald-light); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); }
         .badge-premium { color: var(--blue-light); border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1); }
         .badge-elite { color: var(--yellow-main); border-color: rgba(234, 179, 8, 0.3); background: rgba(234, 179, 8, 0.1); }
 
-        /* Modals & Loaders */
         .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 21, 0.9); backdrop-filter: blur(10px); z-index: 10000; transition: opacity 0.3s, visibility 0.3s; }
         .loader-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .loader-title { color: var(--text-primary); font-weight: 500; font-size: 1rem; margin-bottom: 0.25rem; letter-spacing: 0.025em; margin-top: 1rem;}
@@ -156,7 +131,6 @@
         .modal-btn-secondary { width: 100%; padding: 0.75rem; background: transparent; color: var(--text-secondary); border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .modal-btn-secondary:hover { color: var(--text-primary); }
 
-        /* Bottom Nav */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
         .bottom-nav.hidden { display: none; }
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: var(--text-muted); text-decoration: none; transition: 0.2s; font-size: 1.25rem; }
@@ -165,7 +139,6 @@
         .nav-item.active { color: white; }
         .nav-item.active span { font-weight: 700; }
 
-        /* Interactive View (Quiz/Flashcards) */
         .interactive-view { display: none; flex-direction: column; flex: 1; min-height: 0; width: 100%; height: 100%; }
         .interactive-view.active { display: flex; }
         
@@ -173,13 +146,11 @@
         .quiz-title { font-size: 0.6875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
         .quiz-progress { font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); }
 
-        /* Flashcards Mode */
         .flashcard-wrapper { flex: 1; position: relative; perspective: 1000px; cursor: pointer; min-height: 0; width: 100%; }
         .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s var(--ease-snap); border-radius: 1rem; }
         .flashcard-wrapper.flipped .flip-inner { transform: rotateY(180deg); }
         
         .flashcard-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border-default); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; }
-        
         .flashcard-front { background: rgba(30, 41, 59, 0.5); z-index: 2; transform: rotateY(0deg); }
         .flashcard-back { background: rgba(37, 99, 235, 0.9); transform: rotateY(180deg); box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); border-color: rgba(59, 130, 246, 0.5); z-index: 1; }
         
@@ -195,7 +166,6 @@
         .flashcard-front .flip-hint { color: var(--text-muted); }
         .flashcard-back .flip-hint { color: rgba(191, 219, 254, 1); }
 
-        /* MCQ Mode */
         .card-wrapper { flex: 1; background: rgba(30, 41, 59, 0.3); border-radius: 1rem; padding: 1rem; border: 1px solid var(--border-default); display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative; }
         .card-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; padding-right: 0.25rem; }
         .question-text { font-weight: 600; color: var(--text-primary); font-size: 0.9375rem; line-height: 1.5; margin-bottom: 1rem; flex-shrink: 0; }
@@ -216,7 +186,6 @@
         .explanation-box { background: var(--bg-panel); padding: 0.875rem; border-radius: 0.75rem; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 0.8125rem; line-height: 1.5; }
         .explanation-label { font-weight: 500; color: var(--text-secondary); display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
-        /* Navigation Controls */
         .nav-controls { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; flex-shrink: 0; }
         .btn-nav { flex: 1; padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: 0.2s; border: none; }
         .btn-prev { background: rgba(30, 41, 59, 0.5); color: var(--text-primary); border: 1px solid var(--border-default); }
@@ -225,7 +194,6 @@
         .btn-next:hover:not(:disabled) { background: var(--blue-hover); }
         .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
         
-        /* Results View */
         .results-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 0; text-align: center; }
         .results-box { width: 100%; background: var(--bg-card); border-radius: 1rem; padding: 2rem; border: 1px solid var(--border-default); }
         .results-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
@@ -355,7 +323,6 @@
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     
-    // --- LOTTIE JSON DATA ---
     const scanningLottieData = {"v":"5.5.7","meta":{"g":"LottieFiles AE 0.1.20","a":"","k":"","d":"","tc":"#eaedf1"},"fr":60,"ip":0,"op":227,"w":600,"h":600,"nm":"Scanning","ddd":0,"assets":[{"id":"comp_0","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 10","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 9","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 8","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 7","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy 6","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]},{"id":"comp_1","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 5","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 4","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":60,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.275,"y":0},"t":0,"s":[300,485.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":110,"s":[300,125.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":220,"s":[300,485.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,9],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":4.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"bottom-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":120,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":152,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":199,"s":[40]},{"t":218,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.374,"y":1},"o":{"x":0.274,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-52.833,0],"ti":[0,-7.167,0]},{"i":{"x":0.726,"y":1},"o":{"x":0.621,"y":0},"t":111,"s":[300,146.5,0],"to":[0,7.167,0],"ti":[0,-60,0]},{"t":221,"s":[300,506.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,-100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"top-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":14,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":89,"s":[40]},{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":108,"s":[0]},{"t":221,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.271,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":111,"s":[300,103.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":221,"s":[300,463.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"full","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"hasMask":true,"masksProperties":[{"inv":false,"mode":"i","pt":{"a":1,"k":[{"i":{"x":0.364,"y":1},"o":{"x":0.272,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]},{"i":{"x":0.73,"y":1},"o":{"x":0.631,"y":0},"t":110,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,129.957],[448.801,129.957]],"c":true}]},{"t":220,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]}],"ix":1},"o":{"a":0,"k":100,"ix":3},"x":{"a":0,"k":0,"ix":4},"nm":"Mask 1"}],"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"trans","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0}],"markers":[]};
 
     const firebaseConfig = {
@@ -380,7 +347,6 @@
         document.getElementById('loginModalBackdrop').classList.add('show');
     }
 
-    // --- INITIALIZE LOTTIE ---
     let lottieAnimation = null;
     if (window.lottie) {
         lottieAnimation = window.lottie.loadAnimation({
@@ -392,7 +358,6 @@
         });
     }
 
-    // --- LOADING MESSAGES ARRAY ---
     const loadingMessages = [
         "Analyzing document structure...",
         "Extracting key concepts and terms...",
@@ -403,16 +368,31 @@
     ];
     let messageInterval = null;
 
-    // --- SELF HEALING AUTH ---
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            window.currentUser = user;
+    // --- HYBRID AUTHENTICATION GATEKEEPER ---
+    const savedUserStr = localStorage.getItem("nativeUser");
+    let nativeUserObj = null;
+    try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
+
+    onAuthStateChanged(auth, async (firebaseUser) => {
+        const activeUser = firebaseUser || nativeUserObj;
+
+        if (activeUser) {
+            window.currentUser = activeUser;
+            
+            if (firebaseUser) {
+                localStorage.setItem("nativeUser", JSON.stringify({ 
+                    email: firebaseUser.email, 
+                    uid: firebaseUser.uid, 
+                    displayName: firebaseUser.displayName 
+                }));
+            }
+
             try {
-                let userRef = doc(db, "users", user.uid);
+                let userRef = doc(db, "users", activeUser.uid);
                 let userDoc = await getDoc(userRef);
 
-                if (!userDoc.exists()) {
-                    userRef = doc(db, "users", user.email);
+                if (!userDoc.exists() && activeUser.email) {
+                    userRef = doc(db, "users", activeUser.email);
                     userDoc = await getDoc(userRef);
                 }
 
@@ -421,10 +401,9 @@
                     userPlan = data.plan || "free";
                     configureUIForPlan(userPlan, data);
                 } else {
-                    // Self-Heal missing document
-                    await setDoc(doc(db, "users", user.uid), {
-                        email: user.email,
-                        uid: user.uid,
+                    await setDoc(doc(db, "users", activeUser.uid), {
+                        email: activeUser.email,
+                        uid: activeUser.uid,
                         plan: "free",
                         dailyUsage: 0,
                         lastDailyReset: new Date().toISOString().split("T")[0],
