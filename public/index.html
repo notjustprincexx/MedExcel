@@ -57,7 +57,6 @@
             --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
         }
 
-        /* SCROLLBAR HIDING */
         * { 
             box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; 
             scrollbar-width: none !important;
@@ -73,7 +72,6 @@
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
         input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
 
-        /* Loader & Dialog */
         .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s; }
         .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
         
@@ -83,11 +81,9 @@
         .loading-text { color: var(--text-light); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; animation: pulse 1.5s infinite ease-in-out; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* Lottie Animation Containers for Onboarding */
         .lottie-box { width: 250px; height: 250px; opacity: 0; transform: scale(0.95) translateY(10px); transition: all 0.6s var(--ease-out); }
         .lottie-box.loaded { opacity: 1; transform: scale(1) translateY(0); }
 
-        /* Core UI Layouts */
         .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
         .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-out); }
         .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
@@ -99,25 +95,21 @@
         .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
         .btn-confirm:active { transform: scale(0.95); }
 
-        /* Screen Transitions - ADDED OVERFLOW HIDDEN TO CLIP SCROLLBAR */
         .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem; z-index: 50; transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap); opacity: 0; pointer-events: none; transform: scale(0.98); overflow: hidden; }
         .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
         .screen.hidden-screen { display: none; }
 
-        /* Splash Layout */
         .hero-container { flex: 1; display: flex; flex-direction: column; items-center; justify-content: center; width: 100%; text-align: center; align-items: center; }
         .app-title { display: flex; align-items: baseline; justify-content: center; font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: 0.025em; }
         .app-title .d-letter { position: relative; margin-right: -0.1em; font-size: 0.95em; }
         .app-subtitle { color: var(--text-muted); font-size: 1.125rem; font-weight: 500; max-width: 20rem; line-height: 1.6; }
         .button-group { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
 
-        /* Buttons */
         .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; white-space: nowrap; }
         .btn-primary:active { border-bottom-width: 0; transform: translateY(6px); }
         .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.05em; transition: background 0.2s; white-space: nowrap; }
         .btn-secondary:hover { background: var(--bg-card-hover); }
 
-        /* Login Modal */
         .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
         .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
         .login-header { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
@@ -142,13 +134,12 @@
         .btn-google:active { transform: scale(0.95); }
         .google-text { color: var(--text-light); font-weight: bold; font-size: 0.875rem; letter-spacing: 0.025em; }
 
-        /* Onboarding Carousel Styles - BULLETPROOF WEBVIEW FIX */
         .onboarding-wrapper { 
             display: flex; 
             width: 100%; 
             height: 100vh; 
-            padding-bottom: 40px; /* Pushes the scrollbar into the hidden overflow area */
-            box-sizing: content-box; /* Ensures the padding adds to the 100vh height */
+            padding-bottom: 40px; 
+            box-sizing: content-box; 
             overflow-x: auto; 
             overflow-y: hidden; 
             scroll-snap-type: x mandatory; 
@@ -420,7 +411,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithCredential, updateProfile, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithCredential, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
         const app = initializeApp(firebaseConfig); 
@@ -448,28 +439,31 @@
         window.executeFirebaseGoogleAuth = async () => {
             window.suppressAuthRedirect = true;
             try {
+                if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                    throw new Error("Native Google Login is not available on this device.");
+                }
+
                 document.querySelector('.loading-text').textContent = "SIGNING IN...";
                 document.getElementById('loaderScreen').style.visibility = 'visible';
                 document.getElementById('loaderScreen').style.opacity = '1';
                 
-                if (window.Capacitor && window.Capacitor.Plugins.GoogleAuth) {
-                    const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-                    const idToken = googleUser.authentication.idToken;
-                    if (!idToken) throw new Error("No ID token found.");
-                    const credential = GoogleAuthProvider.credential(idToken);
-                    await signInWithCredential(auth, credential);
-                } else {
-                    const provider = new GoogleAuthProvider();
-                    await signInWithPopup(auth, provider);
-                }
+                const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                const idToken = googleUser.authentication.idToken;
+                
+                if (!idToken) throw new Error("Authentication token missing.");
+                
+                const credential = GoogleAuthProvider.credential(idToken);
+                await signInWithCredential(auth, credential);
                 
                 window.__loader.redirecting = true;
                 window.location.href = 'homepage.html';
+                
             } catch (error) {
                 window.suppressAuthRedirect = false; 
                 document.getElementById('loaderScreen').style.opacity = '0';
                 setTimeout(() => document.getElementById('loaderScreen').style.visibility = 'hidden', 400);
-                if (error.code !== 'auth/popup-closed-by-user') {
+                
+                if (error.code !== 'auth/popup-closed-by-user' && error.message !== 'User cancelled the login flow') {
                     await showDialog(error.message || "Google login failed.", "Login Failed", { hideCancel: true }); 
                 }
             }

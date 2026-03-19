@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MedExcel Splash</title>
+
+<style>
+body {
+  margin: 0;
+  background: #0B0F1A;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+.logo {
+  font-size: 48px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.med {
+  color: #4F6BFF;
+  opacity: 0;
+  animation: fadeIn 1s forwards;
+}
+
+.ex {
+  color: #22E6A8;
+  opacity: 0;
+  animation: write 1.5s forwards;
+  animation-delay: 1s;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes write {
+  from {
+    opacity: 0;
+    letter-spacing: 20px;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 1px;
+  }
+}
+
+/* Optional lightning flash */
+.flash {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, #22E6A8 0%, transparent 70%);
+  opacity: 0;
+  animation: flash 0.5s ease 2s;
+}
+
+@keyframes flash {
+  0% { opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="flash"></div>
+
+<div class="logo">
+  <span class="med">Med</span><span class="ex">Excel</span>
+</div>
+
+<script>
+// Redirect after animation
+setTimeout(() => {
+  window.location.href = "homepagemain.html";
+}, 2800);
+</script>
+
+</body>
+</html>
