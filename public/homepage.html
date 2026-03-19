@@ -474,6 +474,7 @@
         updateStatusBar('#000000');
     }
 
+    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
     window.initUserUI = function(user) {
         try {
             let savedName = "Guest";
@@ -674,7 +675,7 @@
                     if (plan === "free" && shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 } else {
                     await setDoc(doc(db, "users", user.uid), {
-                        email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
+                        email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
                     }, { merge: true });
                     if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 }
