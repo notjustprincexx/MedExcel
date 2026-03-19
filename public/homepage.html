@@ -7,6 +7,33 @@
     <title>MedExcel Home</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    <script>
+        (function () {
+            const savedUser = localStorage.getItem("nativeUser");
+            const skip = localStorage.getItem("skip") === "true";
+
+            if (!savedUser && !skip) {
+                window.location.replace("index.html");
+                return;
+            }
+
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    window.currentUser = user;
+                } catch (e) {
+                    localStorage.removeItem("nativeUser");
+                    window.location.replace("index.html");
+                }
+            }
+        })();
+        
+        function logout() {
+            localStorage.removeItem("nativeUser");
+            localStorage.removeItem("skip");
+            window.location.replace("index.html");
+        }
+    </script>
     <style>
         :root {
             --bg-body: #050A15; --bg-glass: rgba(255, 255, 255, 0.03); --bg-modal: #0B1120;
@@ -506,9 +533,23 @@
 
     (function fastInitUserUI() {
         try {
-            const savedName = localStorage.getItem('userName'); 
-            const greetingTitle = document.getElementById('greetingTitle');
-            if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+            window.addEventListener("load", () => {
+                const skip = localStorage.getItem("skip") === "true";
+                let savedName = localStorage.getItem('userName');
+                
+                if (window.currentUser && window.currentUser.email) {
+                    savedName = window.currentUser.email.split("@")[0];
+                } else if (skip) {
+                    savedName = "Guest";
+                }
+
+                const greetingTitle = document.getElementById('greetingTitle');
+                if (savedName && savedName !== "Guest" && greetingTitle) {
+                    greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+                } else if (greetingTitle) {
+                     greetingTitle.innerHTML = `Welcome ${getTimeEmoji()}`;
+                }
+            });
 
             const storageKey = 'medexcel_streak_tracker_active';
             let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
@@ -642,7 +683,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -664,33 +705,29 @@
             return true;
         }
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) { 
-                const name = user.displayName || user.email.split('@')[0]; 
-                localStorage.setItem('userName', name); 
-
-                try {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const plan = userDoc.data().plan || "free";
-                        if (plan === "free" && shouldShowBanner()) {
-                            document.getElementById('goProBanner').style.display = 'flex';
-                        }
-                    } else if (shouldShowBanner()) {
+        async function checkUserPlan(uid) {
+            try {
+                const userDocRef = doc(db, "users", uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    const plan = userDoc.data().plan || "free";
+                    if (plan === "free" && shouldShowBanner()) {
                         document.getElementById('goProBanner').style.display = 'flex';
                     }
-                } catch (error) {
-                    console.log("Error checking plan status");
-                    if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
+                } else if (shouldShowBanner()) {
+                    document.getElementById('goProBanner').style.display = 'flex';
                 }
-
-            } else if (!skip) { 
-                window.location.href = 'index.html#login'; 
-            } else if (skip && shouldShowBanner()) {
-                document.getElementById('goProBanner').style.display = 'flex';
+            } catch (error) {
+                console.log("Error checking plan status");
+                if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
             }
-        });
+        }
+        
+        if (window.currentUser) {
+            checkUserPlan(window.currentUser.uid);
+        } else if (skip && shouldShowBanner()) {
+            document.getElementById('goProBanner').style.display = 'flex';
+        }
 
         let currentVideoData = null; 
         
@@ -810,32 +847,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 });
-</script>
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-    const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
-    const app = initializeApp(firebaseConfig); 
-    const auth = getAuth(app);
-
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-        window.Capacitor.Plugins.Browser.close().catch(() => {});
-    }
-
-    setPersistence(auth, browserLocalPersistence).then(() => {
-        onAuthStateChanged(auth, (user) => {
-            const skip = localStorage.getItem("skip") === "true";
-            
-            if (user) {
-                console.log("Logged in:", user.email);
-            } else if (skip) {
-                console.log("Guest mode active.");
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
-    });
 </script>
 </body>
 </html>
