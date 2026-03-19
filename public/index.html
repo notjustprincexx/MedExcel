@@ -9,20 +9,6 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
     
     <script>
-        const savedUser = localStorage.getItem("nativeUser");
-
-if (savedUser) {
-    window.isNativeLogin = true;
-    
-    // Wait for app to initialize before redirect
-    window.addEventListener("load", () => {
-        setTimeout(() => {
-            window.__loader.redirecting = true;
-            window.location.href = "homepage.html";
-        }, 300);
-    });
-}
-
         window.AssetManager = {
             cache: {},
             preload: function(key, url) {
@@ -444,7 +430,7 @@ if (savedUser) {
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
         const app = initializeApp(firebaseConfig); 
@@ -453,19 +439,38 @@ if (savedUser) {
 
         setPersistence(auth, browserLocalPersistence).catch((error) => console.error("Persistence Auth Error:", error));
 
+        function checkAuthAndRedirect(firebaseUser) {
+            const nativeUser = localStorage.getItem("nativeUser");
+
+            if (nativeUser) {
+                window.__loader.redirecting = true;
+                window.location.href = "homepage.html";
+                return;
+            }
+
+            if (firebaseUser) {
+                window.__loader.redirecting = true;
+                window.location.href = "homepage.html";
+                return;
+            }
+
+            // Stay on login page
+            window.__loader.checkHide();
+        }
+
         onAuthStateChanged(auth, (user) => {
             window.__loader.authResolved = true;
-
-            // 🚫 Ignore Firebase auth if native login is used
-            if (window.isNativeLogin) return;
-
-            if (user) {
-                window.__loader.redirecting = true;
-                window.location.href = 'homepage.html';
-            } else {
-                window.__loader.checkHide();
-            }
+            checkAuthAndRedirect(user);
         });
+
+        window.logoutUser = async function() {
+            try {
+                await signOut(auth);
+            } catch (e) {}
+
+            localStorage.removeItem("nativeUser");
+            window.location.href = "index.html?action=login";
+        };
 
         const emailBtn = document.getElementById('signInBtn');
         if (emailBtn) {
@@ -485,6 +490,12 @@ if (savedUser) {
                     } else {
                         await signInWithEmailAndPassword(auth, email, pass);
                     }
+
+                    localStorage.setItem("nativeUser", JSON.stringify({
+                        email: email,
+                        uid: "firebase_" + Date.now()
+                    }));
+
                     window.__loader.redirecting = true; 
                     window.location.href = 'homepage.html';
                 } catch (error) { 
