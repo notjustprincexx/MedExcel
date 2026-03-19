@@ -9,11 +9,6 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
     
     <script>
-        // Immediate auth guard to prevent UI flicker
-        if (localStorage.getItem("nativeUser")) {
-            window.location.replace("homepage.html");
-        }
-
         window.AssetManager = {
             cache: {},
             preload: function(key, url) {
@@ -243,6 +238,8 @@
                     <button onclick="toggleSignup()" class="btn-primary">Get Started</button>
                     <button onclick="toggleLogin(true)" class="btn-secondary">I Already Have An Account</button>
                 </div>
+                
+                <button onclick="skipLogin()" style="margin-top: 1.5rem; color: var(--text-muted); font-weight: 600; font-size: 0.875rem; text-decoration: underline;">Skip for now</button>
             </div>
         </div>
         <div class="pagination-dots" id="dots-container">
@@ -311,12 +308,14 @@
             injectLottie('lottie-walk', 'walk');
         };
 
+        // --- UPDATED LOADER LOGIC ---
+        // Prevent flashing if user is already logged in
         window.__loader = {
             startTime: Date.now(),
             minMs: 0, 
             authResolved: false, windowLoaded: false, redirecting: false,
             checkHide() {
-                if (this.redirecting) return;
+                if (this.redirecting) return; // Do not hide loader if we are redirecting to homepage
                 if (this.authResolved && this.windowLoaded) {
                     const elapsed = Date.now() - this.startTime;
                     const remaining = Math.max(0, this.minMs - elapsed);
@@ -389,6 +388,13 @@
         }
         window.toggleSignup = toggleSignup;
 
+        // SKIP LOGIN LOGIC
+        window.skipLogin = function() {
+            localStorage.setItem("skip", "true");
+            window.__loader.redirecting = true;
+            window.location.replace("homepage.html");
+        };
+
         function updateDots(container) {
             const scrollPosition = container.scrollLeft;
             const slideWidth = container.clientWidth;
@@ -404,6 +410,8 @@
                 document.getElementById('loaderScreen').style.visibility = 'visible';
                 document.getElementById('loaderScreen').style.opacity = '1';
                 document.querySelector('.loading-text').textContent = "SIGNING IN...";
+                // This triggers native Google Sign-In. Capacitor Firebase SDK
+                // plugin handles the state sync with Firebase Web automatically.
                 window.Android.startGoogleSignIn();
             } else {
                 alert("Native login not available. Please use the mobile app.");
@@ -411,15 +419,8 @@
         };
 
         window.onNativeLogin = function(email, uid) {
-            localStorage.setItem("nativeUser", JSON.stringify({ email, uid }));
-            window.__loader.redirecting = true;
-            window.location.href = "homepage.html";
-        };
-
-        window.logoutUser = async function() {
-            localStorage.removeItem("nativeUser");
-            localStorage.removeItem("skip");
-            window.location.href = "index.html?action=login";
+            console.log("Native login triggered. Waiting for Firebase Auth state sync...");
+            document.querySelector('.loading-text').textContent = "SYNCING PROFILE...";
         };
 
         (function openAuthFromUrl() {
@@ -438,83 +439,90 @@
     </script>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
-        const app = initializeApp(firebaseConfig); 
-        const auth = getAuth(app); 
-        window.suppressAuthRedirect = false;
+    // Your actual verified Firebase config
+    const firebaseConfig = { 
+        apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+        authDomain: "medxcel.firebaseapp.com", 
+        projectId: "medxcel", 
+        storageBucket: "medxcel.firebasestorage.app", 
+        messagingSenderId: "649180317389", 
+        appId: "1:649180317389:web:f6b9a7053a37853ea04b84", 
+        measurementId: "G-6VQYKEBMSX" 
+    };
 
-        setPersistence(auth, browserLocalPersistence).catch((error) => console.error("Persistence Auth Error:", error));
+    const app = initializeApp(firebaseConfig); 
+    const auth = getAuth(app); 
+    const db = getFirestore(app);
+    
+    setPersistence(auth, browserLocalPersistence);
 
-        function checkAuthAndRedirect(firebaseUser) {
-            const nativeUser = localStorage.getItem("nativeUser");
-
-            if (nativeUser) {
-                window.__loader.redirecting = true;
-                window.location.href = "homepage.html";
-                return;
+    // This function creates the user record in Firestore so "Permission Denied" stops happening
+    async function ensureUserDoc(user) {
+        if (!user) return;
+        const userRef = doc(db, "users", user.uid);
+        try {
+            const docSnap = await getDoc(userRef);
+            if (!docSnap.exists()) {
+                await setDoc(userRef, {
+                    email: user.email,
+                    uid: user.uid,
+                    displayName: user.displayName || "User",
+                    plan: "free",
+                    createdAt: serverTimestamp()
+                });
             }
+        } catch (e) { console.error("Firestore sync error:", e); }
+    }
 
-            if (firebaseUser) {
-                window.__loader.redirecting = true;
-                window.location.href = "homepage.html";
-                return;
-            }
-
-            // Stay on login page
-            if (window.__loader) window.__loader.checkHide();
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            window.__loader.authResolved = true;
-            checkAuthAndRedirect(user);
-        });
-
-        // Safe global logout
-        window.logoutUser = async function() {
-            try {
-                await signOut(auth);
-            } catch (e) {}
-
+    // MAIN AUTH LOGIC - No "Skip" button logic here
+    onAuthStateChanged(auth, async (user) => {
+        window.__loader.authResolved = true;
+        if (user) {
+            // Save to localStorage for your homepage's existing logic
+            localStorage.setItem("nativeUser", JSON.stringify({
+                email: user.email,
+                uid: user.uid,
+                displayName: user.displayName
+            }));
+            
+            await ensureUserDoc(user);
+            window.location.replace("homepage.html");
+        } else {
+            // If no user, clear local storage and stay on login
             localStorage.removeItem("nativeUser");
-            localStorage.removeItem("skip");
-            window.location.href = "index.html?action=login";
-        };
-
-        const emailBtn = document.getElementById('signInBtn');
-        if (emailBtn) {
-            emailBtn.addEventListener('click', async () => {
-                const name = document.getElementById('nameInput').value.trim();
-                const email = document.getElementById('emailInput').value.trim();
-                const pass = document.getElementById('loginPassword').value;
-                
-                if (window.isSignupMode && !name) return await showDialog("Please enter your name.", "Missing Info", { hideCancel: true });
-                if(!email || !pass) return await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); 
-                
-                window.suppressAuthRedirect = true;
-                try {
-                    if (window.isSignupMode) {
-                        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                        await updateProfile(userCredential.user, { displayName: name });
-                    } else {
-                        await signInWithEmailAndPassword(auth, email, pass);
-                    }
-
-                    localStorage.setItem("nativeUser", JSON.stringify({
-                        email: email,
-                        uid: "firebase_" + Date.now()
-                    }));
-
-                    window.__loader.redirecting = true; 
-                    window.location.href = 'homepage.html';
-                } catch (error) { 
-                    window.suppressAuthRedirect = false; 
-                    await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true }); 
-                }
-            });
+            localStorage.removeItem("skip"); 
+            window.__loader.checkHide();
         }
-    </script>
+    });
+
+    // Handle the Sign In / Sign Up Button
+    const emailBtn = document.getElementById('signInBtn');
+    if (emailBtn) {
+        emailBtn.addEventListener('click', async () => {
+            const name = document.getElementById('nameInput').value.trim();
+            const email = document.getElementById('emailInput').value.trim();
+            const pass = document.getElementById('loginPassword').value;
+            
+            if (window.isSignupMode && !name) return alert("Please enter your name.");
+            if(!email || !pass) return alert("Please enter email and password."); 
+
+            try {
+                if (window.isSignupMode) {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                    await updateProfile(userCredential.user, { displayName: name });
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+                // Redirect is handled automatically by onAuthStateChanged above
+            } catch (error) { 
+                alert(error.message);
+            }
+        });
+    }
+</script>
 </body>
 </html>

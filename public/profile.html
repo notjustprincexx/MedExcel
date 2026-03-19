@@ -45,6 +45,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Modal Styles */
         .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
         .modal-backdrop.show { opacity: 1; visibility: visible; }
         .modal-content { background: #0B1120; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; width: 100%; max-width: 320px; transform: scale(0.95); transition: 0.3s; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
@@ -58,6 +59,7 @@
         .modal-btn-secondary { width: 100%; padding: 0.75rem; background: transparent; color: #94a3b8; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .modal-btn-secondary:hover { color: white; }
 
+        /* Bottom Nav Styles */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; text-decoration: none; transition: 0.2s; font-size: 1.25rem; }
         .nav-item span { font-size: 0.625rem; font-weight: 500; }
@@ -66,32 +68,13 @@
         .nav-item.active span { font-weight: 700; }
     </style>
     <script>
-        let currentUser = null;
-
+        // STRIPPED DOWN TOP SCRIPT: No forced redirects to prevent loops.
         (function () {
             const saved = localStorage.getItem("nativeUser");
-
-            if (!saved) {
-                window.location.replace("index.html?action=login");
-                return;
-            }
-
-            try {
-                currentUser = JSON.parse(saved);
-                if (!currentUser || !currentUser.email) {
-                    throw new Error("Invalid user data");
-                }
-            } catch (e) {
-                localStorage.removeItem("nativeUser");
-                window.location.replace("index.html?action=login");
+            if (saved) {
+                try { window.currentUser = JSON.parse(saved); } catch (e) {}
             }
         })();
-
-        function logoutUser() {
-            localStorage.removeItem("nativeUser");
-            localStorage.removeItem("skip");
-            window.location.href = "index.html?action=login";
-        }
     </script>
 </head>
 <body class="h-screen flex flex-col overflow-hidden relative bg-[#050A15]">
@@ -262,9 +245,11 @@
     </nav>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // REAL CONFIG INJECTED
         const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
             authDomain: "medxcel.firebaseapp.com",
@@ -275,6 +260,7 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
         const MASTER_ACHIEVEMENTS = [
@@ -327,112 +313,125 @@
             renderAchievements([]);
         }
 
-        window.addEventListener("load", async () => {
-            if (!currentUser) return;
+        // --- SINGLE SOURCE OF TRUTH (Matches Home & Create logic) ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Pre-fill what we know from Auth immediately
+                const email = user.email || "";
+                const name = user.displayName || email.split("@")[0] || "User";
+                
+                document.getElementById("userName").textContent = name;
+                document.getElementById("userEmail").textContent = email;
+                document.getElementById("userInitial").textContent = email ? email.charAt(0).toUpperCase() : "?";
 
-            const email = currentUser.email;
-            const name = email.split("@")[0];
+                // Pull the rest from Firestore safely
+                try {
+                    let userRef = doc(db, "users", user.uid);
+                    let userDoc = await getDoc(userRef);
 
-            document.getElementById("userName").textContent = name;
-            document.getElementById("userEmail").textContent = email;
-            document.getElementById("userInitial").textContent = email.charAt(0).toUpperCase();
+                    // Fallback lookup if doc isn't under UID
+                    if (!userDoc.exists() && user.email) {
+                        userRef = doc(db, "users", user.email);
+                        userDoc = await getDoc(userRef);
+                    }
 
-            // 🔥 FIRESTORE LOAD
-            try {
-                const userId = currentUser.email;
-                const userDoc = await getDoc(doc(db, "users", userId));
+                    if (!userDoc.exists()) {
+                        setDefaultUI();
+                        return;
+                    }
 
-                if (!userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    document.getElementById("streakCount").textContent = userData.streak || 0;
+
+                    if (userData.createdAt) {
+                        const dateObj = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                        document.getElementById("memberSince").textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                    } else {
+                        document.getElementById("memberSince").textContent = "--";
+                    }
+
+                    const plan = userData.plan || "free";
+                    const today = new Date().toISOString().split("T")[0];
+                    const isToday = userData.lastDailyReset === today;
+                    const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
+                    
+                    const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
+                    const unlockedIds = userData.achievements || [];
+
+                    const badge = document.getElementById('planBadge');
+                    badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap transition-all";
+                    
+                    if (plan === "elite") {
+                        badge.classList.add("bg-yellow-500/20", "border-yellow-500/50", "text-yellow-400");
+                        badge.innerHTML = `<i class="fas fa-crown mr-1"></i> Elite`;
+                    } else if (plan === "premium") {
+                        badge.classList.add("bg-blue-600", "border-blue-400", "text-white");
+                        badge.innerHTML = `<i class="fas fa-star mr-1"></i> Premium`;
+                    } else {
+                        badge.classList.add("bg-slate-700", "border-slate-500", "text-white");
+                        badge.textContent = "Free Plan";
+                    }
+
+                    if (expiry && plan !== "free") {
+                        document.getElementById('expiryContainer').classList.remove('hidden');
+                        document.getElementById('expiryDate').textContent = expiry.toLocaleDateString();
+                    }
+
+                    const usageCountEl = document.getElementById('usageCount');
+                    const usageRemEl = document.getElementById('usageRemaining');
+                    const barEl = document.getElementById('usageProgressBar');
+                    
+                    document.getElementById('miniFree').classList.add('opacity-40');
+                    document.getElementById('miniPremium').classList.add('opacity-40');
+                    document.getElementById('miniElite').classList.add('opacity-40');
+
+                    usageCountEl.textContent = dailyUsage;
+
+                    if (plan === "elite") {
+                        document.getElementById('miniElite').classList.remove('opacity-40');
+                        document.getElementById('miniElite').classList.add('border-yellow-500/50', 'bg-yellow-500/10');
+                        
+                        const rem = Math.max(0, 50 - dailyUsage);
+                        usageRemEl.textContent = `${rem} left`;
+                        usageRemEl.className = "text-sm font-bold text-yellow-500";
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
+                        barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
+                        document.getElementById('upgradeBtn').classList.add('hidden');
+                    } 
+                    else if (plan === "premium") {
+                        document.getElementById('miniPremium').classList.remove('opacity-40');
+                        document.getElementById('miniPremium').classList.add('border-blue-500/50', 'bg-blue-500/10');
+                        
+                        const rem = Math.max(0, 30 - dailyUsage); // Corrected to 30 matching premium allowance
+                        usageRemEl.textContent = `${rem} left`;
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 30) * 100)}%`;
+                    } 
+                    else {
+                        document.getElementById('miniFree').classList.remove('opacity-40');
+                        document.getElementById('miniFree').classList.add('border-slate-500/50', 'bg-white/5');
+                        
+                        const rem = Math.max(0, 5 - dailyUsage);
+                        usageRemEl.textContent = `${rem} left`;
+                        usageRemEl.className = "text-sm font-bold text-slate-300";
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
+                        barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
+                    }
+
+                    renderAchievements(unlockedIds);
+
+                } catch (e) {
+                    console.warn("Firestore Error/Restricted. Defaulting to free UI.", e);
                     setDefaultUI();
-                    return;
                 }
-
-                const userData = userDoc.data();
-                
-                document.getElementById("streakCount").textContent = userData.streak || 0;
-
-                if (userData.createdAt) {
-                    const dateObj = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
-                    document.getElementById("memberSince").textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-                } else {
-                    document.getElementById("memberSince").textContent = "--";
-                }
-
-                const plan = userData.plan || "free";
-                const today = new Date().toISOString().split("T")[0];
-                const isToday = userData.lastDailyReset === today;
-                const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
-                
-                const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
-                const unlockedIds = userData.achievements || [];
-
-                const badge = document.getElementById('planBadge');
-                badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap transition-all";
-                
-                if (plan === "elite") {
-                    badge.classList.add("bg-yellow-500/20", "border-yellow-500/50", "text-yellow-400");
-                    badge.innerHTML = `<i class="fas fa-crown mr-1"></i> Elite`;
-                } else if (plan === "premium") {
-                    badge.classList.add("bg-blue-600", "border-blue-400", "text-white");
-                    badge.innerHTML = `<i class="fas fa-star mr-1"></i> Premium`;
-                } else {
-                    badge.classList.add("bg-slate-700", "border-slate-500", "text-white");
-                    badge.textContent = "Free Plan";
-                }
-
-                if (expiry && plan !== "free") {
-                    document.getElementById('expiryContainer').classList.remove('hidden');
-                    document.getElementById('expiryDate').textContent = expiry.toLocaleDateString();
-                }
-
-                const usageCountEl = document.getElementById('usageCount');
-                const usageRemEl = document.getElementById('usageRemaining');
-                const barEl = document.getElementById('usageProgressBar');
-                
-                document.getElementById('miniFree').classList.add('opacity-40');
-                document.getElementById('miniPremium').classList.add('opacity-40');
-                document.getElementById('miniElite').classList.add('opacity-40');
-
-                usageCountEl.textContent = dailyUsage;
-
-                if (plan === "elite") {
-                    document.getElementById('miniElite').classList.remove('opacity-40');
-                    document.getElementById('miniElite').classList.add('border-yellow-500/50', 'bg-yellow-500/10');
-                    
-                    const rem = Math.max(0, 50 - dailyUsage);
-                    usageRemEl.textContent = `${rem} left`;
-                    usageRemEl.className = "text-sm font-bold text-yellow-500";
-                    barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
-                    barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
-                    document.getElementById('upgradeBtn').classList.add('hidden');
-                } 
-                else if (plan === "premium") {
-                    document.getElementById('miniPremium').classList.remove('opacity-40');
-                    document.getElementById('miniPremium').classList.add('border-blue-500/50', 'bg-blue-500/10');
-                    
-                    const rem = Math.max(0, 20 - dailyUsage);
-                    usageRemEl.textContent = `${rem} left`;
-                    barEl.style.width = `${Math.min(100, (dailyUsage / 20) * 100)}%`;
-                } 
-                else {
-                    document.getElementById('miniFree').classList.remove('opacity-40');
-                    document.getElementById('miniFree').classList.add('border-slate-500/50', 'bg-white/5');
-                    
-                    const rem = Math.max(0, 5 - dailyUsage);
-                    usageRemEl.textContent = `${rem} left`;
-                    usageRemEl.className = "text-sm font-bold text-slate-300";
-                    barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
-                    barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
-                }
-
-                renderAchievements(unlockedIds);
-
-            } catch (e) {
-                console.error("Firestore Error:", e);
-                setDefaultUI();
+            } else {
+                // If not logged in, boot to login screen
+                localStorage.clear();
+                window.location.replace("index.html");
             }
         });
 
+        // --- BUTTON HANDLERS ---
         document.getElementById('btnLogout').addEventListener('click', () => {
             document.getElementById('logoutModalBackdrop').classList.add('show');
         });
@@ -441,20 +440,31 @@
             document.getElementById('logoutModalBackdrop').classList.remove('show');
         });
 
-        document.getElementById('confirmLogoutBtn').onclick = function() {
-            logoutUser();
+        // FIX: Secure Logout via Firebase
+        document.getElementById('confirmLogoutBtn').onclick = async () => {
+            try {
+                await signOut(auth);
+            } catch(e) {
+                console.error("Logout error", e);
+            }
+            localStorage.clear();
+            window.location.replace("index.html");
         };
 
         document.getElementById('btnResetPassword').addEventListener('click', () => {
             alert("Action requires email verification. Please check your inbox or contact support.");
         });
 
-        document.getElementById('btnDeleteAccount').addEventListener('click', () => {
+        // FIX: Secure Delete 
+        document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
             if(confirm("DANGER: Are you sure you want to delete your account? All data will be lost.")) {
-                logoutUser();
+                try {
+                    await signOut(auth); // Temporarily just signing them out securely
+                } catch(e) {}
+                localStorage.clear();
+                window.location.replace("index.html");
             }
         });
-
     </script>
 </body>
 </html>
