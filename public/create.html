@@ -39,6 +39,7 @@
             --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
         }
 
+        /* Base & Reset */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
         body {
             background-color: var(--bg-main); color: var(--text-primary);
@@ -46,6 +47,7 @@
             -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
+        /* Layout & Containers */
         .top-header {
             padding: 1.5rem 1.25rem 1rem; flex-shrink: 0; z-index: 40;
             width: 100%; display: flex; align-items: center; justify-content: center;
@@ -53,7 +55,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             position: sticky; top: 0;
         }
-        .top-header-content { width: 100%; max-width: 42rem; display: flex; align-items: center; justify-content: space-between; }
+        .top-header-content {
+            width: 100%; max-width: 42rem; display: flex; align-items: center; justify-content: space-between;
+        }
         
         .main-container {
             flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem 8rem; 
@@ -61,7 +65,12 @@
             width: 100%; max-width: 42rem; margin: 0 auto; transition: padding 0.3s;
         }
         
-        .main-container.interactive-mode { padding-top: 0.25rem; padding-bottom: 1.25rem; overflow: hidden; }
+        .main-container.interactive-mode { 
+            padding-top: 0.25rem; 
+            padding-bottom: 1.25rem; 
+            overflow: hidden; 
+        }
+        
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .hide-scroll::-webkit-scrollbar { display: none; }
 
@@ -72,7 +81,11 @@
         .config-section { transition: opacity 0.3s; }
         .config-section.disabled { opacity: 0.5; pointer-events: none; }
 
-        .upload-zone { border: 2px dashed var(--border-default); border-radius: 1rem; padding: 2rem; background: var(--bg-card); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative; transition: all 0.2s; }
+        .upload-zone {
+            border: 2px dashed var(--border-default); border-radius: 1rem; padding: 2rem;
+            background: var(--bg-card); display: flex; flex-direction: column; align-items: center;
+            text-align: center; cursor: pointer; position: relative; transition: all 0.2s;
+        }
         .upload-zone:hover, .upload-zone.dragover { border-color: var(--border-hover); background: rgba(30, 41, 59, 0.5); }
         .upload-zone.active { border-color: var(--border-hover); background: rgba(59, 130, 246, 0.05); }
         .upload-zone.limit-reached { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); cursor: not-allowed; opacity: 0.5; }
@@ -81,6 +94,7 @@
         
         .upload-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--bg-panel); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: #cbd5e1; border: 1px solid var(--border-default); transition: 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); font-size: 1.25rem; }
         .upload-icon.success { background: rgba(59, 130, 246, 0.1); color: var(--blue-light); border-color: transparent; }
+        
         .upload-title { font-weight: 500; font-size: 1rem; margin-bottom: 0.25rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .upload-subtitle { color: var(--text-muted); font-size: 0.75rem; }
 
@@ -104,7 +118,11 @@
         input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
         input[type=range].warning::-webkit-slider-thumb { border-color: var(--yellow-main); }
 
-        .btn-generate { width: 100%; padding: 1rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(30, 41, 59, 1); background: var(--bg-panel); color: var(--text-muted); cursor: not-allowed; transition: all 0.2s; opacity: 0.5; margin-top: auto; }
+        .btn-generate {
+            width: 100%; padding: 1rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500;
+            border: 1px solid rgba(30, 41, 59, 1); background: var(--bg-panel); color: var(--text-muted);
+            cursor: not-allowed; transition: all 0.2s; opacity: 0.5; margin-top: auto;
+        }
         .btn-generate.active { background: var(--blue-main); color: white; border-color: var(--blue-main); cursor: pointer; opacity: 1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .btn-generate.active:hover { background: var(--blue-hover); }
 
@@ -318,7 +336,8 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    // ADDED signInAnonymously TO THE IMPORT
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -375,12 +394,23 @@
     try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
 
     onAuthStateChanged(auth, async (firebaseUser) => {
-        const activeUser = firebaseUser || nativeUserObj;
+        // THE FIX: Bridge Native Google Login to Web SDK
+        if (!firebaseUser && nativeUserObj) {
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.error("Anonymous auth bridge failed:", e);
+            }
+            return; // Wait for the listener to fire again with the new token
+        }
+
+        // Prioritize the real user data over the anonymous shell
+        const activeUser = nativeUserObj ? nativeUserObj : firebaseUser;
 
         if (activeUser) {
             window.currentUser = activeUser;
             
-            if (firebaseUser) {
+            if (firebaseUser && !nativeUserObj) {
                 localStorage.setItem("nativeUser", JSON.stringify({ 
                     email: firebaseUser.email, 
                     uid: firebaseUser.uid, 
@@ -405,15 +435,13 @@
                     configureUIForPlan(userPlan, data);
                 } else {
                     // --- SELF-HEALING: CREATE MISSING DOCUMENT ---
-                    // VERY IMPORTANT: We use `email` as the Document ID to match old accounts, 
-                    // AND we initialize `planUsed` to 0 so the Cloud Function doesn't crash on NaN.
                     const newDocId = activeUser.email || activeUser.uid;
                     await setDoc(doc(db, "users", newDocId), {
                         email: activeUser.email || "",
                         uid: activeUser.uid,
                         plan: "free",
                         dailyUsage: 0,
-                        planUsed: 0, // <-- THIS FIXES THE CRASH FOR NEW USERS
+                        planUsed: 0, 
                         lastDailyReset: new Date().toISOString().split("T")[0],
                         createdAt: serverTimestamp()
                     }, { merge: true });
@@ -771,6 +799,7 @@
         `;
         interactiveView.innerHTML = html;
 
+        // Trigger Lottie animation for trophy if exists
         if (window.lottie) {
             window.lottie.loadAnimation({
                 container: document.getElementById('result-trophy-container'),
@@ -800,6 +829,7 @@
         generateBtn.classList.remove('active');
         aiLoader.classList.remove('hidden');
         
+        // --- START ANIMATION & TEXT CYCLING ---
         if (lottieAnimation) lottieAnimation.play();
         
         let msgIndex = 0;
@@ -815,8 +845,9 @@
                 msgIndex = (msgIndex + 1) % loadingMessages.length;
                 loadingText.textContent = loadingMessages[msgIndex];
                 loadingText.style.opacity = 1;
-            }, 300); 
-        }, 3500); 
+            }, 300); // 300ms transition
+        }, 3500); // Changes text every 3.5 seconds
+        // --------------------------------------
 
         try {
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
@@ -873,6 +904,7 @@
             existingQuizzes.push(newQuiz);
             localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
 
+            // --- STOP ANIMATION ON SUCCESS ---
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
@@ -884,15 +916,13 @@
         } catch (error) {
             console.error("Error generating quiz:", error);
             
+            // --- STOP ANIMATION ON ERROR ---
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
-            if (error.message && (error.message.includes("limit reached") || error.message.includes("resource-exhausted"))) {
-                alert("You have reached your AI generation limit. Please upgrade your plan to generate more.");
-                window.location.href = "payment.html";
-            } else {
-                alert("CRASH REASON: " + error.message);
-            }
+            // THIS IS THE NEW ALERT THAT WILL TELL US EXACTLY WHAT IS BREAKING
+            alert("CRASH REASON: " + error.message);
+
             aiLoader.classList.add('hidden');
             generateBtn.disabled = false;
             generateBtn.classList.add('active');
