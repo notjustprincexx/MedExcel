@@ -339,9 +339,7 @@
     </nav>
 
 <script type="module">
-    // FIX 1: Use 10.8.0 to perfectly match the homepage version!
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -359,7 +357,6 @@
     };
     
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const storage = getStorage(app);
     const functions = getFunctions(app, "us-central1");
     const db = getFirestore(app);
@@ -367,7 +364,26 @@
     let currentUser = null;
     let userPlan = "free";
     let allowedMaxItems = 15;
-    let isAuthResolved = false; // Add this to prevent fast-click issues
+
+    function showLoginModal() {
+        document.getElementById('loginModalBackdrop').classList.add('show');
+    }
+
+    (function () {
+        const saved = localStorage.getItem("nativeUser");
+        if (!saved) {
+            return; 
+        }
+        try {
+            currentUser = JSON.parse(saved);
+            if (!currentUser || !currentUser.email) {
+                throw new Error("Invalid user data");
+            }
+        } catch (e) {
+            localStorage.removeItem("nativeUser");
+            currentUser = null;
+        }
+    })();
 
     // --- INITIALIZE LOTTIE ---
     let lottieAnimation = null;
@@ -392,32 +408,26 @@
     ];
     let messageInterval = null;
 
-    // FIX 2: Add setPersistence so it reads the Local Storage cookie perfectly from the Homepage!
-    setPersistence(auth, browserLocalPersistence).then(() => {
-        onAuthStateChanged(auth, async (user) => {
-            isAuthResolved = true; // Mark as resolved
-            if (!user) {
-                currentUser = null;
-                configureUIForPlan("free", {}); 
-            } else {
-                currentUser = user;
-                try {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        userPlan = data.plan || "free";
-                        configureUIForPlan(userPlan, data);
-                    } else {
-                        configureUIForPlan("free", {});
-                    }
-                } catch (error) {
-                    console.error("Error fetching user plan:", error);
-                    configureUIForPlan("free", {}); 
+    if (currentUser) {
+        (async () => {
+            try {
+                const userDocRef = doc(db, "users", currentUser.email);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    userPlan = data.plan || "free";
+                    configureUIForPlan(userPlan, data);
+                } else {
+                    configureUIForPlan("free", {});
                 }
+            } catch (error) {
+                console.error("Error fetching user plan:", error);
+                configureUIForPlan("free", {}); 
             }
-        });
-    });
+        })();
+    } else {
+        configureUIForPlan("free", {});
+    }
 
     function configureUIForPlan(plan, data) {
         let isLimitReached = false;
@@ -508,14 +518,9 @@
     }
 
     fileInput.addEventListener('click', (e) => {
-        // FIX 3: If Firebase hasn't loaded yet, just wait (prevents flash-asking)
-        if (!isAuthResolved) {
-            e.preventDefault();
-            return;
-        }
         if (!currentUser) {
             e.preventDefault(); 
-            document.getElementById('loginModalBackdrop').classList.add('show');
+            showLoginModal();
         }
     });
 
@@ -776,7 +781,7 @@
     generateBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
         if (!currentUser) { 
-            document.getElementById('loginModalBackdrop').classList.add('show');
+            showLoginModal();
             return; 
         }
         
@@ -813,7 +818,7 @@
 
         try {
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
-            const securePath = `uploads/${currentUser.uid}/${uniqueFileName}`;
+            const securePath = `uploads/${currentUser.email}/${uniqueFileName}`;
             const storageReference = ref(storage, securePath);
             await uploadBytes(storageReference, selectedFile);
             
