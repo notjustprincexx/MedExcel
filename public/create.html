@@ -891,7 +891,7 @@
                 alert("You have reached your AI generation limit. Please upgrade your plan to generate more.");
                 window.location.href = "payment.html";
             } else {
-                alert("Something went wrong while generating the content. Please try again.");
+                alert("CRASH REASON: " + error.message);
             }
             aiLoader.classList.add('hidden');
             generateBtn.disabled = false;
