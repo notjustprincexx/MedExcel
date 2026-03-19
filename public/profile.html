@@ -80,6 +80,9 @@
 
             try {
                 currentUser = JSON.parse(saved);
+                if (!currentUser || !currentUser.email) {
+                    throw new Error("Invalid user data");
+                }
             } catch (e) {
                 localStorage.removeItem("nativeUser");
                 window.location.replace("index.html");
@@ -129,7 +132,7 @@
                 <div class="w-px h-8 bg-white/10"></div>
                 <div class="text-center">
                     <p class="text-[10px] text-slate-500 uppercase font-extrabold mb-1 tracking-widest">Member Since</p>
-                    <p class="text-sm font-bold text-slate-300 mt-1" id="joinDate">--</p>
+                    <p class="text-sm font-bold text-slate-300 mt-1" id="memberSince">--</p>
                 </div>
             </div>
             
@@ -162,15 +165,15 @@
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-6">
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniFree">
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniFree">
                     <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Free</p>
                     <p class="text-xs font-bold text-white mt-1">5 / day</p>
                 </div>
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniPremium">
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniPremium">
                     <p class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">Premium</p>
                     <p class="text-xs font-bold text-white mt-1">30 / day</p>
                 </div>
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all" id="miniElite">
+                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniElite">
                     <p class="text-[10px] font-extrabold text-yellow-500 uppercase tracking-wider">Elite</p>
                     <p class="text-xs font-bold text-white mt-1">40 / day</p>
                 </div>
@@ -256,7 +259,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -269,7 +271,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
         const MASTER_ACHIEVEMENTS = [
@@ -302,22 +303,55 @@
             });
         }
 
+        function setDefaultUI() {
+            document.getElementById("planBadge").textContent = "Free Plan";
+            document.getElementById("planBadge").className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-700 border-slate-500 text-white transition-all";
+            document.getElementById("streakCount").textContent = "0";
+            document.getElementById("memberSince").textContent = "--";
+            
+            document.getElementById("usageCount").textContent = "0";
+            document.getElementById("usageRemaining").textContent = "5 left";
+            document.getElementById("usageRemaining").className = "text-sm font-bold text-slate-300";
+            document.getElementById("usageProgressBar").style.width = "0%";
+            document.getElementById("usageProgressBar").className = "h-full bg-slate-400 transition-all duration-700 ease-out";
+            
+            document.getElementById("miniFree").classList.remove('opacity-40');
+            document.getElementById("miniFree").classList.add('border-slate-500/50', 'bg-white/5');
+            document.getElementById("miniPremium").classList.add('opacity-40');
+            document.getElementById("miniElite").classList.add('opacity-40');
+            
+            renderAchievements([]);
+        }
+
         window.addEventListener("load", async () => {
             if (!currentUser) return;
 
-            document.getElementById("userName").textContent = currentUser.email.split("@")[0];
-            document.getElementById("userEmail").textContent = currentUser.email;
-            document.getElementById("userInitial").textContent = currentUser.email.charAt(0).toUpperCase();
+            const email = currentUser.email;
+            const name = email.split("@")[0];
+
+            document.getElementById("userName").textContent = name;
+            document.getElementById("userEmail").textContent = email;
+            document.getElementById("userInitial").textContent = email.charAt(0).toUpperCase();
 
             // 🔥 FIRESTORE LOAD
             try {
-                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-                let userData = {};
+                const userId = currentUser.email;
+                const userDoc = await getDoc(doc(db, "users", userId));
 
-                if (userDoc.exists()) {
-                    userData = userDoc.data();
-                    
-                    document.getElementById("streakCount").textContent = userData.streak || 0;
+                if (!userDoc.exists()) {
+                    setDefaultUI();
+                    return;
+                }
+
+                const userData = userDoc.data();
+                
+                document.getElementById("streakCount").textContent = userData.streak || 0;
+
+                if (userData.createdAt) {
+                    const dateObj = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                    document.getElementById("memberSince").textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                } else {
+                    document.getElementById("memberSince").textContent = "--";
                 }
 
                 const plan = userData.plan || "free";
@@ -350,13 +384,11 @@
                 const usageCountEl = document.getElementById('usageCount');
                 const usageRemEl = document.getElementById('usageRemaining');
                 const barEl = document.getElementById('usageProgressBar');
-                const typeBadge = document.getElementById('usageTypeBadge');
                 
                 document.getElementById('miniFree').classList.add('opacity-40');
                 document.getElementById('miniPremium').classList.add('opacity-40');
                 document.getElementById('miniElite').classList.add('opacity-40');
 
-                typeBadge.textContent = "Daily Limit";
                 usageCountEl.textContent = dailyUsage;
 
                 if (plan === "elite") {
@@ -382,25 +414,22 @@
                     document.getElementById('miniFree').classList.remove('opacity-40');
                     document.getElementById('miniFree').classList.add('border-slate-500/50', 'bg-white/5');
                     
-                    const rem = Math.max(0, 3 - dailyUsage);
+                    const rem = Math.max(0, 5 - dailyUsage);
                     usageRemEl.textContent = `${rem} left`;
                     usageRemEl.className = "text-sm font-bold text-slate-300";
-                    barEl.style.width = `${Math.min(100, (dailyUsage / 3) * 100)}%`;
+                    barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
                     barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
                 }
 
                 renderAchievements(unlockedIds);
 
             } catch (e) {
-                console.error(e);
+                console.error("Firestore Error:", e);
+                setDefaultUI();
             }
         });
 
         document.getElementById('btnLogout').addEventListener('click', () => {
-            if (!currentUser) {
-                window.location.replace("index.html");
-                return;
-            }
             document.getElementById('logoutModalBackdrop').classList.add('show');
         });
 
@@ -413,35 +442,14 @@
             window.location.replace("index.html");
         };
 
-        document.getElementById('btnResetPassword').addEventListener('click', async () => {
-            if(!currentUser || !currentUser.email) return;
-            if(confirm(`Send password reset email to ${currentUser.email}?`)) {
-                try {
-                    await sendPasswordResetEmail(auth, currentUser.email);
-                    alert("Password reset email sent! Please check your inbox.");
-                } catch (e) {
-                    alert("Error: " + e.message);
-                }
-            }
+        document.getElementById('btnResetPassword').addEventListener('click', () => {
+            alert("Action requires email verification. Please check your inbox or contact support.");
         });
 
-        document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
-            if(confirm("DANGER: Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.")) {
-                try {
-                    const user = auth.currentUser;
-                    if(user) {
-                         await deleteUser(user);
-                    }
-                    localStorage.removeItem("nativeUser");
-                    alert("Account deleted successfully.");
-                    window.location.replace("index.html");
-                } catch (e) {
-                    if (e.code === 'auth/requires-recent-login') {
-                        alert("For security reasons, please log out and log back in before deleting your account.");
-                    } else {
-                        alert("Error deleting account: " + e.message);
-                    }
-                }
+        document.getElementById('btnDeleteAccount').addEventListener('click', () => {
+            if(confirm("DANGER: Are you sure you want to delete your account? All data will be lost.")) {
+                localStorage.removeItem("nativeUser");
+                window.location.replace("index.html");
             }
         });
 
