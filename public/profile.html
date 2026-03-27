@@ -69,7 +69,7 @@
         // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase Hybrid Auth
         (function () {
             const saved = localStorage.getItem("nativeUser");
-            if (saved) {
+            if (saved && saved !== "undefined" && saved !== "null") {
                 try { window.currentUser = JSON.parse(saved); } catch (e) {}
             }
         })();
@@ -244,10 +244,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // IMPORT ADDED HERE
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // REAL CONFIG INJECTED
         const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
             authDomain: "medxcel.firebaseapp.com",
@@ -311,23 +311,35 @@
             renderAchievements([]);
         }
 
-        // --- HYBRID AUTHENTICATION GATEKEEPER ---
+        // --- NEW BULLETPROOF HYBRID AUTHENTICATION GATEKEEPER ---
         const savedUserStr = localStorage.getItem("nativeUser");
         let nativeUserObj = null;
-        try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
+        try { 
+            if (savedUserStr && savedUserStr !== "undefined" && savedUserStr !== "null") {
+                nativeUserObj = JSON.parse(savedUserStr); 
+            }
+        } catch(e) {}
 
         onAuthStateChanged(auth, async (firebaseUser) => {
-            const activeUser = firebaseUser || nativeUserObj;
+            let activeUser = null;
+
+            // 1. Real Web Login
+            if (firebaseUser && !firebaseUser.isAnonymous) {
+                activeUser = firebaseUser;
+                const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
+                localStorage.setItem("nativeUser", JSON.stringify(userData));
+                nativeUserObj = userData;
+            } 
+            // 2. Native User Fallback & Bridge
+            else if (nativeUserObj && nativeUserObj.uid) {
+                activeUser = nativeUserObj;
+                if (!firebaseUser) {
+                    try { await signInAnonymously(auth); } catch (e) {}
+                }
+            }
 
             if (activeUser) {
-                // Keep local storage perfectly synced if Firebase web sdk wakes up
-                if (firebaseUser) {
-                    localStorage.setItem("nativeUser", JSON.stringify({ 
-                        email: firebaseUser.email, 
-                        uid: firebaseUser.uid, 
-                        displayName: firebaseUser.displayName 
-                    }));
-                }
+                window.currentUser = activeUser;
 
                 // Pre-fill what we know immediately to prevent flickering
                 const email = activeUser.email || "";
@@ -452,7 +464,6 @@
             document.getElementById('logoutModalBackdrop').classList.remove('show');
         });
 
-        // FIX: Secure Logout
         document.getElementById('confirmLogoutBtn').onclick = async () => {
             try { await signOut(auth); } catch(e) {}
             localStorage.clear();
