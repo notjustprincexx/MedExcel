@@ -18,12 +18,12 @@
     </script>
     <style>
         :root {
-            --bg-body: #050814; /* <--- FIX THIS LINE (Remove the "var()") */
+            --bg-body: #050814; 
             --bg-surface: #070b14; 
             --bg-glass: rgba(0, 0, 0, 0.2); 
             --bg-glass-hover: rgba(255, 255, 255, 0.04);
             --bg-modal: #0B1120;
-            /* ... rest of the code ... */
+            
             --text-main: #ffffff; 
             --text-muted: #94a3b8; 
             --text-light: #cbd5e1;
@@ -334,9 +334,7 @@
             try {
                 const { StatusBar } = Capacitor.Plugins;
                 await StatusBar.setBackgroundColor({ color: color });
-            } catch (e) {
-                console.log("Status bar update skipped", e);
-            }
+            } catch (e) {}
         }
     }
 
@@ -442,10 +440,20 @@
                 headerFireIcon.style.opacity = '1';
             }
 
+            // ---> BUG FIX 1: DOUBLE FIRE <---
+            // Destroy any existing animation before creating a new one
             if(window.lottie) {
-                // ---> THE FIX: CLEAR THE CONTAINER BEFORE LOADING <---
-                document.getElementById('modalStreakLottie').innerHTML = ''; 
-                lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'fire.json' });
+                if (window.streakLottieAnim) {
+                    window.streakLottieAnim.destroy();
+                }
+                document.getElementById('modalStreakLottie').innerHTML = '';
+                window.streakLottieAnim = lottie.loadAnimation({ 
+                    container: document.getElementById('modalStreakLottie'), 
+                    renderer: 'svg', 
+                    loop: true, 
+                    autoplay: true, 
+                    path: 'fire.json' 
+                });
             }
 
             if (!hasCheckedInToday) {
@@ -553,21 +561,26 @@
             projectId: "medxcel", 
             storageBucket: "medxcel.firebasestorage.app", 
             messagingSenderId: "649180317389", 
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
         };
         const app = initializeApp(firebaseConfig); 
         const auth = getAuth(app); 
         const db = getFirestore(app);
 
         window.logoutUser = async function() {
-            try { await signOut(auth); } catch (e) {}
+            try { await signOut(auth); } catch (e) { console.error("Logout failed", e); }
             localStorage.clear(); 
             window.location.replace("index.html");
         };
 
+        window.logout = window.logoutUser;
+
         function shouldShowBanner() {
             const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
-            return !(snoozeTime && Date.now() < parseInt(snoozeTime, 10));
+            if (snoozeTime && Date.now() < parseInt(snoozeTime, 10)) {
+                return false; 
+            }
+            return true;
         }
 
         async function ensureAndCheckUser(user) {
@@ -590,6 +603,7 @@
                     if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 }
             } catch (error) {
+                console.warn("Firestore restricted. Defaulting to Free plan.");
                 if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
             }
         }
@@ -605,30 +619,38 @@
         onAuthStateChanged(auth, async (firebaseUser) => {
             let activeUser = null;
 
-            // 1. Prioritize Real Web Login
             if (firebaseUser && !firebaseUser.isAnonymous) {
                 activeUser = firebaseUser;
                 const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
                 localStorage.setItem("nativeUser", JSON.stringify(userData));
                 nativeUserObj = userData;
-            } 
-            // 2. Use Native Login Fallback (and Bridge to Firebase)
-            else if (nativeUserObj && nativeUserObj.uid) {
+            } else if (nativeUserObj && nativeUserObj.uid) {
                 activeUser = nativeUserObj;
                 if (!firebaseUser) {
                     try { await signInAnonymously(auth); } catch (e) {}
                 }
             }
 
-            // 3. Process Active User or Kick to Login
             if (activeUser) {
                 window.currentUser = activeUser;
-                if (typeof window.initUserUI === 'function') window.initUserUI(activeUser);
-                if (typeof ensureAndCheckUser === 'function') ensureAndCheckUser(activeUser);
+                
+                // Only initialize UI ONCE per page load
+                if (!window.uiInitialized) {
+                    window.initUserUI(activeUser);
+                    window.uiInitialized = true; 
+                }
+                ensureAndCheckUser(activeUser);
             } else {
-                window.currentUser = null;
-                localStorage.clear();
-                window.location.replace("index.html");
+                // ---> BUG FIX 3: THE LOGOUT FIX <---
+                // Give Firebase a 2.5 second grace period to wake up before kicking the user out
+                setTimeout(() => {
+                    const check = localStorage.getItem("nativeUser");
+                    if (!auth.currentUser && (!check || check === "null")) {
+                        window.currentUser = null;
+                        localStorage.clear();
+                        window.location.replace("index.html");
+                    }
+                }, 2500);
             }
         });
     </script>
