@@ -336,7 +336,6 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    // ADDED signInAnonymously TO THE IMPORT
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
@@ -394,23 +393,23 @@
     try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
 
     onAuthStateChanged(auth, async (firebaseUser) => {
-        // THE FIX: Bridge Native Google Login to Web SDK
+        // Bridge Native Google Login to Web SDK
         if (!firebaseUser && nativeUserObj) {
             try {
                 await signInAnonymously(auth);
             } catch (e) {
                 console.error("Anonymous auth bridge failed:", e);
             }
-            return; // Wait for the listener to fire again with the new token
+            return; 
         }
 
-        // Prioritize the real user data over the anonymous shell
         const activeUser = nativeUserObj ? nativeUserObj : firebaseUser;
 
         if (activeUser) {
             window.currentUser = activeUser;
             
-            if (firebaseUser && !nativeUserObj) {
+            // --- FIX 1: Prevent Anonymous Users from overwriting real accounts ---
+            if (firebaseUser && !firebaseUser.isAnonymous && !nativeUserObj) {
                 localStorage.setItem("nativeUser", JSON.stringify({ 
                     email: firebaseUser.email, 
                     uid: firebaseUser.uid, 
@@ -419,11 +418,9 @@
             }
 
             try {
-                // Check if user document exists using UID first
                 let userRef = doc(db, "users", activeUser.uid);
                 let userDoc = await getDoc(userRef);
 
-                // If not, check if it exists under their EMAIL (legacy compatibility)
                 if (!userDoc.exists() && activeUser.email) {
                     userRef = doc(db, "users", activeUser.email);
                     userDoc = await getDoc(userRef);
@@ -434,7 +431,6 @@
                     userPlan = data.plan || "free";
                     configureUIForPlan(userPlan, data);
                 } else {
-                    // --- SELF-HEALING: CREATE MISSING DOCUMENT ---
                     const newDocId = activeUser.email || activeUser.uid;
                     await setDoc(doc(db, "users", newDocId), {
                         email: activeUser.email || "",
@@ -465,7 +461,6 @@
         const today = new Date().toISOString().split("T")[0];
         const isToday = data.lastDailyReset === today;
         
-        // We check BOTH planUsed and dailyUsage just in case the backend favors one
         const usage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
 
         if (plan === "elite") { 
@@ -477,7 +472,7 @@
             if (usage >= 20) isLimitReached = true;
         } else {
             allowedMaxItems = 15;
-            if (usage >= 5) isLimitReached = true; // Matched to 5 per day from profile.html
+            if (usage >= 5) isLimitReached = true; 
         }
 
         document.getElementById('maxLimitText').textContent = `(Your limit: ${allowedMaxItems})`;
@@ -799,7 +794,6 @@
         `;
         interactiveView.innerHTML = html;
 
-        // Trigger Lottie animation for trophy if exists
         if (window.lottie) {
             window.lottie.loadAnimation({
                 container: document.getElementById('result-trophy-container'),
@@ -829,7 +823,6 @@
         generateBtn.classList.remove('active');
         aiLoader.classList.remove('hidden');
         
-        // --- START ANIMATION & TEXT CYCLING ---
         if (lottieAnimation) lottieAnimation.play();
         
         let msgIndex = 0;
@@ -845,9 +838,8 @@
                 msgIndex = (msgIndex + 1) % loadingMessages.length;
                 loadingText.textContent = loadingMessages[msgIndex];
                 loadingText.style.opacity = 1;
-            }, 300); // 300ms transition
-        }, 3500); // Changes text every 3.5 seconds
-        // --------------------------------------
+            }, 300); 
+        }, 3500); 
 
         try {
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
@@ -872,7 +864,37 @@
             bottomNav.classList.add('hidden'); 
             mainContainer.classList.add('interactive-mode');
             
-            generatedCards = cards.map(card => ({ ...card, answered: false }));
+            // --- FIX 2: Sanitize and expand lazy AI single-letter answers ---
+            generatedCards = cards.map(card => {
+                let frontText = card.front || card.question || "";
+                let backText = card.back || card.answer || "No answer provided";
+                
+                if (card.options && typeof card.options === 'object') {
+                    const cleanBack = String(backText).trim().toUpperCase();
+                    
+                    if (cleanBack.length <= 2 && card.options[cleanBack]) {
+                        backText = card.options[cleanBack];
+                    } 
+                    else {
+                        for (const [key, value] of Object.entries(card.options)) {
+                             if (String(key).trim().toUpperCase() === cleanBack || String(key).trim() === cleanBack) {
+                                 backText = value;
+                                 break;
+                             }
+                        }
+                    }
+                }
+                
+                return { 
+                    ...card, 
+                    front: frontText, 
+                    back: backText, 
+                    answer: backText, 
+                    answered: false 
+                };
+            });
+            // ----------------------------------------------------------------
+
             currentCardIndex = 0;
             sessionScore = 0; 
             isMCQMode = quizType === "Multiple Choice";
@@ -904,7 +926,6 @@
             existingQuizzes.push(newQuiz);
             localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
 
-            // --- STOP ANIMATION ON SUCCESS ---
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
@@ -916,11 +937,9 @@
         } catch (error) {
             console.error("Error generating quiz:", error);
             
-            // --- STOP ANIMATION ON ERROR ---
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
-            // THIS IS THE NEW ALERT THAT WILL TELL US EXACTLY WHAT IS BREAKING
             alert("CRASH REASON: " + error.message);
 
             aiLoader.classList.add('hidden');

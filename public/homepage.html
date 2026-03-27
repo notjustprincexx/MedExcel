@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050814">
-    <title>MedExcel Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aurora - Study Center</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    
     <script>
-        // TOP SCRIPT: Allows Native Google Users to render the page instantly
         (function () {
             const savedUser = localStorage.getItem("nativeUser");
             if (savedUser) {
@@ -16,648 +14,359 @@
             }
         })();
     </script>
+
     <style>
         :root {
-            /* Deeper blue/purple base theme */
-            --bg-body: #050814; 
-            --bg-surface: #070b14; /* Darkened surface */
-            --bg-glass: rgba(0, 0, 0, 0.2); /* Darker glass effect */
-            --bg-glass-hover: rgba(255, 255, 255, 0.04);
-            --bg-modal: #0B1120;
-            
-            --text-main: #ffffff; 
-            --text-muted: #94a3b8; 
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+            --bg-main: #050A15;
+            --bg-surface: #0B1120;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
             --text-light: #cbd5e1;
-            
-            --accent-blue: #3b82f6; 
-            --accent-blue-dark: #2563eb; 
-            --accent-orange: #f97316;
-            --accent-orange-dark: #c2410c;
-            
-            --border-glass: rgba(255, 255, 255, 0.04); /* Subtler borders */
-            
-            --radius-md: 16px;
-            --radius-lg: 20px;
-            --radius-xl: 24px;
-            
-            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --border-color: rgba(255, 255, 255, 0.05);
+            --blue-main: #2563eb;
+            --blue-hover: #3b82f6;
+            --emerald-main: #10b981;
+            --red-main: #ef4444;
+            --yellow-main: #eab308;
+            --orange-main: #f97316;
         }
-
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body { 
-            background-color: var(--bg-body); color: var(--text-main);
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
-            overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
-        }
-        a { text-decoration: none; color: inherit; }
-        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
-
-        .fade-in { opacity: 0; animation: fadeIn 0.4s var(--ease-out) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* =========================================
-           MEDEXCEL DESIGN SYSTEM: ELEVATION LEVELS
-           ========================================= */
-
-        /* TIER 1: PRIMARY (High Emphasis) - Strong 3D, Prominent */
-        .card-primary {
-            background: linear-gradient(135deg, #2563eb, #4338ca);
-            border-radius: var(--radius-lg);
-            border: 1px solid rgba(96, 165, 250, 0.4);
-            box-shadow: 0 5px 0 #1e3a8a, 0 10px 20px -5px rgba(37, 99, 235, 0.5);
-            transform: translateY(0);
-            transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
-        }
-        .card-primary:active {
-            transform: translateY(5px);
-            box-shadow: 0 0px 0 #1e3a8a, 0 4px 8px -2px rgba(37, 99, 235, 0.5);
-        }
-        .btn-primary {
-            background: var(--accent-orange);
-            color: #ffffff;
-            border-radius: 9999px;
-            box-shadow: 0 5px 0 var(--accent-orange-dark), 0 8px 16px rgba(249, 115, 22, 0.3);
-            transition: transform 0.1s var(--ease-out), box-shadow 0.1s var(--ease-out);
-        }
-        .btn-primary:active {
-            transform: translateY(5px);
-            box-shadow: 0 0px 0 var(--accent-orange-dark), 0 4px 8px rgba(249, 115, 22, 0.3);
+            background-color: var(--bg-main); color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
         }
 
-        /* TIER 2: SECONDARY (Medium Emphasis) - Soft Elevation */
-        .card-soft {
-            background: #0a0f1d; /* Explicit dark background */
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-glass);
-            box-shadow: 0 3px 0 rgba(255, 255, 255, 0.02), 0 4px 12px rgba(0, 0, 0, 0.4);
-            transform: translateY(0);
-            transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), background 0.2s;
-        }
-        .card-soft:hover { background: #0f1629; }
-        .card-soft:active {
-            transform: translateY(3px);
-            box-shadow: 0 0 0 transparent, 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .btn-secondary {
-            background: var(--accent-blue-dark);
-            color: white;
-            border-radius: 12px;
-            box-shadow: 0 3px 0 #1e3a8a;
-            transition: transform 0.1s var(--ease-out), box-shadow 0.1s var(--ease-out);
-        }
-        .btn-secondary:active {
-            transform: translateY(3px);
-            box-shadow: 0 0 0 transparent;
-        }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hidden { display: none !important; }
 
-        /* TIER 3: TERTIARY (Low Emphasis) - Flat / Minimal */
-        .card-flat {
-            background: rgba(255, 255, 255, 0.02); /* Faint */
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-glass);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Soft ambient only */
-            transition: transform 0.15s var(--ease-out), background 0.2s;
-        }
-        .card-flat:hover { background: var(--bg-glass-hover); }
-        .card-flat:active {
-            transform: scale(0.97); /* Flat squish, no Y-translation */
-        }
-        .btn-flat {
-            background: transparent;
-            color: var(--text-muted);
-            transition: transform 0.1s, color 0.2s;
-        }
-        .btn-flat:active { transform: scale(0.95); }
-        .btn-flat:hover { color: var(--text-main); }
+        .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* SPECIAL: PRO BANNER */
-        .pro-banner {
-            display: flex; align-items: center; gap: 1rem; 
-            padding: 0.75rem 1.25rem; 
-            border-radius: var(--radius-md);
-            background: linear-gradient(135deg, rgba(234, 179, 8, 0.08), rgba(202, 138, 4, 0.02));
-            border: 1px solid rgba(234, 179, 8, 0.15);
-            box-shadow: 0 2px 0 rgba(234, 179, 8, 0.1);
-            transition: opacity 0.3s, transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
-            cursor: pointer;
-        }
-        .pro-banner:hover { background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(202, 138, 4, 0.04)); }
-        .pro-banner:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+        /* Layout */
+        .layout-wrapper { flex: 1; display: flex; width: 100%; height: 100%; overflow: hidden; padding-bottom: 80px; position: relative; z-index: 10; }
+        @media (min-width: 1024px) { .layout-wrapper { padding-bottom: 0; } }
 
-        /* =========================================
-           COMPONENT LAYOUTS & OVERRIDES
-           ========================================= */
-
-        /* Header */
-        .header-bar { 
-            padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; justify-content: space-between; 
-            z-index: 10; position: sticky; top: 0; background: rgba(5, 8, 20, 0.85); backdrop-filter: blur(16px); 
-        }
-        .greeting-title { font-size: 1.125rem; font-weight: 600; flex: 1; white-space: nowrap; }
+        /* Sidebar (Library) */
+        .sidebar { width: 100%; border-right: 1px solid var(--border-color); background: var(--bg-main); display: flex; flex-direction: column; height: 100%; z-index: 20; transition: transform 0.3s; }
+        @media (min-width: 1024px) { .sidebar { width: 420px; } }
         
-        .streak-badge { 
-            display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 9999px; 
-            background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.15); 
-            color: var(--accent-orange); font-size: 0.875rem; font-weight: 800; 
+        .sidebar-header { padding: 2rem 1.25rem 0.5rem; flex-shrink: 0; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .header-top h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
+        .btn-icon-simple { color: var(--text-light); font-size: 1.5rem; background: transparent; border: none; cursor: pointer; padding: 0.5rem; transition: 0.2s; }
+        .btn-icon-simple:active { transform: scale(0.95); }
+        .btn-icon-simple:hover { color: white; }
+        
+        .tab-scroll { display: flex; overflow-x: auto; gap: 0.625rem; margin-bottom: 1.5rem; padding-bottom: 0.25rem; }
+        .tab-btn { padding: 0.375rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(51, 65, 85, 1); background: transparent; color: var(--text-light); cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .tab-btn:hover { background: rgba(30, 41, 59, 1); }
+        .tab-btn.active { background-color: rgba(59, 130, 246, 0.1); border-color: var(--blue-hover); color: var(--blue-light); }
+
+        .search-box { position: relative; margin-bottom: 0.5rem; }
+        .search-icon { position: absolute; left: 1rem; top: 0.875rem; color: var(--text-muted); transition: color 0.2s; }
+        .search-input { width: 100%; background: transparent; font-size: 0.875rem; border-radius: 0.75rem; padding: 0.875rem 1rem 0.875rem 2.75rem; outline: none; color: #e2e8f0; border: 1px solid rgba(71, 85, 105, 1); transition: 0.2s; }
+        .search-input:focus { border-color: var(--blue-main); background: rgba(30, 41, 59, 0.5); }
+        .search-box:focus-within .search-icon { color: var(--blue-light); }
+
+        .list-container { flex: 1; overflow-y: auto; padding: 0.5rem 0.75rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .list-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); padding: 0 0.75rem; margin: 0.5rem 0 0.75rem; }
+
+        /* Quiz Items */
+        .quiz-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 1rem; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .quiz-item:hover { background: rgba(30, 41, 59, 0.6); border-color: rgba(51, 65, 85, 1); }
+        .quiz-icon { width: 3.25rem; height: 3.25rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 1); border: 1px solid rgba(51, 65, 85, 1); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; flex-shrink: 0; }
+        .quiz-icon i { color: var(--blue-light); font-size: 1.25rem; transform: rotate(-12deg); position: relative; z-index: 10; }
+        .quiz-icon-bg { position: absolute; inset: 0; background: rgba(59, 130, 246, 0.05); }
+        .fav-indicator { position: absolute; top: 0; right: 0; width: 0.75rem; height: 0.75rem; background: var(--yellow-main); border-bottom-left-radius: 0.5rem; z-index: 10; }
+        .quiz-content { flex: 1; min-width: 0; padding: 0.25rem 0; }
+        .quiz-title { color: #f1f5f9; font-weight: 700; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
+        .quiz-meta { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; width: 100%; }
+        .quiz-subject { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+        .btn-delete { padding: 0.625rem; color: rgba(71, 85, 105, 1); background: transparent; border: none; border-radius: 50%; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .btn-delete:hover { color: var(--red-light); background: rgba(30, 41, 59, 1); }
+        .btn-delete:active { transform: scale(0.9); }
+        
+        .empty-state { text-align: center; padding: 2.5rem 0; }
+        .empty-icon { width: 4rem; height: 4rem; margin: 0 auto 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; justify-content: center; transform: rotate(-6deg); }
+        .empty-text { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
+
+        /* Practice Panel */
+        .practice-panel { display: none; width: 100%; flex-direction: column; position: absolute; inset: 0; background: linear-gradient(to bottom right, #0B1120, #0f172a); z-index: 30; height: 100%; transition: transform 0.3s; }
+        .practice-panel.active { display: flex; }
+        @media (min-width: 1024px) { 
+            .practice-panel { display: flex; flex: 1; position: relative; }
         }
 
-        /* Main Layout */
-        .main-content { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
-        .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.875rem; text-transform: uppercase; letter-spacing: 0.08em; padding-left: 0.25rem; }
-
-        /* Banners Elements */
-        .crown-lottie-large { width: 3rem; height: 3rem; flex-shrink: 0; pointer-events: none; opacity: 0.9; }
-        .banner-title { color: #fde047; font-weight: 700; font-size: 0.9375rem; margin-bottom: 0.125rem; }
-        .banner-sub { color: rgba(253, 224, 71, 0.7); font-size: 0.75rem; font-weight: 500; }
-        .btn-dismiss-banner { width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: auto; z-index: 2; }
-
-        /* Continue Studying */
-        .continue-card { padding: 1.25rem; position: relative; overflow: hidden; display: block; }
-        .progress-track { position: absolute; bottom: 0; left: 0; height: 0.25rem; background: rgba(255,255,255,0.05); width: 100%; }
-        .progress-bar { height: 100%; background: var(--accent-blue); transition: width 0.5s ease-out; }
-        .card-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem; }
-        .icon-box { width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-        .card-details { flex: 1; min-width: 0; }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem; gap: 0.75rem; }
-        .card-title { font-weight: bold; font-size: 0.875rem; line-height: 1.25; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .progress-text { font-size: 0.625rem; font-weight: 800; color: #60a5fa; background: rgba(59, 130, 246, 0.1); padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
-        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
-
-        /* Grid Items */
-        .quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem; }
+        .practice-header { height: 72px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; flex-shrink: 0; }
+        @media (min-width: 1024px) { .practice-header { height: 88px; padding: 0 2rem; } }
         
-        .action-card { padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; text-align: left; }
-        .action-title { font-weight: 700; font-size: 0.875rem; color: #f1f5f9; margin-top: 0.5rem; }
-        .action-sub { font-size: 0.625rem; color: var(--text-muted); margin-top: 0.125rem; display: block; }
+        .header-left { display: flex; align-items: center; gap: 1rem; width: 100%; }
+        @media (min-width: 1024px) { .header-left { width: auto; } }
+        .btn-back-mobile { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; }
+        @media (min-width: 1024px) { .btn-back-mobile { display: none; } }
+        
+        .stat-badges { display: flex; gap: 0.75rem; }
+        .badge { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .badge-xp { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); color: var(--yellow-main); }
+        .badge-streak { background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.2); color: var(--orange-main); }
 
-        .ai-card { grid-column: span 2; padding: 1.5rem; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-        .ai-content { position: relative; z-index: 10; }
-        .ai-title { font-size: 1.125rem; font-weight: 800; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; color: white; }
-        .ai-sub { color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 500; }
-        .ai-arrow { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); position: relative; z-index: 10; }
+        .btn-challenge { display: none; align-items: center; gap: 0.5rem; background: linear-gradient(to right, #6366f1, #2563eb); color: white; font-size: 0.75rem; font-weight: 700; padding: 0.625rem 1.25rem; border-radius: 0.75rem; border: none; box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.3); cursor: pointer; transition: 0.2s; }
+        .btn-challenge:active { transform: scale(0.95); }
+        @media (min-width: 1024px) { .btn-challenge { display: flex; } }
 
-        /* Navigation */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 8, 20, 0.98); backdrop-filter: blur(16px); border-top: 1px solid var(--border-glass); padding: 0.75rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 1rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; }
+        .practice-area { flex: 1; overflow-y: auto; padding: 1rem; display: flex; align-items: center; justify-content: center; padding-bottom: 2rem; }
+        @media (min-width: 1024px) { .practice-area { padding: 2rem; } }
+
+        .idle-state { text-align: center; color: rgba(100, 116, 139, 1); display: none; flex-direction: column; align-items: center; }
+        @media (min-width: 1024px) { .idle-state { display: flex; } }
+        .idle-icon-wrap { width: 6rem; height: 6rem; border-radius: 1rem; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 1); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); transform: rotate(3deg); }
+        
+        /* Rendered Overviews & Questions */
+        .card-panel { width: 100%; max-width: 42rem; background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden; }
+        @media (min-width: 1024px) { .card-panel { padding: 2.5rem; } }
+        .panel-glow { position: absolute; top: -6rem; right: -6rem; width: 16rem; height: 16rem; background: rgba(37, 99, 235, 0.1); border-radius: 50%; filter: blur(40px); pointer-events: none; }
+        
+        .overview-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .subject-tag { background: rgba(59, 130, 246, 0.2); color: var(--blue-light); font-size: 0.625rem; font-weight: 800; padding: 0.375rem 0.75rem; border-radius: 0.25rem; border: 1px solid rgba(59, 130, 246, 0.3); text-transform: uppercase; letter-spacing: 0.1em; display: inline-flex; align-items: center; gap: 0.375rem; }
+        @media (min-width: 1024px) { .subject-tag { font-size: 0.75rem; } }
+        .btn-fav { color: var(--text-muted); font-size: 1.25rem; background: transparent; border: none; cursor: pointer; transition: 0.2s; padding: 0.5rem; margin: -0.5rem; }
+        .btn-fav:hover { color: var(--yellow-main); }
+        .btn-fav:active { transform: scale(0.9); }
+        .btn-fav.is-fav { color: var(--yellow-main); }
+        
+        .overview-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; line-height: 1.25; }
+        @media (min-width: 1024px) { .overview-title { font-size: 1.875rem; } }
+        .overview-meta { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; font-weight: 500; }
+        
+        .overview-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 2rem; }
+        @media (min-width: 1024px) { .overview-stats { gap: 1rem; } }
+        .stat-card { background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 1rem; border: 1px solid var(--border-color); text-align: center; }
+        @media (min-width: 1024px) { .stat-card { text-align: left; } }
+        .stat-card-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.1em; }
+        .stat-card-val { font-size: 1.875rem; font-weight: 700; color: #f1f5f9; }
+        .stat-card-sub { font-size: 0.875rem; color: rgba(100, 116, 139, 1); }
+
+        .btn-primary { width: 100%; background: var(--blue-main); color: white; font-weight: 700; padding: 1rem; border-radius: 0.75rem; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-primary:hover { background: var(--blue-hover); }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* Quiz UI */
+        .quiz-wrapper { width: 100%; max-width: 48rem; display: flex; flex-direction: column; height: 100%; padding: 0.5rem 0; }
+        @media (min-width: 1024px) { .quiz-wrapper { padding: 1.5rem 0; } }
+        
+        .progress-header { margin-bottom: 1.5rem; flex-shrink: 0; }
+        @media (min-width: 1024px) { .progress-header { margin-bottom: 2rem; } }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.625rem; font-weight: 700; color: rgba(100, 116, 139, 1); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+        .progress-track { height: 0.375rem; width: 100%; background: rgba(30, 41, 59, 0.5); border-radius: 9999px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .progress-fill { height: 100%; background: var(--blue-hover); border-radius: 9999px; box-shadow: 0 0 10px rgba(59,130,246,0.5); transition: width 0.5s ease-out; }
+
+        .question-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; flex: 1; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative; }
+        @media (min-width: 1024px) { .question-card { padding: 2rem; } }
+        
+        .question-text { font-size: 1.125rem; font-weight: 700; color: white; line-height: 1.625; margin-bottom: 2rem; flex-shrink: 0; }
+        @media (min-width: 1024px) { .question-text { font-size: 1.25rem; } }
+        
+        .options-list { display: flex; flex-direction: column; gap: 0.75rem; flex-shrink: 0; }
+        .option-btn { width: 100%; text-align: left; padding: 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 0.5); display: flex; align-items: flex-start; gap: 1rem; cursor: pointer; transition: 0.2s; color: #e2e8f0; }
+        .option-btn:hover:not(:disabled) { background: rgba(51, 65, 85, 0.5); border-color: rgba(71, 85, 105, 1); }
+        .option-btn:active:not(:disabled) { transform: scale(0.99); }
+        
+        .option-letter { width: 2rem; height: 2rem; border-radius: 0.25rem; border: 1px solid rgba(71, 85, 105, 1); background: rgba(15, 23, 42, 0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; color: var(--text-muted); transition: 0.2s; flex-shrink: 0; margin-top: 0.125rem; }
+        .option-btn:hover:not(:disabled) .option-letter { color: white; }
+        .option-text { font-size: 0.875rem; line-height: 1.625; padding-top: 0.25rem; }
+        @media (min-width: 768px) { .option-text { font-size: 1rem; } }
+
+        /* Answer States */
+        .option-btn.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2); }
+        .option-btn.correct .option-letter { background: var(--emerald-main); border-color: var(--emerald-main); color: #0f172a; }
+        .option-btn.wrong { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+        .option-btn.wrong .option-letter { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: var(--red-light); }
+        .option-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .explanation-box { display: none; flex-direction: column; gap: 0.75rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .explanation-box.active { display: flex; }
+        .answer-status { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .status-correct { color: rgba(52, 211, 153, 1); }
+        .status-wrong { color: var(--red-light); }
+        .expl-content { background: rgba(11, 17, 32, 0.5); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .expl-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.375rem; }
+        .expl-text { color: var(--text-light); font-size: 0.875rem; line-height: 1.625; }
+
+        .action-footer { margin-top: 1rem; display: flex; justify-content: flex-end; flex-shrink: 0; }
+        .btn-next { display: none; width: 100%; background: var(--blue-main); color: white; font-weight: 700; padding: 0.875rem 2rem; border-radius: 0.75rem; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); align-items: center; justify-content: center; gap: 0.5rem; }
+        @media (min-width: 1024px) { .btn-next { width: auto; } }
+        .btn-next.active { display: flex; }
+        .btn-next:active { transform: scale(0.95); }
+
+        /* Completion Screen */
+        .completion-card { width: 100%; max-width: 28rem; text-align: center; }
+        .comp-glow { position: absolute; top: -5rem; left: -5rem; width: 12rem; height: 12rem; background: rgba(59, 130, 246, 0.2); border-radius: 50%; filter: blur(40px); pointer-events: none; }
+        .comp-icon-wrap { width: 5rem; height: 5rem; margin: 0 auto 1.5rem; border-radius: 50%; background: linear-gradient(to bottom right, #3b82f6, #4f46e5); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); position: relative; z-index: 10; font-size: 1.875rem; color: white; }
+        .comp-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; position: relative; z-index: 10; }
+        .comp-sub { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; position: relative; z-index: 10; }
+        
+        .score-box { background: rgba(11, 17, 32, 0.6); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border-color); margin-bottom: 2rem; position: relative; z-index: 10; }
+        .score-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+        .score-val { font-size: 2.25rem; font-weight: 800; color: white; }
+        .score-val span { font-size: 1.125rem; color: rgba(100, 116, 139, 1); }
+        .score-acc { font-size: 0.6875rem; margin-top: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .acc-high { color: rgba(52, 211, 153, 1); }
+        .acc-low { color: var(--yellow-main); }
+
+        .comp-actions { display: flex; flex-direction: column; gap: 0.75rem; position: relative; z-index: 10; }
+        .btn-secondary { width: 100%; padding: 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); color: var(--text-light); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(51, 65, 85, 0.5); cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: rgba(51, 65, 85, 0.5); }
+        @media (min-width: 1024px) { .btn-secondary { display: none; } }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        @media (min-width: 1024px) { .bottom-nav { display: none; } }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: var(--text-muted); text-decoration: none; transition: 0.2s; font-size: 1.25rem; }
+        .nav-item span { font-size: 0.625rem; font-weight: 500; }
+        .nav-item:hover { color: var(--text-light); }
         .nav-item.active { color: white; }
-        .nav-item i { font-size: 1.25rem; transition: transform 0.15s var(--ease-out); }
-        .nav-item:active i { transform: scale(0.85) translateY(2px); }
-        .nav-label { font-size: 0.625rem; font-weight: 500; }
+        .nav-item.active span { font-weight: 700; }
 
-        /* Dialogs */
-        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); transition: opacity 0.3s;}
-        .ok-backdrop.active { display: flex; }
-        .ok-dialog { width: 90%; max-width: 360px; background: #070b14; border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.25s var(--ease-out); }
-        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
-        .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
-        .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
-        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
-        .btn-confirm { padding: 0.625rem 1.5rem; font-weight: bold; font-size: 0.875rem; }
-
-        /* Streak Modal */
-        #streakModalBackdrop { align-items: flex-start; }
-        .streak-dialog { width: 100%; max-width: 100%; background: linear-gradient(to bottom, #050814, #0f0505); border-radius: 0 0 var(--radius-xl) var(--radius-xl); padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; transform: translateY(-100%); opacity: 0; transition: transform 0.4s var(--ease-out), opacity 0.3s ease; text-align: center; border-bottom: 1px solid rgba(255, 127, 63, 0.15); display: flex; flex-direction: column; align-items: center; }
-        .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
-        .streak-dialog-title { font-size: 1.25rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.3; }
-        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
-        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .day-label { font-size: 0.6875rem; color: #a1a1aa; font-weight: 600; }
-        .day-circle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #64748b; }
-        .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
-        .day-circle.active { background: rgba(255, 127, 63, 0.1); border: 1px solid rgba(255, 127, 63, 0.3); color: var(--accent-orange); }
-        .btn-checkin { width: 90%; max-width: 320px; padding: 1.125rem; font-weight: 800; font-size: 1.125rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block; }
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.2s; opacity: 0; }
+        .modal-overlay.active { display: flex; }
+        .modal-overlay.show { opacity: 1; }
+        .modal-content { background: #1e293b; border: 1px solid rgba(51, 65, 85, 1); border-radius: 1.5rem; padding: 1.5rem; width: 100%; max-width: 20rem; margin: 0 1rem; text-align: center; transform: scale(0.95); transition: transform 0.2s; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        @media (min-width: 1024px) { .modal-content { padding: 2rem; } }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        
+        .modal-icon-wrap { width: 4rem; height: 4rem; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 1.5rem; color: var(--red-main); }
+        .modal-title { font-size: 1.25rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+        
+        .modal-input { width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 1); border-radius: 0.75rem; padding: 0.875rem 1rem; color: white; outline: none; margin-bottom: 1.5rem; font-size: 0.875rem; transition: 0.2s; }
+        .modal-input:focus { border-color: var(--blue-main); }
+        
+        .modal-actions { display: flex; gap: 0.75rem; }
+        .btn-cancel { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 1); color: var(--text-light); font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-cancel:active { transform: scale(0.95); }
+        .btn-danger-action { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: rgba(220, 38, 38, 1); color: white; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(153, 27, 27, 0.3); }
+        .btn-danger-action:hover { background: var(--red-main); }
+        .btn-danger-action:active { transform: scale(0.95); }
+        .btn-primary-action { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: var(--blue-main); color: white; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
+        .btn-primary-action:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true" style="z-index: 99998;">
-        <div class="ok-dialog" role="document">
-            <h3 id="okTitle" class="dialog-title">Notice</h3>
-            <p id="okMessage" class="dialog-msg">Message goes here</p>
-            <div class="dialog-actions">
-                <button id="okCancel" class="btn-flat">Cancel</button>
-                <button id="okConfirm" class="btn-secondary btn-confirm">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
-        <div class="streak-dialog" id="streakDialog">
-            <div id="modalStreakLottie" style="width: 72px; height: 72px; margin-bottom: 0.25rem;"></div>
-            <div style="font-size: 1.75rem; font-weight: 800; color: white; margin-bottom: 0.25rem;">Day <span id="modalDayCount">1</span></div>
-            <h3 class="streak-dialog-title" style="margin-bottom: 1.5rem; font-size: 0.9375rem; color: var(--text-muted); font-weight: 500;">Keep the fire alive<br>check in today!</h3>
-            <div class="calendar-row" id="calendarRow"></div>
-            <button id="closeStreakModal" class="btn-primary btn-checkin">Check in today!</button>
-        </div>
-    </div>
-
-    <header class="header-bar fade-in" style="animation-delay: 0ms;">
-        <h1 id="greetingTitle" class="greeting-title">Welcome back</h1>
-        <div class="streak-badge card-flat" id="headerStreakBadge" onclick="openStreakModal()">
-            <i id="headerFireIcon" class="fas fa-fire" style="font-size: 1.125rem;"></i>
-            <span id="headerStreakDisplay">0</span>
-        </div>
-    </header>
-
-    <main class="main-content">
+    <div class="layout-wrapper">
         
-        <div id="goProBanner" class="pro-banner fade-in" style="display: none; animation-delay: 15ms;">
-            <div id="crownLottieContainer" class="crown-lottie-large"></div>
-            <div style="flex: 1;">
-                <h3 class="banner-title">Upgrade to Pro</h3>
-                <p class="banner-sub">Unlock unlimited AI generations</p>
+        <aside id="libraryPanel" class="sidebar">
+            <div class="sidebar-header">
+                <div class="header-top">
+                    <h1>Library</h1>
+                    <button onclick="openModal('folderModal')" class="btn-icon-simple">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="tab-scroll hide-scroll">
+                    <button class="tab-btn active" data-filter="all">Flashcard sets</button>
+                    <button class="tab-btn" data-filter="folders">Folders</button>
+                    <button class="tab-btn" data-filter="favorites">Favorites</button>
+                </div>
+                
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search" class="search-input">
+                </div>
             </div>
-            <button id="dismissGoProBtn" class="btn-dismiss-banner card-flat btn-flat" aria-label="Dismiss banner"><i class="fas fa-times"></i></button>
-        </div>
 
-        <div id="continueStudyingSection" style="display: none;" class="fade-in" style="animation-delay: 30ms;">
-            <h2 class="section-title">Continue Studying</h2>
-            <a href="study.html" class="continue-card card-flat">
-                <div class="progress-track"><div id="continueProgressBar" class="progress-bar" style="width: 0%"></div></div>
-                <div class="card-row">
-                    <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
-                            <g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g>
-                        </svg>
-                    </div>
-                    <div class="card-details">
-                        <div class="card-header">
-                            <h3 id="continueTitle" class="card-title">Quiz Title</h3>
-                            <span id="continueProgressText" class="progress-text">0%</span>
+            <div class="list-container hide-scroll">
+                <h3 class="list-title">Recent Materials</h3>
+                <div id="quizContainer" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                </div>
+            </div>
+        </aside>
+
+        <main id="practicePanel" class="practice-panel">
+            <header class="practice-header">
+                <div class="header-left">
+                    <button onclick="closePracticeMobile()" class="btn-back-mobile">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    
+                    <div class="stat-badges">
+                        <div class="badge badge-xp">
+                            <i class="fas fa-bolt"></i> <span id="xpDisplay">0 XP</span>
                         </div>
-                        <p class="card-meta"><span id="continueCardCount">0</span> items • <span id="continueSubject" style="text-transform:uppercase;">Subject</span></p>
+                        <div class="badge badge-streak">
+                            <i class="fas fa-fire"></i> <span id="streakDisplay">0 Day</span>
+                        </div>
                     </div>
                 </div>
-            </a>
-        </div>
+                <button id="dailyChallengeBtn" class="btn-challenge">
+                    <i class="fas fa-star" style="color: rgba(253, 224, 71, 1);"></i> Daily Challenge
+                </button>
+            </header>
 
-        <div>
-            <h2 class="section-title fade-in" style="animation-delay: 60ms;">Quick Actions</h2>
-            <div class="quick-grid">
-                
-                <a href="create.html" class="ai-card card-primary fade-in" style="animation-delay: 90ms;">
-                    <div class="ai-content">
-                        <h3 class="ai-title">Generate with AI <i class="fas fa-sparkles" style="color:#fde047; font-size:0.875rem;"></i></h3>
-                        <p class="ai-sub">Upload notes to create materials instantly.</p>
+            <div id="practiceArea" class="practice-area hide-scroll">
+                <div class="idle-state">
+                    <div class="idle-icon-wrap">
+                        <i class="fas fa-layer-group" style="font-size: 2.25rem; color: rgba(59, 130, 246, 0.5);"></i>
                     </div>
-                    <div class="ai-arrow"><i class="fas fa-arrow-right" style="color:white; font-size:0.875rem;"></i></div>
-                </a>
-                
-                <a href="create.html" class="action-card card-soft fade-in" style="animation-delay: 120ms;">
-                    <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g></svg>
-                    </div>
-                    <span class="action-title">Flashcards</span>
-                </a>
-
-                <a href="create.html" class="action-card card-soft fade-in" style="animation-delay: 150ms;">
-                    <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;"><g transform="translate(32, 32)"><g transform="rotate(-5) translate(-18, -22)"><rect width="36" height="44" rx="3" fill="#EAE8EC"/><path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/><circle cx="8" cy="20" r="3" fill="#F4A261"/><rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="30" r="3" fill="#C5C3C8"/><rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="40" r="3" fill="#C5C3C8"/><rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/></g></g></svg>
-                    </div>
-                    <span class="action-title">MCQ Quiz</span>
-                </a>
-
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">Ready to Study?</h3>
+                    <p style="font-size: 0.875rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <nav class="bottom-nav">
-        <a href="homepage.html" class="nav-item active"><i class="fas fa-home"></i><span class="nav-label">Home</span></a>
-        <a href="create.html" class="nav-item"><i class="fas fa-plus"></i><span class="nav-label">Create</span></a>
-        <a href="study.html" class="nav-item"><i class="fas fa-folder"></i><span class="nav-label">Library</span></a>
-        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span class="nav-label">Profile</span></a>
+        <a href="homepage.html" class="nav-item">
+            <i class="fas fa-home"></i><span>Home</span>
+        </a>
+        <a href="create.html" class="nav-item">
+            <i class="fas fa-plus"></i><span>Create</span>
+        </a>
+        <a href="study.html" id="libraryBtn" class="nav-item active">
+            <i class="fas fa-folder"></i><span>Library</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <i class="fas fa-user"></i><span>Profile</span>
+        </a>
     </nav>
 
-    <script>
-    const crownLottieData = {"nm":"all","ddd":0,"h":150,"w":150,"meta":{"g":"@lottiefiles/toolkit-js 0.21.1","tc":"#ffffff"},"layers":[{"ty":4,"nm":"o 2","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[6.938,8.619,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.892,"y":0.412},"i":{"x":0.846,"y":1},"s":[101.358,101.358,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.452,"y":0.897},"s":[158.037,158.037,100],"t":27},{"o":{"x":1,"y":-0.19},"i":{"x":0.931,"y":1},"s":[79.037,79.037,100],"t":119},{"o":{"x":0.072,"y":0},"i":{"x":0.833,"y":1},"s":[158.037,158.037,100],"t":212},{"o":{"x":0.429,"y":0},"i":{"x":0.868,"y":0.747},"s":[79.037,79.037,100],"t":276},{"s":[101.358,101.358,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[82.051,30.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.124,-0.613],[0,0],[-1.427,-0.561],[0,0],[0.485,-0.189],[0,0],[0.402,-1.988],[0,0],[0.122,0.615],[0,0],[1.427,0.56],[0,0],[-0.486,0.189],[0,0],[-0.402,1.991]],"o":[[0.122,-0.613],[0,0],[0.402,1.991],[0,0],[0.485,0.189],[0,0],[-1.427,0.56],[0,0],[-0.124,0.615],[0,0],[-0.402,-1.988],[0,0],[-0.486,-0.189],[0,0],[1.427,-0.561],[0,0]],"v":[[6.375,0.863],[7.501,0.863],[7.952,3.099],[10.897,7.203],[13.14,8.084],[13.14,9.152],[10.897,10.033],[7.952,14.136],[7.501,16.373],[6.375,16.373],[5.921,14.136],[2.978,10.033],[0.736,9.152],[0.736,8.084],[2.978,7.203],[5.921,3.099]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[0.5922,0.5922,0.5765],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":1},{"ty":4,"nm":"o","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[6.938,8.619,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.735,"y":0.516},"i":{"x":0.752,"y":1},"s":[122.466,122.466,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.435,"y":1},"s":[158.037,158.037,100],"t":12},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[79.037,79.037,100],"t":104},{"o":{"x":0.072,"y":0},"i":{"x":0.596,"y":1},"s":[158.037,158.037,100],"t":197},{"o":{"x":0.612,"y":0},"i":{"x":0.876,"y":0.642},"s":[79.037,79.037,100],"t":260},{"s":[122.466,122.466,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[62.051,58.627,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.124,-0.613],[0,0],[-1.427,-0.561],[0,0],[0.485,-0.189],[0,0],[0.402,-1.988],[0,0],[0.122,0.615],[0,0],[1.427,0.56],[0,0],[-0.486,0.189],[0,0],[-0.402,1.991]],"o":[[0.122,-0.613],[0,0],[0.402,1.991],[0,0],[0.485,0.189],[0,0],[-1.427,0.56],[0,0],[-0.124,0.615],[0,0],[-0.402,-1.988],[0,0],[-0.486,-0.189],[0,0],[1.427,-0.561],[0,0]],"v":[[6.375,0.863],[7.501,0.863],[7.952,3.099],[10.897,7.203],[13.14,8.084],[13.14,9.152],[10.897,10.033],[7.952,14.136],[7.501,16.373],[6.375,16.373],[5.921,14.136],[2.978,10.033],[0.736,9.152],[0.736,8.084],[2.978,7.203],[5.921,3.099]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.9922,0.1255],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":2},{"ty":4,"nm":"O 2","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":1,"y":0},"i":{"x":0.503,"y":2.454},"s":[41,41,100],"t":-125},{"o":{"x":0.165,"y":0.232},"i":{"x":0.409,"y":1},"s":[91.037,91.037,100],"t":0},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":60},{"o":{"x":0.072,"y":0},"i":{"x":0.625,"y":1},"s":[120,120,100],"t":153},{"o":{"x":1,"y":0},"i":{"x":0.503,"y":1.681},"s":[41,41,100],"t":265},{"s":[91.037,91.037,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[103.688,107.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":3},{"ty":4,"nm":"O 3","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.147,"y":0.168},"i":{"x":0.481,"y":1},"s":[100.879,100.879,100],"t":0},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":70},{"o":{"x":0.072,"y":0},"i":{"x":0.466,"y":1},"s":[120,120,100],"t":163},{"o":{"x":1,"y":0},"i":{"x":0.833,"y":1},"s":[41,41,100],"t":232},{"s":[100.879,100.879,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[43.188,98.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":4},{"ty":4,"nm":"O","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.582,"y":0.563},"i":{"x":0.676,"y":1},"s":[97.164,97.164,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.414,"y":1.084},"s":[120,120,100],"t":7},{"o":{"x":1,"y":0.145},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":99},{"o":{"x":0.072,"y":0},"i":{"x":0.629,"y":1},"s":[120,120,100],"t":192},{"o":{"x":0.697,"y":0},"i":{"x":0.914,"y":0.826},"s":[41,41,100],"t":284},{"s":[97.164,97.164,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[96.188,41.627,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":5},{"ty":4,"nm":"shine 3","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[49.402,68.232,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.242,"y":0.599},"i":{"x":0.56,"y":1},"s":[40.629],"t":0},{"o":{"x":0.167,"y":0},"i":{"x":0.833,"y":1},"s":[43],"t":34},{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":77},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":127},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":177},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":208},{"o":{"x":0.434,"y":0},"i":{"x":0.468,"y":0.665},"s":[28],"t":290},{"s":[40.629],"t":336}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.242,"y":0.599},"i":{"x":0.56,"y":1},"s":[2.688],"t":0},{"o":{"x":0.167,"y":0},"i":{"x":0.833,"y":1},"s":[0],"t":34},{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":77},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":127},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":177},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":208},{"o":{"x":0.434,"y":0},"i":{"x":0.468,"y":0.665},"s":[17],"t":290},{"s":[2.688],"t":336}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":6},{"ty":4,"nm":"shine 2","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[102.964,68.232,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":27},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":77},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":127},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":158},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":240},{"s":[43],"t":320}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":27},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":77},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":127},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":158},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":240},{"s":[0],"t":320}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":7},{"ty":4,"nm":"shine","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[76.339,62.857,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":0},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":50},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":100},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":131},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":213},{"s":[43],"t":293}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":0},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":50},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":100},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":131},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":213},{"s":[0],"t":293}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":8},{"ty":4,"nm":"shield","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[45.189,50.706,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[77.358,76.359,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 1","ix":1,"cix":2,"np":3,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[2.94,-0.271],[0,0],[0,0],[0,0],[0.654,0],[0,0],[0.112,0.644],[0,0],[0,0],[0,0],[0,0],[0,0],[0,2.763],[-2.95,0],[0,-2.95],[0.178,-0.532],[0,0],[0,0],[0,0],[-1.998,0.897],[0,0.009],[-0.672,0.822],[0,0],[0,1.129],[-2.95,0],[0,-2.95],[0.672,-0.914],[-0.008,-0.009],[0,0],[0,0],[-1.876,-0.047],[-1.167,0.737],[0,0],[0,0],[0,0],[0.045,0.253],[0,0.299],[-1.176,0.98],[-1.251,0.019],[-0.037,0],[-0.252,-2.754]],"o":[[0,0],[0,0],[0,0],[-0.103,0.644],[0,0],[-0.654,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-2.753,-0.243],[0,-2.95],[2.95,0],[0,0.56],[0,0],[0,0],[0,0],[1.951,1.251],[0.009,0],[0.915,-0.411],[0,0],[-0.682,-0.914],[0,-2.95],[2.95,0],[0,1.129],[0,0],[0,0],[0,0],[1.269,1.55],[1.298,0.047],[0,0],[0,0],[0.01,-0.009],[-0.084,-0.242],[-0.047,-0.298],[0,-1.652],[0.897,-0.747],[0.037,-0.009],[2.763,0],[0.261,2.931]],"v":[[26.15,-2.814],[24.086,9.518],[23.526,12.897],[22.995,16.108],[21.677,17.229],[-23.708,17.229],[-25.026,16.108],[-25.221,14.932],[-25.557,12.897],[-26.099,9.621],[-26.117,9.518],[-28.18,-2.814],[-33.053,-8.135],[-27.714,-13.474],[-22.373,-8.135],[-22.635,-6.492],[-20.62,-5.213],[-18.323,-3.748],[-18.303,-3.738],[-11.974,-3.281],[-11.966,-3.29],[-9.557,-5.138],[-5.31,-10.329],[-6.354,-13.474],[-1.016,-18.814],[4.325,-13.474],[3.289,-10.329],[3.297,-10.31],[5.005,-8.228],[7.526,-5.138],[12.51,-2.702],[16.283,-3.738],[19.997,-6.09],[20.594,-6.473],[20.614,-6.492],[20.419,-7.239],[20.343,-8.135],[22.266,-12.242],[25.562,-13.465],[25.682,-13.474],[30.995,-8.611]]},"ix":2}},{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 2","ix":2,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[4.039,2.332],[0,0],[4.039,-2.332],[0,0],[0,-4.664],[0,0],[-4.038,-2.332],[0,0],[-4.039,2.332],[0,0],[0,4.663],[0,0]],"o":[[0,0],[-4.039,-2.332],[0,0],[-4.038,2.332],[0,0],[0,4.663],[0,0],[4.039,2.332],[0,0],[4.039,-2.332],[0,0],[0,-4.664]],"v":[[38.414,-29.714],[6.528,-48.124],[-6.527,-48.124],[-38.414,-29.714],[-44.94,-18.409],[-44.94,18.41],[-38.414,29.714],[-6.527,48.124],[6.528,48.124],[38.414,29.714],[44.94,18.41],[44.94,-18.409]]},"ix":2}},{"ty":"gf","bm":0,"hd":false,"mn":"ADBE Vector Graphic - G-Fill","nm":"Gradient Fill 1","e":{"a":0,"k":[38.65,0],"ix":6},"g":{"p":3,"k":{"a":0,"k":[0,0.9019607843137255,0.5333333333333333,0.08627450980392157,0.5,0.9529411764705882,0.6705882352941176,0.09019607843137255,1,1,0.803921568627451,0.09803921568627451],"ix":9}},"t":2,"a":{"a":0,"k":0,"ix":8},"h":{"a":0,"k":0,"ix":7},"s":{"a":0,"k":[0,0],"ix":5},"r":1,"o":{"a":0,"k":100,"ix":10}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":0,"k":[45.189,50.706],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]}],"ind":9},{"ty":4,"nm":"l1","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[75,75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"rc","bm":0,"hd":false,"mn":"ADBE Vector Shape - Rect","nm":"Rectangle Path 1","d":1,"p":{"a":0,"k":[0,18],"ix":3},"r":{"a":0,"k":0,"ix":4},"s":{"a":0,"k":[62,14],"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.7843,0],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":10},{"ty":4,"nm":"lines","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[453.25,77.75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 3","ix":1,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-350,-18],[-365,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.183,"y":0.279},"i":{"x":0.622,"y":1},"s":[2],"t":0},{"o":{"x":0.306,"y":0},"i":{"x":0.8,"y":1},"s":[9],"t":115},{"o":{"x":0.451,"y":0},"i":{"x":0.679,"y":-0.009},"s":[0],"t":257},{"s":[2],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.456,"y":0.746},"i":{"x":0.521,"y":1},"s":[0,0],"t":0},{"o":{"x":0.73,"y":0},"i":{"x":0.315,"y":1},"s":[11,0],"t":36},{"o":{"x":0.333,"y":0},"i":{"x":0.833,"y":0.749},"s":[-47.457,0],"t":177},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]},{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 1","ix":2,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-390.5,-18],[-405.5,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.467,"y":0},"i":{"x":0.632,"y":1},"s":[3],"t":0},{"o":{"x":0.352,"y":0},"i":{"x":0.611,"y":1},"s":[9],"t":67},{"o":{"x":0.432,"y":0},"i":{"x":0.291,"y":1},"s":[3.862],"t":137},{"o":{"x":0.372,"y":0},"i":{"x":0.576,"y":1},"s":[10.565],"t":200},{"s":[3],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.333,"y":0},"i":{"x":0.667,"y":0.735},"s":[0,0],"t":0},{"o":{"x":0.128,"y":0.336},"i":{"x":0.439,"y":1},"s":[29,0],"t":77.176},{"o":{"x":0.333,"y":0},"i":{"x":0.667,"y":1},"s":[36.553,0],"t":144},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]},{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 2","ix":3,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 2","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-363,-18],[-378,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.438,"y":0},"i":{"x":0.696,"y":0.693},"s":[10],"t":0},{"o":{"x":0.28,"y":1.344},"i":{"x":0.642,"y":2.016},"s":[6],"t":88},{"o":{"x":0.299,"y":0.192},"i":{"x":0.501,"y":1},"s":[4.931],"t":200},{"s":[10],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.375,"y":0.239},"i":{"x":0,"y":1},"s":[0,0],"t":0},{"o":{"x":0.335,"y":0},"i":{"x":0.778,"y":1},"s":[-29,0],"t":105.754},{"o":{"x":0.491,"y":0},"i":{"x":0.943,"y":0.887},"s":[8.428,0],"t":223.145},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]}],"ind":11},{"ty":4,"nm":"l2","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[75,75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"rc","bm":0,"hd":false,"mn":"ADBE Vector Shape - Rect","nm":"Rectangle Path 1","d":1,"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"s":{"a":0,"k":[70,40],"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.9176,0],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":12}],"v":"5.2.1","fr":60,"op":320,"ip":0,"assets":[]};
-
-    if (window.lottie) {
-        window.lottie.loadAnimation({
-            container: document.getElementById('crownLottieContainer'),
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            animationData: crownLottieData
-        });
-    }
-
-    function getTimeEmoji() {
-        const hour = new Date().getHours();
-        if (hour < 12) return '⛅';
-        if (hour < 18) return '☀️';
-        return '🌙';
-    }
-
-    let currentStreakCount = 0;
-    let hasCheckedInToday = false;
-
-    async function updateStatusBar(color) {
-        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
-            try {
-                const { StatusBar } = Capacitor.Plugins;
-                await StatusBar.setBackgroundColor({ color: color });
-            } catch (e) {
-                console.log("Status bar update skipped", e);
-            }
-        }
-    }
-
-    function buildCalendarRow() {
-        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-        const dates = [];
-        const today = new Date();
-        const currentDayIndex = (today.getDay() + 6) % 7; 
-        
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - currentDayIndex + i);
-            dates.push(d.getDate());
-        }
-
-        let html = '';
-        for(let i=0; i<7; i++) {
-            let circleClass = "day-circle";
-            let content = dates[i];
-            
-            if (i < currentDayIndex) {
-                circleClass += " done";
-                content = '<i class="fas fa-check"></i>';
-            } else if (i === currentDayIndex) {
-                circleClass += " active";
-                if (hasCheckedInToday) {
-                    content = '<i class="fas fa-check"></i>';
-                }
-            }
-
-            html += `
-            <div class="day-col">
-                <span class="day-label">${labels[i]}</span>
-                <div class="${circleClass}">${content}</div>
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon-wrap"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 class="modal-title">Delete Deck?</h3>
+            <p class="modal-text">This material will be permanently removed from your library.</p>
+            <div class="modal-actions">
+                <button onclick="closeModal('deleteModal')" class="btn-cancel">Cancel</button>
+                <button id="confirmDeleteBtn" onclick="executeDelete()" class="btn-danger-action">Delete</button>
             </div>
-            `;
-        }
-        return html;
-    }
+        </div>
+    </div>
 
-    function openStreakModal() {
-        document.getElementById('calendarRow').innerHTML = buildCalendarRow();
-        const btn = document.getElementById('closeStreakModal');
-        
-        document.getElementById('modalDayCount').textContent = currentStreakCount;
-        
-        if (hasCheckedInToday) {
-            btn.textContent = "Awesome!";
-        } else {
-            btn.textContent = "Check in today!";
-        }
-        
-        document.getElementById('streakModalBackdrop').classList.add('active');
-        document.getElementById('streakDialog').style.opacity = '1';
-        
-        updateStatusBar('#000000');
-    }
-
-    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
-    window.initUserUI = function(user) {
-        try {
-            let savedName = "Guest";
-
-            if (user && user.displayName) {
-                savedName = user.displayName;
-            } else if (user && user.email) {
-                savedName = user.email.split("@")[0];
-            } 
-
-            const greetingTitle = document.getElementById('greetingTitle');
-            if (savedName && savedName !== "Guest" && greetingTitle) {
-                greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
-            } else if (greetingTitle) {
-                 greetingTitle.innerHTML = `Welcome ${getTimeEmoji()}`;
-            }
-
-            const storageKey = 'medexcel_streak_tracker_active';
-            let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
-            
-            const todayStr = new Date().toDateString();
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toDateString();
-
-            if (userStats.lastDate === todayStr) {
-                hasCheckedInToday = true;
-                currentStreakCount = userStats.count;
-            } else if (userStats.lastDate === yesterdayStr) {
-                hasCheckedInToday = false;
-                currentStreakCount = userStats.count + 1; 
-            } else {
-                hasCheckedInToday = false;
-                currentStreakCount = 1; 
-            }
-
-            const headerDisplay = document.getElementById('headerStreakDisplay');
-            const headerFireIcon = document.getElementById('headerFireIcon');
-
-            if (!hasCheckedInToday) {
-                headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
-                headerFireIcon.style.opacity = '0.4'; 
-            } else {
-                headerDisplay.textContent = currentStreakCount;
-                headerFireIcon.style.opacity = '1';
-            }
-
-            if(window.lottie) {
-                lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'fire.json' });
-            }
-
-            if (!hasCheckedInToday) {
-                openStreakModal();
-            }
-
-            document.getElementById('closeStreakModal').addEventListener('click', () => {
-                if (!hasCheckedInToday) {
-                    userStats.count = currentStreakCount;
-                    userStats.lastDate = todayStr;
-                    localStorage.setItem(storageKey, JSON.stringify(userStats));
-                    hasCheckedInToday = true;
-                }
-
-                document.getElementById('streakDialog').style.opacity = '0';
-                
-                setTimeout(() => {
-                    document.getElementById('streakModalBackdrop').classList.remove('active');
-                    updateStatusBar('#050814'); 
-                    
-                    headerDisplay.textContent = currentStreakCount;
-                    headerFireIcon.style.opacity = '1';
-                    
-                    headerFireIcon.classList.add('fire-pop-anim');
-                    setTimeout(() => {
-                        headerFireIcon.classList.remove('fire-pop-anim');
-                    }, 600); 
-                }, 300); 
-            });
-
-            document.getElementById('streakModalBackdrop').addEventListener('click', (e) => {
-                if (e.target.id === 'streakModalBackdrop') {
-                    document.getElementById('closeStreakModal').click();
-                }
-            });
-
-            document.getElementById('okBackdrop').addEventListener('click', (e) => {
-                if (e.target.id === 'okBackdrop') {
-                    document.querySelector('.ok-dialog').style.transform = 'scale(0.95)';
-                    document.querySelector('.ok-dialog').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('okBackdrop').classList.remove('active');
-                        document.querySelector('.ok-dialog').style.transform = '';
-                        document.querySelector('.ok-dialog').style.opacity = '';
-                    }, 300);
-                }
-            });
-            document.getElementById('okCancel').addEventListener('click', () => {
-                document.getElementById('okBackdrop').click();
-            });
-
-            const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            const continueSection = document.getElementById('continueStudyingSection');
-            if (quizzes.length > 0) {
-                const lastQuiz = quizzes[quizzes.length - 1];
-                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
-                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
-                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
-                
-                document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
-                document.getElementById('continueProgressText').textContent = `${progress}%`;
-                document.getElementById('continueProgressBar').style.width = `${progress}%`;
-                document.getElementById('continueCardCount').textContent = totalQs;
-                document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
-                continueSection.style.display = 'block';
-            }
-        } catch(e) { console.warn("UI Init failed", e); }
-    };
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const goProBanner = document.getElementById('goProBanner');
-        const dismissBtn = document.getElementById('dismissGoProBtn');
-
-        if (goProBanner) {
-            goProBanner.addEventListener('click', (e) => {
-                if (!e.target.closest('#dismissGoProBtn')) {
-                    window.location.href = 'payment.html';
-                }
-            });
-        }
-
-        if (dismissBtn) {
-            dismissBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                
-                goProBanner.style.opacity = '0';
-                goProBanner.style.transform = 'scale(0.95)';
-                setTimeout(() => { goProBanner.style.display = 'none'; }, 300);
-                
-                const snoozeUntil = Date.now() + 259200000;
-                localStorage.setItem('medexcel_gopro_snooze', snoozeUntil.toString());
-            });
-        }
-    });
-    </script>
+    <div id="folderModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title" style="margin-bottom: 1rem; text-align: left;">New Folder</h3>
+            <input type="text" id="newFolderName" placeholder="e.g. Pathology" class="modal-input">
+            <div class="modal-actions">
+                <button onclick="closeModal('folderModal')" class="btn-cancel">Cancel</button>
+                <button id="createFolderBtn" onclick="closeModal('folderModal')" class="btn-primary-action">Create</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
-            authDomain: "medxcel.firebaseapp.com", 
-            projectId: "medxcel", 
-            storageBucket: "medxcel.firebasestorage.app", 
-            messagingSenderId: "649180317389", 
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84", 
-            measurementId: "G-6VQYKEBMSX" 
-        };
-        const app = initializeApp(firebaseConfig); 
-        const auth = getAuth(app); 
-        const db = getFirestore(app);
-
-        window.logoutUser = async function() {
-            try { await signOut(auth); } catch (e) { console.error("Logout failed", e); }
-            localStorage.clear(); 
-            window.location.replace("index.html");
-        };
-
-        window.logout = window.logoutUser;
-
-        function shouldShowBanner() {
-            const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
-            if (snoozeTime && Date.now() < parseInt(snoozeTime, 10)) {
-                return false; 
-            }
-            return true;
-        }
-
-        async function ensureAndCheckUser(user) {
-            try {
-                let userRef = doc(db, "users", user.uid);
-                let docSnap = await getDoc(userRef);
-
-                if (!docSnap.exists() && user.email) {
-                    userRef = doc(db, "users", user.email);
-                    docSnap = await getDoc(userRef);
-                }
-
-                if (docSnap.exists()) {
-                    const plan = docSnap.data().plan || "free";
-                    if (plan === "free" && shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
-                } else {
-                    await setDoc(doc(db, "users", user.uid), {
-                        email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
-                    }, { merge: true });
-                    if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
-                }
-            } catch (error) {
-                console.warn("Firestore restricted. Defaulting to Free plan.");
-                if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
-            }
-        }
-
-        const savedUserStr = localStorage.getItem("nativeUser");
-        let nativeUserObj = null;
-        try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
-
-        onAuthStateChanged(auth, (firebaseUser) => {
-            const activeUser = firebaseUser || nativeUserObj;
-            if (activeUser) {
-                if (firebaseUser) {
-                    localStorage.setItem("nativeUser", JSON.stringify({ 
-                        email: firebaseUser.email, 
-                        uid: firebaseUser.uid, 
-                        displayName: firebaseUser.displayName 
-                    }));
-                }
-                window.initUserUI(activeUser);
-                ensureAndCheckUser(activeUser);
-            } else {
-                localStorage.clear();
-                window.location.replace("index.html");
-            }
-        });
-    </script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const metaTheme = document.querySelector('meta[name="theme-color"]');
-            if(metaTheme) metaTheme.setAttribute("content", "#050814");
-        });
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-        const pushConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
             authDomain: "medxcel.firebaseapp.com",
             projectId: "medxcel",
@@ -665,43 +374,371 @@
             messagingSenderId: "649180317389",
             appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
         };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        const app = initializeApp(pushConfig, "PushApp");
-        const db = getFirestore(app);
+        const savedUserStr = localStorage.getItem("nativeUser");
+        let nativeUserObj = null;
+        try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            if (typeof Capacitor !== 'undefined') {
-                const { PushNotifications } = Capacitor.Plugins;
-                try {
-                    const permission = await PushNotifications.requestPermissions();
-                    if (permission.receive === "granted") {
-                        await PushNotifications.register();
-                    }
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            if (!firebaseUser && nativeUserObj) {
+                try { await signInAnonymously(auth); } catch (e) { console.error("Anonymous auth bridge failed:", e); }
+                return; 
+            }
 
-                    PushNotifications.addListener("registration", async (token) => {
-                        console.log("FCM TOKEN:", token.value);
-                        await setDoc(doc(db, "fcmTokens", token.value), {
-                            token: token.value,
-                            createdAt: new Date(),
-                            device: "android"
-                        });
-                    });
-                } catch (error) {
-                    console.log("Push notifications skipped", error);
+            const activeUser = nativeUserObj ? nativeUserObj : firebaseUser;
+
+            if (activeUser) {
+                window.currentUser = activeUser;
+                // FIX: Ignore anonymous users so we don't accidentally overwrite the nativeUser
+                if (firebaseUser && !firebaseUser.isAnonymous && !nativeUserObj) {
+                    localStorage.setItem("nativeUser", JSON.stringify({ 
+                        email: firebaseUser.email, 
+                        uid: firebaseUser.uid, 
+                        displayName: firebaseUser.displayName 
+                    }));
                 }
+            } else {
+                window.currentUser = null;
+                localStorage.clear();
+                window.location.replace("index.html");
             }
         });
     </script>
+
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            if (window.Capacitor) {
-                try {
-                    const { Browser } = Capacitor.Plugins;
-                    await Browser.close();
-                } catch (e) {
-                    console.log("Browser already closed");
-                }
+        let userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {
+            xp: 0, level: 1, streak: 0, lastStudyDate: null, weaknesses: {}
+        };
+        let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+        
+        const originalLength = quizzes.length;
+        quizzes = quizzes.filter(q => q.title && !q.title.toLowerCase().includes('autonomic system'));
+        if (quizzes.length !== originalLength) {
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+        }
+
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let isExamMode = false;
+        let examScore = 0;
+        let quizToDelete = null;
+
+        function openPracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.add('hidden');
+                document.getElementById('practicePanel').classList.add('active');
             }
+        }
+
+        function closePracticeMobile() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.remove('hidden');
+                document.getElementById('practicePanel').classList.remove('active');
+            }
+            document.getElementById('practiceArea').innerHTML = `
+                <div class="idle-state fade-in">
+                    <div class="idle-icon-wrap"><i class="fas fa-layer-group" style="font-size: 2.25rem; color: rgba(59, 130, 246, 0.5);"></i></div>
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">Ready to Study?</h3>
+                    <p style="font-size: 0.875rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
+                </div>
+            `;
+            currentQuiz = null;
+        }
+
+        function updateStatsUI() {
+            document.getElementById('xpDisplay').innerText = `${userStats.xp} XP`;
+            document.getElementById('streakDisplay').innerText = `${userStats.streak} Day`;
+        }
+
+        function addXP(amount) {
+            userStats.xp += amount;
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(userStats));
+            updateStatsUI();
+        }
+
+        function renderLibrary(filter = 'all', searchQuery = '') {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+            
+            let filtered = quizzes.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                <div class="empty-state fade-in">
+                    <div class="empty-icon"><i class="fas fa-box-open" style="font-size: 1.5rem; color: rgba(100, 116, 139, 1);"></i></div>
+                    <p class="empty-text">No sets found.</p>
+                </div>`;
+                return;
+            }
+
+            filtered.slice().reverse().forEach(quiz => {
+                const qLength = quiz.questions ? quiz.questions.length : 0;
+                
+                container.innerHTML += `
+                    <div class="quiz-item fade-in" onclick="loadQuizOverview(${quiz.id})">
+                        <div class="quiz-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                            <div class="quiz-icon-bg"></div>
+                            ${quiz.favorite ? '<div class="fav-indicator"></div>' : ''}
+                        </div>
+                        <div class="quiz-content">
+                            <h3 class="quiz-title">${quiz.title}</h3>
+                            <div class="quiz-meta">
+                                <span class="quiz-subject">${quiz.subject}</span>
+                                <span>•</span>
+                                <span>${qLength} terms</span>
+                            </div>
+                        </div>
+                        <button onclick="promptDelete(event, ${quiz.id})" class="btn-delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function promptDelete(e, id) {
+            e.stopPropagation();
+            quizToDelete = id;
+            openModal('deleteModal');
+        }
+
+        function executeDelete() {
+            if (quizToDelete !== null) {
+                quizzes = quizzes.filter(q => q.id !== quizToDelete);
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+                
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, document.getElementById('searchInput').value);
+                closeModal('deleteModal');
+                
+                if (currentQuiz && currentQuiz.id === quizToDelete) { closePracticeMobile(); }
+                quizToDelete = null;
+            }
+        }
+
+        function loadQuizOverview(id) {
+            currentQuiz = quizzes.find(q => q.id === id);
+            openPracticeMobile();
+            
+            const area = document.getElementById('practiceArea');
+            const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
+            const attempts = currentQuiz.stats ? currentQuiz.stats.attempts : 0;
+
+            area.innerHTML = `
+                <div class="card-panel fade-in">
+                    <div class="panel-glow"></div>
+                    
+                    <div class="overview-top">
+                        <span class="subject-tag"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
+                        <button onclick="toggleFavoriteCurrent()" class="btn-fav ${currentQuiz.favorite ? 'is-fav' : ''}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    </div>
+
+                    <h2 class="overview-title">${currentQuiz.title}</h2>
+                    <p class="overview-meta"><i class="fas fa-layer-group" style="margin-right: 0.5rem; color: rgba(100, 116, 139, 1);"></i>${qLength} Study Items</p>
+                    
+                    <div class="overview-stats">
+                        <div class="stat-card">
+                            <p class="stat-card-label">Previous Best</p>
+                            <p class="stat-card-val">${bScore} <span class="stat-card-sub">/ ${qLength}</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <p class="stat-card-label">Total Attempts</p>
+                            <p class="stat-card-val">${attempts}</p>
+                        </div>
+                    </div>
+
+                    <button onclick="startPractice(false)" class="btn-primary">
+                        <i class="fas fa-play"></i> Begin Session
+                    </button>
+                </div>
+            `;
+        }
+
+        function toggleFavoriteCurrent() {
+            if (currentQuiz) {
+                currentQuiz.favorite = !currentQuiz.favorite;
+                localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+                loadQuizOverview(currentQuiz.id);
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, document.getElementById('searchInput').value);
+            }
+        }
+
+        function startPractice(exam) {
+            isExamMode = exam;
+            currentQuestionIndex = 0;
+            examScore = 0;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if (!currentQuiz || !currentQuiz.questions) return;
+            if (currentQuestionIndex >= currentQuiz.questions.length) { finishQuiz(); return; }
+
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const area = document.getElementById('practiceArea');
+            const progress = ((currentQuestionIndex) / currentQuiz.questions.length) * 100;
+
+            let optionsHtml = q.options.map((opt, idx) => `
+                <button onclick="selectAnswer(${idx})" class="option-btn group">
+                    <span class="option-letter">${String.fromCharCode(65 + idx)}</span>
+                    <span class="option-text">${opt}</span>
+                </button>
+            `).join('');
+
+            area.innerHTML = `
+                <div class="quiz-wrapper fade-in">
+                    
+                    <div class="progress-header">
+                        <div class="progress-text">
+                            <span>Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <h3 class="question-text">${q.text}</h3>
+                        <div class="options-list" id="optionsContainer">${optionsHtml}</div>
+                        <div id="explanationArea" class="explanation-box"></div>
+                    </div>
+
+                    <div class="action-footer">
+                        <button id="nextQBtn" onclick="renderQuestion()" class="btn-next">
+                            ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Session' : 'Continue'} <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectAnswer(selectedIndex) {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            const container = document.getElementById('optionsContainer');
+            const explanationArea = document.getElementById('explanationArea');
+            const nextBtn = document.getElementById('nextQBtn');
+
+            if (isCorrect) { examScore++; addXP(10); }
+
+            Array.from(container.children).forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === q.correct) {
+                    btn.classList.add('correct');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.add('wrong');
+                } else {
+                    btn.classList.add('disabled');
+                }
+            });
+
+            const iconClass = isCorrect ? 'fa-check-circle' : 'fa-times-circle';
+            const statusClass = isCorrect ? 'status-correct' : 'status-wrong';
+            const statusText = isCorrect ? 'Correct' : 'Incorrect';
+
+            explanationArea.innerHTML = `
+                <div class="answer-status ${statusClass}">
+                    <i class="fas ${iconClass}"></i> ${statusText}
+                </div>
+                ${q.explanation ? `
+                <div class="expl-content">
+                    <span class="expl-label">Explanation</span>
+                    <p class="expl-text">${q.explanation}</p>
+                </div>` : ''}
+            `;
+            
+            explanationArea.classList.add('active', 'fade-in');
+            nextBtn.classList.add('active', 'fade-in');
+            
+            currentQuestionIndex++;
+            
+            setTimeout(() => {
+                const practiceArea = document.getElementById('practiceArea');
+                practiceArea.scrollTo({ top: practiceArea.scrollHeight, behavior: 'smooth' });
+            }, 50);
+        }
+
+        function finishQuiz() {
+            addXP(50);
+            if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
+            
+            currentQuiz.stats.attempts++;
+            currentQuiz.stats.lastScore = examScore;
+            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            
+            localStorage.setItem('medexcel_quizzes', JSON.stringify(quizzes));
+            
+            const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+            renderLibrary(activeTab, document.getElementById('searchInput').value);
+
+            const area = document.getElementById('practiceArea');
+            const percentage = Math.round((examScore / currentQuiz.questions.length) * 100);
+            const iconType = percentage >= 80 ? 'fa-award' : 'fa-check';
+            const accClass = percentage >= 80 ? 'acc-high' : 'acc-low';
+            
+            area.innerHTML = `
+                <div class="card-panel completion-card fade-in">
+                    <div class="comp-glow"></div>
+                    
+                    <div class="comp-icon-wrap"><i class="fas ${iconType}"></i></div>
+                    
+                    <h2 class="comp-title">Session Complete!</h2>
+                    <p class="comp-sub">${currentQuiz.title}</p>
+                    
+                    <div class="score-box">
+                        <p class="score-label">Final Score</p>
+                        <p class="score-val">${examScore} <span>/ ${currentQuiz.questions.length}</span></p>
+                        <p class="score-acc ${accClass}">Accuracy: ${percentage}%</p>
+                    </div>
+
+                    <div class="comp-actions">
+                        <button onclick="startPractice(false)" class="btn-primary" style="justify-content: center;">
+                            Retry Deck
+                        </button>
+                        <button onclick="closePracticeMobile()" class="btn-secondary">
+                            Return to Library
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openModal(id) { 
+            const modal = document.getElementById(id);
+            modal.classList.add('active');
+            setTimeout(() => { modal.classList.add('show'); }, 10);
+        }
+        
+        function closeModal(id) { 
+            const modal = document.getElementById(id);
+            modal.classList.remove('show');
+            setTimeout(() => { modal.classList.remove('active'); }, 200);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatsUI();
+            renderLibrary();
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderLibrary(e.target.dataset.filter, document.getElementById('searchInput').value);
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                renderLibrary(activeTab, e.target.value);
+            });
         });
     </script>
 </body>
