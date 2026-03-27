@@ -439,13 +439,11 @@
                 configureUIForPlan("free", { dailyUsage: 0, planUsed: 0 }); 
             }
         } else {
-            // ---> BUG FIX 3: THE LOGOUT FIX <---
-            // Give Firebase a 2.5 second grace period to wake up before kicking the user out
             setTimeout(() => {
                 const check = localStorage.getItem("nativeUser");
                 if (!auth.currentUser && (!check || check === "null")) {
                     window.currentUser = null;
-                    localStorage.clear();
+                    localStorage.removeItem("nativeUser");
                     window.location.replace("index.html");
                 }
             }, 2500);
@@ -860,7 +858,6 @@
             bottomNav.classList.add('hidden'); 
             mainContainer.classList.add('interactive-mode');
             
-            // ---> BUG FIX 2: THE "D" FLASHCARD PARSER <---
             generatedCards = cards.map(card => {
                 let frontText = card.front || card.question || "";
                 let backText = card.back || card.answer || "No answer provided";
@@ -868,14 +865,12 @@
                 if (card.options) {
                     const cleanBack = String(backText).trim().toUpperCase();
                     
-                    // If the AI gave us an Array (["Option A", "Option B", "Option C", "Option D"])
                     if (Array.isArray(card.options)) {
                         if (cleanBack.length === 1 && /^[A-E]$/.test(cleanBack)) {
-                            const idx = cleanBack.charCodeAt(0) - 65; // A becomes 0, B becomes 1, etc.
+                            const idx = cleanBack.charCodeAt(0) - 65; 
                             if (card.options[idx]) backText = card.options[idx];
                         }
                     }
-                    // If the AI gave us an Object ({"A": "Option A", "B": "Option B"})
                     else if (typeof card.options === 'object') {
                         if (cleanBack.length <= 2 && card.options[cleanBack]) {
                             backText = card.options[cleanBack];
@@ -895,11 +890,10 @@
                     ...card, 
                     front: frontText, 
                     back: backText, 
-                    answer: backText, // Force the answer property to update
+                    answer: backText, 
                     answered: false 
                 };
             });
-            // ----------------------------------------------
 
             currentCardIndex = 0;
             sessionScore = 0; 
@@ -928,9 +922,17 @@
                 })
             };
 
-            let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            // ---> NEW CLOUD SYNC LOGIC <---
+            const uid = window.currentUser.uid;
+            try {
+                await setDoc(doc(db, "users", uid, "quizzes", newQuiz.id.toString()), newQuiz);
+            } catch(e) {
+                console.error("Error saving quiz to cloud:", e);
+            }
+
+            let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid)) || [];
             existingQuizzes.push(newQuiz);
-            localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
+            localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(existingQuizzes));
 
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);

@@ -334,7 +334,9 @@
             try {
                 const { StatusBar } = Capacitor.Plugins;
                 await StatusBar.setBackgroundColor({ color: color });
-            } catch (e) {}
+            } catch (e) {
+                console.log("Status bar update skipped", e);
+            }
         }
     }
 
@@ -393,10 +395,10 @@
         updateStatusBar('#000000');
     }
 
-    window.initUserUI = function(user) {
+    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
+    window.initUserUI = async function(user) {
         try {
             let savedName = "Guest";
-
             if (user && user.displayName) {
                 savedName = user.displayName;
             } else if (user && user.email) {
@@ -410,8 +412,22 @@
                  greetingTitle.innerHTML = `Welcome ${getTimeEmoji()}`;
             }
 
-            const storageKey = 'medexcel_streak_tracker_active';
-            let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
+            // User-specific storage key
+            const storageKey = 'medexcel_streak_' + user.uid;
+            let userStats = JSON.parse(localStorage.getItem(storageKey));
+            
+            // Pull from Firestore to prevent wipes from resetting it
+            if (window.fetchUserStreak) {
+                const serverStats = await window.fetchUserStreak(user.uid);
+                if (serverStats && serverStats.lastDate) {
+                    userStats = serverStats;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                }
+            }
+
+            if (!userStats) {
+                userStats = { count: 0, lastDate: null };
+            }
             
             const todayStr = new Date().toDateString();
             const yesterday = new Date();
@@ -435,37 +451,46 @@
             if (!hasCheckedInToday) {
                 headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
                 headerFireIcon.style.opacity = '0.4'; 
+                
+                // Randomize Daily Message
+                const messages = [
+                    "Keep the fire alive<br>check in today!",
+                    "You're doing great!<br>Claim your daily streak.",
+                    "Consistency is key!<br>Tap to check in.",
+                    "Another day, another step<br>closer to your goals!",
+                    "Don't break the chain!<br>Check in now."
+                ];
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                const titleEl = document.querySelector('.streak-dialog-title');
+                if(titleEl) titleEl.innerHTML = msg;
+                
             } else {
                 headerDisplay.textContent = currentStreakCount;
                 headerFireIcon.style.opacity = '1';
             }
 
             // ---> BUG FIX 1: DOUBLE FIRE <---
-            // Destroy any existing animation before creating a new one
             if(window.lottie) {
-                if (window.streakLottieAnim) {
-                    window.streakLottieAnim.destroy();
-                }
-                document.getElementById('modalStreakLottie').innerHTML = '';
-                window.streakLottieAnim = lottie.loadAnimation({ 
-                    container: document.getElementById('modalStreakLottie'), 
-                    renderer: 'svg', 
-                    loop: true, 
-                    autoplay: true, 
-                    path: 'fire.json' 
-                });
+                if (window.streakLottieAnim) window.streakLottieAnim.destroy();
+                document.getElementById('modalStreakLottie').innerHTML = ''; 
+                window.streakLottieAnim = lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'fire.json' });
             }
 
             if (!hasCheckedInToday) {
                 openStreakModal();
             }
 
-            document.getElementById('closeStreakModal').addEventListener('click', () => {
+            // Use .onclick to prevent multiple event listeners binding if initUserUI is called twice
+            document.getElementById('closeStreakModal').onclick = () => {
                 if (!hasCheckedInToday) {
                     userStats.count = currentStreakCount;
                     userStats.lastDate = todayStr;
                     localStorage.setItem(storageKey, JSON.stringify(userStats));
                     hasCheckedInToday = true;
+                    
+                    if (window.syncUserStreak) {
+                        window.syncUserStreak(user.uid, currentStreakCount, todayStr);
+                    }
                 }
 
                 document.getElementById('streakDialog').style.opacity = '0';
@@ -482,7 +507,7 @@
                         headerFireIcon.classList.remove('fire-pop-anim');
                     }, 600); 
                 }, 300); 
-            });
+            };
 
             document.getElementById('streakModalBackdrop').addEventListener('click', (e) => {
                 if (e.target.id === 'streakModalBackdrop') {
@@ -561,26 +586,38 @@
             projectId: "medxcel", 
             storageBucket: "medxcel.firebasestorage.app", 
             messagingSenderId: "649180317389", 
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
         };
         const app = initializeApp(firebaseConfig); 
         const auth = getAuth(app); 
         const db = getFirestore(app);
 
+        // Define global sync functions for the streak
+        window.syncUserStreak = async function(uid, count, dateStr) {
+            try {
+                await setDoc(doc(db, "users", uid), { streak: count, lastCheckIn: dateStr }, { merge: true });
+            } catch(e) {}
+        };
+        
+        window.fetchUserStreak = async function(uid) {
+            try {
+                const docSnap = await getDoc(doc(db, "users", uid));
+                if (docSnap.exists() && docSnap.data().lastCheckIn) {
+                    return { count: docSnap.data().streak || 0, lastDate: docSnap.data().lastCheckIn };
+                }
+            } catch(e) {}
+            return null;
+        };
+
         window.logoutUser = async function() {
-            try { await signOut(auth); } catch (e) { console.error("Logout failed", e); }
-            localStorage.clear(); 
+            try { await signOut(auth); } catch (e) {}
+            localStorage.removeItem("nativeUser"); 
             window.location.replace("index.html");
         };
 
-        window.logout = window.logoutUser;
-
         function shouldShowBanner() {
             const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
-            if (snoozeTime && Date.now() < parseInt(snoozeTime, 10)) {
-                return false; 
-            }
-            return true;
+            return !(snoozeTime && Date.now() < parseInt(snoozeTime, 10));
         }
 
         async function ensureAndCheckUser(user) {
@@ -603,7 +640,6 @@
                     if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 }
             } catch (error) {
-                console.warn("Firestore restricted. Defaulting to Free plan.");
                 if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
             }
         }
@@ -624,7 +660,8 @@
                 const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
                 localStorage.setItem("nativeUser", JSON.stringify(userData));
                 nativeUserObj = userData;
-            } else if (nativeUserObj && nativeUserObj.uid) {
+            } 
+            else if (nativeUserObj && nativeUserObj.uid) {
                 activeUser = nativeUserObj;
                 if (!firebaseUser) {
                     try { await signInAnonymously(auth); } catch (e) {}
@@ -633,21 +670,17 @@
 
             if (activeUser) {
                 window.currentUser = activeUser;
-                
-                // Only initialize UI ONCE per page load
                 if (!window.uiInitialized) {
-                    window.initUserUI(activeUser);
+                    await window.initUserUI(activeUser); 
                     window.uiInitialized = true; 
                 }
                 ensureAndCheckUser(activeUser);
             } else {
-                // ---> BUG FIX 3: THE LOGOUT FIX <---
-                // Give Firebase a 2.5 second grace period to wake up before kicking the user out
                 setTimeout(() => {
                     const check = localStorage.getItem("nativeUser");
                     if (!auth.currentUser && (!check || check === "null")) {
                         window.currentUser = null;
-                        localStorage.clear();
+                        localStorage.removeItem("nativeUser");
                         window.location.replace("index.html");
                     }
                 }, 2500);
