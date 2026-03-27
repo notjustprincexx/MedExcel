@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050814">
+    <title>MedExcel - Study Companion</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ================= GLOBAL SPA STYLES ================= */
+        :root {
+            --bg-main: #050A15; --bg-card: #0B1120;
+            --text-main: #ffffff; --text-muted: #94a3b8;
+            --accent-blue: #3b82f6; --accent-orange: #f97316;
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; user-select: none; -webkit-user-select: none; }
+        
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* The Magic of the SPA: Hiding and Showing Pages */
+        .spa-page { display: none; width: 100vw; height: 100vh; overflow-y: auto; overflow-x: hidden; flex-direction: column; position: absolute; inset: 0; padding-bottom: 6rem; }
+        .spa-page.active { display: flex; animation: fadeIn 0.3s var(--ease-out) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= GLOBAL COMPONENTS (Modals & Nav) ================= */
+        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 21, 0.95); z-index: 10000; transition: opacity 0.3s; }
+        .loader-screen.hidden { opacity: 0; pointer-events: none; }
+        
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+        .modal-backdrop.active { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; transform: scale(0.95); transition: 0.3s; text-align: center; }
+        .modal-backdrop.active .modal-content { transform: scale(1); }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); border-top: 1px solid rgba(255,255,255,0.05); padding: 0.75rem 1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; font-size: 1.25rem; transition: 0.2s; }
+        .nav-item.active { color: white; }
+        .nav-item span { font-size: 0.625rem; font-weight: 500; }
+
+        /* ================= PAGE SPECIFIC STYLES ================= */
+        /* Landing Page */
+        .onboarding-wrapper { display: flex; width: 100%; height: 100vh; overflow-x: auto; scroll-snap-type: x mandatory; }
+        .slide { flex: 0 0 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; padding: 2rem; text-align: center; }
+        .login-modal { position: absolute; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: 0.3s; opacity: 0; pointer-events: none; transform: translateY(40px); }
+        .login-modal.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+        /* Home Page */
+        .card-primary { background: linear-gradient(135deg, #2563eb, #4338ca); border-radius: 20px; border: 1px solid rgba(96, 165, 250, 0.4); box-shadow: 0 5px 0 #1e3a8a; }
+        .card-soft { background: #0a0f1d; border-radius: 16px; border: 1px solid rgba(255,255,255,0.04); }
+        .streak-dialog { border-radius: 0 0 24px 24px; transform: translateY(-100%); margin-top: auto; margin-bottom: auto; }
+        .modal-backdrop.active .streak-dialog { transform: translateY(0); }
+
+        /* Create Page */
+        .upload-zone { border: 2px dashed rgba(51, 65, 85, 0.5); border-radius: 1rem; padding: 2rem; background: rgba(30, 41, 59, 0.3); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+        .upload-zone.active { border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05); }
+        .file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .flashcard-wrapper { flex: 1; position: relative; perspective: 1000px; width: 100%; min-height: 300px; }
+        .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s; }
+        .flashcard-wrapper.flipped .flip-inner { transform: rotateY(180deg); }
+        .flashcard-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(51, 65, 85, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .flashcard-front { background: rgba(30, 41, 59, 0.5); z-index: 2; transform: rotateY(0deg); }
+        .flashcard-back { background: rgba(37, 99, 235, 0.9); transform: rotateY(180deg); }
+
+        /* Library & Profile */
+        .glass-panel { background: #0B1120; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body>
+
+    <div id="globalLoader" class="loader-screen hidden">
+        <div class="flex flex-col items-center">
+            <div id="lottieLoader" style="width: 80px; height: 80px;"></div>
+            <div id="loaderText" class="text-slate-300 text-sm font-bold mt-4 animate-pulse">Loading MedExcel...</div>
+        </div>
+    </div>
+
+    <div id="globalModal" class="modal-backdrop">
+        <div class="modal-content">
+            <h3 id="modalTitle" class="text-lg font-bold mb-2">Notice</h3>
+            <p id="modalMessage" class="text-sm text-slate-400 mb-6">Message goes here</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="px-4 py-2 text-slate-400 font-bold hidden">Cancel</button>
+                <button id="modalConfirm" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <nav id="bottomNav" class="bottom-nav hidden">
+        <a href="#home" class="nav-item" data-target="home"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="#create" class="nav-item" data-target="create"><i class="fas fa-plus"></i><span>Create</span></a>
+        <a href="#library" class="nav-item" data-target="library"><i class="fas fa-folder"></i><span>Library</span></a>
+        <a href="#profile" class="nav-item" data-target="profile"><i class="fas fa-user"></i><span>Profile</span></a>
+    </nav>
+
+
+    <div id="page-landing" class="spa-page active">
+        <div class="onboarding-wrapper">
+            <div class="slide">
+                <h2 class="text-2xl font-bold mt-6">Welcome to MedExcel</h2>
+                <p class="text-slate-400 mt-2">Your intelligent study companion.</p>
+                <div class="mt-8 text-slate-500 text-sm animate-pulse">Swipe <i class="fas fa-arrow-right ml-1"></i></div>
+            </div>
+            <div class="slide">
+                <h2 class="text-2xl font-bold mt-6">Stress-Free Studying</h2>
+                <p class="text-slate-400 mt-2 mb-8">Take a breath. We've got the hard part covered.</p>
+                <button onclick="toggleLoginModal(true, true)" class="w-full max-w-sm bg-blue-500 text-white font-bold p-4 rounded-2xl mb-4">Get Started</button>
+                <button onclick="toggleLoginModal(true, false)" class="w-full max-w-sm border-2 border-slate-700 text-blue-400 font-bold p-4 rounded-2xl">I Have An Account</button>
+            </div>
+        </div>
+
+        <div id="loginModal" class="login-modal">
+            <div class="flex justify-between items-center mb-8 mt-4">
+                <button onclick="toggleLoginModal(false)" class="text-slate-400 p-2"><i class="fas fa-times text-xl"></i></button>
+                <h2 id="loginHeading" class="text-lg font-bold">Enter Details</h2>
+                <div class="w-8"></div> </div>
+            <div class="w-full max-w-sm mx-auto flex flex-col gap-4">
+                <div class="bg-[#0B1120] border-2 border-slate-800 rounded-xl overflow-hidden">
+                    <input id="authName" type="text" placeholder="Your name" class="w-full p-4 border-b border-slate-800 hidden">
+                    <input id="authEmail" type="email" placeholder="Email" class="w-full p-4 border-b border-slate-800">
+                    <input id="authPassword" type="password" placeholder="Password" class="w-full p-4">
+                </div>
+                <button id="btnEmailAuth" class="w-full bg-slate-700 text-white font-bold p-4 rounded-xl mt-2">Sign In</button>
+                <button onclick="window.startGoogleLogin()" class="w-full bg-[#0B1120] border-2 border-slate-800 p-4 rounded-xl font-bold mt-4 flex justify-center items-center gap-2">
+                    <i class="fab fa-google text-blue-400"></i> Continue with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="page-home" class="spa-page">
+        <header class="p-6 pb-4 flex justify-between items-center sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
+            <h1 id="homeGreeting" class="text-lg font-bold">Welcome back</h1>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 text-orange-500 font-bold border border-orange-500/20">
+                <i class="fas fa-fire"></i> <span id="homeStreak">0</span>
+            </div>
+        </header>
+        <main class="flex-1 p-6 pt-2">
+            <div id="proBanner" class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-center gap-4 mb-6 hidden">
+                <i class="fas fa-crown text-yellow-500 text-2xl"></i>
+                <div class="flex-1">
+                    <h3 class="text-yellow-400 font-bold text-sm">Upgrade to Pro</h3>
+                    <p class="text-yellow-400/70 text-xs">Unlock unlimited AI generations</p>
+                </div>
+            </div>
+
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Actions</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <a href="#create" class="col-span-2 card-primary p-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i></h3>
+                        <p class="text-white/80 text-xs font-medium">Upload notes to create materials instantly.</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30"><i class="fas fa-arrow-right text-white"></i></div>
+                </a>
+                <a href="#create" class="card-soft p-4 flex flex-col gap-2">
+                    <i class="fas fa-clone text-2xl text-slate-400"></i>
+                    <span class="font-bold text-sm">Flashcards</span>
+                </a>
+                <a href="#create" class="card-soft p-4 flex flex-col gap-2">
+                    <i class="fas fa-list-ul text-2xl text-blue-400"></i>
+                    <span class="font-bold text-sm">MCQ Quiz</span>
+                </a>
+            </div>
+        </main>
+    </div>
+
+
+    <div id="page-create" class="spa-page">
+        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
+            <h1 class="text-xl font-bold">Create Material</h1>
+        </header>
+        <main class="flex-1 p-6 flex flex-col">
+            <div id="createSetupView" class="flex-1 flex flex-col gap-8">
+                <div>
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">1. Source Material</h2>
+                    <div id="uploadZone" class="upload-zone">
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
+                        <div id="uploadIcon" class="w-14 h-14 rounded-full bg-[#0B1120] flex items-center justify-center mb-4 text-slate-300 border border-slate-700 text-2xl"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <h3 id="uploadTitle" class="font-bold text-white mb-1">Tap to Upload File</h3>
+                        <p id="uploadSubtitle" class="text-xs text-slate-400">PDF, PPTX, DOCX, TXT, or Images</p>
+                    </div>
+                </div>
+
+                <div id="configZone" class="opacity-50 pointer-events-none transition-opacity">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">2. Configuration</h2>
+                    <div class="bg-[#0B1120] rounded-xl p-4 border border-slate-700 mb-4">
+                        <label class="text-xs text-slate-400 font-medium block mb-1">Topic Focus (Optional)</label>
+                        <input type="text" id="topicInput" placeholder="e.g., Mechanism of Action" class="w-full text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 bg-[#0B1120] p-1 rounded-xl border border-slate-700 mb-4">
+                        <button id="btnTypeFC" class="py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Flashcards</button>
+                        <button id="btnTypeMCQ" class="py-2 rounded-lg text-sm font-medium text-slate-400">Multiple Choice</button>
+                    </div>
+                    <div class="bg-[#0B1120] rounded-xl p-5 border border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="text-xs text-slate-400 font-medium">Items</label>
+                            <span id="sliderVal" class="text-sm font-medium bg-slate-800 px-3 py-1 rounded-md">5</span>
+                        </div>
+                        <input type="range" id="itemSlider" min="1" max="40" value="5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none">
+                    </div>
+                </div>
+
+                <button id="btnGenerate" disabled class="w-full bg-[#0B1120] text-slate-500 font-bold p-4 rounded-xl border border-slate-700 mt-auto transition-colors">Generate Content</button>
+            </div>
+        </main>
+    </div>
+
+
+    <div id="page-library" class="spa-page">
+        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
+            <h1 class="text-xl font-bold">My Library</h1>
+        </header>
+        <main class="flex-1 p-6 space-y-6">
+            <section class="glass-panel rounded-2xl p-5">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-chart-pie text-blue-500 mr-2"></i> Overview</h2>
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Total MCQs</p>
+                        <p id="libMcqCount" class="text-2xl font-black text-white">0</p>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Flashcards</p>
+                        <p id="libFcCount" class="text-2xl font-black text-blue-400">0</p>
+                    </div>
+                </div>
+            </section>
+            <section>
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">My Sets</h2>
+                    <span id="libSetsText" class="text-[10px] font-bold text-blue-400">0 Sets</span>
+                </div>
+                <div id="libSetsContainer" class="space-y-4"></div>
+            </section>
+        </main>
+    </div>
+
+
+    <div id="page-profile" class="spa-page">
+        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
+            <h1 class="text-xl font-bold">Profile</h1>
+        </header>
+        <main class="flex-1 p-6 space-y-6">
+            <section class="glass-panel rounded-3xl p-6 flex flex-col items-center text-center">
+                <div class="w-24 h-24 rounded-full bg-[#050A15] border-4 border-[#0B1120] flex items-center justify-center text-3xl font-bold text-slate-300 mb-4 relative">
+                    <span id="profInitial">?</span>
+                    <div id="profPlanBadge" class="absolute -bottom-2 px-3 py-1 rounded-full text-[10px] font-black uppercase border bg-slate-700 text-white">Free</div>
+                </div>
+                <h2 id="profName" class="text-lg font-bold">Loading...</h2>
+                <p id="profEmail" class="text-xs text-slate-400 mb-5">...</p>
+            </section>
+
+            <section class="glass-panel rounded-3xl p-6">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-chart-line text-blue-400 mr-2"></i> Daily Usage</h3>
+                <div class="bg-[#050A15] rounded-xl p-4 border border-white/5 mb-4 flex justify-between items-center">
+                    <div>
+                        <p id="profUsageCount" class="text-2xl font-black">0</p>
+                        <p class="text-[10px] uppercase text-slate-500 font-bold">Generations</p>
+                    </div>
+                    <p id="profUsageLeft" class="text-sm font-bold text-blue-400">5 left</p>
+                </div>
+                <button class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-xl text-sm">Upgrade Plan</button>
+            </section>
+
+            <button onclick="logoutUser()" class="w-full flex items-center gap-3 p-4 bg-[#0B1120] rounded-2xl border border-white/5 text-red-400 font-bold text-sm">
+                <i class="fas fa-sign-out-alt"></i> Log Out
+            </button>
+        </main>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+
+        // 1. Initialize Firebase (Done ONLY ONCE)
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const functions = getFunctions(app, "us-central1");
+
+        let currentUser = null;
+        let userData = null;
+
+        // 2. Global Utilities
+        window.showGlobalModal = (msg, title = "Notice", showCancel = false, onConfirm = null) => {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = msg;
+            document.getElementById('modalCancel').style.display = showCancel ? 'block' : 'none';
+            
+            const modal = document.getElementById('globalModal');
+            modal.classList.add('active');
+
+            document.getElementById('modalConfirm').onclick = () => {
+                modal.classList.remove('active');
+                if (onConfirm) onConfirm();
+            };
+            document.getElementById('modalCancel').onclick = () => modal.classList.remove('active');
+        };
+
+        window.showLoader = (text) => {
+            document.getElementById('loaderText').textContent = text;
+            document.getElementById('globalLoader').classList.remove('hidden');
+        };
+        window.hideLoader = () => document.getElementById('globalLoader').classList.add('hidden');
+
+        // 3. The Vanilla SPA Router
+        const pages = ['landing', 'home', 'create', 'library', 'profile'];
+        
+        function navigateTo(hash) {
+            hash = hash.replace('#', '') || 'landing';
+            
+            // Security redirects
+            if (hash === 'landing' && currentUser) hash = 'home';
+            if (hash !== 'landing' && !currentUser) hash = 'landing';
+
+            // Hide all pages, show active page
+            pages.forEach(p => document.getElementById(`page-${p}`).classList.remove('active'));
+            document.getElementById(`page-${hash}`).classList.add('active');
+
+            // Handle Bottom Nav visibility and highlight
+            const nav = document.getElementById('bottomNav');
+            if (hash === 'landing') {
+                nav.classList.add('hidden');
+            } else {
+                nav.classList.remove('hidden');
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    if (item.dataset.target === hash) item.classList.add('active');
+                    else item.classList.remove('active');
+                });
+            }
+
+            // Trigger Page Updates
+            if (hash === 'home') updateHomeUI();
+            if (hash === 'library') updateLibraryUI();
+            if (hash === 'profile') updateProfileUI();
+        }
+
+        window.addEventListener('hashchange', () => navigateTo(window.location.hash));
+
+        // 4. Firebase Authentication Listener
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    let uRef = doc(db, "users", user.uid);
+                    let snap = await getDoc(uRef);
+                    if (!snap.exists()) {
+                        await setDoc(uRef, { email: user.email, uid: user.uid, plan: "free", dailyUsage: 0 }, { merge: true });
+                        snap = await getDoc(uRef);
+                    }
+                    userData = snap.data();
+                } catch(e) {}
+                navigateTo(window.location.hash || 'home');
+            } else {
+                currentUser = null;
+                userData = null;
+                navigateTo('landing');
+            }
+        });
+
+        // 5. Landing Page Logic (Login/Signup)
+        let isSignup = false;
+        window.toggleLoginModal = (show, signupMode = false) => {
+            const modal = document.getElementById('loginModal');
+            isSignup = signupMode;
+            if (show) {
+                document.getElementById('loginHeading').textContent = isSignup ? 'Create Account' : 'Welcome Back';
+                document.getElementById('authName').style.display = isSignup ? 'block' : 'none';
+                document.getElementById('btnEmailAuth').textContent = isSignup ? 'Sign Up' : 'Sign In';
+                modal.classList.add('show');
+            } else {
+                modal.classList.remove('show');
+            }
+        };
+
+        document.getElementById('btnEmailAuth').addEventListener('click', async () => {
+            const email = document.getElementById('authEmail').value.trim();
+            const pass = document.getElementById('authPassword').value;
+            const name = document.getElementById('authName').value.trim();
+
+            if (!email || !pass) return showGlobalModal("Please enter email and password.");
+            
+            showLoader("Authenticating...");
+            try {
+                if (isSignup) {
+                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                    await updateProfile(cred.user, { displayName: name });
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+                hideLoader();
+                toggleLoginModal(false);
+            } catch (err) {
+                hideLoader();
+                showGlobalModal(err.message, "Error");
+            }
+        });
+
+        window.logoutUser = async () => {
+            showGlobalModal("Are you sure you want to log out?", "Log Out", true, async () => {
+                showLoader("Logging out...");
+                await signOut(auth);
+                hideLoader();
+            });
+        };
+
+        // 6. Home & Profile Logic
+        function updateHomeUI() {
+            if(!currentUser) return;
+            const name = currentUser.displayName || currentUser.email.split("@")[0];
+            document.getElementById('homeGreeting').textContent = `Hi, ${name} 👋`;
+        }
+
+        function updateProfileUI() {
+            if(!currentUser) return;
+            document.getElementById('profName').textContent = currentUser.displayName || 'Student';
+            document.getElementById('profEmail').textContent = currentUser.email;
+            document.getElementById('profInitial').textContent = currentUser.email.charAt(0).toUpperCase();
+
+            if(userData) {
+                document.getElementById('profUsageCount').textContent = userData.dailyUsage || 0;
+                const limit = userData.plan === 'elite' ? 50 : userData.plan === 'premium' ? 30 : 5;
+                document.getElementById('profUsageLeft').textContent = `${Math.max(0, limit - (userData.dailyUsage || 0))} left`;
+                document.getElementById('profPlanBadge').textContent = userData.plan === 'free' ? 'Free' : userData.plan.toUpperCase();
+            }
+        }
+
+        // 7. Create/Generate Logic
+        let selectedFile = null;
+        let quizType = "Flashcards";
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                document.getElementById('uploadIcon').classList.replace('text-slate-300', 'text-blue-500');
+                document.getElementById('uploadTitle').textContent = selectedFile.name;
+                document.getElementById('uploadSubtitle').textContent = "Ready to generate";
+                document.getElementById('uploadZone').classList.add('active');
+                document.getElementById('configZone').classList.remove('opacity-50', 'pointer-events-none');
+                
+                const genBtn = document.getElementById('btnGenerate');
+                genBtn.disabled = false;
+                genBtn.classList.replace('bg-[#0B1120]', 'bg-blue-600');
+                genBtn.classList.replace('text-slate-500', 'text-white');
+            }
+        });
+
+        document.getElementById('btnTypeFC').onclick = (e) => { quizType = "Flashcards"; updateTypeBtns(e.target, document.getElementById('btnTypeMCQ')); };
+        document.getElementById('btnTypeMCQ').onclick = (e) => { quizType = "Multiple Choice"; updateTypeBtns(e.target, document.getElementById('btnTypeFC')); };
+
+        function updateTypeBtns(active, inactive) {
+            active.classList.add('bg-blue-600', 'text-white'); active.classList.remove('text-slate-400');
+            inactive.classList.remove('bg-blue-600', 'text-white'); inactive.classList.add('text-slate-400');
+        }
+
+        document.getElementById('itemSlider').oninput = (e) => document.getElementById('sliderVal').textContent = e.target.value;
+
+        document.getElementById('btnGenerate').addEventListener('click', async () => {
+            if(!selectedFile) return;
+            showLoader("AI is generating your study material...");
+            
+            try {
+                const numItems = parseInt(document.getElementById('itemSlider').value, 10);
+                const path = `uploads/${currentUser.uid}/${Date.now()}_${selectedFile.name}`;
+                await uploadBytes(ref(storage, path), selectedFile);
+                
+                const generateFunc = httpsCallable(functions, 'generateQuizFromFile');
+                const res = await generateFunc({
+                    filePath: path, fileName: selectedFile.name, quizType: quizType, 
+                    topicFocus: document.getElementById('topicInput').value, numberOfItems: numItems
+                });
+                
+                hideLoader();
+                showGlobalModal(`Successfully created ${numItems} items! Go to Library to view.`, "Success", false, () => {
+                    window.location.hash = 'library';
+                });
+            } catch (err) {
+                hideLoader();
+                showGlobalModal("Failed to generate: " + err.message, "Error");
+            }
+        });
+
+        // 8. Library Logic
+        async function updateLibraryUI() {
+            if(!currentUser) return;
+            try {
+                const q = query(collection(db, "mcqs"), where("userId", "==", currentUser.uid));
+                const snap = await getDocs(q);
+                
+                let mcqs = 0, fcs = 0;
+                const sets = new Map();
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const subj = d.subject || "General Set";
+                    if (d.type && d.type.includes("Multiple")) mcqs++; else fcs++;
+                    
+                    if (!sets.has(subj)) sets.set(subj, { name: subj, count: 0 });
+                    sets.get(subj).count++;
+                });
+                
+                document.getElementById('libMcqCount').textContent = mcqs;
+                document.getElementById('libFcCount').textContent = fcs;
+                document.getElementById('libSetsText').textContent = `${sets.size} Sets`;
+                
+                const cont = document.getElementById('libSetsContainer');
+                cont.innerHTML = sets.size === 0 ? '<p class="text-slate-500 text-sm text-center">No sets generated yet.</p>' : '';
+                
+                sets.forEach(s => {
+                    cont.innerHTML += `
+                    <div class="glass-panel p-4 rounded-xl flex justify-between items-center mb-3">
+                        <div><h3 class="font-bold text-white text-sm">${s.name}</h3><p class="text-xs text-slate-400">${s.count} items</p></div>
+                        <button class="bg-blue-600/20 text-blue-400 px-4 py-2 rounded-lg text-xs font-bold border border-blue-500/30">Review</button>
+                    </div>`;
+                });
+            } catch(e) { console.log("Library Error:", e); }
+        }
+        
+        // Initial setup
+        navigateTo(window.location.hash);
+
+    </script>
+</body>
+</html>
