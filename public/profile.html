@@ -58,12 +58,30 @@
         .modal-btn-secondary { width: 100%; padding: 0.75rem; background: transparent; color: #94a3b8; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .modal-btn-secondary:hover { color: white; }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; text-decoration: none; transition: 0.2s; font-size: 1.25rem; }
-        .nav-item span { font-size: 0.625rem; font-weight: 500; }
-        .nav-item:hover { color: #94a3b8; }
+        /* UPDATED FLOATING NAVIGATION STYLES FOR PROFILE PAGE */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; text-decoration: none;}
         .nav-item.active { color: white; }
-        .nav-item.active span { font-weight: 700; }
+        .nav-item i { font-size: 1.25rem; transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .nav-item:active i { transform: scale(0.85) translateY(2px); }
+        .nav-label { font-size: 0.625rem; font-weight: 500; }
+
+        .nav-item.create-btn { position: relative; }
+        .create-circle {
+            width: 3.25rem;
+            height: 3.25rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            border: 6px solid #050A15; /* Matches Tailwind bg-[#050A15] background */
+            margin-top: -30px;
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
+        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
     </style>
     <script>
         // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase Hybrid Auth
@@ -226,19 +244,25 @@
     <nav id="bottomNav" class="bottom-nav">
         <a href="homepage.html" class="nav-item">
             <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="create.html" class="nav-item">
-            <i class="fas fa-plus"></i>
-            <span>Create</span>
+            <span class="nav-label">Home</span>
         </a>
         <a href="study.html" class="nav-item">
             <i class="fas fa-folder"></i>
-            <span>Library</span>
+            <span class="nav-label">Library</span>
+        </a>
+        <a href="create.html" class="nav-item create-btn">
+            <div class="create-circle">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span class="nav-label">Create</span>
+        </a>
+        <a href="leaderboard.html" class="nav-item">
+            <i class="fas fa-trophy"></i>
+            <span class="nav-label">Leaders</span>
         </a>
         <a href="profile.html" class="nav-item active">
             <i class="fas fa-user"></i>
-            <span>Profile</span>
+            <span class="nav-label">Profile</span>
         </a>
     </nav>
 

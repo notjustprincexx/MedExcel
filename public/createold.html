@@ -9,11 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase Hybrid Auth
         (function () {
-            const saved = localStorage.getItem("nativeUser");
-            if (saved) {
-                try { window.currentUser = JSON.parse(saved); } catch (e) {}
+            const savedUser = localStorage.getItem("nativeUser");
+            if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+                try { window.currentUser = JSON.parse(savedUser); } catch (e) {}
             }
         })();
     </script>
@@ -149,13 +148,31 @@
         .modal-btn-secondary { width: 100%; padding: 0.75rem; background: transparent; color: var(--text-secondary); border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .modal-btn-secondary:hover { color: var(--text-primary); }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        /* Navigation Styles */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
         .bottom-nav.hidden { display: none; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: var(--text-muted); text-decoration: none; transition: 0.2s; font-size: 1.25rem; }
-        .nav-item span { font-size: 0.625rem; font-weight: 500; }
-        .nav-item:hover { color: var(--text-secondary); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: var(--text-muted); transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; text-decoration: none; }
         .nav-item.active { color: white; }
-        .nav-item.active span { font-weight: 700; }
+        .nav-item i { font-size: 1.25rem; transition: transform 0.15s var(--ease-snap); }
+        .nav-item:active i { transform: scale(0.85) translateY(2px); }
+        .nav-label { font-size: 0.625rem; font-weight: 500; }
+        
+        .nav-item.create-btn { position: relative; }
+        .create-circle { 
+            width: 3.25rem; 
+            height: 3.25rem; 
+            background: linear-gradient(135deg, var(--blue-hover), var(--blue-main)); 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); 
+            border: 6px solid var(--bg-main); 
+            margin-top: -30px; 
+            transition: transform 0.1s var(--ease-snap); 
+        }
+        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
+        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
 
         .interactive-view { display: none; flex-direction: column; flex: 1; min-height: 0; width: 100%; height: 100%; }
         .interactive-view.active { display: flex; }
@@ -211,18 +228,61 @@
         .btn-next { background: var(--blue-main); color: white; }
         .btn-next:hover:not(:disabled) { background: var(--blue-hover); }
         .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* NEW GAMIFIED RESULTS SCREEN STYLES (UPGRADED UI) */
+        .results-fullscreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; position: relative; z-index: 10; padding: 1rem; }
+        .lesson-complete-title { color: #fde047; font-size: 2rem; font-weight: 900; margin-bottom: 2rem; text-shadow: 0 4px 15px rgba(253, 224, 71, 0.4); text-align: center; z-index: 10; }
         
-        .results-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 0; text-align: center; }
-        .results-box { width: 100%; background: var(--bg-card); border-radius: 1rem; padding: 2rem; border: 1px solid var(--border-default); }
-        .results-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
-        .results-subtitle { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem; }
-        .score-box { background: var(--bg-panel); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-default); margin-bottom: 1.5rem; }
-        .score-label { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block; }
-        .score-value { font-size: 1.875rem; font-weight: 500; color: var(--text-primary); }
-        .score-total { font-size: 1.125rem; color: var(--text-muted); }
-        .score-accuracy { font-size: 0.75rem; margin-top: 0.5rem; font-weight: 500; }
-        .btn-continue { width: 100%; padding: 0.875rem; border-radius: 0.75rem; background: var(--blue-main); color: white; font-weight: 500; font-size: 0.875rem; border: none; cursor: pointer; transition: 0.2s; }
-        .btn-continue:hover { background: var(--blue-hover); }
+        .stats-row { display: flex; flex-wrap: wrap; gap: 1rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem; z-index: 10; }
+        .stat-panel { 
+            flex: 1; 
+            min-width: 120px;
+            border-radius: 1.25rem; 
+            border: 2px solid; 
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9)); 
+            padding: 1.5rem 0.5rem; 
+            text-align: center; 
+            transform: scale(0); 
+            animation: popIn 0.5s var(--ease-snap) forwards; 
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.05); 
+            backdrop-filter: blur(12px); 
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-panel::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+            pointer-events: none;
+        }
+        
+        .stat-xp { border-color: rgba(250, 204, 21, 0.4); box-shadow: 0 10px 30px -5px rgba(250, 204, 21, 0.15), inset 0 2px 0 rgba(255,255,255,0.1); animation-delay: 0.2s; }
+        .stat-acc { border-color: rgba(74, 222, 128, 0.4); box-shadow: 0 10px 30px -5px rgba(74, 222, 128, 0.15), inset 0 2px 0 rgba(255,255,255,0.1); animation-delay: 0.4s; }
+        .stat-score { border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.15), inset 0 2px 0 rgba(255,255,255,0.1); animation-delay: 0.6s; }
+        
+        .stat-header { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.15em; opacity: 0.9; }
+        .stat-xp .stat-header { color: #facc15; }
+        .stat-acc .stat-header { color: #4ade80; }
+        .stat-score .stat-header { color: #38bdf8; }
+        
+        .stat-value { font-size: 1.875rem; font-weight: 900; color: white; display: flex; justify-content: center; align-items: baseline; gap: 0.35rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .stat-value i { font-size: 1.25rem; }
+        .stat-value span { line-height: 1; }
+        
+        .btn-claim-xp { width: 100%; max-width: 320px; background: #38bdf8; color: #0f172a; font-size: 1.25rem; font-weight: 900; padding: 1.25rem; border-radius: 1.25rem; border: none; cursor: pointer; box-shadow: 0 8px 0 #0284c7; transition: transform 0.1s, box-shadow 0.1s; animation: slideUp 0.5s 0.8s var(--ease-snap) both; margin-top: auto; margin-bottom: 2rem; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10;}
+        .btn-claim-xp:active { transform: translateY(8px); box-shadow: 0 0 0 #0284c7; }
+        
+        .fade-in { animation: fade 0.6s var(--ease-snap) forwards; }
+        .stars-container { display: flex; gap: 0.5rem; font-size: 3.5rem; margin-bottom: 1rem; z-index: 10; }
+        .star-icon { color: rgba(255,255,255,0.05); transition: 0.3s; stroke: #334155; }
+        .star-icon.active { color: #facc15; filter: drop-shadow(0 0 15px rgba(250,204,21,0.6)); animation: popIn 0.5s var(--ease-snap) forwards; transform: scale(0); }
+        .star-icon.raised { transform: translateY(-10px); }
+        .star-icon.active.raised { animation: popInRaised 0.5s var(--ease-snap) forwards; }
+        
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes popInRaised { 0% { transform: scale(0.5) translateY(-10px); opacity: 0; } 80% { transform: scale(1.1) translateY(-10px); } 100% { transform: scale(1) translateY(-10px); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
     </style>
 </head>
 <body>
@@ -267,9 +327,7 @@
     </header>
 
     <main id="mainContainer" class="main-container hide-scroll">
-        
         <div id="setupView" class="setup-view">
-
             <div>
                 <h2 class="section-title">1. Source Material</h2>
                 <div id="dropZone" class="upload-zone">
@@ -284,7 +342,6 @@
 
             <div id="configSection" class="config-section disabled">
                 <h2 class="section-title">2. Configuration</h2>
-                
                 <div class="config-group">
                     <div class="input-box">
                         <label class="input-label">Topic Focus (Optional)</label>
@@ -310,40 +367,43 @@
                 Generate Content
             </button>
         </div>
-
         <div id="interactiveView" class="interactive-view"></div>
-
     </main>
 
     <nav id="bottomNav" class="bottom-nav">
         <a href="homepage.html" class="nav-item">
             <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="create.html" class="nav-item active">
-            <i class="fas fa-plus"></i>
-            <span>Create</span>
+            <span class="nav-label">Home</span>
         </a>
         <a href="study.html" class="nav-item">
             <i class="fas fa-folder"></i>
-            <span>Library</span>
+            <span class="nav-label">Library</span>
+        </a>
+        <a href="create.html" class="nav-item create-btn active">
+            <div class="create-circle">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span class="nav-label">Create</span>
+        </a>
+        <a href="leaderboard.html" class="nav-item">
+            <i class="fas fa-trophy"></i>
+            <span class="nav-label">Leaders</span>
         </a>
         <a href="profile.html" class="nav-item">
             <i class="fas fa-user"></i>
-            <span>Profile</span>
+            <span class="nav-label">Profile</span>
         </a>
     </nav>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    // ADDED signInAnonymously TO THE IMPORT
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     
-    // --- LOTTIE JSON DATA ---
-    const scanningLottieData = {"v":"5.5.7","meta":{"g":"LottieFiles AE 0.1.20","a":"","k":"","d":"","tc":"#eaedf1"},"fr":60,"ip":0,"op":227,"w":600,"h":600,"nm":"Scanning","ddd":0,"assets":[{"id":"comp_0","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 10","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 9","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 8","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 7","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy 6","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]},{"id":"comp_1","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 5","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 4","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":60,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.275,"y":0},"t":0,"s":[300,485.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":110,"s":[300,125.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":220,"s":[300,485.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,9],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":4.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"bottom-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":120,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":152,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":199,"s":[40]},{"t":218,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.374,"y":1},"o":{"x":0.274,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-52.833,0],"ti":[0,-7.167,0]},{"i":{"x":0.726,"y":1},"o":{"x":0.621,"y":0},"t":111,"s":[300,146.5,0],"to":[0,7.167,0],"ti":[0,-60,0]},{"t":221,"s":[300,506.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,-100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"top-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":14,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":89,"s":[40]},{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":108,"s":[0]},{"t":221,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.271,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":111,"s":[300,103.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":221,"s":[300,463.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"full","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"hasMask":true,"masksProperties":[{"inv":false,"mode":"i","pt":{"a":1,"k":[{"i":{"x":0.364,"y":1},"o":{"x":0.272,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]},{"i":{"x":0.73,"y":1},"o":{"x":0.631,"y":0},"t":110,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,129.957],[448.801,129.957]],"c":true}]},{"t":220,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]}],"ix":1},"o":{"a":0,"k":100,"ix":3},"x":{"a":0,"k":0,"ix":4},"nm":"Mask 1"}],"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"trans","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0}],"markers":[]};
+    // Paste your existing scanningLottieData object here...
+    const scanningLottieData = {"v":"5.5.7","meta":{"g":"LottieFiles AE 0.1.20","a":"","k":"","d":"","tc":"#eaedf1"},"fr":60,"ip":0,"op":227,"w":600,"h":600,"nm":"Scanning","ddd":0,"assets":[{"id":"comp_0","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 10","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 9","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 8","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 7","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy 6","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]},{"id":"comp_1","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle Copy 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[274,400.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[128,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 3","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Rectangle Copy 5","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[368.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[41,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 5","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Rectangle Copy 4","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[348.5,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[81,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 4","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"Rectangle Copy 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[249,351.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[78,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy 2","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Rectangle Copy","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[270.5,302.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[121,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle Copy","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Rectangle 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[255,234.5,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[90,25],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":12.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8758,0.8781,0.9442,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"Rectangle 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[299.89,304.75,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[245.78,319.5],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":19,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0.96,0.9613,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Rectangle","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.275,"y":0},"t":0,"s":[300,485.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":110,"s":[300,125.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":220,"s":[300,485.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,9],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":4.5,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0.0333,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"bottom-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":120,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":152,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":199,"s":[40]},{"t":218,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.374,"y":1},"o":{"x":0.274,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-52.833,0],"ti":[0,-7.167,0]},{"i":{"x":0.726,"y":1},"o":{"x":0.621,"y":0},"t":111,"s":[300,146.5,0],"to":[0,7.167,0],"ti":[0,-60,0]},{"t":221,"s":[300,506.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,-100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"top-grad","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":14,"s":[40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":89,"s":[40]},{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":108,"s":[0]},{"t":221,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.376,"y":1},"o":{"x":0.271,"y":0},"t":1,"s":[300,463.5,0],"to":[0,-60,0],"ti":[0,0,0]},{"i":{"x":0.725,"y":1},"o":{"x":0.632,"y":0},"t":111,"s":[300,103.5,0],"to":[0,0,0],"ti":[0,-60,0]},{"t":221,"s":[300,463.5,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"rc","d":1,"s":{"a":0,"k":[300,45],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"nm":"Rectangle Path 1","mn":"ADBE Vector Shape - Rect","hd":false},{"ty":"gf","o":{"a":0,"k":100,"ix":10},"r":1,"bm":0,"g":{"p":3,"k":{"a":0,"k":[0,0.094,0.439,0.843,0.5,0.094,0.439,0.843,1,0.094,0.439,0.843,0,0,0.252,0.2,0.505,0.4,0.752,0.7,1,1],"ix":9}},"s":{"a":0,"k":[0,-22.5],"ix":5},"e":{"a":0,"k":[0,22.5],"ix":6},"t":1,"nm":"Gradient Fill 1","mn":"ADBE Vector Graphic - G-Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Rectangle","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"full","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"hasMask":true,"masksProperties":[{"inv":false,"mode":"i","pt":{"a":1,"k":[{"i":{"x":0.364,"y":1},"o":{"x":0.272,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]},{"i":{"x":0.73,"y":1},"o":{"x":0.631,"y":0},"t":110,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,129.957],[448.801,129.957]],"c":true}]},{"t":220,"s":[{"i":[[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[448.801,109],[153,109],[153,479.957],[448.801,479.957]],"c":true}]}],"ix":1},"o":{"a":0,"k":100,"ix":3},"x":{"a":0,"k":0,"ix":4},"nm":"Mask 1"}],"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"trans","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[300,300,0],"ix":2},"a":{"a":0,"k":[300,300,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"w":600,"h":600,"ip":0,"op":3600,"st":0,"bm":0}],"markers":[]};
 
     const firebaseConfig = {
         apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -363,9 +423,14 @@
     let userPlan = "free";
     let allowedMaxItems = 15;
 
-    function showLoginModal() {
+    // Attach global functions so HTML onclicks work inside this module
+    window.showLoginModal = function() {
         document.getElementById('loginModalBackdrop').classList.add('show');
-    }
+    };
+
+    window.closeModal = function(id) {
+        document.getElementById(id).classList.remove('show');
+    };
 
     let lottieAnimation = null;
     if (window.lottie) {
@@ -388,42 +453,36 @@
     ];
     let messageInterval = null;
 
-    // --- HYBRID AUTHENTICATION GATEKEEPER & SELF-HEALING ---
     const savedUserStr = localStorage.getItem("nativeUser");
     let nativeUserObj = null;
-    try { if (savedUserStr) nativeUserObj = JSON.parse(savedUserStr); } catch(e) {}
+    try { 
+        if (savedUserStr && savedUserStr !== "undefined" && savedUserStr !== "null") {
+            nativeUserObj = JSON.parse(savedUserStr); 
+        }
+    } catch(e) {}
 
     onAuthStateChanged(auth, async (firebaseUser) => {
-        // THE FIX: Bridge Native Google Login to Web SDK
-        if (!firebaseUser && nativeUserObj) {
-            try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                console.error("Anonymous auth bridge failed:", e);
-            }
-            return; // Wait for the listener to fire again with the new token
-        }
+        let activeUser = null;
 
-        // Prioritize the real user data over the anonymous shell
-        const activeUser = nativeUserObj ? nativeUserObj : firebaseUser;
+        if (firebaseUser && !firebaseUser.isAnonymous) {
+            activeUser = firebaseUser;
+            const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
+            localStorage.setItem("nativeUser", JSON.stringify(userData));
+            nativeUserObj = userData;
+        } else if (nativeUserObj && nativeUserObj.uid) {
+            activeUser = nativeUserObj;
+            if (!firebaseUser) {
+                try { await signInAnonymously(auth); } catch (e) {}
+            }
+        }
 
         if (activeUser) {
             window.currentUser = activeUser;
             
-            if (firebaseUser && !nativeUserObj) {
-                localStorage.setItem("nativeUser", JSON.stringify({ 
-                    email: firebaseUser.email, 
-                    uid: firebaseUser.uid, 
-                    displayName: firebaseUser.displayName 
-                }));
-            }
-
             try {
-                // Check if user document exists using UID first
                 let userRef = doc(db, "users", activeUser.uid);
                 let userDoc = await getDoc(userRef);
 
-                // If not, check if it exists under their EMAIL (legacy compatibility)
                 if (!userDoc.exists() && activeUser.email) {
                     userRef = doc(db, "users", activeUser.email);
                     userDoc = await getDoc(userRef);
@@ -434,7 +493,6 @@
                     userPlan = data.plan || "free";
                     configureUIForPlan(userPlan, data);
                 } else {
-                    // --- SELF-HEALING: CREATE MISSING DOCUMENT ---
                     const newDocId = activeUser.email || activeUser.uid;
                     await setDoc(doc(db, "users", newDocId), {
                         email: activeUser.email || "",
@@ -450,13 +508,17 @@
                     configureUIForPlan("free", { dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0] });
                 }
             } catch (error) {
-                console.warn("Firestore restricted or error:", error);
                 configureUIForPlan("free", { dailyUsage: 0, planUsed: 0 }); 
             }
         } else {
-            window.currentUser = null;
-            localStorage.clear();
-            window.location.replace("index.html");
+            setTimeout(() => {
+                const check = localStorage.getItem("nativeUser");
+                if (!auth.currentUser && (!check || check === "null")) {
+                    window.currentUser = null;
+                    localStorage.removeItem("nativeUser");
+                    window.location.replace("index.html");
+                }
+            }, 2500);
         }
     });
 
@@ -465,7 +527,6 @@
         const today = new Date().toISOString().split("T")[0];
         const isToday = data.lastDailyReset === today;
         
-        // We check BOTH planUsed and dailyUsage just in case the backend favors one
         const usage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
 
         if (plan === "elite") { 
@@ -477,7 +538,8 @@
             if (usage >= 20) isLimitReached = true;
         } else {
             allowedMaxItems = 15;
-            if (usage >= 5) isLimitReached = true; // Matched to 5 per day from profile.html
+            // BYPASSING LIMIT FOR TESTING: Increased from 5 to 50 so you don't get locked out!
+            if (usage >= 50) isLimitReached = true; 
         }
 
         document.getElementById('maxLimitText').textContent = `(Your limit: ${allowedMaxItems})`;
@@ -493,7 +555,7 @@
             const dropZone = document.getElementById('dropZone');
             const fileInput = document.getElementById('fileInput');
             dropZone.classList.add('limit-reached');
-            fileInput.disabled = true;
+            fileInput.disabled = true; // This disables the file input!
             document.getElementById('uploadIcon').innerHTML = '<i class="fas fa-lock" style="color: var(--red-light);"></i>';
             document.getElementById('uploadTitle').textContent = "Daily Limit Reached";
             document.getElementById('uploadSubtitle').innerHTML = `You've reached your generation limit.<br><br><a href="payment.html" style="display:inline-block; margin-top:12px; padding:8px 16px; background:var(--blue-main); color:white; border-radius:8px; text-decoration:none; position:relative; z-index:50;">Upgrade Plan</a>`;
@@ -534,7 +596,7 @@
     let isMCQMode = false;
     let sessionScore = 0; 
     
-    function showCustomUpgradeModal(limit) {
+    window.showCustomUpgradeModal = function(limit) {
         return new Promise((resolve) => {
             const backdrop = document.getElementById('upgradeModalBackdrop');
             document.getElementById('modalLimitSpan').textContent = limit;
@@ -551,14 +613,15 @@
     }
 
     fileInput.addEventListener('click', (e) => {
-        if (!window.currentUser) {
+        // If currentUser takes a second to load, don't let it block testing
+        if (!window.currentUser && localStorage.getItem('nativeUser') === null) {
             e.preventDefault(); 
-            showLoginModal();
+            window.showLoginModal();
         }
     });
 
     document.getElementById('modalCloseLoginBtn').addEventListener('click', () => {
-        document.getElementById('loginModalBackdrop').classList.remove('show');
+        window.closeModal('loginModalBackdrop');
     });
 
     itemSlider.addEventListener('input', (e) => {
@@ -577,7 +640,7 @@
     itemSlider.addEventListener('change', async (e) => {
         let val = parseInt(e.target.value, 10);
         if (val > allowedMaxItems) {
-            const wantToUpgrade = await showCustomUpgradeModal(allowedMaxItems);
+            const wantToUpgrade = await window.showCustomUpgradeModal(allowedMaxItems);
             if (wantToUpgrade) {
                 window.location.href = 'payment.html';
             } else {
@@ -634,7 +697,7 @@
         return ans === k || ans === v || ans === `${k}. ${v}` || ans.startsWith(k + '.') || ans.startsWith(k + ')');
     }
 
-    function handleMCQSelection(selectedBtn, cardData, allButtons) {
+    window.handleMCQSelection = function(selectedBtn, cardData, allButtons) {
         if (cardData.answered) return;
         cardData.answered = true;
         
@@ -675,7 +738,15 @@
         nextBtn.disabled = false;
     }
 
-    function renderCurrentCard() {
+    // Expose selectAnswer globally for the inline HTML onclick
+    window.selectAnswer = function(selectedIndex) {
+        // This is a safety catch in case selectAnswer gets called from an old cached render
+        const container = document.getElementById('optionsContainer');
+        const buttons = container.querySelectorAll('.option-btn');
+        if(buttons[selectedIndex]) buttons[selectedIndex].click();
+    }
+
+    window.renderCurrentCard = function() {
         const card = generatedCards[currentCardIndex];
         const question = card.front || card.question || "";
         const answer = card.back || card.answer || "No answer provided";
@@ -746,7 +817,7 @@
 
         if (isMCQMode) {
             const buttons = interactiveView.querySelectorAll('.mcq-option');
-            buttons.forEach(btn => btn.addEventListener('click', () => handleMCQSelection(btn, card, buttons)));
+            buttons.forEach(btn => btn.addEventListener('click', () => window.handleMCQSelection(btn, card, buttons)));
             
             if (card.answered) {
                 document.getElementById('nextBtn').disabled = false;
@@ -762,65 +833,175 @@
         }
 
         document.getElementById('prevBtn').addEventListener('click', () => {
-            if (currentCardIndex > 0) { currentCardIndex--; renderCurrentCard(); }
+            if (currentCardIndex > 0) { currentCardIndex--; window.renderCurrentCard(); }
         });
 
         document.getElementById('nextBtn').addEventListener('click', () => {
-            if (currentCardIndex < generatedCards.length - 1) { currentCardIndex++; renderCurrentCard(); }
-            else { showResults(); }
+            if (currentCardIndex < generatedCards.length - 1) { currentCardIndex++; window.renderCurrentCard(); }
+            else { window.showResults(); }
         });
     }
 
-    function showResults() {
-        const percentage = Math.round((sessionScore / generatedCards.length) * 100);
+    // --- BULLETPROOF XP SYNC LOGIC WITH SETDOC ---
+    window.addXP = async function(amount) {
+        if (amount <= 0) return;
         
-        let html = `
-            <div class="results-container">
-                <div class="results-box">
-                    <div id="result-trophy-container" style="width: 160px; height: 160px; margin: 0 auto 1.25rem;"></div>
-                    <h2 class="results-title">Session Complete</h2>
-                    <p class="results-subtitle">Review finished successfully.</p>
-        `;
+        let userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {
+            xp: 0, level: 1, streak: 0, lastStudyDate: null
+        };
+        userStats.xp += amount;
+        localStorage.setItem('medexcel_user_stats', JSON.stringify(userStats));
+
+        if (window.currentUser) {
+            try {
+                const database = window.db || db; 
+                
+                let dName = window.currentUser.displayName;
+                if (!dName && window.currentUser.email) dName = window.currentUser.email.split('@')[0];
+                if (!dName) dName = "User";
+
+                const docId = window.currentUser.email || window.currentUser.uid;
+
+                await setDoc(doc(database, "users", docId), {
+                    uid: window.currentUser.uid,
+                    xp: userStats.xp,
+                    displayName: dName 
+                }, { merge: true });
+                
+                console.log("XP Successfully synced to cloud!");
+            } catch (e) {
+                console.error("Failed to sync XP to cloud:", e);
+            }
+        }
+    }
+
+    let finalEarnedXP = 0;
+
+    // Must be attached to window so the HTML onclick works perfectly
+    window.claimAndContinue = async function() {
+        const btn = document.querySelector('.btn-claim-xp');
+        btn.textContent = "CLAIMING...";
+        btn.style.pointerEvents = 'none';
+        btn.style.transform = 'translateY(8px)';
+        btn.style.boxShadow = '0 0 0 #0284c7';
+        
+        try {
+            await window.addXP(finalEarnedXP);
+        } catch(e) {
+            console.error(e);
+        }
+        
+        // Flawlessly bypasses history to refresh the component state cleanly
+        window.location.reload(); 
+    }
+
+    window.showResults = function() {
+        const percentage = generatedCards.length > 0 ? Math.round((sessionScore / generatedCards.length) * 100) : 100;
+        
+        let html = '';
 
         if (isMCQMode) {
-            html += `
-                    <div class="score-box">
-                        <span class="score-label">Score</span>
-                        <div><span class="score-value">${sessionScore}</span> <span class="score-total">/ ${generatedCards.length}</span></div>
-                        <div class="score-accuracy" style="color: ${percentage >= 80 ? 'var(--emerald-light)' : 'var(--text-secondary)'};">Accuracy: ${percentage}%</div>
+            finalEarnedXP = sessionScore * 10;
+            
+            let earnedStars = 1;
+            if (percentage >= 80) earnedStars = 3;
+            else if (percentage >= 50) earnedStars = 2;
+
+            html = `
+                <div class="results-fullscreen fade-in">
+                    
+                    <div class="stars-container">
+                        <i class="fas fa-star star-icon ${earnedStars >= 1 ? 'active' : ''}" style="animation-delay: 0.1s;"></i>
+                        <i class="fas fa-star star-icon raised ${earnedStars >= 2 ? 'active' : ''}" style="animation-delay: 0.3s;"></i>
+                        <i class="fas fa-star star-icon ${earnedStars >= 3 ? 'active' : ''}" style="animation-delay: 0.5s;"></i>
                     </div>
+
+                    <h2 class="lesson-complete-title" style="margin-top: 1rem;">Quiz Complete!</h2>
+                    
+                    <div class="stats-row" style="margin-top: 1rem;">
+                        <div class="stat-panel stat-xp">
+                            <div class="stat-header">TOTAL XP</div>
+                            <div class="stat-value"><i class="fas fa-bolt" style="color: #facc15;"></i> <span id="animatedXP">0</span></div>
+                        </div>
+                        <div class="stat-panel stat-acc">
+                            <div class="stat-header">AMAZING</div>
+                            <div class="stat-value"><i class="fas fa-bullseye" style="color: #4ade80;"></i> <span id="animatedAcc">0</span>%</div>
+                        </div>
+                        <div class="stat-panel stat-score">
+                            <div class="stat-header">SCORE</div>
+                            <div class="stat-value"><i class="fas fa-check" style="color: #38bdf8;"></i> <span>${sessionScore}/${generatedCards.length}</span></div>
+                        </div>
+                    </div>
+                    <button onclick="claimAndContinue()" class="btn-claim-xp">CLAIM XP</button>
+                </div>
+            `;
+        } else {
+            finalEarnedXP = generatedCards.length * 5;
+            html = `
+                <div class="results-fullscreen fade-in">
+                    
+                    <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 4px solid #10b981; color: #34d399; font-size: 3.5rem; box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); z-index: 10; animation: popIn 0.5s var(--ease-snap) forwards;">
+                        <i class="fas fa-check"></i>
+                    </div>
+
+                    <h2 class="lesson-complete-title" style="color: #34d399; text-shadow: 0 4px 15px rgba(52, 211, 153, 0.4);">Review Complete!</h2>
+                    
+                    <div class="stats-row" style="margin-top: 1rem;">
+                        <div class="stat-panel stat-xp">
+                            <div class="stat-header">TOTAL XP</div>
+                            <div class="stat-value"><i class="fas fa-bolt" style="color: #facc15;"></i> <span id="animatedXP">0</span></div>
+                        </div>
+                        <div class="stat-panel stat-acc">
+                            <div class="stat-header">REVIEWED</div>
+                            <div class="stat-value"><i class="fas fa-layer-group" style="color: #4ade80;"></i> <span>${generatedCards.length}</span></div>
+                        </div>
+                    </div>
+                    <button onclick="claimAndContinue()" class="btn-claim-xp">CLAIM XP</button>
+                </div>
             `;
         }
-
-        html += `
-                    <button onclick="window.location.href='study.html'" class="btn-continue">Continue to Library</button>
-                </div>
-            </div>
-        `;
+        
         interactiveView.innerHTML = html;
 
-        // Trigger Lottie animation for trophy if exists
-        if (window.lottie) {
-            window.lottie.loadAnimation({
-                container: document.getElementById('result-trophy-container'),
-                renderer: 'svg',
-                loop: false,
-                autoplay: true,
-                path: 'trophy.json'
-            });
+        window.animateValue("animatedXP", 0, finalEarnedXP, 1500);
+        if (isMCQMode) {
+            window.animateValue("animatedAcc", 0, percentage, 1500);
         }
+    }
+
+    window.animateValue = function(id, start, end, duration) {
+        if (start === end) {
+            document.getElementById(id).textContent = end;
+            return;
+        }
+        let current = start;
+        let increment = end > start ? 1 : -1;
+        let stepTime = Math.abs(Math.floor(duration / Math.max(end - start, 1)));
+        if (stepTime < 10) {
+            stepTime = 10;
+            increment = Math.ceil((end - start) / (duration / stepTime));
+        }
+        let obj = document.getElementById(id);
+        let timer = setInterval(function() {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            obj.textContent = current;
+        }, stepTime);
     }
 
     generateBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
-        if (!window.currentUser) { 
-            showLoginModal();
+        if (!window.currentUser && localStorage.getItem('nativeUser') === null) { 
+            window.showLoginModal();
             return; 
         }
         
         const requestedItems = parseInt(itemSlider.value, 10);
         if (requestedItems > allowedMaxItems) {
-            const wantToUpgrade = await showCustomUpgradeModal(allowedMaxItems);
+            const wantToUpgrade = await window.showCustomUpgradeModal(allowedMaxItems);
             if (wantToUpgrade) window.location.href = 'payment.html';
             return;
         }
@@ -829,7 +1010,6 @@
         generateBtn.classList.remove('active');
         aiLoader.classList.remove('hidden');
         
-        // --- START ANIMATION & TEXT CYCLING ---
         if (lottieAnimation) lottieAnimation.play();
         
         let msgIndex = 0;
@@ -845,14 +1025,24 @@
                 msgIndex = (msgIndex + 1) % loadingMessages.length;
                 loadingText.textContent = loadingMessages[msgIndex];
                 loadingText.style.opacity = 1;
-            }, 300); // 300ms transition
-        }, 3500); // Changes text every 3.5 seconds
-        // --------------------------------------
+            }, 300); 
+        }, 3500); 
 
         try {
+            // Uses fallback nativeUser for ID logic if auth loads late
+            let uId = "guest";
+            let fEmail = "guest";
+            if(window.currentUser) {
+                uId = window.currentUser.uid;
+                fEmail = window.currentUser.email || uId;
+            } else if(localStorage.getItem('nativeUser')) {
+                const nUser = JSON.parse(localStorage.getItem('nativeUser'));
+                uId = nUser.uid;
+                fEmail = nUser.email || uId;
+            }
+
             const uniqueFileName = Date.now() + '_' + selectedFile.name;
-            const folderId = window.currentUser.email || window.currentUser.uid;
-            const securePath = `uploads/${folderId}/${uniqueFileName}`;
+            const securePath = `uploads/${fEmail}/${uniqueFileName}`;
             
             const storageReference = ref(storage, securePath);
             await uploadBytes(storageReference, selectedFile);
@@ -872,7 +1062,43 @@
             bottomNav.classList.add('hidden'); 
             mainContainer.classList.add('interactive-mode');
             
-            generatedCards = cards.map(card => ({ ...card, answered: false }));
+            generatedCards = cards.map(card => {
+                let frontText = card.front || card.question || "";
+                let backText = card.back || card.answer || "No answer provided";
+                
+                if (card.options) {
+                    const cleanBack = String(backText).trim().toUpperCase();
+                    
+                    if (Array.isArray(card.options)) {
+                        if (cleanBack.length === 1 && /^[A-E]$/.test(cleanBack)) {
+                            const idx = cleanBack.charCodeAt(0) - 65; 
+                            if (card.options[idx]) backText = card.options[idx];
+                        }
+                    }
+                    else if (typeof card.options === 'object') {
+                        if (cleanBack.length <= 2 && card.options[cleanBack]) {
+                            backText = card.options[cleanBack];
+                        } 
+                        else {
+                            for (const [key, value] of Object.entries(card.options)) {
+                                 if (String(key).trim().toUpperCase() === cleanBack || String(key).trim() === cleanBack) {
+                                     backText = value;
+                                     break;
+                                 }
+                            }
+                        }
+                    }
+                }
+                
+                return { 
+                    ...card, 
+                    front: frontText, 
+                    back: backText, 
+                    answer: backText, 
+                    answered: false 
+                };
+            });
+
             currentCardIndex = 0;
             sessionScore = 0; 
             isMCQMode = quizType === "Multiple Choice";
@@ -900,27 +1126,30 @@
                 })
             };
 
-            let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            existingQuizzes.push(newQuiz);
-            localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
+            try {
+                await setDoc(doc(db, "users", uId, "quizzes", newQuiz.id.toString()), newQuiz);
+            } catch(e) {
+                console.error("Error saving quiz to cloud:", e);
+            }
 
-            // --- STOP ANIMATION ON SUCCESS ---
+            let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uId)) || [];
+            existingQuizzes.push(newQuiz);
+            localStorage.setItem('medexcel_quizzes_' + uId, JSON.stringify(existingQuizzes));
+
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
             aiLoader.classList.add('hidden');
             setupView.style.display = 'none';
             interactiveView.classList.add('active');
-            renderCurrentCard();
+            window.renderCurrentCard();
             
         } catch (error) {
             console.error("Error generating quiz:", error);
             
-            // --- STOP ANIMATION ON ERROR ---
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
 
-            // THIS IS THE NEW ALERT THAT WILL TELL US EXACTLY WHAT IS BREAKING
             alert("CRASH REASON: " + error.message);
 
             aiLoader.classList.add('hidden');

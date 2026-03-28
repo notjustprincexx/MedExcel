@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aurora - Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); }
+        body { background-color: #050A15; color: #ffffff; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .glass-panel { background: #0B1120; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); }
+        .fade-in { animation: fadeIn 0.5s var(--ease-snap) forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .podium-1 { animation: riseUp 0.6s 0.1s var(--ease-snap) forwards; transform: translateY(100%); opacity: 0; }
+        .podium-2 { animation: riseUp 0.6s 0.2s var(--ease-snap) forwards; transform: translateY(100%); opacity: 0; }
+        .podium-3 { animation: riseUp 0.6s 0.3s var(--ease-snap) forwards; transform: translateY(100%); opacity: 0; }
+        @keyframes riseUp { to { transform: translateY(0); opacity: 1; } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; text-decoration: none;}
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 1.25rem; transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .nav-item:active i { transform: scale(0.85) translateY(2px); }
+        .nav-label { font-size: 0.625rem; font-weight: 500; }
+        .nav-item.create-btn { position: relative; }
+        .create-circle { width: 3.25rem; height: 3.25rem; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: 6px solid #050A15; margin-top: -30px; transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
+        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
+        .list-item-enter { animation: slideIn 0.3s ease-out forwards; opacity: 0; }
+        @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden relative bg-[#050A15]">
+
+    <header class="pt-6 pb-2 px-6 flex items-center justify-between shrink-0 sticky top-0 z-40 bg-[#050A15]/90 backdrop-blur-md border-b border-white/5">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-tight text-white">Leaderboard</h1>
+            <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Global Rankings</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
+            <i class="fas fa-fire text-orange-500"></i>
+            <span class="text-xs font-bold text-white" id="currentUserXp">0 XP</span>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto pb-32 px-4 pt-6 hide-scroll" style="-webkit-overflow-scrolling: touch;">
+        <div class="flex bg-[#0B1120] rounded-xl p-1 border border-white/5 mb-8 mx-2 fade-in" style="animation-delay: 0s;">
+            <button class="flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white shadow-md transition-all">All Time</button>
+            <button class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all">This Week</button>
+        </div>
+
+        <section class="flex justify-center items-end h-48 mb-10 gap-3 px-2" id="podiumContainer" style="display: none;">
+            <div class="flex flex-col items-center w-1/3 podium-2 relative z-10">
+                <div class="relative mb-2">
+                    <div class="w-14 h-14 rounded-full border-4 border-slate-300 bg-slate-800 flex items-center justify-center overflow-hidden z-10 relative">
+                        <span class="text-lg font-bold text-slate-400" id="avatar2">?</span>
+                    </div>
+                    <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center text-[#050A15] font-black text-xs border-2 border-[#050A15] z-20">2</div>
+                </div>
+                <h3 class="text-xs font-bold text-white truncate w-full text-center" id="name2">---</h3>
+                <p class="text-[10px] text-blue-400 font-bold mt-0.5" id="xp2">0 XP</p>
+                <div class="w-full h-20 bg-gradient-to-t from-slate-400/20 to-slate-400/5 mt-3 rounded-t-xl border-t border-slate-400/30"></div>
+            </div>
+
+            <div class="flex flex-col items-center w-1/3 podium-1 relative z-20">
+                <i class="fas fa-crown text-yellow-400 text-xl mb-1 filter drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"></i>
+                <div class="relative mb-2">
+                    <div class="w-20 h-20 rounded-full border-4 border-yellow-400 bg-slate-800 flex items-center justify-center overflow-hidden z-10 relative shadow-[0_0_20px_rgba(250,204,21,0.3)]">
+                        <span class="text-2xl font-bold text-slate-400" id="avatar1">?</span>
+                    </div>
+                    <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center text-[#050A15] font-black text-sm border-2 border-[#050A15] z-20">1</div>
+                </div>
+                <h3 class="text-sm font-bold text-white truncate w-full text-center" id="name1">---</h3>
+                <p class="text-[11px] text-yellow-400 font-bold mt-0.5" id="xp1">0 XP</p>
+                <div class="w-full h-28 bg-gradient-to-t from-yellow-500/20 to-yellow-500/5 mt-3 rounded-t-xl border-t border-yellow-500/40 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center w-1/3 podium-3 relative z-10">
+                <div class="relative mb-2">
+                    <div class="w-14 h-14 rounded-full border-4 border-amber-600 bg-slate-800 flex items-center justify-center overflow-hidden z-10 relative">
+                        <span class="text-lg font-bold text-slate-400" id="avatar3">?</span>
+                    </div>
+                    <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-[#050A15] font-black text-xs border-2 border-[#050A15] z-20">3</div>
+                </div>
+                <h3 class="text-xs font-bold text-white truncate w-full text-center" id="name3">---</h3>
+                <p class="text-[10px] text-blue-400 font-bold mt-0.5" id="xp3">0 XP</p>
+                <div class="w-full h-16 bg-gradient-to-t from-amber-600/20 to-amber-600/5 mt-3 rounded-t-xl border-t border-amber-600/30"></div>
+            </div>
+        </section>
+
+        <section class="glass-panel rounded-3xl p-4 shadow-lg fade-in" style="animation-delay: 0.4s;">
+            <div id="leaderboardList" class="flex flex-col gap-2">
+                <div class="text-center text-slate-500 py-6 text-sm" id="loadingState">
+                    <i class="fas fa-circle-notch fa-spin mr-2"></i>Fetching real rankings...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="homepage.html" class="nav-item"><i class="fas fa-home"></i><span class="nav-label">Home</span></a>
+        <a href="study.html" class="nav-item"><i class="fas fa-folder"></i><span class="nav-label">Library</span></a>
+        <a href="create.html" class="nav-item create-btn"><div class="create-circle"><i class="fas fa-plus"></i></div><span class="nav-label">Create</span></a>
+        <a href="leaderboard.html" class="nav-item active"><i class="fas fa-trophy"></i><span class="nav-label">Leaders</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span class="nav-label">Profile</span></a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        function getInitial(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
+        function formatXP(xp) { return (xp || 0).toLocaleString() + " XP"; }
+
+        function renderLeaderboard(users, currentUserId) {
+            document.getElementById('loadingState').style.display = 'none';
+            const listContainer = document.getElementById('leaderboardList');
+            listContainer.innerHTML = '';
+
+            if (users.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-slate-500 py-6 text-sm">No users have earned XP yet! Go study to be #1!</div>';
+                return;
+            }
+
+            // Render Podium
+            document.getElementById('podiumContainer').style.display = 'flex';
+            
+            // 1st Place
+            if(users[0]) {
+                document.getElementById('name1').textContent = users[0].displayName || "Anonymous";
+                document.getElementById('xp1').textContent = formatXP(users[0].xp);
+                document.getElementById('avatar1').textContent = getInitial(users[0].displayName);
+            }
+            // 2nd Place
+            if(users[1]) {
+                document.getElementById('name2').textContent = users[1].displayName || "Anonymous";
+                document.getElementById('xp2').textContent = formatXP(users[1].xp);
+                document.getElementById('avatar2').textContent = getInitial(users[1].displayName);
+            }
+            // 3rd Place
+            if(users[2]) {
+                document.getElementById('name3').textContent = users[2].displayName || "Anonymous";
+                document.getElementById('xp3').textContent = formatXP(users[2].xp);
+                document.getElementById('avatar3').textContent = getInitial(users[2].displayName);
+            }
+
+            // Render List (4th onwards)
+            users.slice(3).forEach((user, index) => {
+                const rank = index + 4;
+                const isCurrentUser = user.uid === currentUserId;
+                const bgClass = isCurrentUser ? "bg-blue-600/20 border-blue-500/50" : "bg-[#050A15] border-white/5 hover:bg-white/5";
+                
+                listContainer.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-xl border ${bgClass} transition-colors list-item-enter" style="animation-delay: ${index * 0.05}s;">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-bold text-slate-500 w-4 text-center">${rank}</span>
+                            <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold shadow-inner">
+                                ${getInitial(user.displayName)}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white ${isCurrentUser ? 'text-blue-400' : ''}">
+                                    ${user.displayName || "Anonymous"} ${isCurrentUser ? '<span class="text-[10px] ml-2 px-2 py-0.5 bg-blue-600 text-white rounded-full">YOU</span>' : ''}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-300">${formatXP(user.xp)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            let activeUid = user ? user.uid : null;
+
+            // Load user's local XP to display top right
+            let localStats = JSON.parse(localStorage.getItem('medexcel_user_stats'));
+            if (localStats && localStats.xp) {
+                document.getElementById('currentUserXp').textContent = formatXP(localStats.xp);
+            }
+
+            try {
+                // REAL FIREBASE QUERY
+                const usersRef = collection(db, "users");
+                // Get the top 50 users ordered by 'xp'
+                const q = query(usersRef, orderBy("xp", "desc"), limit(50));
+                const querySnapshot = await getDocs(q);
+                
+                let fetchedUsers = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Only include users who actually have XP
+                    if(data.xp && data.xp > 0) {
+                        fetchedUsers.push({
+                            uid: doc.id,
+                            displayName: data.displayName || data.email?.split('@')[0] || "User",
+                            xp: data.xp
+                        });
+                    }
+                });
+
+                renderLeaderboard(fetchedUsers, activeUid);
+
+            } catch (error) {
+                console.error("Firebase fetch error:", error);
+                if(error.message.includes("index")) {
+                    document.getElementById('loadingState').innerHTML = `<i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i> Firebase requires an Index. Check your browser console for the creation link.`;
+                } else {
+                    document.getElementById('loadingState').innerHTML = `<i class="fas fa-times-circle text-red-500 mr-2"></i> Failed to load leaderboard.`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
