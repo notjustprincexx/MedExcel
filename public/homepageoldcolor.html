@@ -2,585 +2,802 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#09090b">
     <title>MedExcel Home</title>
-    
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://www.gstatic.com">
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    <script>
+        // TOP SCRIPT: Allows Native Google Users to render the page instantly
+        (function () {
+            const savedUser = localStorage.getItem("nativeUser");
+            if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+                try { window.currentUser = JSON.parse(savedUser); } catch (e) {}
+            }
+        })();
+    </script>
     <style>
-        :root { --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); }
-        
+        :root {
+            /* Premium Dark App Color System */
+            --bg-body: #09090b; 
+            --bg-surface: #121216; 
+            --bg-glass: rgba(255, 255, 255, 0.03); 
+            
+            --text-main: #ffffff; 
+            --text-muted: #94a3b8; 
+            
+            --accent-btn: #a78bfa; /* Lavender/Purple color */
+            --accent-green: #34d399; 
+            --accent-orange: #f97316;
+            
+            --border-glass: rgba(255, 255, 255, 0.06); 
+            
+            --radius-btn: 100px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            --radius-card: 24px;
+            
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
         body { 
-            -webkit-user-select: none; 
-            user-select: none; 
-            background-color: #0B1120; 
-            background-image: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow-x: hidden;
-            overscroll-behavior-y: none;
+            background-color: var(--bg-body); color: var(--text-main);
+            height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
+            overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+        }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            color: transparent !important;
+            border-color: transparent !important;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .skeleton * {
+            visibility: hidden;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            backface-visibility: hidden;
-            will-change: transform;
-            contain: paint layout;
+        /* Header */
+        .header-bar { 
+            padding: 1.5rem 1.25rem 1rem; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 10; position: sticky; top: 0; 
+            background: rgba(9, 9, 11, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
         }
-
-        .ok-backdrop {
-            position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-            z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px); transform: translateZ(0); contain: strict;
+        .greeting-title { 
+            font-size: 1.15rem; 
+            font-weight: 700; flex: 1; 
+            white-space: nowrap; letter-spacing: -0.01em; 
+            color: var(--text-main); margin: 0;
+            display: flex; align-items: center;
         }
         
-        .ok-dialog {
-            width: 90%; max-width: 400px; background: #1e293b; border: 1px solid #334155;
-            border-radius: 20px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            color: white; transform: scale(0.95); opacity: 0;
-            transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s ease;
-            will-change: transform, opacity;
+        .streak-badge { 
+            display: flex; align-items: center; justify-content: center; gap: 0.375rem; 
+            padding: 0.4rem 0.875rem; border-radius: 9999px; 
+            background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.15); 
+            color: var(--accent-orange); font-size: 0.9375rem; font-weight: 700; cursor: pointer;
+            transition: transform 0.15s var(--ease-out);
+            min-height: 36px; min-width: 65px;
         }
+        .streak-badge:active { transform: scale(0.95); }
+
+        /* Main Content */
+        .main-content { flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; gap: 1.75rem; }
         
-        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
-        }
-        .animate-float { animation: float 3s ease-in-out infinite; will-change: transform; }
-
-        @keyframes pulse-border {
-            0%, 100% { border-color: rgba(96, 165, 250, 0.5); box-shadow: 0 0 15px rgba(96, 165, 250, 0.2); }
-            50% { border-color: rgba(96, 165, 250, 1); box-shadow: 0 0 25px rgba(96, 165, 250, 0.5); }
+        .section-wrapper { display: flex; flex-direction: column; gap: 1rem; }
+        .section-title { 
+            font-size: 0.75rem; font-weight: 800; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.08em; 
         }
 
-        .highlight-active {
-            position: relative; z-index: 40; animation: pulse-border 2s infinite; border-radius: 16px;
+        /* Continue Studying Card */
+        .continue-card { 
+            padding: 1.25rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .continue-card:hover { background: #1a1a20; }
+        .continue-card:active { transform: scale(0.97); }
+        .card-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+        .icon-box { 
+            width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+            color: #60a5fa; font-size: 1.25rem;
+        }
+        .card-details { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .card-title { font-weight: 700; font-size: 0.9375rem; color: var(--text-main); margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .progress-badge { 
+            background: rgba(59, 130, 246, 0.15); 
+            color: #60a5fa; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            padding: 0.375rem 0.5rem; 
+            border-radius: 6px; 
+            flex-shrink: 0;
+            margin-left: 0.75rem;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .speech-bubble {
-            position: relative; background: #1e293b; border: 2px solid #334155; border-radius: 1rem;
-            padding: 1rem; color: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            max-width: 200px; transform: translateZ(0); contain: content;
+        /* Primary Add Funds Style Button */
+        .add-funds-btn {
+            display: block; width: 100%;
+            background: var(--accent-btn);
+            color: #000000; 
+            text-align: center;
+            padding: 1.125rem;
+            border-radius: var(--radius-btn);
+            font-weight: 700;
+            font-size: 1.0625rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), opacity 0.2s;
+            margin-top: 0.5rem;
         }
+        .add-funds-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+        /* Crypto Style Cards Grid */
+        .crypto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .crypto-card { 
+            padding: 1.25rem; 
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-card);
+            text-decoration: none;
+            min-height: 140px;
+            transition: transform 0.15s var(--ease-out);
+        }
+        .crypto-card:active { transform: scale(0.96); }
         
-        .speech-bubble::after {
-            content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-            border-width: 10px 10px 0; border-style: solid; border-color: #334155 transparent transparent transparent;
+        .crypto-icon-wrapper { margin-bottom: 1rem; }
+        .crypto-coin-icon { 
+            width: 36px; height: 36px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1rem; color: white;
         }
+        .coin-btc { background: #f7931a; } 
+        .coin-eth { background: #627eea; } 
 
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .crypto-info { display: flex; flex-direction: column; gap: 0.25rem; }
+        .crypto-ticker { font-size: 1.125rem; font-weight: 700; color: var(--text-main); }
+        .crypto-name { font-size: 0.9375rem; color: var(--text-muted); font-weight: 400; }
+        .crypto-change { font-size: 0.875rem; font-weight: 500; color: var(--accent-green); margin-top: 0.125rem; }
 
-        #tutorialOverlay {
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px); pointer-events: auto; transform: translateZ(0); contain: strict;
+        /* Promo Banner Styles */
+        .promo-banner {
+            background: rgba(167, 139, 250, 0.05);
+            border: 1px solid rgba(167, 139, 250, 0.15);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
         }
+        .promo-banner:active { transform: scale(0.97); }
+        .promo-icon { color: var(--accent-btn); font-size: 1.5rem; }
+        .promo-text { flex: 1; }
+        .promo-text h4 { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .promo-text p { color: var(--text-muted); font-size: 0.8125rem; line-height: 1.4; }
+
+        /* List Rows Styles */
+        .list-row {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.25rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .list-row:hover { background: #1a1a20; }
+        .list-row:active { transform: scale(0.97); }
+        .list-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem; flex-shrink: 0; margin-right: 1rem;
+        }
+        .list-info { flex: 1; display: flex; flex-direction: column; gap: 0.125rem; white-space: nowrap; overflow: hidden; }
+        .list-title { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; }
+        .list-sub { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
+        .list-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; flex-shrink: 0; margin-left: 0.5rem; }
+        .list-value { color: var(--text-main); font-size: 0.875rem; font-weight: 500; }
+        .list-change { color: var(--accent-green); font-size: 0.75rem; font-weight: 600; }
+        .list-change.neutral { color: var(--text-muted); }
+
+        /* Navigation */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: var(--bg-body); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
+            color: #71717a; transition: color 0.2s, transform 0.15s var(--ease-out); cursor: pointer; flex: 1; 
+        }
+        .nav-item.active { color: var(--accent-btn); } /* UPDATED: Now uses the purple/lavender color */
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { 
+            width: 24px; height: 24px; 
+            display: block; 
+            stroke: currentColor; 
+            stroke-width: 2.25; 
+            stroke-linecap: round; 
+            stroke-linejoin: round;
+        }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+
+        /* Dialogs */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); transition: opacity 0.3s;}
+        .ok-backdrop.active { display: flex; }
         
-        .scroll-container {
-            overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; contain: layout size;
+        #streakModalBackdrop { align-items: flex-end; }
+        .streak-dialog { 
+            width: 100%; max-width: 100%; 
+            background: var(--bg-surface); 
+            border-radius: var(--radius-card) var(--radius-card) 0 0; 
+            padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); 
+            transform: translateY(100%); opacity: 0; 
+            transition: transform 0.4s var(--ease-out), opacity 0.3s ease; 
+            text-align: center; 
+            display: flex; flex-direction: column; align-items: center; 
         }
-
-        .slide-up-modal { transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); }
+        .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
+        
+        .streak-dialog-title { font-size: 1rem; font-weight: 500; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.4; }
+        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .day-label { font-size: 0.75rem; color: #71717a; font-weight: 600; }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; }
+        .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
+        .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
+        .btn-checkin { 
+            width: 100%; padding: 1.125rem; font-weight: 600; font-size: 1.0625rem; 
+            margin-bottom: 0.5rem; display: block; 
+            background: var(--accent-btn); color: #000000; 
+            border-radius: var(--radius-btn); transition: transform 0.15s;
+        }
+        .btn-checkin:active { transform: scale(0.97); }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col relative overflow-hidden">
+<body>
 
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="ok-dialog" role="document">
-            <h3 id="okTitle" class="text-lg font-bold text-white mb-2">Notice</h3>
-            <p id="okMessage" class="text-slate-300 text-sm mb-6 leading-relaxed">Message goes here</p>
-            <div class="flex justify-end gap-3">
-                <button id="okCancel" class="px-4 py-2 rounded-xl text-slate-400 font-bold text-sm hover:text-white transition-colors">Cancel</button>
-                <button id="okConfirm" class="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-900/50 transition-transform transform active:scale-95">OK</button>
-            </div>
+    <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
+        <div class="streak-dialog" id="streakDialog">
+            <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
+            <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
+            <h3 class="streak-dialog-title">Keep the fire alive<br>check in today!</h3>
+            <div class="calendar-row" id="calendarRow"></div>
+            <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
         </div>
     </div>
 
-    <div id="searchBar" class="hidden"></div>
-
-    <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-transparent transform-gpu">
-        <h1 id="greetingTitle" class="text-lg font-bold text-white tracking-tight">Welcome back</h1>
-        <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center gap-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-500 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-[0_0_10px_rgba(249,115,22,0.1)] shrink-0">
-                <i class="fas fa-fire text-orange-500"></i>
-                <span id="headerStreakDisplay">12</span>
-            </div>
+    <header class="header-bar">
+        <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
+        <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+            <i id="headerFireIcon" class="fas fa-fire"></i>
+            <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
         </div>
     </header>
 
-    <main class="flex-1 min-h-0 overflow-y-auto scroll-container pb-40 px-6 pt-4 space-y-8 transform-gpu">
-        <div id="continueStudyingSection" class="hidden">
-            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Continue Studying</h2>
-            <a href="study.html" class="glass-panel rounded-2xl p-4 relative overflow-hidden block transform transition-transform active:scale-98 hover:bg-white/5 will-change-transform border border-indigo-500/30 group">
-                <div class="absolute bottom-0 left-0 h-1.5 bg-slate-800 w-full transform-gpu">
-                    <div id="continueProgressBar" class="h-full bg-blue-500 rounded-r-full shadow-sm transition-all duration-500 ease-out" style="width: 0%"></div>
+    <main class="main-content">
+        
+        <div id="continueStudyingSection" class="section-wrapper">
+            <h2 class="section-title">Continue Studying</h2>
+            <a href="study.html" class="continue-card">
+                <div class="card-left">
+                    <div id="continueIconBox" class="icon-box skeleton">
+                        <i id="continueIcon" class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="card-details">
+                        <h3 id="continueTitle" class="card-title skeleton" style="width: 130px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></h3>
+                        <p class="card-meta skeleton" id="continueMeta" style="width: 90px; height: 12px; border-radius: 4px;"></p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-4 mb-2">
-                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                            <g transform="translate(32, 32)">
-                                <g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g>
-                                <g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g>
-                                <g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g>
-                            </g>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start mb-1 gap-3">
-                            <h3 id="continueTitle" class="font-bold text-sm text-white leading-tight line-clamp-2">Quiz Title</h3>
-                            <span id="continueProgressText" class="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 shrink-0">0%</span>
+                <div class="progress-badge skeleton" id="continueProgressText" style="width: 44px; height: 24px;"></div>
+            </a>
+        </div>
+
+        <a href="create.html" class="add-funds-btn">
+            Create Material
+        </a>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">For Your Studies</h2>
+            <div class="crypto-grid">
+                
+                <a href="study.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-btc">
+                            <i class="fas fa-folder"></i>
                         </div>
-                        <p class="text-slate-400 text-xs font-medium truncate"><span id="continueCardCount">0</span> items • <span id="continueSubject" class="uppercase">Subject</span></p>
                     </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">LIB</span>
+                        <span class="crypto-name">My Library</span>
+                        <span class="crypto-change">+ Active</span>
+                    </div>
+                </a>
+
+                <a href="profile.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-eth">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">PROG</span>
+                        <span class="crypto-name">My Progress</span>
+                        <span class="crypto-change">+ Tracker</span>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">Weekly Target</h2>
+            <a href="profile.html" class="promo-banner">
+                <div class="promo-icon"><i class="fas fa-bullseye"></i></div>
+                <div class="promo-text">
+                    <h4>Study Consistency</h4>
+                    <p>You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
                 </div>
             </a>
         </div>
 
-        <div>
-            <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest pl-1">Quick Actions</h2>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="create.html" id="createCard" class="col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden shadow-md transition-transform transform active:scale-95 flex items-center justify-between group will-change-transform" style="contain: paint layout;">
-                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div class="relative z-10">
-                        <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i></h3>
-                        <p class="text-blue-100 text-xs font-medium opacity-90">Upload notes to create materials instantly.</p>
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <h2 class="section-title" style="margin-bottom: 0;">Recent Decks</h2>
+                <a href="study.html" style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-decoration: none; letter-spacing: 0.05em;">View All <i class="fas fa-chevron-right" style="margin-left: 2px;"></i></a>
+            </div>
+            
+            <div>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fas fa-heartbeat"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Cardiology 101</span>
+                        <span class="list-sub">45 Cards • Anatomy</span>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 relative z-10 backdrop-blur-md border border-white/20">
-                        <i class="fas fa-arrow-right text-white text-sm"></i>
+                    <div class="list-stats">
+                        <span class="list-value">Just now</span>
+                        <span class="list-change">+92%</span>
                     </div>
                 </a>
                 
-                <a href="topics/pharmacology.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
-                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                            <g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g>
-                        </svg>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fas fa-brain"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Neurology Terms</span>
+                        <span class="list-sub">120 Cards • Medicine</span>
                     </div>
-                    <span class="font-bold text-sm text-slate-200 mt-2">Flashcards</span>
+                    <div class="list-stats">
+                        <span class="list-value">Yesterday</span>
+                        <span class="list-change neutral">0%</span>
+                    </div>
                 </a>
 
-                <a href="mcq.html" class="glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
-                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                            <g transform="translate(32, 32)">
-                                <g transform="rotate(-5) translate(-18, -22)">
-                                    <rect width="36" height="44" rx="3" fill="#EAE8EC"/>
-                                    <path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/>
-                                    <circle cx="8" cy="20" r="3" fill="#F4A261"/>
-                                    <rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/>
-                                    <circle cx="8" cy="30" r="3" fill="#C5C3C8"/>
-                                    <rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/>
-                                    <circle cx="8" cy="40" r="3" fill="#C5C3C8"/>
-                                    <rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/>
-                                </g>
-                            </g>
-                        </svg>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;"><i class="fas fa-capsules"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Pharmacology Basics</span>
+                        <span class="list-sub">85 Cards • Drugs</span>
                     </div>
-                    <span class="font-bold text-sm text-slate-200 mt-2 leading-tight">MCQ Quiz</span>
-                </a>
-
-                <a href="tutor.html" class="col-span-1 glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
-                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                            <g transform="translate(32, 32)">
-                                <g transform="translate(-16, -12)">
-                                     <rect width="32" height="36" rx="3" fill="#EAE8EC"/>
-                                     <rect x="6" y="8" width="14" height="3" rx="1.5" fill="#C5C3C8"/>
-                                     <rect x="6" y="16" width="20" height="3" rx="1.5" fill="#C5C3C8"/>
-                                     <rect x="6" y="24" width="12" height="3" rx="1.5" fill="#C5C3C8"/>
-                                </g>
-                                <path d="M -4 16 L 16 -10" stroke="#E76F51" stroke-width="4" stroke-linecap="round"/>
-                                <circle cx="16" cy="-10" r="3" fill="#F4A261"/>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="font-bold text-sm text-slate-200 mt-2 block leading-tight">Simplify</span>
-                    <span class="text-[10px] text-slate-400 mt-0.5 block">Break down topics</span>
-                </a>
-
-                <button id="openVideoTutorBtn" class="col-span-1 text-left glass-panel rounded-2xl p-4 flex flex-col items-start gap-1 transform transition-transform active:scale-95 hover:bg-white/5 group">
-                    <div class="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)] relative">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                            <g transform="translate(32, 32)">
-                                <rect x="-20" y="-14" width="40" height="28" rx="4" fill="#EAE8EC"/>
-                                <path d="M-4 -6L6 0L-4 6V-6Z" fill="#F4A261"/>
-                            </g>
-                        </svg>
-                        <div class="absolute -top-1 -right-1 flex h-3 w-3">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </div>
-                    </div>
-                    <span class="font-bold text-sm text-slate-200 mt-2 block leading-tight">Video Tutor</span>
-                    <span class="text-[10px] text-slate-400 mt-0.5 block">Find best lectures</span>
-                </button>
-
-                <a href="teach.html" class="col-span-2 glass-panel border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] rounded-2xl p-5 flex flex-col gap-3 transform transition-transform active:scale-95 hover:bg-white/5 group relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors duration-500 pointer-events-none"></div>
-                    <div class="flex items-start gap-4 relative z-10">
-                        <div class="w-14 h-14 flex items-center justify-center shrink-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-                            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full transition-transform transform group-hover:scale-110 duration-200">
-                                <g transform="translate(32, 32)">
-                                    <g transform="rotate(10) translate(-16, -18)"><rect width="32" height="36" rx="3" fill="#D2D0D6"/></g>
-                                    <g transform="rotate(-5) translate(-18, -20)">
-                                        <rect width="36" height="40" rx="3" fill="#EAE8EC"/>
-                                        <rect x="8" y="12" width="4" height="16" rx="2" fill="#4CBAD6"/>
-                                        <rect x="16" y="8" width="4" height="24" rx="2" fill="#F4A261"/>
-                                        <rect x="24" y="14" width="4" height="12" rx="2" fill="#E76F51"/>
-                                    </g>
-                                </g>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-extrabold uppercase tracking-wider mb-1.5 shadow-[0_0_10px_rgba(249,115,22,0.1)]">🔥 Most Powerful</div>
-                            <h3 class="font-bold text-base text-white leading-tight">Teach MedExcel</h3>
-                            <p class="text-xs text-blue-200 mt-1 leading-snug">Explain a concept out loud. Aurora listens, finds gaps, and challenges you.</p>
-                        </div>
+                    <div class="list-stats">
+                        <span class="list-value">2 days ago</span>
+                        <span class="list-change">+78%</span>
                     </div>
                 </a>
             </div>
         </div>
+
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a]/90 backdrop-blur-lg border-t border-white/5 px-6 pt-3 pb-8 flex justify-between items-center z-50 transform-gpu" style="contain: paint layout;">
-        <a href="homepage1.html" class="flex flex-col items-center gap-1.5 text-blue-500 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center bg-blue-500/10 rounded-full"><i class="fas fa-home text-lg"></i></div>
-            <span class="text-[10px] font-bold">Home</span>
+    <nav class="bottom-nav">
+        <a href="homepage.html" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
+            </svg>
+            <span class="nav-label">Home</span>
         </a>
-        <a href="create.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-plus-circle text-lg"></i></div>
-            <span class="text-[10px] font-medium">Create</span>
+        
+        <a href="study.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-label">Library</span>
         </a>
-        <a href="study.html" id="libraryBtn" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-layer-group text-lg"></i></div>
-            <span class="text-[10px] font-medium">Library</span>
+        
+        <a href="create.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span class="nav-label">Create</span>
         </a>
-        <a href="profile.html" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors">
-            <div class="w-10 h-8 flex items-center justify-center rounded-full"><i class="fas fa-user text-lg"></i></div>
-            <span class="text-[10px] font-medium">Profile</span>
+        
+        <a href="leaderboard.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="nav-label">Leaders</span>
+        </a>
+        
+        <a href="profile.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="nav-label">Profile</span>
         </a>
     </nav>
 
-    <div id="videoTutorModal" class="fixed inset-0 bg-[#0B1120] z-[100] transform translate-y-full slide-up-modal flex flex-col h-full w-full">
-        <header class="pt-6 pb-4 px-6 flex items-center gap-4 border-b border-white/5 bg-[#0f172a] shrink-0">
-            <button id="closeVideoTutorBtn" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700/50 shrink-0">
-                <i class="fas fa-times text-sm"></i>
-            </button>
-            <div>
-                <h1 class="text-lg font-bold text-white tracking-tight leading-tight">Video Tutor</h1>
-                <p class="text-[11px] text-blue-400 font-medium tracking-wide uppercase">Powered by Aurora</p>
-            </div>
-        </header>
-
-        <div class="flex-1 overflow-y-auto scroll-container px-5 pt-6 pb-10 w-full max-w-2xl mx-auto">
-            <div class="space-y-3 mb-6">
-                <label for="topicInput" class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">What do you want to learn?</label>
-                <div class="relative flex items-center">
-                    <div class="absolute left-4 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center pointer-events-none">
-                        <i class="fas fa-search text-blue-400 text-sm"></i>
-                    </div>
-                    <input id="topicInput" type="text" placeholder="e.g. Action Potential" class="w-full bg-slate-800/80 border border-slate-700/50 rounded-2xl pl-14 pr-24 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/70 transition-all shadow-inner text-sm" />
-                    <button id="searchVideoBtn" class="absolute right-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-transform transform active:scale-95 shadow-lg shadow-blue-900/20">
-                        Find
-                    </button>
-                </div>
-            </div>
-
-            <div id="videoLoader" class="hidden flex-col items-center justify-center py-16">
-                <div class="relative w-16 h-16 mb-6">
-                    <div class="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
-                    <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <i class="fas fa-play absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-500 ml-0.5 text-sm"></i>
-                </div>
-                <p class="text-white font-semibold mb-1">Aurora is searching...</p>
-                <p class="text-slate-400 text-xs text-center px-4">Finding the highest-yield medical lecture</p>
-            </div>
-
-            <div id="videoResultCard" class="hidden glass-panel rounded-3xl overflow-hidden shadow-2xl transform transition-all duration-500 translate-y-4 opacity-0">
-                <div id="videoContainer" class="relative w-full aspect-video bg-black border-b border-slate-700/50 transition-all duration-300">
-                    <iframe id="videoPlayer" class="absolute top-0 left-0 w-full h-full" src="" allow="autoplay; fullscreen" frameborder="0" allowfullscreen></iframe>
-                    <button id="closeFullscreenBtn" class="hidden absolute top-6 right-6 z-[100] w-10 h-10 bg-slate-900/80 backdrop-blur-md rounded-full text-white items-center justify-center border border-white/20 shadow-xl transition-transform active:scale-95">
-                        <i class="fas fa-compress text-sm"></i>
-                    </button>
-                </div>
-
-                <div class="p-5 sm:p-7 space-y-6">
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-3">
-                            <i class="fas fa-check-circle"></i> Top Match
-                        </div>
-                        <h3 id="videoTitle" class="text-lg font-bold text-white leading-tight mb-2 line-clamp-2"></h3>
-                        <p class="flex items-center gap-2 text-sm text-slate-400 font-medium">
-                            <i class="fab fa-youtube text-red-500"></i> <span id="videoChannel"></span>
-                        </p>
-                    </div>
-
-                    <div class="bg-[#0f172a]/80 rounded-2xl p-4 sm:p-5 border border-white/5 relative overflow-hidden">
-                        <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                        <div class="flex items-start gap-3 relative z-10">
-                            <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border border-blue-500/30">
-                                <i class="fas fa-sparkles text-blue-400 text-xs"></i>
-                            </div>
-                            <div>
-                                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Why this video?</span>
-                                <p id="videoReason" class="text-sm text-slate-300 leading-relaxed"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-3 pt-2">
-                        <button id="watchBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-white text-slate-900 rounded-xl font-bold transition-transform transform active:scale-95 shadow-lg">
-                            <i class="fas fa-expand text-sm"></i> Watch Fullscreen
-                        </button>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button id="genFlashcardsBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
-                                <i class="fas fa-layer-group text-blue-400"></i> Flashcards
-                            </button>
-                            <button id="genQuizBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95">
-                                <i class="fas fa-list-check text-emerald-400"></i> MCQ Quiz
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-    (function fastInitUserUI() {
+    function getTimeEmoji() {
+        const hour = new Date().getHours();
+        if (hour < 12) return '⛅';
+        if (hour < 18) return '☀️';
+        return '🌙';
+    }
+
+    let currentStreakCount = 0;
+    let hasCheckedInToday = false;
+
+    async function updateStatusBar(color) {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = Capacitor.Plugins;
+                await StatusBar.setBackgroundColor({ color: color });
+            } catch (e) {}
+        }
+    }
+
+    function buildCalendarRow() {
+        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        const dates = [];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; 
+        
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - currentDayIndex + i);
+            dates.push(d.getDate());
+        }
+
+        let html = '';
+        for(let i=0; i<7; i++) {
+            let circleClass = "day-circle";
+            let content = dates[i];
+            
+            if (i < currentDayIndex) {
+                circleClass += " done";
+                content = '<i class="fas fa-check"></i>';
+            } else if (i === currentDayIndex) {
+                circleClass += " active";
+                if (hasCheckedInToday) {
+                    content = '<i class="fas fa-check"></i>';
+                }
+            }
+
+            html += `
+            <div class="day-col">
+                <span class="day-label">${labels[i]}</span>
+                <div class="${circleClass}">${content}</div>
+            </div>
+            `;
+        }
+        return html;
+    }
+
+    function openStreakModal() {
+        document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+        const btn = document.getElementById('closeStreakModal');
+        
+        document.getElementById('modalDayCount').textContent = currentStreakCount;
+        
+        if (hasCheckedInToday) {
+            btn.textContent = "Awesome!";
+        } else {
+            btn.textContent = "Check in today!";
+        }
+        
+        document.getElementById('streakModalBackdrop').classList.add('active');
+        document.getElementById('streakDialog').style.opacity = '1';
+        
+        updateStatusBar('#09090b');
+    }
+
+    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
+    window.initUserUI = async function(user) {
         try {
-            const savedName = localStorage.getItem('userName'); 
+            let savedName = "Guest";
+            if (user && user.displayName) {
+                savedName = user.displayName;
+            } else if (user && user.email) {
+                savedName = user.email.split("@")[0];
+            } 
+
+            // REMOVE SKELETONS AND POPULATE REAL HEADER DATA
             const greetingTitle = document.getElementById('greetingTitle');
-            if (savedName && savedName !== "Guest" && greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName}`;
+            greetingTitle.classList.remove('skeleton');
+            greetingTitle.style.width = 'auto';
+            greetingTitle.style.height = 'auto';
+            
+            if (savedName && savedName !== "Guest" && greetingTitle) {
+                greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+            } else if (greetingTitle) {
+                 greetingTitle.innerHTML = `Hi, Guest ${getTimeEmoji()}`;
+            }
 
-            const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            const userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { streak: 0 };
-            document.getElementById('headerStreakDisplay').textContent = userStats.streak;
+            const storageKey = 'medexcel_streak_' + user.uid;
+            let userStats = JSON.parse(localStorage.getItem(storageKey));
+            
+            if (window.fetchUserStreak) {
+                const serverStats = await window.fetchUserStreak(user.uid);
+                if (serverStats && serverStats.lastDate) {
+                    userStats = serverStats;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                }
+            }
 
-            const continueSection = document.getElementById('continueStudyingSection');
+            if (!userStats) {
+                userStats = { count: 0, lastDate: null };
+            }
+            
+            const todayStr = new Date().toDateString();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toDateString();
+
+            if (userStats.lastDate === todayStr) {
+                hasCheckedInToday = true;
+                currentStreakCount = userStats.count;
+            } else if (userStats.lastDate === yesterdayStr) {
+                hasCheckedInToday = false;
+                currentStreakCount = userStats.count + 1; 
+            } else {
+                hasCheckedInToday = false;
+                currentStreakCount = 1; 
+            }
+
+            const headerFireIcon = document.getElementById('headerFireIcon');
+            const headerDisplay = document.getElementById('headerStreakDisplay');
+            
+            headerDisplay.classList.remove('skeleton');
+            headerDisplay.style.width = 'auto';
+            headerDisplay.style.height = 'auto';
+
+            if (!hasCheckedInToday) {
+                headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
+                headerFireIcon.style.opacity = '0.4'; 
+                
+                const messages = [
+                    "Keep the fire alive<br>check in today!",
+                    "You're doing great!<br>Claim your daily streak."
+                ];
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                const titleEl = document.querySelector('.streak-dialog-title');
+                if(titleEl) titleEl.innerHTML = msg;
+                
+            } else {
+                headerDisplay.textContent = currentStreakCount;
+                headerFireIcon.style.opacity = '1';
+            }
+
+            if(window.lottie) {
+                if (window.streakLottieAnim) window.streakLottieAnim.destroy();
+                document.getElementById('modalStreakLottie').innerHTML = ''; 
+                window.streakLottieAnim = lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'fire.json' });
+            }
+
+            if (!hasCheckedInToday) {
+                openStreakModal();
+            }
+
+            document.getElementById('closeStreakModal').onclick = () => {
+                if (!hasCheckedInToday) {
+                    userStats.count = currentStreakCount;
+                    userStats.lastDate = todayStr;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                    hasCheckedInToday = true;
+                    
+                    if (window.syncUserStreak) {
+                        window.syncUserStreak(user.uid, currentStreakCount, todayStr);
+                    }
+                }
+
+                document.getElementById('streakDialog').style.opacity = '0';
+                
+                setTimeout(() => {
+                    document.getElementById('streakModalBackdrop').classList.remove('active');
+                    updateStatusBar('#09090b'); 
+                    
+                    headerDisplay.textContent = currentStreakCount;
+                    headerFireIcon.style.opacity = '1';
+                    
+                    headerFireIcon.classList.add('fire-pop-anim');
+                    setTimeout(() => {
+                        headerFireIcon.classList.remove('fire-pop-anim');
+                    }, 600); 
+                }, 300); 
+            };
+
+            document.getElementById('streakModalBackdrop').addEventListener('click', (e) => {
+                if (e.target.id === 'streakModalBackdrop') {
+                    document.getElementById('closeStreakModal').click();
+                }
+            });
+
+            // REMOVE SKELETONS AND POPULATE "CONTINUE STUDYING" REAL DATA
+            let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid));
+            if (!quizzes || quizzes.length === 0) {
+                quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            }
+            
+            const cTitle = document.getElementById('continueTitle');
+            const cMeta = document.getElementById('continueMeta');
+            const cProgress = document.getElementById('continueProgressText');
+            const cIconBox = document.getElementById('continueIconBox');
+
+            // Strip skeleton styles
+            cTitle.classList.remove('skeleton');
+            cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
+            
+            cMeta.classList.remove('skeleton');
+            cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
+            
+            cProgress.classList.remove('skeleton');
+            cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
+            
+            cIconBox.classList.remove('skeleton');
+            
             if (quizzes.length > 0) {
-                const lastQuiz = quizzes[quizzes.length - 1];
+                // Populate active deck data
+                const lastQuiz = quizzes[quizzes.length - 1]; 
                 const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
                 let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
                 
-                document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
-                document.getElementById('continueProgressText').textContent = `${progress}%`;
-                document.getElementById('continueProgressBar').style.width = `${progress}%`;
-                document.getElementById('continueCardCount').textContent = totalQs;
-                document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
-                continueSection.classList.remove('hidden');
+                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cProgress.textContent = `+${progress}%`; 
+                cMeta.innerHTML = `<span id="continueCardCount">${totalQs}</span> items • <span id="continueSubject">${lastQuiz.subject || 'GENERAL'}</span>`;
+            } else {
+                // Graceful Empty State (keeps layout stable)
+                cTitle.textContent = "No recent activity";
+                cProgress.textContent = "0%";
+                cProgress.style.background = "rgba(255,255,255,0.05)";
+                cProgress.style.color = "var(--text-muted)";
+                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
             }
+            
         } catch(e) { console.warn("UI Init failed", e); }
-    })();
+    };
     </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
-            authDomain: "medxcel.firebaseapp.com",
-            projectId: "medxcel",
-            storageBucket: "medxcel.firebasestorage.app",
-            messagingSenderId: "649180317389",
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
-            measurementId: "G-6VQYKEBMSX"
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+
+        window.syncUserStreak = async function(uid, count, dateStr) {
+            try {
+                await setDoc(doc(db, "users", uid), { streak: count, lastCheckIn: dateStr }, { merge: true });
+            } catch(e) {}
+        };
+        
+        window.fetchUserStreak = async function(uid) {
+            try {
+                const docSnap = await getDoc(doc(db, "users", uid));
+                if (docSnap.exists() && docSnap.data().lastCheckIn) {
+                    return { count: docSnap.data().streak || 0, lastDate: docSnap.data().lastCheckIn };
+                }
+            } catch(e) {}
+            return null;
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const functions = getFunctions(app, "us-central1");
-        
-        const findBestVideo = httpsCallable(functions, "findBestVideo");
-        const skip = localStorage.getItem("skip") === "true";
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const name = user.displayName || user.email.split('@')[0];
-                localStorage.setItem('userName', name);
-                updateHeaderUI(name);
-            } else if (!skip) {
-                window.location.href = 'index.html#login';
-            } else {
-                updateHeaderUI("Guest");
-            }
-        });
-
-        function updateHeaderUI(name) {
-            const greetingTitle = document.getElementById('greetingTitle');
-            if (greetingTitle && name && name !== "Guest") greetingTitle.innerHTML = `Hi, ${name}`;
-            else if (greetingTitle) greetingTitle.innerHTML = `Welcome back`;
-        }
-
-        // --- VIDEO TUTOR MODAL UI LOGIC ---
-        let currentVideoData = null; // Track video data for generation
-        
-        const openModalBtn = document.getElementById('openVideoTutorBtn');
-        const closeModalBtn = document.getElementById('closeVideoTutorBtn');
-        const modal = document.getElementById('videoTutorModal');
-        const searchBtn = document.getElementById("searchVideoBtn");
-        const topicInput = document.getElementById("topicInput");
-        const loader = document.getElementById("videoLoader");
-        const resultCard = document.getElementById("videoResultCard");
-        const videoPlayer = document.getElementById("videoPlayer");
-        const videoContainer = document.getElementById("videoContainer");
-        const closeFullscreenBtn = document.getElementById("closeFullscreenBtn");
-
-        openModalBtn.addEventListener('click', () => {
-            modal.classList.remove('translate-y-full');
-            setTimeout(() => topicInput.focus(), 400); 
-        });
-
-        closeModalBtn.addEventListener('click', () => {
-            modal.classList.add('translate-y-full');
-            videoPlayer.src = "";
-            if(videoContainer.classList.contains('fixed')) closeFullscreenBtn.click();
-        });
-
-        async function searchVideo() {
-            const topic = topicInput.value.trim();
-            if(!topic) { topicInput.focus(); return; }
-
-            topicInput.blur();
-            loader.classList.remove("hidden"); loader.classList.add("flex");
-            resultCard.classList.add("hidden", "translate-y-4", "opacity-0");
-            resultCard.classList.remove("translate-y-0", "opacity-100");
-            searchBtn.disabled = true; searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            try {
-                const response = await findBestVideo({topic});
-                const data = response.data;
-                currentVideoData = data; // Save for AI generation
-
-                document.getElementById("videoTitle").textContent = data.title;
-                document.getElementById("videoChannel").textContent = data.channel;
-                document.getElementById("videoReason").textContent = data.reason;
-                videoPlayer.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=0&rel=0`;
-
-                // Set up full screen watch handler
-                document.getElementById("watchBtn").onclick = () => {
-                    const enterCSSFullscreen = () => {
-                        videoContainer.classList.remove("relative", "aspect-video");
-                        videoContainer.classList.add("fixed", "inset-0", "z-[99999]", "h-[100dvh]", "w-[100vw]");
-                        closeFullscreenBtn.classList.remove("hidden"); closeFullscreenBtn.classList.add("flex");
-                    };
-                    if (videoContainer.requestFullscreen) {
-                        videoContainer.requestFullscreen().catch(() => enterCSSFullscreen());
-                    } else if (videoContainer.webkitRequestFullscreen) { 
-                        videoContainer.webkitRequestFullscreen();
-                    } else if (videoContainer.msRequestFullscreen) {
-                        videoContainer.msRequestFullscreen();
-                    } else {
-                        enterCSSFullscreen();
-                    }
-                };
-
-                loader.classList.add("hidden"); loader.classList.remove("flex");
-                resultCard.classList.remove("hidden");
-                void resultCard.offsetWidth;
-                resultCard.classList.remove("translate-y-4", "opacity-0");
-                resultCard.classList.add("translate-y-0", "opacity-100");
-
-            } catch(error) {
-                console.error("Video error:", error);
-                alert("Could not fetch a video. Please try another topic.");
-                loader.classList.add("hidden"); loader.classList.remove("flex");
-            } finally {
-                searchBtn.disabled = false; searchBtn.innerHTML = 'Find';
-            }
-        }
-
-        searchBtn.addEventListener("click", searchVideo);
-        topicInput.addEventListener("keypress", (e) => { if(e.key === "Enter") searchVideo(); });
-
-        closeFullscreenBtn.onclick = () => {
-            videoContainer.classList.add("relative", "aspect-video");
-            videoContainer.classList.remove("fixed", "inset-0", "z-[99999]", "h-[100dvh]", "w-[100vw]");
-            closeFullscreenBtn.classList.add("hidden"); closeFullscreenBtn.classList.remove("flex");
+        window.logoutUser = async function() {
+            try { await signOut(auth); } catch (e) {}
+            localStorage.removeItem("nativeUser"); 
+            window.location.replace("index.html");
         };
 
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) videoContainer.classList.add("relative", "aspect-video");
-        });
-
-        // --- AI GENERATION LOGIC FROM VIDEO ---
-        
-        document.getElementById('genFlashcardsBtn').addEventListener('click', () => handleGeneration('Flashcards', document.getElementById('genFlashcardsBtn')));
-        document.getElementById('genQuizBtn').addEventListener('click', () => handleGeneration('Multiple Choice', document.getElementById('genQuizBtn')));
-
-        async function handleGeneration(type, btnElement) {
-            if (!currentVideoData) return;
-
-            const originalHTML = btnElement.innerHTML;
-            btnElement.disabled = true;
-            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
-            const prompt = `
-            You are a senior medical professor. Generate exactly 5 distinction-level MBBS ${type} questions based on the topic: "${currentVideoData.title}".
-            Focus strictly on clinical correlations, pathophysiological mechanisms, and exam-standard concepts. 
-            Keep explanations formal, concise, and structured with clear subheadings where necessary. Avoid repetition.
-            Return ONLY a raw JSON array of objects formatted exactly like this:
-            [
-              {
-                "text": "The question or front of flashcard",
-                "options": ["Option A (or back of flashcard)", "Option B", "Option C", "Option D"],
-                "correct": 0,
-                "explanation": "Structured explanation goes here."
-              }
-            ]
-            `;
-
+        async function ensureAndCheckUser(user) {
             try {
-                const response = await fetch(`https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net/askGemini`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt })
-                });
+                let userRef = doc(db, "users", user.uid);
+                let docSnap = await getDoc(userRef);
 
-                const data = await response.json();
-                
-                if (data.error) throw new Error(data.error);
+                if (!docSnap.exists() && user.email) {
+                    userRef = doc(db, "users", user.email);
+                    docSnap = await getDoc(userRef);
+                }
 
-                const rawJsonMatch = data.text.match(/\[[\s\S]*\]/);
-                if (!rawJsonMatch) throw new Error("Invalid AI response format");
-
-                const parsedCards = JSON.parse(rawJsonMatch[0]);
-
-                const newQuiz = {
-                    id: Date.now(),
-                    title: `${currentVideoData.title} (${type})`,
-                    subject: currentVideoData.channel || "Video Subject",
-                    favorite: false,
-                    stats: { bestScore: 0, attempts: 0, lastScore: 0 },
-                    questions: parsedCards
-                };
-
-                let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-                existingQuizzes.push(newQuiz);
-                localStorage.setItem('medexcel_quizzes', JSON.stringify(existingQuizzes));
-
-                // Redirect to study the newly generated material
-                window.location.href = 'study.html';
-
+                if (!docSnap.exists()) {
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
+                    }, { merge: true });
+                }
             } catch (error) {
-                console.error("Generation error:", error);
-                alert("Failed to generate content. Please try again.");
-                btnElement.disabled = false;
-                btnElement.innerHTML = originalHTML;
+                console.warn("User validation issue", error);
             }
         }
+
+        const savedUserStr = localStorage.getItem("nativeUser");
+        let nativeUserObj = null;
+        try { 
+            if (savedUserStr && savedUserStr !== "undefined" && savedUserStr !== "null") {
+                nativeUserObj = JSON.parse(savedUserStr); 
+            }
+        } catch(e) {}
+
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            let activeUser = null;
+
+            if (firebaseUser && !firebaseUser.isAnonymous) {
+                activeUser = firebaseUser;
+                const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
+                localStorage.setItem("nativeUser", JSON.stringify(userData));
+                nativeUserObj = userData;
+            } 
+            else if (nativeUserObj && nativeUserObj.uid) {
+                activeUser = nativeUserObj;
+                if (!firebaseUser) {
+                    try { await signInAnonymously(auth); } catch (e) {}
+                }
+            }
+
+            if (activeUser) {
+                window.currentUser = activeUser;
+                if (!window.uiInitialized) {
+                    await window.initUserUI(activeUser); 
+                    window.uiInitialized = true; 
+                }
+                ensureAndCheckUser(activeUser);
+            } else {
+                setTimeout(() => {
+                    const check = localStorage.getItem("nativeUser");
+                    if (!auth.currentUser && (!check || check === "null")) {
+                        window.currentUser = null;
+                        localStorage.removeItem("nativeUser");
+                        window.location.replace("index.html");
+                    }
+                }, 2500);
+            }
+        });
     </script>
 </body>
 </html>

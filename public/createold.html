@@ -483,6 +483,7 @@
                 let userRef = doc(db, "users", activeUser.uid);
                 let userDoc = await getDoc(userRef);
 
+                // FIXED: We keep this to read older legacy documents, but we will ONLY write using UID below
                 if (!userDoc.exists() && activeUser.email) {
                     userRef = doc(db, "users", activeUser.email);
                     userDoc = await getDoc(userRef);
@@ -493,7 +494,8 @@
                     userPlan = data.plan || "free";
                     configureUIForPlan(userPlan, data);
                 } else {
-                    const newDocId = activeUser.email || activeUser.uid;
+                    // FIXED HERE: Replaced activeUser.email || activeUser.uid with strictly activeUser.uid
+                    const newDocId = activeUser.uid;
                     await setDoc(doc(db, "users", newDocId), {
                         email: activeUser.email || "",
                         uid: activeUser.uid,
@@ -860,7 +862,8 @@
                 if (!dName && window.currentUser.email) dName = window.currentUser.email.split('@')[0];
                 if (!dName) dName = "User";
 
-                const docId = window.currentUser.email || window.currentUser.uid;
+                // FIXED HERE: Replaced window.currentUser.email || window.currentUser.uid with purely window.currentUser.uid
+                const docId = window.currentUser.uid;
 
                 await setDoc(doc(database, "users", docId), {
                     uid: window.currentUser.uid,

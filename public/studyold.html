@@ -4,21 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aurora - Study Center</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Check for saved theme preference to prevent flickering
-        (function() {
-            const savedTheme = localStorage.getItem('medexcel_theme');
-            if (savedTheme === 'light') {
-                document.documentElement.classList.add('light-mode');
-            }
-        })();
-
-        // Auth Gatekeeper
         (function () {
             const savedUser = localStorage.getItem("nativeUser");
             if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
@@ -29,69 +17,28 @@
 
     <style>
         :root {
-            /* Premium Dark App Color System (Default) */
-            --bg-body: #09090b; 
-            --bg-surface: #121216; 
-            --bg-hover: #1a1a20;
-            --bg-glass: rgba(255, 255, 255, 0.05); 
-            
-            --text-main: #ffffff; 
-            --text-muted: #94a3b8; 
-            --text-light: #cbd5e1;
-            
-            --accent-btn: #a78bfa; 
-            --btn-text: #000000; 
-            
-            --accent-blue: #3b82f6;
-            --accent-green: #34d399; 
-            --accent-orange: #f97316;
-            --accent-red: #f87171;
-            --accent-yellow: #fbbf24;
-            
-            --border-color: rgba(255, 255, 255, 0.06); 
-            
-            --header-bg: rgba(9, 9, 11, 0.95);
-            --nav-bg: #09090b;
-            --nav-icon: #71717a;
-            
             --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
-        }
-
-        .light-mode {
-            /* Premium Light App Color System */
-            --bg-body: #f1f5f9; 
-            --bg-surface: #ffffff; 
-            --bg-hover: #f8fafc;
-            --bg-glass: rgba(0, 0, 0, 0.05); 
-            
-            --text-main: #0f172a; 
-            --text-muted: #64748b; 
-            --text-light: #475569;
-            
-            --accent-btn: #8b5cf6; 
-            --btn-text: #ffffff; 
-            
-            --accent-blue: #2563eb;
-            --accent-green: #10b981; 
-            --accent-orange: #ea580c;
-            --accent-red: #ef4444;
-            --accent-yellow: #d97706;
-            
-            --border-color: rgba(0, 0, 0, 0.06); 
-            
-            --header-bg: rgba(241, 245, 249, 0.95);
-            --nav-bg: #ffffff;
-            --nav-icon: #94a3b8;
+            --bg-main: #050A15;
+            --bg-surface: #0B1120;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --text-light: #cbd5e1;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --blue-main: #2563eb;
+            --blue-hover: #3b82f6;
+            --emerald-main: #10b981;
+            --red-main: #ef4444;
+            --yellow-main: #eab308;
+            --orange-main: #f97316;
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body { 
-            background-color: var(--bg-body); color: var(--text-main);
-            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-main); color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
             height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         ::-webkit-scrollbar { width: 0px; background: transparent; }
@@ -102,206 +49,222 @@
         .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Skeleton Loading Animation */
-        .skeleton {
-            background: linear-gradient(90deg, rgba(128, 128, 128, 0.1) 25%, rgba(128, 128, 128, 0.2) 50%, rgba(128, 128, 128, 0.1) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
-            color: transparent !important;
-            border-color: transparent !important;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        .skeleton * { visibility: hidden; }
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
         .layout-wrapper { flex: 1; display: flex; width: 100%; height: 100%; overflow: hidden; padding-bottom: 80px; position: relative; z-index: 10; }
         @media (min-width: 1024px) { .layout-wrapper { padding-bottom: 0; } }
 
-        .sidebar { width: 100%; background: var(--bg-body); display: flex; flex-direction: column; height: 100%; z-index: 20; transition: transform 0.3s, background-color 0.3s ease; }
+        .sidebar { width: 100%; border-right: 1px solid var(--border-color); background: var(--bg-main); display: flex; flex-direction: column; height: 100%; z-index: 20; transition: transform 0.3s; }
         @media (min-width: 1024px) { .sidebar { width: 420px; } }
         
-        .sidebar-header { padding: 2rem 1.25rem 0.5rem; flex-shrink: 0; background: var(--header-bg); }
+        .sidebar-header { padding: 2rem 1.25rem 0.5rem; flex-shrink: 0; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .header-top h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; }
+        .header-top h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
+        .btn-icon-simple { color: var(--text-light); font-size: 1.5rem; background: transparent; border: none; cursor: pointer; padding: 0.5rem; transition: 0.2s; }
+        .btn-icon-simple:active { transform: scale(0.95); }
+        .btn-icon-simple:hover { color: white; }
         
         .tab-scroll { display: flex; overflow-x: auto; gap: 0.625rem; margin-bottom: 1.5rem; padding-bottom: 0.25rem; }
-        .tab-btn { padding: 0.5rem 1.25rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s; white-space: nowrap; }
-        .tab-btn:hover { background: var(--bg-glass); }
-        .tab-btn.active { background-color: var(--accent-btn); border-color: var(--accent-btn); color: var(--btn-text); }
+        .tab-btn { padding: 0.375rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(51, 65, 85, 1); background: transparent; color: var(--text-light); cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .tab-btn:hover { background: rgba(30, 41, 59, 1); }
+        .tab-btn.active { background-color: rgba(59, 130, 246, 0.1); border-color: var(--blue-hover); color: var(--blue-light); }
 
         .search-box { position: relative; margin-bottom: 0.5rem; }
-        .search-icon { position: absolute; left: 1.25rem; top: 1rem; color: var(--text-muted); transition: color 0.2s; }
-        .search-input { width: 100%; background: var(--bg-surface); font-size: 0.9375rem; border-radius: 1rem; padding: 1rem 1rem 1rem 3rem; outline: none; color: var(--text-main); border: 1px solid var(--border-color); transition: 0.2s; }
-        .search-input:focus { border-color: var(--accent-btn); }
-        .search-box:focus-within .search-icon { color: var(--accent-btn); }
+        .search-icon { position: absolute; left: 1rem; top: 0.875rem; color: var(--text-muted); transition: color 0.2s; }
+        .search-input { width: 100%; background: transparent; font-size: 0.875rem; border-radius: 0.75rem; padding: 0.875rem 1rem 0.875rem 2.75rem; outline: none; color: #e2e8f0; border: 1px solid rgba(71, 85, 105, 1); transition: 0.2s; }
+        .search-input:focus { border-color: var(--blue-main); background: rgba(30, 41, 59, 0.5); }
+        .search-box:focus-within .search-icon { color: var(--blue-light); }
 
-        .list-container { flex: 1; overflow-y: auto; padding: 0.5rem 1rem 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-        .list-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); padding: 0 0.5rem; margin: 0.5rem 0 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .list-container { flex: 1; overflow-y: auto; padding: 0.5rem 0.75rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .list-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); padding: 0 0.75rem; margin: 0.5rem 0 0.75rem; }
 
-        .quiz-item { display: flex; align-items: center; gap: 1rem; padding: 0.875rem; border-radius: 1.25rem; background: var(--bg-surface); cursor: pointer; transition: transform 0.15s, background 0.2s; border: 1px solid transparent; }
-        .quiz-item:hover { background: var(--bg-hover); border-color: var(--border-color); }
-        .quiz-item:active { transform: scale(0.97); }
-        
-        .quiz-icon { width: 3.5rem; height: 3.5rem; border-radius: 1rem; background: var(--bg-body); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; flex-shrink: 0; }
-        .quiz-icon i { font-size: 1.25rem; position: relative; z-index: 10; }
-        .fav-indicator { position: absolute; top: 0; right: 0; width: 0.75rem; height: 0.75rem; background: var(--accent-yellow); border-bottom-left-radius: 0.5rem; z-index: 10; }
-        
+        .quiz-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 1rem; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .quiz-item:hover { background: rgba(30, 41, 59, 0.6); border-color: rgba(51, 65, 85, 1); }
+        .quiz-icon { width: 3.25rem; height: 3.25rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 1); border: 1px solid rgba(51, 65, 85, 1); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; flex-shrink: 0; }
+        .quiz-icon i { color: var(--blue-light); font-size: 1.25rem; transform: rotate(-12deg); position: relative; z-index: 10; }
+        .quiz-icon-bg { position: absolute; inset: 0; background: rgba(59, 130, 246, 0.05); }
+        .fav-indicator { position: absolute; top: 0; right: 0; width: 0.75rem; height: 0.75rem; background: var(--yellow-main); border-bottom-left-radius: 0.5rem; z-index: 10; }
         .quiz-content { flex: 1; min-width: 0; padding: 0.25rem 0; }
-        .quiz-title { color: var(--text-main); font-weight: 700; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.25rem; }
-        .quiz-meta { display: flex; align-items: center; gap: 0.375rem; color: var(--text-muted); font-size: 0.8125rem; font-weight: 500; width: 100%; text-transform: uppercase; letter-spacing: 0.02em; }
+        .quiz-title { color: #f1f5f9; font-weight: 700; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
+        .quiz-meta { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; width: 100%; }
         .quiz-subject { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
-        
-        .btn-delete { padding: 0.625rem; color: var(--text-muted); background: transparent; border: none; border-radius: 50%; cursor: pointer; transition: 0.2s; flex-shrink: 0; opacity: 0.6; }
-        .btn-delete:hover { color: var(--accent-red); background: var(--bg-glass); opacity: 1; }
+        .btn-delete { padding: 0.625rem; color: rgba(71, 85, 105, 1); background: transparent; border: none; border-radius: 50%; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .btn-delete:hover { color: var(--red-light); background: rgba(30, 41, 59, 1); }
         .btn-delete:active { transform: scale(0.9); }
         
         .empty-state { text-align: center; padding: 2.5rem 0; }
-        .empty-icon { width: 4rem; height: 4rem; margin: 0 auto 1rem; border-radius: 1rem; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; }
+        .empty-icon { width: 4rem; height: 4rem; margin: 0 auto 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); display: flex; align-items: center; justify-content: center; transform: rotate(-6deg); }
         .empty-text { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
 
-        .practice-panel { display: none; width: 100%; flex-direction: column; position: absolute; inset: 0; background: var(--bg-body); z-index: 30; height: 100%; transition: transform 0.3s, background-color 0.3s; }
+        .practice-panel { display: none; width: 100%; flex-direction: column; position: absolute; inset: 0; background: linear-gradient(to bottom right, #0B1120, #0f172a); z-index: 30; height: 100%; transition: transform 0.3s; }
         .practice-panel.active { display: flex; }
-        @media (min-width: 1024px) { .practice-panel { display: flex; flex: 1; position: relative; } }
+        @media (min-width: 1024px) { 
+            .practice-panel { display: flex; flex: 1; position: relative; }
+        }
 
-        .practice-header { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; flex-shrink: 0; }
+        .practice-header { height: 72px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; flex-shrink: 0; }
         @media (min-width: 1024px) { .practice-header { height: 88px; padding: 0 2rem; } }
         
         .header-left { display: flex; align-items: center; gap: 1rem; width: 100%; }
         @media (min-width: 1024px) { .header-left { width: auto; } }
-        .btn-back-mobile { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; font-size: 1.25rem; }
+        .btn-back-mobile { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; }
         @media (min-width: 1024px) { .btn-back-mobile { display: none; } }
         
         .stat-badges { display: flex; gap: 0.75rem; }
-        .badge { display: flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700; background: var(--bg-glass); }
-        .badge-xp { color: var(--accent-yellow); }
-        .badge-streak { color: var(--accent-orange); }
+        .badge { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 800; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .badge-xp { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); color: var(--yellow-main); }
+        .badge-streak { background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.2); color: var(--orange-main); }
 
-        .btn-challenge { display: none; align-items: center; gap: 0.5rem; background: var(--bg-surface); color: var(--text-main); font-size: 0.875rem; font-weight: 700; padding: 0.625rem 1.25rem; border-radius: 9999px; border: 1px solid var(--border-color); cursor: pointer; transition: transform 0.15s; }
+        .btn-challenge { display: none; align-items: center; gap: 0.5rem; background: linear-gradient(to right, #6366f1, #2563eb); color: white; font-size: 0.75rem; font-weight: 700; padding: 0.625rem 1.25rem; border-radius: 0.75rem; border: none; box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.3); cursor: pointer; transition: 0.2s; }
         .btn-challenge:active { transform: scale(0.95); }
         @media (min-width: 1024px) { .btn-challenge { display: flex; } }
 
         .practice-area { flex: 1; overflow-y: auto; padding: 1rem; display: flex; align-items: center; justify-content: center; padding-bottom: 2rem; }
         @media (min-width: 1024px) { .practice-area { padding: 2rem; } }
 
-        .idle-state { text-align: center; color: var(--text-muted); display: none; flex-direction: column; align-items: center; }
+        .idle-state { text-align: center; color: rgba(100, 116, 139, 1); display: none; flex-direction: column; align-items: center; }
         @media (min-width: 1024px) { .idle-state { display: flex; } }
-        .idle-icon-wrap { width: 5rem; height: 5rem; border-radius: 1rem; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; font-size: 2rem; color: var(--accent-btn); }
+        .idle-icon-wrap { width: 6rem; height: 6rem; border-radius: 1rem; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 1); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); transform: rotate(3deg); }
         
-        .card-panel { width: 100%; max-width: 42rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; position: relative; overflow: hidden; }
+        .card-panel { width: 100%; max-width: 42rem; background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden; }
         @media (min-width: 1024px) { .card-panel { padding: 2.5rem; } }
+        .panel-glow { position: absolute; top: -6rem; right: -6rem; width: 16rem; height: 16rem; background: rgba(37, 99, 235, 0.1); border-radius: 50%; filter: blur(40px); pointer-events: none; }
         
         .overview-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
-        .subject-tag { background: var(--bg-glass); color: var(--accent-btn); font-size: 0.75rem; font-weight: 800; padding: 0.375rem 0.75rem; border-radius: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 0.375rem; }
+        .subject-tag { background: rgba(59, 130, 246, 0.2); color: var(--blue-light); font-size: 0.625rem; font-weight: 800; padding: 0.375rem 0.75rem; border-radius: 0.25rem; border: 1px solid rgba(59, 130, 246, 0.3); text-transform: uppercase; letter-spacing: 0.1em; display: inline-flex; align-items: center; gap: 0.375rem; }
+        @media (min-width: 1024px) { .subject-tag { font-size: 0.75rem; } }
         .btn-fav { color: var(--text-muted); font-size: 1.25rem; background: transparent; border: none; cursor: pointer; transition: 0.2s; padding: 0.5rem; margin: -0.5rem; }
-        .btn-fav:hover { color: var(--accent-yellow); }
+        .btn-fav:hover { color: var(--yellow-main); }
         .btn-fav:active { transform: scale(0.9); }
-        .btn-fav.is-fav { color: var(--accent-yellow); }
+        .btn-fav.is-fav { color: var(--yellow-main); }
         
-        .overview-title { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.25; letter-spacing: -0.01em; }
+        .overview-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; line-height: 1.25; }
         @media (min-width: 1024px) { .overview-title { font-size: 1.875rem; } }
         .overview-meta { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; font-weight: 500; }
         
         .overview-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 2rem; }
         @media (min-width: 1024px) { .overview-stats { gap: 1rem; } }
-        .stat-card { background: var(--bg-body); padding: 1.25rem; border-radius: 1rem; border: 1px solid var(--border-color); text-align: left; }
-        .stat-card-label { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.05em; }
-        .stat-card-val { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-        .stat-card-sub { font-size: 0.875rem; color: var(--text-muted); }
+        .stat-card { background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 1rem; border: 1px solid var(--border-color); text-align: center; }
+        @media (min-width: 1024px) { .stat-card { text-align: left; } }
+        .stat-card-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.1em; }
+        .stat-card-val { font-size: 1.875rem; font-weight: 700; color: #f1f5f9; }
+        .stat-card-sub { font-size: 0.875rem; color: rgba(100, 116, 139, 1); }
 
-        .btn-primary { width: 100%; background: var(--accent-btn); color: var(--btn-text); font-weight: 700; padding: 1.125rem; border-radius: 100px; border: none; cursor: pointer; transition: transform 0.15s; font-size: 1.0625rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn-primary:active { transform: scale(0.97); }
+        .btn-primary { width: 100%; background: var(--blue-main); color: white; font-weight: 700; padding: 1rem; border-radius: 0.75rem; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-primary:hover { background: var(--blue-hover); }
+        .btn-primary:active { transform: scale(0.98); }
 
         .quiz-wrapper { width: 100%; max-width: 48rem; display: flex; flex-direction: column; height: 100%; padding: 0.5rem 0; }
         @media (min-width: 1024px) { .quiz-wrapper { padding: 1.5rem 0; } }
         
         .progress-header { margin-bottom: 1.5rem; flex-shrink: 0; }
         @media (min-width: 1024px) { .progress-header { margin-bottom: 2rem; } }
-        .progress-text { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
-        .progress-track { height: 0.375rem; width: 100%; background: var(--bg-glass); border-radius: 9999px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent-btn); border-radius: 9999px; transition: width 0.5s ease-out; }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.625rem; font-weight: 700; color: rgba(100, 116, 139, 1); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+        .progress-track { height: 0.375rem; width: 100%; background: rgba(30, 41, 59, 0.5); border-radius: 9999px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .progress-fill { height: 100%; background: var(--blue-hover); border-radius: 9999px; box-shadow: 0 0 10px rgba(59,130,246,0.5); transition: width 0.5s ease-out; }
 
-        .question-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; flex: 1; overflow-y: auto; position: relative; }
+        .question-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; flex: 1; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative; }
         @media (min-width: 1024px) { .question-card { padding: 2rem; } }
         
-        .question-text { font-size: 1.125rem; font-weight: 700; color: var(--text-main); line-height: 1.625; margin-bottom: 2rem; flex-shrink: 0; }
+        .question-text { font-size: 1.125rem; font-weight: 700; color: white; line-height: 1.625; margin-bottom: 2rem; flex-shrink: 0; }
         @media (min-width: 1024px) { .question-text { font-size: 1.25rem; } }
         
         .options-list { display: flex; flex-direction: column; gap: 0.75rem; flex-shrink: 0; }
-        .option-btn { width: 100%; text-align: left; padding: 1rem; border-radius: 1rem; background: var(--bg-body); border: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 1rem; cursor: pointer; transition: transform 0.15s, background 0.2s; color: var(--text-main); }
-        .option-btn:hover:not(:disabled) { background: var(--bg-hover); }
-        .option-btn:active:not(:disabled) { transform: scale(0.98); }
+        .option-btn { width: 100%; text-align: left; padding: 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 0.5); display: flex; align-items: flex-start; gap: 1rem; cursor: pointer; transition: 0.2s; color: #e2e8f0; }
+        .option-btn:hover:not(:disabled) { background: rgba(51, 65, 85, 0.5); border-color: rgba(71, 85, 105, 1); }
+        .option-btn:active:not(:disabled) { transform: scale(0.99); }
         
-        .option-letter { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; color: var(--text-muted); transition: 0.2s; flex-shrink: 0; margin-top: 0.125rem; }
-        .option-btn:hover:not(:disabled) .option-letter { color: var(--text-main); }
-        .option-text { font-size: 0.9375rem; line-height: 1.6; padding-top: 0.25rem; }
-        
-        .option-btn.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
-        .option-btn.correct .option-letter { background: var(--accent-green); border-color: var(--accent-green); color: #000; }
-        .option-btn.wrong { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-        .option-btn.wrong .option-letter { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: var(--accent-red); }
-        .option-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+        .option-letter { width: 2rem; height: 2rem; border-radius: 0.25rem; border: 1px solid rgba(71, 85, 105, 1); background: rgba(15, 23, 42, 0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; color: var(--text-muted); transition: 0.2s; flex-shrink: 0; margin-top: 0.125rem; }
+        .option-btn:hover:not(:disabled) .option-letter { color: white; }
+        .option-text { font-size: 0.875rem; line-height: 1.625; padding-top: 0.25rem; }
+        @media (min-width: 768px) { .option-text { font-size: 1rem; } }
 
-        .explanation-box { display: none; flex-direction: column; gap: 0.75rem; margin-top: 2rem; padding-top: 1.5rem; flex-shrink: 0; }
+        .option-btn.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2); }
+        .option-btn.correct .option-letter { background: var(--emerald-main); border-color: var(--emerald-main); color: #0f172a; }
+        .option-btn.wrong { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+        .option-btn.wrong .option-letter { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: var(--red-light); }
+        .option-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .explanation-box { display: none; flex-direction: column; gap: 0.75rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); flex-shrink: 0; }
         .explanation-box.active { display: flex; }
-        .answer-status { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-        .status-correct { color: var(--accent-green); }
-        .status-wrong { color: var(--accent-red); }
-        .expl-content { background: var(--bg-body); padding: 1rem; border-radius: 1rem; border: 1px solid var(--border-color); }
-        .expl-label { font-size: 0.6875rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.5rem; }
-        .expl-text { color: var(--text-light); font-size: 0.9375rem; line-height: 1.6; }
+        .answer-status { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .status-correct { color: rgba(52, 211, 153, 1); }
+        .status-wrong { color: var(--red-light); }
+        .expl-content { background: rgba(11, 17, 32, 0.5); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .expl-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.375rem; }
+        .expl-text { color: var(--text-light); font-size: 0.875rem; line-height: 1.625; }
 
         .action-footer { margin-top: 1rem; display: flex; justify-content: flex-end; flex-shrink: 0; }
-        .btn-next { display: none; width: 100%; background: var(--accent-btn); color: var(--btn-text); font-weight: 700; padding: 1.125rem 2rem; border-radius: 100px; border: none; cursor: pointer; transition: transform 0.15s; font-size: 1.0625rem; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-next { display: none; width: 100%; background: var(--blue-main); color: white; font-weight: 700; padding: 0.875rem 2rem; border-radius: 0.75rem; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2); align-items: center; justify-content: center; gap: 0.5rem; }
         @media (min-width: 1024px) { .btn-next { width: auto; } }
         .btn-next.active { display: flex; }
-        .btn-next:active { transform: scale(0.96); }
+        .btn-next:active { transform: scale(0.95); }
 
         .completion-card { width: 100%; max-width: 28rem; text-align: center; }
-        .comp-icon-wrap { width: 5rem; height: 5rem; margin: 0 auto 1.5rem; border-radius: 50%; background: var(--bg-body); border: 2px solid var(--accent-btn); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--accent-btn); }
-        .comp-title { font-size: 1.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-        .comp-sub { color: var(--text-muted); font-size: 0.9375rem; margin-bottom: 2rem; font-weight: 500; }
+        .comp-glow { position: absolute; top: -5rem; left: -5rem; width: 12rem; height: 12rem; background: rgba(59, 130, 246, 0.2); border-radius: 50%; filter: blur(40px); pointer-events: none; }
+        .comp-icon-wrap { width: 5rem; height: 5rem; margin: 0 auto 1.5rem; border-radius: 50%; background: linear-gradient(to bottom right, #3b82f6, #4f46e5); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); position: relative; z-index: 10; font-size: 1.875rem; color: white; }
+        .comp-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; position: relative; z-index: 10; }
+        .comp-sub { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; position: relative; z-index: 10; }
         
-        .score-box { background: var(--bg-body); border-radius: 1.25rem; padding: 1.5rem; border: 1px solid var(--border-color); margin-bottom: 2rem; }
-        .score-label { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-        .score-val { font-size: 2.5rem; font-weight: 800; color: var(--text-main); }
-        .score-val span { font-size: 1.25rem; color: var(--text-muted); }
-        .score-acc { font-size: 0.75rem; margin-top: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .acc-high { color: var(--accent-green); }
-        .acc-low { color: var(--accent-yellow); }
+        .score-box { background: rgba(11, 17, 32, 0.6); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border-color); margin-bottom: 2rem; position: relative; z-index: 10; }
+        .score-label { font-size: 0.625rem; color: rgba(100, 116, 139, 1); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+        .score-val { font-size: 2.25rem; font-weight: 800; color: white; }
+        .score-val span { font-size: 1.125rem; color: rgba(100, 116, 139, 1); }
+        .score-acc { font-size: 0.6875rem; margin-top: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .acc-high { color: rgba(52, 211, 153, 1); }
+        .acc-low { color: var(--yellow-main); }
 
-        .comp-actions { display: flex; flex-direction: column; gap: 0.75rem; }
-        .btn-secondary { width: 100%; padding: 1.125rem; border-radius: 100px; background: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 1.0625rem; border: 1px solid var(--border-color); cursor: pointer; transition: transform 0.15s; }
-        .btn-secondary:active { transform: scale(0.97); }
+        .comp-actions { display: flex; flex-direction: column; gap: 0.75rem; position: relative; z-index: 10; }
+        .btn-secondary { width: 100%; padding: 1rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 0.5); color: var(--text-light); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(51, 65, 85, 0.5); cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: rgba(51, 65, 85, 0.5); }
         @media (min-width: 1024px) { .btn-secondary { display: none; } }
 
-        /* Thick Outlined SVG Navigation */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; transition: background-color 0.3s; }
+        /* FLOATING NAVIGATION STYLES */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
         @media (min-width: 1024px) { .bottom-nav { display: none; } }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem; color: var(--nav-icon); transition: color 0.2s, transform 0.15s var(--ease-out); cursor: pointer; flex: 1; text-decoration: none;}
-        .nav-item.active { color: var(--accent-btn); }
-        .nav-item:active { transform: scale(0.9); }
-        .nav-item svg { width: 24px; height: 24px; display: block; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
-        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; text-decoration: none;}
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 1.25rem; transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .nav-item:active i { transform: scale(0.85) translateY(2px); }
+        .nav-label { font-size: 0.625rem; font-weight: 500; }
+
+        .nav-item.create-btn { position: relative; }
+        .create-circle {
+            width: 3.25rem;
+            height: 3.25rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            border: 6px solid #050A15; 
+            margin-top: -30px;
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
+        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.2s; opacity: 0; }
         .modal-overlay.active { display: flex; }
         .modal-overlay.show { opacity: 1; }
-        .modal-content { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; width: 100%; max-width: 20rem; margin: 0 1rem; text-align: center; transform: scale(0.95); transition: transform 0.2s; }
+        .modal-content { background: #1e293b; border: 1px solid rgba(51, 65, 85, 1); border-radius: 1.5rem; padding: 1.5rem; width: 100%; max-width: 20rem; margin: 0 1rem; text-align: center; transform: scale(0.95); transition: transform 0.2s; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        @media (min-width: 1024px) { .modal-content { padding: 2rem; } }
         .modal-overlay.show .modal-content { transform: scale(1); }
         
-        .modal-icon-wrap { width: 4rem; height: 4rem; background: rgba(248, 113, 113, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: var(--accent-red); }
-        .modal-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
-        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
+        .modal-icon-wrap { width: 4rem; height: 4rem; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 1.5rem; color: var(--red-main); }
+        .modal-title { font-size: 1.25rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+        
+        .modal-input { width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 1); border-radius: 0.75rem; padding: 0.875rem 1rem; color: white; outline: none; margin-bottom: 1.5rem; font-size: 0.875rem; transition: 0.2s; }
+        .modal-input:focus { border-color: var(--blue-main); }
         
         .modal-actions { display: flex; gap: 0.75rem; }
-        .btn-cancel { flex: 1; padding: 0.875rem; border-radius: 100px; background: var(--bg-body); color: var(--text-main); font-weight: 700; border: 1px solid var(--border-color); cursor: pointer; transition: 0.15s; }
+        .btn-cancel { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: rgba(30, 41, 59, 1); color: var(--text-light); font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
         .btn-cancel:active { transform: scale(0.95); }
-        .btn-danger-action { flex: 1; padding: 0.875rem; border-radius: 100px; background: var(--accent-red); color: white; font-weight: 700; border: none; cursor: pointer; transition: 0.15s; }
+        .btn-danger-action { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: rgba(220, 38, 38, 1); color: white; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(153, 27, 27, 0.3); }
+        .btn-danger-action:hover { background: var(--red-main); }
         .btn-danger-action:active { transform: scale(0.95); }
+        .btn-primary-action { flex: 1; padding: 0.875rem; border-radius: 0.75rem; background: var(--blue-main); color: white; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
+        .btn-primary-action:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -312,12 +275,14 @@
             <div class="sidebar-header">
                 <div class="header-top">
                     <h1>Library</h1>
+                    <button onclick="openModal('folderModal')" class="btn-icon-simple">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
                 
                 <div class="tab-scroll hide-scroll">
-                    <button class="tab-btn active" data-filter="all">All</button>
-                    <button class="tab-btn" data-filter="mcqs">MCQs</button>
-                    <button class="tab-btn" data-filter="flashcards">Flashcards</button>
+                    <button class="tab-btn active" data-filter="all">Flashcard sets</button>
+                    <button class="tab-btn" data-filter="folders">Folders</button>
                     <button class="tab-btn" data-filter="favorites">Favorites</button>
                 </div>
                 
@@ -329,28 +294,7 @@
 
             <div class="list-container hide-scroll">
                 <h3 class="list-title">Recent Materials</h3>
-                <div id="quizContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div class="quiz-item" style="pointer-events: none;">
-                        <div class="quiz-icon skeleton" style="border: none;"></div>
-                        <div class="quiz-content">
-                            <div class="skeleton" style="width: 140px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
-                            <div class="skeleton" style="width: 90px; height: 12px; border-radius: 4px;"></div>
-                        </div>
-                    </div>
-                    <div class="quiz-item" style="pointer-events: none;">
-                        <div class="quiz-icon skeleton" style="border: none;"></div>
-                        <div class="quiz-content">
-                            <div class="skeleton" style="width: 110px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
-                            <div class="skeleton" style="width: 80px; height: 12px; border-radius: 4px;"></div>
-                        </div>
-                    </div>
-                    <div class="quiz-item" style="pointer-events: none;">
-                        <div class="quiz-icon skeleton" style="border: none;"></div>
-                        <div class="quiz-content">
-                            <div class="skeleton" style="width: 160px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
-                            <div class="skeleton" style="width: 100px; height: 12px; border-radius: 4px;"></div>
-                        </div>
-                    </div>
+                <div id="quizContainer" style="display: flex; flex-direction: column; gap: 0.25rem;">
                 </div>
             </div>
         </aside>
@@ -364,27 +308,25 @@
                     
                     <div class="stat-badges">
                         <div class="badge badge-xp">
-                            <i class="fas fa-bolt"></i> 
-                            <span id="xpDisplay" class="skeleton" style="width: 32px; height: 14px; border-radius: 4px; display: inline-block;"></span>
+                            <i class="fas fa-bolt"></i> <span id="xpDisplay">0 XP</span>
                         </div>
                         <div class="badge badge-streak">
-                            <i class="fas fa-fire"></i> 
-                            <span id="streakDisplay" class="skeleton" style="width: 40px; height: 14px; border-radius: 4px; display: inline-block;"></span>
+                            <i class="fas fa-fire"></i> <span id="streakDisplay">0 Day</span>
                         </div>
                     </div>
                 </div>
                 <button id="dailyChallengeBtn" class="btn-challenge">
-                    <i class="fas fa-star" style="color: var(--accent-yellow);"></i> Daily Challenge
+                    <i class="fas fa-star" style="color: rgba(253, 224, 71, 1);"></i> Daily Challenge
                 </button>
             </header>
 
             <div id="practiceArea" class="practice-area hide-scroll">
                 <div class="idle-state">
                     <div class="idle-icon-wrap">
-                        <i class="fas fa-layer-group"></i>
+                        <i class="fas fa-layer-group" style="font-size: 2.25rem; color: rgba(59, 130, 246, 0.5);"></i>
                     </div>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Ready to Study?</h3>
-                    <p style="font-size: 0.9375rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">Ready to Study?</h3>
+                    <p style="font-size: 0.875rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
                 </div>
             </div>
         </main>
@@ -392,53 +334,48 @@
 
     <nav class="bottom-nav">
         <a href="homepage.html" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
-            </svg>
+            <i class="fas fa-home"></i>
             <span class="nav-label">Home</span>
         </a>
-        
-        <a href="study.html" class="nav-item active">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
+        <a href="study.html" id="libraryBtn" class="nav-item active">
+            <i class="fas fa-folder"></i>
             <span class="nav-label">Library</span>
         </a>
-        
-        <a href="create.html" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+        <a href="create.html" class="nav-item create-btn">
+            <div class="create-circle">
+                <i class="fas fa-plus"></i>
+            </div>
             <span class="nav-label">Create</span>
         </a>
-        
         <a href="leaderboard.html" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
+            <i class="fas fa-trophy"></i>
             <span class="nav-label">Leaders</span>
         </a>
-        
         <a href="profile.html" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-            </svg>
+            <i class="fas fa-user"></i>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
 
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-icon-wrap"><i class="fas fa-trash-alt"></i></div>
+            <div class="modal-icon-wrap"><i class="fas fa-exclamation-triangle"></i></div>
             <h3 class="modal-title">Delete Deck?</h3>
             <p class="modal-text">This material will be permanently removed from your library.</p>
             <div class="modal-actions">
                 <button onclick="closeModal('deleteModal')" class="btn-cancel">Cancel</button>
                 <button id="confirmDeleteBtn" onclick="executeDelete()" class="btn-danger-action">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="folderModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title" style="margin-bottom: 1rem; text-align: left;">New Folder</h3>
+            <input type="text" id="newFolderName" placeholder="e.g. Pathology" class="modal-input">
+            <div class="modal-actions">
+                <button onclick="closeModal('folderModal')" class="btn-cancel">Cancel</button>
+                <button id="createFolderBtn" onclick="closeModal('folderModal')" class="btn-primary-action">Create</button>
             </div>
         </div>
     </div>
@@ -469,11 +406,11 @@
                     loadedQuizzes.push(doc.data());
                 });
                 
-                // Sort to keep newest at the end
+                // Sort to keep newest at the end (like original local storage structure)
                 loadedQuizzes.sort((a,b) => a.id - b.id);
                 window.quizzes = loadedQuizzes;
                 
-                // Back it up to user's local storage
+                // Back it up to user's local storage just in case they go offline
                 localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(window.quizzes));
                 
                 renderLibrary();
@@ -503,8 +440,9 @@
 
             if (activeUser) {
                 window.currentUser = activeUser;
-                window.db = db;
+                window.db = db; // Export DB so non-module scripts can update documents
                 
+                // Load Cloud Quizzes immediately!
                 await window.loadUserQuizzes(activeUser.uid);
                 updateStatsUI();
 
@@ -526,6 +464,7 @@
             xp: 0, level: 1, streak: 0, lastStudyDate: null, weaknesses: {}
         };
         
+        // Remove global Quiz initialization! Let Firebase pull it specifically for this user.
         window.quizzes = []; 
 
         let currentQuiz = null;
@@ -548,30 +487,20 @@
             }
             document.getElementById('practiceArea').innerHTML = `
                 <div class="idle-state fade-in">
-                    <div class="idle-icon-wrap"><i class="fas fa-layer-group"></i></div>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Ready to Study?</h3>
-                    <p style="font-size: 0.9375rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
+                    <div class="idle-icon-wrap"><i class="fas fa-layer-group" style="font-size: 2.25rem; color: rgba(59, 130, 246, 0.5);"></i></div>
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">Ready to Study?</h3>
+                    <p style="font-size: 0.875rem; font-weight: 500;">Select a deck from your library to begin a session.</p>
                 </div>
             `;
             currentQuiz = null;
         }
 
         function updateStatsUI() {
-            const xpDisplay = document.getElementById('xpDisplay');
-            const streakDisplay = document.getElementById('streakDisplay');
-            
-            xpDisplay.classList.remove('skeleton');
-            xpDisplay.style.width = 'auto';
-            xpDisplay.style.height = 'auto';
-            
-            streakDisplay.classList.remove('skeleton');
-            streakDisplay.style.width = 'auto';
-            streakDisplay.style.height = 'auto';
-            
-            xpDisplay.innerText = `${userStats.xp} XP`;
-            streakDisplay.innerText = `${userStats.streak} Day`;
+            document.getElementById('xpDisplay').innerText = `${userStats.xp} XP`;
+            document.getElementById('streakDisplay').innerText = `${userStats.streak} Day`;
         }
 
+        // --- BULLETPROOF XP SYNC LOGIC WITH SETDOC ---
         async function addXP(amount) {
             if (amount <= 0) return;
             
@@ -581,7 +510,7 @@
 
             if (window.currentUser) {
                 try {
-                    const database = window.db; 
+                    const database = window.db; // in study.html window.db is set
                     const { setDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
                     
                     let dName = window.currentUser.displayName;
@@ -591,11 +520,12 @@
                     const docId = window.currentUser.email || window.currentUser.uid;
 
                     await setDoc(doc(database, "users", docId), {
-                        uid: window.currentUser.uid, 
+                        uid: window.currentUser.uid, // Explicitly save uid for leaderboard highlighting
                         xp: userStats.xp,
                         displayName: dName 
                     }, { merge: true });
                     
+                    console.log("XP Successfully synced to cloud!");
                 } catch (e) {
                     console.error("Failed to sync XP to cloud:", e);
                 }
@@ -604,23 +534,16 @@
 
         function renderLibrary(filter = 'all', searchQuery = '') {
             const container = document.getElementById('quizContainer');
-            container.innerHTML = ''; 
+            container.innerHTML = '';
             
+            // Filter user's specific cloud-synced quizzes
             let filtered = window.quizzes.filter(q => q.title && q.title.toLowerCase().includes(searchQuery.toLowerCase()));
-            
-            // Apply Filters
-            if (filter === 'favorites') {
-                filtered = filtered.filter(q => q.favorite);
-            } else if (filter === 'mcqs') {
-                filtered = filtered.filter(q => q.type && q.type.includes("Multiple"));
-            } else if (filter === 'flashcards') {
-                filtered = filtered.filter(q => !q.type || !q.type.includes("Multiple"));
-            }
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
             
             if (filtered.length === 0) {
                 container.innerHTML = `
                 <div class="empty-state fade-in">
-                    <div class="empty-icon"><i class="fas fa-box-open" style="font-size: 1.5rem; color: var(--text-muted);"></i></div>
+                    <div class="empty-icon"><i class="fas fa-box-open" style="font-size: 1.5rem; color: rgba(100, 116, 139, 1);"></i></div>
                     <p class="empty-text">No sets found.</p>
                 </div>`;
                 return;
@@ -629,16 +552,11 @@
             filtered.slice().reverse().forEach(quiz => {
                 const qLength = quiz.questions ? quiz.questions.length : 0;
                 
-                // Set distinct icons and colors based on MCQ vs Flashcard
-                const isMCQ = quiz.type && quiz.type.includes("Multiple");
-                const iconClass = isMCQ ? "fas fa-list-ol" : "fas fa-clone";
-                const iconColor = isMCQ ? "var(--accent-blue)" : "var(--accent-btn)";
-                const itemLabel = isMCQ ? "Questions" : "Cards";
-                
                 container.innerHTML += `
                     <div class="quiz-item fade-in" onclick="loadQuizOverview(${quiz.id})">
                         <div class="quiz-icon">
-                            <i class="${iconClass}" style="color: ${iconColor};"></i>
+                            <i class="fas fa-mobile-alt"></i>
+                            <div class="quiz-icon-bg"></div>
                             ${quiz.favorite ? '<div class="fav-indicator"></div>' : ''}
                         </div>
                         <div class="quiz-content">
@@ -646,7 +564,7 @@
                             <div class="quiz-meta">
                                 <span class="quiz-subject">${quiz.subject}</span>
                                 <span>•</span>
-                                <span>${qLength} ${itemLabel}</span>
+                                <span>${qLength} terms</span>
                             </div>
                         </div>
                         <button onclick="promptDelete(event, ${quiz.id})" class="btn-delete">
@@ -666,9 +584,11 @@
         async function executeDelete() {
             if (quizToDelete !== null && window.currentUser) {
                 try {
+                    // Update Cloud
                     const { deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
                     await deleteDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", quizToDelete.toString()));
                     
+                    // Update Local
                     window.quizzes = window.quizzes.filter(q => q.id !== quizToDelete);
                     localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
                     
@@ -690,11 +610,10 @@
             const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
             const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
             const attempts = currentQuiz.stats ? currentQuiz.stats.attempts : 0;
-            const isMCQ = currentQuiz.type && currentQuiz.type.includes("Multiple");
-            const itemLabel = isMCQ ? "Questions" : "Cards";
 
             area.innerHTML = `
                 <div class="card-panel fade-in">
+                    <div class="panel-glow"></div>
                     
                     <div class="overview-top">
                         <span class="subject-tag"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
@@ -704,7 +623,7 @@
                     </div>
 
                     <h2 class="overview-title">${currentQuiz.title}</h2>
-                    <p class="overview-meta"><i class="fas fa-layer-group" style="margin-right: 0.375rem; color: var(--text-muted);"></i>${qLength} ${itemLabel}</p>
+                    <p class="overview-meta"><i class="fas fa-layer-group" style="margin-right: 0.5rem; color: rgba(100, 116, 139, 1);"></i>${qLength} Study Items</p>
                     
                     <div class="overview-stats">
                         <div class="stat-card">
@@ -729,10 +648,12 @@
                 currentQuiz.favorite = !currentQuiz.favorite;
                 
                 try {
+                    // Update Cloud
                     const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
                     await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), {
                         favorite: currentQuiz.favorite
                     });
+                    // Update Local
                     localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
                 } catch(e) { console.error("Cloud favorite sync failed", e); }
                 
@@ -847,10 +768,12 @@
             
             if (window.currentUser) {
                 try {
+                    // Update Cloud
                     const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
                     await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), {
                         stats: currentQuiz.stats
                     });
+                    // Update Local
                     localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
                 } catch(e) { console.error("Cloud stats sync failed", e); }
             }
@@ -865,6 +788,7 @@
             
             area.innerHTML = `
                 <div class="card-panel completion-card fade-in">
+                    <div class="comp-glow"></div>
                     
                     <div class="comp-icon-wrap"><i class="fas ${iconType}"></i></div>
                     
@@ -878,7 +802,7 @@
                     </div>
 
                     <div class="comp-actions">
-                        <button onclick="startPractice(false)" class="btn-primary">
+                        <button onclick="startPractice(false)" class="btn-primary" style="justify-content: center;">
                             Retry Deck
                         </button>
                         <button onclick="closePracticeMobile()" class="btn-secondary">

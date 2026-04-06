@@ -3,11 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050814">
+    <meta name="theme-color" content="#09090b">
     <title>MedExcel Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
     <script>
+        // Check for saved theme preference to prevent flickering
+        (function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+
         // TOP SCRIPT: Allows Native Google Users to render the page instantly
         (function () {
             const savedUser = localStorage.getItem("nativeUser");
@@ -18,350 +29,475 @@
     </script>
     <style>
         :root {
-            --bg-body: #050814; 
-            --bg-surface: #070b14; 
-            --bg-glass: rgba(0, 0, 0, 0.2); 
-            --bg-glass-hover: rgba(255, 255, 255, 0.04);
-            --bg-modal: #0B1120;
+            /* Premium Dark App Color System (Default) */
+            --bg-body: #09090b; 
+            --bg-surface: #121216; 
+            --bg-hover: #1a1a20;
+            --bg-glass: rgba(255, 255, 255, 0.05); 
             
             --text-main: #ffffff; 
             --text-muted: #94a3b8; 
-            --text-light: #cbd5e1;
             
-            --accent-blue: #3b82f6; 
-            --accent-blue-dark: #2563eb; 
+            --accent-btn: #a78bfa; /* Lavender button color */
+            --btn-text: #000000; /* Dark text for light button */
+            
+            --accent-green: #34d399; 
             --accent-orange: #f97316;
-            --accent-orange-dark: #c2410c;
             
-            --border-glass: rgba(255, 255, 255, 0.04); 
+            --border-glass: rgba(255, 255, 255, 0.06); 
             
+            --header-bg: rgba(9, 9, 11, 0.95);
+            --nav-icon: #71717a;
+            --day-circle: #27272a;
+            
+            --radius-btn: 100px;
             --radius-md: 16px;
             --radius-lg: 20px;
-            --radius-xl: 24px;
+            --radius-card: 24px;
             
             --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .light-mode {
+            /* Premium Light App Color System */
+            --bg-body: #f1f5f9; 
+            --bg-surface: #ffffff; 
+            --bg-hover: #f8fafc;
+            --bg-glass: rgba(0, 0, 0, 0.05); 
+            
+            --text-main: #0f172a; 
+            --text-muted: #64748b; 
+            
+            --accent-btn: #8b5cf6; /* Darker purple for contrast */
+            --btn-text: #ffffff; /* Light text for dark button */
+            
+            --accent-green: #10b981; 
+            --accent-orange: #ea580c;
+            
+            --border-glass: rgba(0, 0, 0, 0.06); 
+            
+            --header-bg: rgba(241, 245, 249, 0.95);
+            --nav-icon: #94a3b8;
+            --day-circle: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        
         body { 
             background-color: var(--bg-body); color: var(--text-main);
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
             overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+        
         a { text-decoration: none; color: inherit; }
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
 
-        .fade-in { opacity: 0; animation: fadeIn 0.4s var(--ease-out) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card-primary {
-            background: linear-gradient(135deg, #2563eb, #4338ca);
-            border-radius: var(--radius-lg);
-            border: 1px solid rgba(96, 165, 250, 0.4);
-            box-shadow: 0 5px 0 #1e3a8a, 0 10px 20px -5px rgba(37, 99, 235, 0.5);
-            transform: translateY(0);
-            transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(128, 128, 128, 0.1) 25%, rgba(128, 128, 128, 0.2) 50%, rgba(128, 128, 128, 0.1) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            color: transparent !important;
+            border-color: transparent !important;
+            pointer-events: none;
+            overflow: hidden;
         }
-        .card-primary:active {
-            transform: translateY(5px);
-            box-shadow: 0 0px 0 #1e3a8a, 0 4px 8px -2px rgba(37, 99, 235, 0.5);
-        }
-        .btn-primary {
-            background: var(--accent-orange);
-            color: #ffffff;
-            border-radius: 9999px;
-            box-shadow: 0 5px 0 var(--accent-orange-dark), 0 8px 16px rgba(249, 115, 22, 0.3);
-            transition: transform 0.1s var(--ease-out), box-shadow 0.1s var(--ease-out);
-        }
-        .btn-primary:active {
-            transform: translateY(5px);
-            box-shadow: 0 0px 0 var(--accent-orange-dark), 0 4px 8px rgba(249, 115, 22, 0.3);
+        .skeleton * { visibility: hidden; }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
-        .card-soft {
-            background: #0a0f1d; 
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-glass);
-            box-shadow: 0 3px 0 rgba(255, 255, 255, 0.02), 0 4px 12px rgba(0, 0, 0, 0.4);
-            transform: translateY(0);
-            transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), background 0.2s;
-        }
-        .card-soft:hover { background: #0f1629; }
-        .card-soft:active {
-            transform: translateY(3px);
-            box-shadow: 0 0 0 transparent, 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .btn-secondary {
-            background: var(--accent-blue-dark);
-            color: white;
-            border-radius: 12px;
-            box-shadow: 0 3px 0 #1e3a8a;
-            transition: transform 0.1s var(--ease-out), box-shadow 0.1s var(--ease-out);
-        }
-        .btn-secondary:active {
-            transform: translateY(3px);
-            box-shadow: 0 0 0 transparent;
-        }
-
-        .card-flat {
-            background: rgba(255, 255, 255, 0.02); 
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-glass);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); 
-            transition: transform 0.15s var(--ease-out), background 0.2s;
-        }
-        .card-flat:hover { background: var(--bg-glass-hover); }
-        .card-flat:active { transform: scale(0.97); }
-        .btn-flat {
-            background: transparent;
-            color: var(--text-muted);
-            transition: transform 0.1s, color 0.2s;
-        }
-        .btn-flat:active { transform: scale(0.95); }
-        .btn-flat:hover { color: var(--text-main); }
-
-        .pro-banner {
-            display: flex; align-items: center; gap: 1rem; 
-            padding: 0.75rem 1.25rem; 
-            border-radius: var(--radius-md);
-            background: linear-gradient(135deg, rgba(234, 179, 8, 0.08), rgba(202, 138, 4, 0.02));
-            border: 1px solid rgba(234, 179, 8, 0.15);
-            box-shadow: 0 2px 0 rgba(234, 179, 8, 0.1);
-            transition: opacity 0.3s, transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
-            cursor: pointer;
-        }
-        .pro-banner:hover { background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(202, 138, 4, 0.04)); }
-        .pro-banner:active { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
-
+        /* Header */
         .header-bar { 
-            padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center; justify-content: space-between; 
-            z-index: 10; position: sticky; top: 0; background: rgba(5, 8, 20, 0.85); backdrop-filter: blur(16px); 
+            padding: 1.5rem 1.25rem 1rem; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 10; position: sticky; top: 0; 
+            background: var(--header-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            transition: background-color 0.3s ease;
         }
-        .greeting-title { font-size: 1.125rem; font-weight: 600; flex: 1; white-space: nowrap; }
+        .greeting-title { 
+            font-size: 1.15rem; 
+            font-weight: 700; flex: 1; 
+            white-space: nowrap; letter-spacing: -0.01em; 
+            color: var(--text-main); margin: 0;
+            display: flex; align-items: center;
+        }
         
         .streak-badge { 
-            display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 9999px; 
-            background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.15); 
-            color: var(--accent-orange); font-size: 0.875rem; font-weight: 800; 
+            display: flex; align-items: center; justify-content: center; gap: 0.375rem; 
+            padding: 0.4rem 0.875rem; border-radius: 9999px; 
+            background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.15); 
+            color: var(--accent-orange); font-size: 0.9375rem; font-weight: 700; cursor: pointer;
+            transition: transform 0.15s var(--ease-out);
+            min-height: 36px; min-width: 65px;
+        }
+        .streak-badge:active { transform: scale(0.95); }
+
+        /* Main Content */
+        .main-content { flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; gap: 1.75rem; }
+        
+        .section-wrapper { display: flex; flex-direction: column; gap: 1rem; }
+        .section-title { 
+            font-size: 0.75rem; font-weight: 800; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.08em; 
         }
 
-        .main-content { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.5rem 10rem; display: flex; flex-direction: column; gap: 2rem; }
-        .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.875rem; text-transform: uppercase; letter-spacing: 0.08em; padding-left: 0.25rem; }
-
-        .crown-lottie-large { width: 3rem; height: 3rem; flex-shrink: 0; pointer-events: none; opacity: 0.9; }
-        .banner-title { color: #fde047; font-weight: 700; font-size: 0.9375rem; margin-bottom: 0.125rem; }
-        .banner-sub { color: rgba(253, 224, 71, 0.7); font-size: 0.75rem; font-weight: 500; }
-        .btn-dismiss-banner { width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: auto; z-index: 2; }
-
-        .continue-card { padding: 1.25rem; position: relative; overflow: hidden; display: block; }
-        .progress-track { position: absolute; bottom: 0; left: 0; height: 0.25rem; background: rgba(255,255,255,0.05); width: 100%; }
-        .progress-bar { height: 100%; background: var(--accent-blue); transition: width 0.5s ease-out; }
-        .card-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem; }
-        .icon-box { width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-        .card-details { flex: 1; min-width: 0; }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem; gap: 0.75rem; }
-        .card-title { font-weight: bold; font-size: 0.875rem; line-height: 1.25; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .progress-text { font-size: 0.625rem; font-weight: 800; color: #60a5fa; background: rgba(59, 130, 246, 0.1); padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
-        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
-
-        .quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem; }
-        
-        .action-card { padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; text-align: left; }
-        .action-title { font-weight: 700; font-size: 0.875rem; color: #f1f5f9; margin-top: 0.5rem; }
-        .action-sub { font-size: 0.625rem; color: var(--text-muted); margin-top: 0.125rem; display: block; }
-
-        .ai-card { grid-column: span 2; padding: 1.5rem; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-        .ai-content { position: relative; z-index: 10; }
-        .ai-title { font-size: 1.125rem; font-weight: 800; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; color: white; }
-        .ai-sub { color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 500; }
-        .ai-arrow { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); position: relative; z-index: 10; }
-
-        /* UPDATED NAVIGATION STYLES */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 8, 20, 0.98); backdrop-filter: blur(16px); border-top: 1px solid var(--border-glass); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; }
-        .nav-item.active { color: white; }
-        .nav-item i { font-size: 1.25rem; transition: transform 0.15s var(--ease-out); }
-        .nav-item:active i { transform: scale(0.85) translateY(2px); }
-        .nav-label { font-size: 0.625rem; font-weight: 500; }
-        
-        /* Floating Create Button Styles */
-        .nav-item.create-btn { position: relative; }
-        .create-circle { 
-            width: 3.25rem; 
-            height: 3.25rem; 
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark)); 
-            border-radius: 50%; 
+        /* Continue Studying Card */
+        .continue-card { 
+            padding: 1.25rem; 
             display: flex; 
             align-items: center; 
-            justify-content: center; 
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); 
-            border: 6px solid var(--bg-body); /* Creates a neat cutout from the nav bar */
-            margin-top: -30px; /* Floats it above the nav bar */
-            transition: transform 0.1s var(--ease-out); 
+            justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
         }
-        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
-        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
+        .continue-card:hover { background: var(--bg-hover); }
+        .continue-card:active { transform: scale(0.97); }
+        .card-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+        .icon-box { 
+            width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+            background: var(--bg-glass); border-radius: 50%;
+            color: #60a5fa; font-size: 1.25rem;
+        }
+        .card-details { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .card-title { font-weight: 700; font-size: 0.9375rem; color: var(--text-main); margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .progress-badge { 
+            background: rgba(59, 130, 246, 0.15); 
+            color: #3b82f6; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            padding: 0.375rem 0.5rem; 
+            border-radius: 6px; 
+            flex-shrink: 0;
+            margin-left: 0.75rem;
+            display: flex; align-items: center; justify-content: center;
+        }
 
+        /* Primary Add Funds Style Button */
+        .add-funds-btn {
+            display: block; width: 100%;
+            background: var(--accent-btn);
+            color: var(--btn-text); 
+            text-align: center;
+            padding: 1.125rem;
+            border-radius: var(--radius-btn);
+            font-weight: 700;
+            font-size: 1.0625rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background-color 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .add-funds-btn:active { transform: scale(0.97); }
+
+        /* Crypto Style Cards Grid */
+        .crypto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .crypto-card { 
+            padding: 1.25rem; 
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-card);
+            text-decoration: none;
+            min-height: 140px;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .crypto-card:hover { background: var(--bg-hover); }
+        .crypto-card:active { transform: scale(0.96); }
+        
+        .crypto-icon-wrapper { margin-bottom: 1rem; }
+        .crypto-coin-icon { 
+            width: 36px; height: 36px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1rem; color: white;
+        }
+        .coin-btc { background: #f7931a; } 
+        .coin-eth { background: #627eea; } 
+
+        .crypto-info { display: flex; flex-direction: column; gap: 0.25rem; }
+        .crypto-ticker { font-size: 1.125rem; font-weight: 700; color: var(--text-main); }
+        .crypto-name { font-size: 0.9375rem; color: var(--text-muted); font-weight: 400; }
+        .crypto-change { font-size: 0.875rem; font-weight: 500; color: var(--accent-green); margin-top: 0.125rem; }
+
+        /* Promo Banner Styles */
+        .promo-banner {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .promo-banner:active { transform: scale(0.97); }
+        .promo-icon { color: var(--accent-btn); font-size: 1.5rem; }
+        .promo-text { flex: 1; }
+        .promo-text h4 { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .promo-text p { color: var(--text-muted); font-size: 0.8125rem; line-height: 1.4; }
+
+        /* List Rows Styles */
+        .list-row {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.25rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .list-row:hover { background: var(--bg-hover); }
+        .list-row:active { transform: scale(0.97); }
+        .list-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem; flex-shrink: 0; margin-right: 1rem;
+        }
+        .list-info { flex: 1; display: flex; flex-direction: column; gap: 0.125rem; white-space: nowrap; overflow: hidden; }
+        .list-title { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; }
+        .list-sub { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
+        .list-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; flex-shrink: 0; margin-left: 0.5rem; }
+        .list-value { color: var(--text-main); font-size: 0.875rem; font-weight: 500; }
+        .list-change { color: var(--accent-green); font-size: 0.75rem; font-weight: 600; }
+        .list-change.neutral { color: var(--text-muted); }
+
+        /* Navigation */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: var(--bg-body); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+            transition: background-color 0.3s ease;
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
+            color: var(--nav-icon); transition: color 0.2s, transform 0.15s var(--ease-out); cursor: pointer; flex: 1; 
+        }
+        .nav-item.active { color: var(--accent-btn); }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { 
+            width: 24px; height: 24px; 
+            display: block; 
+            stroke: currentColor; 
+            stroke-width: 2.25; 
+            stroke-linecap: round; 
+            stroke-linejoin: round;
+        }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+
+        /* Dialogs */
         .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); transition: opacity 0.3s;}
         .ok-backdrop.active { display: flex; }
-        .ok-dialog { width: 90%; max-width: 360px; background: #070b14; border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.25s var(--ease-out); }
-        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
-        .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
-        .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
-        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
-        .btn-confirm { padding: 0.625rem 1.5rem; font-weight: bold; font-size: 0.875rem; }
-
-        #streakModalBackdrop { align-items: flex-start; }
-        .streak-dialog { width: 100%; max-width: 100%; background: linear-gradient(to bottom, #050814, #0f0505); border-radius: 0 0 var(--radius-xl) var(--radius-xl); padding: calc(env(safe-area-inset-top, 0px) + 2rem) 1.5rem 2.5rem; transform: translateY(-100%); opacity: 0; transition: transform 0.4s var(--ease-out), opacity 0.3s ease; text-align: center; border-bottom: 1px solid rgba(255, 127, 63, 0.15); display: flex; flex-direction: column; align-items: center; }
+        
+        #streakModalBackdrop { align-items: flex-end; }
+        .streak-dialog { 
+            width: 100%; max-width: 100%; 
+            background: var(--bg-surface); 
+            border-radius: var(--radius-card) var(--radius-card) 0 0; 
+            padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); 
+            transform: translateY(100%); opacity: 0; 
+            transition: transform 0.4s var(--ease-out), background-color 0.3s ease, opacity 0.3s ease; 
+            text-align: center; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
         .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
-        .streak-dialog-title { font-size: 1.25rem; font-weight: 700; color: var(--accent-orange); margin-bottom: 2rem; line-height: 1.3; }
+        
+        .streak-dialog-title { font-size: 1rem; font-weight: 500; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.4; }
         .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
         .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .day-label { font-size: 0.6875rem; color: #a1a1aa; font-weight: 600; }
-        .day-circle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #64748b; }
+        .day-label { font-size: 0.75rem; color: #71717a; font-weight: 600; }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--day-circle); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; transition: background-color 0.3s; }
         .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
-        .day-circle.active { background: rgba(255, 127, 63, 0.1); border: 1px solid rgba(255, 127, 63, 0.3); color: var(--accent-orange); }
-        .btn-checkin { width: 90%; max-width: 320px; padding: 1.125rem; font-weight: 800; font-size: 1.125rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block; }
+        .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
+        .btn-checkin { 
+            width: 100%; padding: 1.125rem; font-weight: 600; font-size: 1.0625rem; 
+            margin-bottom: 0.5rem; display: block; 
+            background: var(--accent-btn); color: var(--btn-text); 
+            border-radius: var(--radius-btn); transition: transform 0.15s, background-color 0.3s;
+        }
+        .btn-checkin:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
 
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true" style="z-index: 99998;">
-        <div class="ok-dialog" role="document">
-            <h3 id="okTitle" class="dialog-title">Notice</h3>
-            <p id="okMessage" class="dialog-msg">Message goes here</p>
-            <div class="dialog-actions">
-                <button id="okCancel" class="btn-flat">Cancel</button>
-                <button id="okConfirm" class="btn-secondary btn-confirm">OK</button>
-            </div>
-        </div>
-    </div>
-
     <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
         <div class="streak-dialog" id="streakDialog">
-            <div id="modalStreakLottie" style="width: 72px; height: 72px; margin-bottom: 0.25rem;"></div>
-            <div style="font-size: 1.75rem; font-weight: 800; color: white; margin-bottom: 0.25rem;">Day <span id="modalDayCount">1</span></div>
-            <h3 class="streak-dialog-title" style="margin-bottom: 1.5rem; font-size: 0.9375rem; color: var(--text-muted); font-weight: 500;">Keep the fire alive<br>check in today!</h3>
+            <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
+            <h3 class="streak-dialog-title">Keep the fire alive<br>check in today!</h3>
             <div class="calendar-row" id="calendarRow"></div>
-            <button id="closeStreakModal" class="btn-primary btn-checkin">Check in today!</button>
+            <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
         </div>
     </div>
 
-    <header class="header-bar fade-in" style="animation-delay: 0ms;">
-        <h1 id="greetingTitle" class="greeting-title">Welcome back</h1>
-        <div class="streak-badge card-flat" id="headerStreakBadge" onclick="openStreakModal()">
-            <i id="headerFireIcon" class="fas fa-fire" style="font-size: 1.125rem;"></i>
-            <span id="headerStreakDisplay">0</span>
+    <header class="header-bar">
+        <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
+        <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+            <i id="headerFireIcon" class="fas fa-fire"></i>
+            <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
         </div>
     </header>
 
     <main class="main-content">
         
-        <div id="goProBanner" class="pro-banner fade-in" style="display: none; animation-delay: 15ms;">
-            <div id="crownLottieContainer" class="crown-lottie-large"></div>
-            <div style="flex: 1;">
-                <h3 class="banner-title">Upgrade to Pro</h3>
-                <p class="banner-sub">Unlock unlimited AI generations</p>
-            </div>
-            <button id="dismissGoProBtn" class="btn-dismiss-banner card-flat btn-flat" aria-label="Dismiss banner"><i class="fas fa-times"></i></button>
-        </div>
-
-        <div id="continueStudyingSection" style="display: none;" class="fade-in" style="animation-delay: 30ms;">
+        <div id="continueStudyingSection" class="section-wrapper">
             <h2 class="section-title">Continue Studying</h2>
-            <a href="study.html" class="continue-card card-flat">
-                <div class="progress-track"><div id="continueProgressBar" class="progress-bar" style="width: 0%"></div></div>
-                <div class="card-row">
-                    <div class="icon-box">
-                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
-                            <g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g>
-                        </svg>
+            <a href="study.html" class="continue-card">
+                <div class="card-left">
+                    <div id="continueIconBox" class="icon-box skeleton">
+                        <i id="continueIcon" class="fas fa-layer-group"></i>
                     </div>
                     <div class="card-details">
-                        <div class="card-header">
-                            <h3 id="continueTitle" class="card-title">Quiz Title</h3>
-                            <span id="continueProgressText" class="progress-text">0%</span>
-                        </div>
-                        <p class="card-meta"><span id="continueCardCount">0</span> items • <span id="continueSubject" style="text-transform:uppercase;">Subject</span></p>
+                        <h3 id="continueTitle" class="card-title skeleton" style="width: 130px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></h3>
+                        <p class="card-meta skeleton" id="continueMeta" style="width: 90px; height: 12px; border-radius: 4px;"></p>
                     </div>
+                </div>
+                <div class="progress-badge skeleton" id="continueProgressText" style="width: 44px; height: 24px;"></div>
+            </a>
+        </div>
+
+        <a href="create.html" class="add-funds-btn">
+            Create Material
+        </a>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">For Your Studies</h2>
+            <div class="crypto-grid">
+                
+                <a href="study.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-btc">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">LIB</span>
+                        <span class="crypto-name">My Library</span>
+                        <span class="crypto-change">+ Active</span>
+                    </div>
+                </a>
+
+                <a href="profile.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-eth">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">PROG</span>
+                        <span class="crypto-name">My Progress</span>
+                        <span class="crypto-change">+ Tracker</span>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">Weekly Target</h2>
+            <a href="profile.html" class="promo-banner">
+                <div class="promo-icon"><i class="fas fa-bullseye"></i></div>
+                <div class="promo-text">
+                    <h4>Study Consistency</h4>
+                    <p>You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
                 </div>
             </a>
         </div>
 
-        <div>
-            <h2 class="section-title fade-in" style="animation-delay: 60ms;">Quick Actions</h2>
-            <div class="quick-grid">
-                
-                <a href="create.html" class="ai-card card-primary fade-in" style="animation-delay: 90ms;">
-                    <div class="ai-content">
-                        <h3 class="ai-title">Create Material <i class="fas fa-sparkles" style="color:#fde047; font-size:0.875rem;"></i></h3>
-                        <p class="ai-sub">Upload notes to generate AI flashcards & quizzes.</p>
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <h2 class="section-title" style="margin-bottom: 0;">Recent Decks</h2>
+                <a href="study.html" style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-decoration: none; letter-spacing: 0.05em;">View All <i class="fas fa-chevron-right" style="margin-left: 2px;"></i></a>
+            </div>
+            
+            <div>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;"><i class="fas fa-heartbeat"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Cardiology 101</span>
+                        <span class="list-sub">45 Cards • Anatomy</span>
                     </div>
-                    <div class="ai-arrow"><i class="fas fa-plus" style="color:white; font-size:0.875rem;"></i></div>
+                    <div class="list-stats">
+                        <span class="list-value">Just now</span>
+                        <span class="list-change">+92%</span>
+                    </div>
                 </a>
                 
-                <a href="study.html" class="action-card card-soft fade-in" style="animation-delay: 120ms;">
-                    <div class="icon-box" style="color: #60a5fa; font-size: 1.75rem;">
-                        <i class="fas fa-folder-open drop-shadow-md"></i>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fas fa-brain"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Neurology Terms</span>
+                        <span class="list-sub">120 Cards • Medicine</span>
                     </div>
-                    <span class="action-title">My Library</span>
-                    <span class="action-sub">View and study your saved decks</span>
+                    <div class="list-stats">
+                        <span class="list-value">Yesterday</span>
+                        <span class="list-change neutral">0%</span>
+                    </div>
                 </a>
 
-                <a href="profile.html" class="action-card card-soft fade-in" style="animation-delay: 150ms;">
-                    <div class="icon-box" style="color: #34d399; font-size: 1.75rem;">
-                        <i class="fas fa-chart-pie drop-shadow-md"></i>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-capsules"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Pharmacology Basics</span>
+                        <span class="list-sub">85 Cards • Drugs</span>
                     </div>
-                    <span class="action-title">My Progress</span>
-                    <span class="action-sub">Check your stats and streaks</span>
+                    <div class="list-stats">
+                        <span class="list-value">2 days ago</span>
+                        <span class="list-change">+78%</span>
+                    </div>
                 </a>
-
             </div>
         </div>
+
     </main>
 
     <nav class="bottom-nav">
         <a href="homepage.html" class="nav-item active">
-            <i class="fas fa-home"></i>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
+            </svg>
             <span class="nav-label">Home</span>
         </a>
         
         <a href="study.html" class="nav-item">
-            <i class="fas fa-folder"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
             <span class="nav-label">Library</span>
         </a>
         
-        <a href="create.html" class="nav-item create-btn">
-            <div class="create-circle">
-                <i class="fas fa-plus"></i>
-            </div>
+        <a href="create.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
             <span class="nav-label">Create</span>
         </a>
         
         <a href="leaderboard.html" class="nav-item">
-            <i class="fas fa-trophy"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
             <span class="nav-label">Leaders</span>
         </a>
         
         <a href="profile.html" class="nav-item">
-            <i class="fas fa-user"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
 
     <script>
-    const crownLottieData = {"nm":"all","ddd":0,"h":150,"w":150,"meta":{"g":"@lottiefiles/toolkit-js 0.21.1","tc":"#ffffff"},"layers":[{"ty":4,"nm":"o 2","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[6.938,8.619,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.892,"y":0.412},"i":{"x":0.846,"y":1},"s":[101.358,101.358,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.452,"y":0.897},"s":[158.037,158.037,100],"t":27},{"o":{"x":1,"y":-0.19},"i":{"x":0.931,"y":1},"s":[79.037,79.037,100],"t":119},{"o":{"x":0.072,"y":0},"i":{"x":0.833,"y":1},"s":[158.037,158.037,100],"t":212},{"o":{"x":0.429,"y":0},"i":{"x":0.868,"y":0.747},"s":[79.037,79.037,100],"t":276},{"s":[101.358,101.358,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[82.051,30.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.124,-0.613],[0,0],[-1.427,-0.561],[0,0],[0.485,-0.189],[0,0],[0.402,-1.988],[0,0],[0.122,0.615],[0,0],[1.427,0.56],[0,0],[-0.486,0.189],[0,0],[-0.402,1.991]],"o":[[0.122,-0.613],[0,0],[0.402,1.991],[0,0],[0.485,0.189],[0,0],[-1.427,0.56],[0,0],[-0.124,0.615],[0,0],[-0.402,-1.988],[0,0],[-0.486,-0.189],[0,0],[1.427,-0.561],[0,0]],"v":[[6.375,0.863],[7.501,0.863],[7.952,3.099],[10.897,7.203],[13.14,8.084],[13.14,9.152],[10.897,10.033],[7.952,14.136],[7.501,16.373],[6.375,16.373],[5.921,14.136],[2.978,10.033],[0.736,9.152],[0.736,8.084],[2.978,7.203],[5.921,3.099]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[0.5922,0.5922,0.5765],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":1},{"ty":4,"nm":"o","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[6.938,8.619,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.735,"y":0.516},"i":{"x":0.752,"y":1},"s":[122.466,122.466,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.435,"y":1},"s":[158.037,158.037,100],"t":12},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[79.037,79.037,100],"t":104},{"o":{"x":0.072,"y":0},"i":{"x":0.596,"y":1},"s":[158.037,158.037,100],"t":197},{"o":{"x":0.612,"y":0},"i":{"x":0.876,"y":0.642},"s":[79.037,79.037,100],"t":260},{"s":[122.466,122.466,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[62.051,58.627,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.124,-0.613],[0,0],[-1.427,-0.561],[0,0],[0.485,-0.189],[0,0],[0.402,-1.988],[0,0],[0.122,0.615],[0,0],[1.427,0.56],[0,0],[-0.486,0.189],[0,0],[-0.402,1.991]],"o":[[0.122,-0.613],[0,0],[0.402,1.991],[0,0],[0.485,0.189],[0,0],[-1.427,0.56],[0,0],[-0.124,0.615],[0,0],[-0.402,-1.988],[0,0],[-0.486,-0.189],[0,0],[1.427,-0.561],[0,0]],"v":[[6.375,0.863],[7.501,0.863],[7.952,3.099],[10.897,7.203],[13.14,8.084],[13.14,9.152],[10.897,10.033],[7.952,14.136],[7.501,16.373],[6.375,16.373],[5.921,14.136],[2.978,10.033],[0.736,9.152],[0.736,8.084],[2.978,7.203],[5.921,3.099]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.9922,0.1255],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":2},{"ty":4,"nm":"O 2","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":1,"y":0},"i":{"x":0.503,"y":2.454},"s":[41,41,100],"t":-125},{"o":{"x":0.165,"y":0.232},"i":{"x":0.409,"y":1},"s":[91.037,91.037,100],"t":0},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":60},{"o":{"x":0.072,"y":0},"i":{"x":0.625,"y":1},"s":[120,120,100],"t":153},{"o":{"x":1,"y":0},"i":{"x":0.503,"y":1.681},"s":[41,41,100],"t":265},{"s":[91.037,91.037,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[103.688,107.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":3},{"ty":4,"nm":"O 3","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.147,"y":0.168},"i":{"x":0.481,"y":1},"s":[100.879,100.879,100],"t":0},{"o":{"x":1,"y":0},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":70},{"o":{"x":0.072,"y":0},"i":{"x":0.466,"y":1},"s":[120,120,100],"t":163},{"o":{"x":1,"y":0},"i":{"x":0.833,"y":1},"s":[41,41,100],"t":232},{"s":[100.879,100.879,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[43.188,98.127,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":4},{"ty":4,"nm":"O","sr":1,"st":0,"op":320,"ip":320,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.279,15.302,0],"ix":1},"s":{"a":1,"k":[{"o":{"x":0.582,"y":0.563},"i":{"x":0.676,"y":1},"s":[97.164,97.164,100],"t":0},{"o":{"x":0.072,"y":0},"i":{"x":0.414,"y":1.084},"s":[120,120,100],"t":7},{"o":{"x":1,"y":0.145},"i":{"x":0.931,"y":1},"s":[41,41,100],"t":99},{"o":{"x":0.072,"y":0},"i":{"x":0.629,"y":1},"s":[120,120,100],"t":192},{"o":{"x":0.697,"y":0},"i":{"x":0.914,"y":0.826},"s":[41,41,100],"t":284},{"s":[97.164,97.164,100],"t":320}],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[96.188,41.627,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,0],[-0.223,-1.103],[0,0],[-2.569,-1.008],[0,0],[0.874,-0.34],[0,0],[0.724,-3.577],[0,0],[0.221,1.106],[0,0],[2.566,1.009],[0,0],[-0.874,0.341],[0,0],[-0.724,3.581]],"o":[[0.221,-1.103],[0,0],[0.724,3.581],[0,0],[0.874,0.341],[0,0],[-2.569,1.009],[0,0],[-0.223,1.106],[0,0],[-0.724,-3.577],[0,0],[-0.874,-0.34],[0,0],[2.566,-1.008],[0,0]],"v":[[11.266,1.353],[13.291,1.353],[14.104,5.374],[19.401,12.755],[23.434,14.339],[23.434,16.261],[19.401,17.846],[14.104,25.227],[13.291,29.249],[11.266,29.249],[10.451,25.227],[5.157,17.846],[1.124,16.261],[1.124,14.339],[5.157,12.755],[10.451,5.374]]},"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,1,1],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":5},{"ty":4,"nm":"shine 3","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[49.402,68.232,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.242,"y":0.599},"i":{"x":0.56,"y":1},"s":[40.629],"t":0},{"o":{"x":0.167,"y":0},"i":{"x":0.833,"y":1},"s":[43],"t":34},{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":77},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":127},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":177},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":208},{"o":{"x":0.434,"y":0},"i":{"x":0.468,"y":0.665},"s":[28],"t":290},{"s":[40.629],"t":336}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.242,"y":0.599},"i":{"x":0.56,"y":1},"s":[2.688],"t":0},{"o":{"x":0.167,"y":0},"i":{"x":0.833,"y":1},"s":[0],"t":34},{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":77},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":127},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":177},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":208},{"o":{"x":0.434,"y":0},"i":{"x":0.468,"y":0.665},"s":[17],"t":290},{"s":[2.688],"t":336}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":6},{"ty":4,"nm":"shine 2","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[102.964,68.232,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":27},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":77},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":127},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":158},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":240},{"s":[43],"t":320}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":27},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":77},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":127},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":158},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":240},{"s":[0],"t":320}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":7},{"ty":4,"nm":"shine","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[7.832,7.833,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[76.339,62.857,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[0,1.841],[1.84,0],[0,-1.84],[-1.841,0]],"o":[[0,-1.84],[-1.841,0],[0,1.841],[1.84,0]],"v":[[11.165,7.833],[7.833,4.5],[4.5,7.833],[7.833,11.166]]},"ix":2}},{"ty":"tm","bm":0,"hd":false,"mn":"ADBE Vector Filter - Trim","nm":"Trim Paths 1","ix":2,"e":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":0},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":50},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[43],"t":100},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[43],"t":131},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[28],"t":213},{"s":[43],"t":293}],"ix":2},"o":{"a":0,"k":-17,"ix":3},"s":{"a":1,"k":[{"o":{"x":0.7,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":0},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":50},{"o":{"x":0.167,"y":0},"i":{"x":0.667,"y":1},"s":[0],"t":100},{"o":{"x":0.206,"y":0},"i":{"x":0.045,"y":1},"s":[0],"t":131},{"o":{"x":0.333,"y":0},"i":{"x":0.257,"y":1},"s":[17],"t":213},{"s":[0],"t":293}],"ix":1},"m":1},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 1","lc":2,"lj":2,"ml":1,"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":1.8,"ix":5},"c":{"a":0,"k":[1,1,1],"ix":3}}],"ind":8},{"ty":4,"nm":"shield","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[45.189,50.706,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[77.358,76.359,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 1","ix":1,"cix":2,"np":3,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[2.94,-0.271],[0,0],[0,0],[0,0],[0.654,0],[0,0],[0.112,0.644],[0,0],[0,0],[0,0],[0,0],[0,0],[0,2.763],[-2.95,0],[0,-2.95],[0.178,-0.532],[0,0],[0,0],[0,0],[-1.998,0.897],[0,0.009],[-0.672,0.822],[0,0],[0,1.129],[-2.95,0],[0,-2.95],[0.672,-0.914],[-0.008,-0.009],[0,0],[0,0],[-1.876,-0.047],[-1.167,0.737],[0,0],[0,0],[0,0],[0.045,0.253],[0,0.299],[-1.176,0.98],[-1.251,0.019],[-0.037,0],[-0.252,-2.754]],"o":[[0,0],[0,0],[0,0],[-0.103,0.644],[0,0],[-0.654,0],[0,0],[0,0],[0,0],[0,0],[0,0],[-2.753,-0.243],[0,-2.95],[2.95,0],[0,0.56],[0,0],[0,0],[0,0],[1.951,1.251],[0.009,0],[0.915,-0.411],[0,0],[-0.682,-0.914],[0,-2.95],[2.95,0],[0,1.129],[0,0],[0,0],[0,0],[1.269,1.55],[1.298,0.047],[0,0],[0,0],[0.01,-0.009],[-0.084,-0.242],[-0.047,-0.298],[0,-1.652],[0.897,-0.747],[0.037,-0.009],[2.763,0],[0.261,2.931]],"v":[[26.15,-2.814],[24.086,9.518],[23.526,12.897],[22.995,16.108],[21.677,17.229],[-23.708,17.229],[-25.026,16.108],[-25.221,14.932],[-25.557,12.897],[-26.099,9.621],[-26.117,9.518],[-28.18,-2.814],[-33.053,-8.135],[-27.714,-13.474],[-22.373,-8.135],[-22.635,-6.492],[-20.62,-5.213],[-18.323,-3.748],[-18.303,-3.738],[-11.974,-3.281],[-11.966,-3.29],[-9.557,-5.138],[-5.31,-10.329],[-6.354,-13.474],[-1.016,-18.814],[4.325,-13.474],[3.289,-10.329],[3.297,-10.31],[5.005,-8.228],[7.526,-5.138],[12.51,-2.702],[16.283,-3.738],[19.997,-6.09],[20.594,-6.473],[20.614,-6.492],[20.419,-7.239],[20.343,-8.135],[22.266,-12.242],[25.562,-13.465],[25.682,-13.474],[30.995,-8.611]]},"ix":2}},{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 2","ix":2,"d":1,"ks":{"a":0,"k":{"c":true,"i":[[4.039,2.332],[0,0],[4.039,-2.332],[0,0],[0,-4.664],[0,0],[-4.038,-2.332],[0,0],[-4.039,2.332],[0,0],[0,4.663],[0,0]],"o":[[0,0],[-4.039,-2.332],[0,0],[-4.038,2.332],[0,0],[0,4.663],[0,0],[4.039,2.332],[0,0],[4.039,-2.332],[0,0],[0,-4.664]],"v":[[38.414,-29.714],[6.528,-48.124],[-6.527,-48.124],[-38.414,-29.714],[-44.94,-18.409],[-44.94,18.41],[-38.414,29.714],[-6.527,48.124],[6.528,48.124],[38.414,29.714],[44.94,18.41],[44.94,-18.409]]},"ix":2}},{"ty":"gf","bm":0,"hd":false,"mn":"ADBE Vector Graphic - G-Fill","nm":"Gradient Fill 1","e":{"a":0,"k":[38.65,0],"ix":6},"g":{"p":3,"k":{"a":0,"k":[0,0.9019607843137255,0.5333333333333333,0.08627450980392157,0.5,0.9529411764705882,0.6705882352941176,0.09019607843137255,1,1,0.803921568627451,0.09803921568627451],"ix":9}},"t":2,"a":{"a":0,"k":0,"ix":8},"h":{"a":0,"k":0,"ix":7},"s":{"a":0,"k":[0,0],"ix":5},"r":1,"o":{"a":0,"k":100,"ix":10}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":0,"k":[45.189,50.706],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]}],"ind":9},{"ty":4,"nm":"l1","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[75,75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"rc","bm":0,"hd":false,"mn":"ADBE Vector Shape - Rect","nm":"Rectangle Path 1","d":1,"p":{"a":0,"k":[0,18],"ix":3},"r":{"a":0,"k":0,"ix":4},"s":{"a":0,"k":[62,14],"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.7843,0],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":10},{"ty":4,"nm":"lines","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[453.25,77.75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 3","ix":1,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-350,-18],[-365,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.183,"y":0.279},"i":{"x":0.622,"y":1},"s":[2],"t":0},{"o":{"x":0.306,"y":0},"i":{"x":0.8,"y":1},"s":[9],"t":115},{"o":{"x":0.451,"y":0},"i":{"x":0.679,"y":-0.009},"s":[0],"t":257},{"s":[2],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.456,"y":0.746},"i":{"x":0.521,"y":1},"s":[0,0],"t":0},{"o":{"x":0.73,"y":0},"i":{"x":0.315,"y":1},"s":[11,0],"t":36},{"o":{"x":0.333,"y":0},"i":{"x":0.833,"y":0.749},"s":[-47.457,0],"t":177},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]},{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 1","ix":2,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 1","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-390.5,-18],[-405.5,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.467,"y":0},"i":{"x":0.632,"y":1},"s":[3],"t":0},{"o":{"x":0.352,"y":0},"i":{"x":0.611,"y":1},"s":[9],"t":67},{"o":{"x":0.432,"y":0},"i":{"x":0.291,"y":1},"s":[3.862],"t":137},{"o":{"x":0.372,"y":0},"i":{"x":0.576,"y":1},"s":[10.565],"t":200},{"s":[3],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.333,"y":0},"i":{"x":0.667,"y":0.735},"s":[0,0],"t":0},{"o":{"x":0.128,"y":0.336},"i":{"x":0.439,"y":1},"s":[29,0],"t":77.176},{"o":{"x":0.333,"y":0},"i":{"x":0.667,"y":1},"s":[36.553,0],"t":144},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]},{"ty":"gr","bm":0,"hd":false,"mn":"ADBE Vector Group","nm":"Group 2","ix":3,"cix":2,"np":2,"it":[{"ty":"sh","bm":0,"hd":false,"mn":"ADBE Vector Shape - Group","nm":"Path 2","ix":1,"d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-363,-18],[-378,23]]},"ix":2}},{"ty":"st","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Stroke","nm":"Stroke 2","lc":1,"lj":1,"ml":4,"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"o":{"x":0.438,"y":0},"i":{"x":0.696,"y":0.693},"s":[10],"t":0},{"o":{"x":0.28,"y":1.344},"i":{"x":0.642,"y":2.016},"s":[6],"t":88},{"o":{"x":0.299,"y":0.192},"i":{"x":0.501,"y":1},"s":[4.931],"t":200},{"s":[10],"t":320}],"ix":5},"c":{"a":0,"k":[1,0.9922,0],"ix":3}},{"ty":"tr","a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"sk":{"a":0,"k":0,"ix":4},"p":{"a":1,"k":[{"o":{"x":0.375,"y":0.239},"i":{"x":0,"y":1},"s":[0,0],"t":0},{"o":{"x":0.335,"y":0},"i":{"x":0.778,"y":1},"s":[-29,0],"t":105.754},{"o":{"x":0.491,"y":0},"i":{"x":0.943,"y":0.887},"s":[8.428,0],"t":223.145},{"s":[0,0],"t":320}],"ix":2},"r":{"a":0,"k":0,"ix":6},"sa":{"a":0,"k":0,"ix":5},"o":{"a":0,"k":100,"ix":7}}]}],"ind":11},{"ty":4,"nm":"l2","sr":1,"st":0,"op":320,"ip":0,"hd":false,"ddd":0,"bm":0,"hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6},"sk":{"a":0,"k":0},"p":{"a":0,"k":[75,75,0],"ix":2},"r":{"a":0,"k":0,"ix":10},"sa":{"a":0,"k":0},"o":{"a":0,"k":100,"ix":11}},"ef":[],"shapes":[{"ty":"rc","bm":0,"hd":false,"mn":"ADBE Vector Shape - Rect","nm":"Rectangle Path 1","d":1,"p":{"a":0,"k":[0,0],"ix":3},"r":{"a":0,"k":0,"ix":4},"s":{"a":0,"k":[70,40],"ix":2}},{"ty":"fl","bm":0,"hd":false,"mn":"ADBE Vector Graphic - Fill","nm":"Fill 1","c":{"a":0,"k":[1,0.9176,0],"ix":4},"r":1,"o":{"a":0,"k":100,"ix":5}}],"ind":12}],"v":"5.2.1","fr":60,"op":320,"ip":0,"assets":[]};
-
-    if (window.lottie) {
-        window.lottie.loadAnimation({
-            container: document.getElementById('crownLottieContainer'),
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            animationData: crownLottieData
-        });
-    }
-
     function getTimeEmoji() {
         const hour = new Date().getHours();
         if (hour < 12) return '⛅';
@@ -372,11 +508,14 @@
     let currentStreakCount = 0;
     let hasCheckedInToday = false;
 
-    async function updateStatusBar(color) {
+    async function updateStatusBar() {
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
                 const { StatusBar } = Capacitor.Plugins;
-                await StatusBar.setBackgroundColor({ color: color });
+                // Dynamically fetch background color based on theme
+                const isLight = document.documentElement.classList.contains('light-mode');
+                const bgColor = isLight ? '#f1f5f9' : '#09090b';
+                await StatusBar.setBackgroundColor({ color: bgColor });
             } catch (e) {}
         }
     }
@@ -433,7 +572,7 @@
         document.getElementById('streakModalBackdrop').classList.add('active');
         document.getElementById('streakDialog').style.opacity = '1';
         
-        updateStatusBar('#000000');
+        updateStatusBar();
     }
 
     // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
@@ -446,18 +585,21 @@
                 savedName = user.email.split("@")[0];
             } 
 
+            // REMOVE SKELETONS AND POPULATE REAL HEADER DATA
             const greetingTitle = document.getElementById('greetingTitle');
+            greetingTitle.classList.remove('skeleton');
+            greetingTitle.style.width = 'auto';
+            greetingTitle.style.height = 'auto';
+            
             if (savedName && savedName !== "Guest" && greetingTitle) {
                 greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
             } else if (greetingTitle) {
-                 greetingTitle.innerHTML = `Welcome ${getTimeEmoji()}`;
+                 greetingTitle.innerHTML = `Hi, Guest ${getTimeEmoji()}`;
             }
 
-            // User-specific storage key
             const storageKey = 'medexcel_streak_' + user.uid;
             let userStats = JSON.parse(localStorage.getItem(storageKey));
             
-            // Pull from Firestore to prevent wipes from resetting it
             if (window.fetchUserStreak) {
                 const serverStats = await window.fetchUserStreak(user.uid);
                 if (serverStats && serverStats.lastDate) {
@@ -486,20 +628,20 @@
                 currentStreakCount = 1; 
             }
 
-            const headerDisplay = document.getElementById('headerStreakDisplay');
             const headerFireIcon = document.getElementById('headerFireIcon');
+            const headerDisplay = document.getElementById('headerStreakDisplay');
+            
+            headerDisplay.classList.remove('skeleton');
+            headerDisplay.style.width = 'auto';
+            headerDisplay.style.height = 'auto';
 
             if (!hasCheckedInToday) {
                 headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
                 headerFireIcon.style.opacity = '0.4'; 
                 
-                // Randomize Daily Message
                 const messages = [
                     "Keep the fire alive<br>check in today!",
-                    "You're doing great!<br>Claim your daily streak.",
-                    "Consistency is key!<br>Tap to check in.",
-                    "Another day, another step<br>closer to your goals!",
-                    "Don't break the chain!<br>Check in now."
+                    "You're doing great!<br>Claim your daily streak."
                 ];
                 const msg = messages[Math.floor(Math.random() * messages.length)];
                 const titleEl = document.querySelector('.streak-dialog-title');
@@ -510,7 +652,6 @@
                 headerFireIcon.style.opacity = '1';
             }
 
-            // ---> BUG FIX 1: DOUBLE FIRE <---
             if(window.lottie) {
                 if (window.streakLottieAnim) window.streakLottieAnim.destroy();
                 document.getElementById('modalStreakLottie').innerHTML = ''; 
@@ -521,7 +662,6 @@
                 openStreakModal();
             }
 
-            // Use .onclick to prevent multiple event listeners binding if initUserUI is called twice
             document.getElementById('closeStreakModal').onclick = () => {
                 if (!hasCheckedInToday) {
                     userStats.count = currentStreakCount;
@@ -538,7 +678,7 @@
                 
                 setTimeout(() => {
                     document.getElementById('streakModalBackdrop').classList.remove('active');
-                    updateStatusBar('#050814'); 
+                    updateStatusBar(); 
                     
                     headerDisplay.textContent = currentStreakCount;
                     headerFireIcon.style.opacity = '1';
@@ -556,64 +696,50 @@
                 }
             });
 
-            document.getElementById('okBackdrop').addEventListener('click', (e) => {
-                if (e.target.id === 'okBackdrop') {
-                    document.querySelector('.ok-dialog').style.transform = 'scale(0.95)';
-                    document.querySelector('.ok-dialog').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('okBackdrop').classList.remove('active');
-                        document.querySelector('.ok-dialog').style.transform = '';
-                        document.querySelector('.ok-dialog').style.opacity = '';
-                    }, 300);
-                }
-            });
-            document.getElementById('okCancel').addEventListener('click', () => {
-                document.getElementById('okBackdrop').click();
-            });
+            // REMOVE SKELETONS AND POPULATE "CONTINUE STUDYING" REAL DATA
+            let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid));
+            if (!quizzes || quizzes.length === 0) {
+                quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            }
+            
+            const cTitle = document.getElementById('continueTitle');
+            const cMeta = document.getElementById('continueMeta');
+            const cProgress = document.getElementById('continueProgressText');
+            const cIconBox = document.getElementById('continueIconBox');
 
-            const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-            const continueSection = document.getElementById('continueStudyingSection');
+            // Strip skeleton styles
+            cTitle.classList.remove('skeleton');
+            cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
+            
+            cMeta.classList.remove('skeleton');
+            cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
+            
+            cProgress.classList.remove('skeleton');
+            cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
+            
+            cIconBox.classList.remove('skeleton');
+            
             if (quizzes.length > 0) {
-                const lastQuiz = quizzes[quizzes.length - 1];
+                // Populate active deck data
+                const lastQuiz = quizzes[quizzes.length - 1]; 
                 const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
                 let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
                 
-                document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
-                document.getElementById('continueProgressText').textContent = `${progress}%`;
-                document.getElementById('continueProgressBar').style.width = `${progress}%`;
-                document.getElementById('continueCardCount').textContent = totalQs;
-                document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
-                continueSection.style.display = 'block';
+                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cProgress.textContent = `+${progress}%`; 
+                cMeta.innerHTML = `<span id="continueCardCount">${totalQs}</span> items • <span id="continueSubject">${lastQuiz.subject || 'GENERAL'}</span>`;
+            } else {
+                // Graceful Empty State (keeps layout stable)
+                cTitle.textContent = "No recent activity";
+                cProgress.textContent = "0%";
+                cProgress.style.background = "rgba(128,128,128,0.1)";
+                cProgress.style.color = "var(--text-muted)";
+                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
             }
+            
         } catch(e) { console.warn("UI Init failed", e); }
     };
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const goProBanner = document.getElementById('goProBanner');
-        const dismissBtn = document.getElementById('dismissGoProBtn');
-
-        if (goProBanner) {
-            goProBanner.addEventListener('click', (e) => {
-                if (!e.target.closest('#dismissGoProBtn')) {
-                    window.location.href = 'payment.html';
-                }
-            });
-        }
-
-        if (dismissBtn) {
-            dismissBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                
-                goProBanner.style.opacity = '0';
-                goProBanner.style.transform = 'scale(0.95)';
-                setTimeout(() => { goProBanner.style.display = 'none'; }, 300);
-                
-                const snoozeUntil = Date.now() + 259200000;
-                localStorage.setItem('medexcel_gopro_snooze', snoozeUntil.toString());
-            });
-        }
-    });
     </script>
 
     <script type="module">
@@ -633,7 +759,6 @@
         const auth = getAuth(app); 
         const db = getFirestore(app);
 
-        // Define global sync functions for the streak
         window.syncUserStreak = async function(uid, count, dateStr) {
             try {
                 await setDoc(doc(db, "users", uid), { streak: count, lastCheckIn: dateStr }, { merge: true });
@@ -656,11 +781,6 @@
             window.location.replace("index.html");
         };
 
-        function shouldShowBanner() {
-            const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
-            return !(snoozeTime && Date.now() < parseInt(snoozeTime, 10));
-        }
-
         async function ensureAndCheckUser(user) {
             try {
                 let userRef = doc(db, "users", user.uid);
@@ -671,17 +791,13 @@
                     docSnap = await getDoc(userRef);
                 }
 
-                if (docSnap.exists()) {
-                    const plan = docSnap.data().plan || "free";
-                    if (plan === "free" && shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
-                } else {
+                if (!docSnap.exists()) {
                     await setDoc(doc(db, "users", user.uid), {
                         email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
                     }, { merge: true });
-                    if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
                 }
             } catch (error) {
-                if (shouldShowBanner()) document.getElementById('goProBanner').style.display = 'flex';
+                console.warn("User validation issue", error);
             }
         }
 

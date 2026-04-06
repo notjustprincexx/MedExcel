@@ -4,87 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aurora - User Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
-        }
-        
-        body {
-            background-color: #050A15;
-            color: #ffffff;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        
-        .glass-panel {
-            background: #0B1120;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .achievement-unlocked {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-        
-        .achievement-locked {
-            filter: grayscale(100%);
-            opacity: 0.4;
-            border-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 10, 21, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-        .modal-backdrop.show { opacity: 1; visibility: visible; }
-        .modal-content { background: #0B1120; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; width: 100%; max-width: 320px; transform: scale(0.95); transition: 0.3s; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .modal-backdrop.show .modal-content { transform: scale(1); }
-        
-        .modal-icon { width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 1.25rem; color: #ef4444; }
-        .modal-title { font-size: 1.125rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
-        .modal-text { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
-        .modal-btn-primary { width: 100%; padding: 0.75rem; background: #ef4444; color: white; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; margin-bottom: 0.5rem; transition: 0.2s; }
-        .modal-btn-primary:hover { background: #dc2626; }
-        .modal-btn-secondary { width: 100%; padding: 0.75rem; background: transparent; color: #94a3b8; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
-        .modal-btn-secondary:hover { color: white; }
-
-        /* UPDATED FLOATING NAVIGATION STYLES FOR PROFILE PAGE */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); backdrop-filter: blur(16px); border-top: 1px solid rgba(30, 41, 59, 1); padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; transition: color 0.2s; cursor: pointer; flex: 1; text-align: center; text-decoration: none;}
-        .nav-item.active { color: white; }
-        .nav-item i { font-size: 1.25rem; transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .nav-item:active i { transform: scale(0.85) translateY(2px); }
-        .nav-label { font-size: 0.625rem; font-weight: 500; }
-
-        .nav-item.create-btn { position: relative; }
-        .create-circle {
-            width: 3.25rem;
-            height: 3.25rem;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-            border: 6px solid #050A15; /* Matches Tailwind bg-[#050A15] background */
-            margin-top: -30px;
-            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .nav-item.create-btn:active .create-circle { transform: scale(0.9); }
-        .nav-item.create-btn i { font-size: 1.25rem; color: white; }
-    </style>
+    
     <script>
-        // STRIPPED DOWN TOP SCRIPT: Prevents UI flickering, leaves security to Firebase Hybrid Auth
+        // Check for saved theme preference to prevent flickering
+        (function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+
+        // Auth Gatekeeper
         (function () {
             const saved = localStorage.getItem("nativeUser");
             if (saved && saved !== "undefined" && saved !== "null") {
@@ -92,8 +27,132 @@
             }
         })();
     </script>
+
+    <style>
+        :root {
+            /* DARK MODE (Default matching screenshot) */
+            --bg-body: #09090b;
+            --bg-surface: #18181b;
+            --bg-hover: #27272a;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --border-color: rgba(255, 255, 255, 0.06);
+            
+            --accent-btn: #a78bfa; 
+            
+            --nav-bg: var(--bg-body);
+            --nav-item: #71717a;
+            --nav-active: var(--accent-btn);
+        }
+
+        .light-mode {
+            /* LIGHT MODE */
+            --bg-body: #f1f5f9; 
+            --bg-surface: #ffffff;
+            --bg-hover: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.06);
+            
+            --accent-btn: #8b5cf6; 
+            
+            --nav-bg: #ffffff;
+            --nav-item: #94a3b8;
+            --nav-active: var(--accent-btn);
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
+        /* Grouped List Layout Styles */
+        .group-container {
+            background: var(--bg-surface);
+            border-radius: 1.25rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.125rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .list-item:not(:last-child) {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-item:active {
+            background: var(--bg-hover);
+        }
+
+        /* Search Bar */
+        .search-box {
+            background: var(--bg-surface);
+            border-radius: 1rem;
+            padding: 0.875rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* Modals */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+        .modal-backdrop.show { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; width: 100%; max-width: 320px; transform: scale(0.95); transition: 0.3s; text-align: center; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
+        
+        .modal-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: #ef4444; font-size: 1.5rem; }
+        .modal-title { font-size: 1.125rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
+        .modal-btn-primary { width: 100%; padding: 0.875rem; background: #ef4444; color: white; border: none; border-radius: 100px; font-weight: 600; cursor: pointer; margin-bottom: 0.5rem; transition: 0.2s; }
+        .modal-btn-primary:active { transform: scale(0.96); }
+        .modal-btn-secondary { width: 100%; padding: 0.875rem; background: transparent; color: var(--text-muted); border: none; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .modal-btn-secondary:active { background: var(--bg-hover); }
+
+        /* Navigation (No top border) */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: var(--nav-bg); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+            transition: background-color 0.3s ease;
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
+            color: var(--nav-item); transition: color 0.2s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; flex: 1; text-decoration: none;
+        }
+        .nav-item.active { color: var(--nav-active); }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { 
+            width: 24px; height: 24px; 
+            display: block; 
+            stroke: currentColor; 
+            stroke-width: 2.25; 
+            stroke-linecap: round; 
+            stroke-linejoin: round;
+        }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+    </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden relative bg-[#050A15]">
+<body class="h-screen flex flex-col overflow-hidden relative">
 
     <div id="logoutModalBackdrop" class="modal-backdrop">
         <div class="modal-content">
@@ -105,170 +164,166 @@
         </div>
     </div>
 
-    <header class="pt-6 pb-4 px-6 flex items-center bg-[#050A15]/90 backdrop-blur-md border-b border-white/5 shrink-0 sticky top-0 z-40 transform-gpu">
-        <h1 class="text-2xl font-extrabold flex-1 tracking-tight">Profile</h1>
+    <header class="pt-6 pb-2 px-5 flex items-center shrink-0 sticky top-0 z-40 bg-[var(--bg-body)]">
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)]">Profile</h1>
     </header>
 
-    <main class="flex-1 overflow-y-auto pb-32 px-5 pt-6 space-y-6 fade-in" style="-webkit-overflow-scrolling: touch;">
+    <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll" style="-webkit-overflow-scrolling: touch;">
 
-        <section id="heroSection" class="glass-panel rounded-3xl p-6 shadow-lg flex flex-col items-center text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-blue-900/20 to-transparent pointer-events-none"></div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <span class="text-sm">Search</span>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item">
+                <div class="flex items-center gap-4">
+                   <div id="avatarContainer" class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border border-orange-200 flex items-center justify-center font-bold text-2xl shrink-0">
+                       <span id="userInitial">?</span>
+                   </div>
+                   <div class="flex flex-col">
+                       <span id="userName" class="font-bold text-[var(--text-main)] text-lg leading-tight">Loading...</span>
+                       <span id="userEmail" class="text-sm text-[var(--text-muted)] mt-0.5">...</span>
+                   </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" onclick="window.location.href='payment.html'">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-layer-group text-blue-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Current Plan</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="planBadgeText" class="text-sm font-bold text-[var(--text-muted)]">Loading...</span>
+                </div>
+            </div>
             
-            <div class="relative z-10 mb-4">
-                <div id="avatarContainer" class="w-24 h-24 rounded-full border-4 border-[#0B1120] bg-[#050A15] flex items-center justify-center text-3xl font-bold text-slate-300 shadow-xl overflow-hidden relative">
-                    <span id="userInitial">?</span>
-                    <img id="userPhoto" src="" alt="Profile" class="w-full h-full object-cover hidden absolute inset-0">
-                </div>
-                <div id="planBadge" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-800 border-slate-600 text-white transition-all">
-                    Loading...
-                </div>
-            </div>
-
-            <h2 id="userName" class="text-xl font-bold text-white relative z-10 leading-tight">Loading...</h2>
-            <p id="userEmail" class="text-sm text-slate-400 relative z-10 mb-5">...</p>
-
-            <div class="flex items-center justify-center gap-6 w-full pt-5 border-t border-white/5 relative z-10">
-                <div class="text-center">
-                    <p class="text-[10px] text-slate-500 uppercase font-extrabold mb-1 tracking-widest">Study Streak</p>
-                    <p class="text-xl font-bold text-orange-500"><i class="fas fa-fire mr-1.5 text-orange-500/80"></i><span id="streakCount">0</span></p>
-                </div>
-                <div class="w-px h-8 bg-white/10"></div>
-                <div class="text-center">
-                    <p class="text-[10px] text-slate-500 uppercase font-extrabold mb-1 tracking-widest">Member Since</p>
-                    <p class="text-sm font-bold text-slate-300 mt-1" id="memberSince">--</p>
-                </div>
-            </div>
-            
-            <div id="expiryContainer" class="hidden w-full mt-5 bg-[#050A15] rounded-xl p-3 border border-white/5 relative z-10">
-                <p class="text-xs text-slate-400">Renews on: <span id="expiryDate" class="font-bold text-slate-200"></span></p>
-            </div>
-        </section>
-
-        <section id="subscriptionSection" class="glass-panel rounded-3xl p-6 shadow-lg">
-            <div class="flex justify-between items-center mb-5">
-                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-chart-line text-blue-400"></i> Usage & Plan
-                </h3>
-                <span id="usageTypeBadge" class="text-[9px] bg-white/5 border border-white/10 px-2 py-1 rounded text-slate-300 font-bold uppercase tracking-wider">Daily</span>
-            </div>
-
-            <div class="bg-[#050A15] rounded-2xl p-5 border border-white/5 mb-5 shadow-inner">
-                <div class="flex justify-between items-end mb-3">
-                    <div>
-                        <p class="text-3xl font-black text-white" id="usageCount">0</p>
-                        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1">Generations Used</p>
+            <div class="list-item flex-col items-start gap-3">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-bolt text-yellow-500 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Daily Generations</span>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm font-bold text-blue-400" id="usageRemaining">...</p>
-                    </div>
+                    <span class="text-sm font-bold text-[var(--text-muted)]"><span id="usageCount">0</span> used</span>
                 </div>
-                <div class="w-full h-2 bg-[#0B1120] rounded-full overflow-hidden border border-white/5">
+                <div class="w-full h-2 bg-[var(--bg-body)] rounded-full overflow-hidden border border-[var(--border-color)]">
                     <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-700 ease-out" style="width: 0%;"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="grid grid-cols-3 gap-2 mb-6">
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniFree">
-                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Free</p>
-                    <p class="text-xs font-bold text-white mt-1">5 / day</p>
+        <div class="group-container">
+            <div class="list-item">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-fire text-orange-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Study Streak</span>
                 </div>
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniPremium">
-                    <p class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">Premium</p>
-                    <p class="text-xs font-bold text-white mt-1">30 / day</p>
+                <span class="text-sm font-bold text-[var(--text-muted)]"><span id="streakCount">0</span> Days</span>
+            </div>
+            <div class="list-item">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-calendar-alt text-emerald-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Member Since</span>
                 </div>
-                <div class="bg-[#050A15] p-2.5 rounded-xl border border-white/5 text-center transition-all opacity-40" id="miniElite">
-                    <p class="text-[10px] font-extrabold text-yellow-500 uppercase tracking-wider">Elite</p>
-                    <p class="text-xs font-bold text-white mt-1">40 / day</p>
+                <span id="memberSince" class="text-sm font-medium text-[var(--text-muted)]">--</span>
+            </div>
+        </div>
+
+        <div class="group-container p-4">
+            <div class="flex items-center gap-3 mb-4 px-1">
+                <div class="w-6 flex justify-center"><i class="fas fa-trophy text-yellow-500 text-lg"></i></div>
+                <span class="text-[var(--text-main)] font-medium">Achievements</span>
+            </div>
+            <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
+                </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" id="themeToggleBtn">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i id="themeIcon" class="fas fa-moon text-indigo-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Appearance</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="themeText" class="text-sm font-medium text-[var(--text-muted)]">Dark Mode</span>
+                    <div id="themeSwitchBg" class="w-11 h-6 bg-slate-600 rounded-full relative transition-colors duration-300 flex items-center p-1">
+                        <div id="themeSwitchKnob" class="w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0 shadow-sm"></div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <button onclick="window.location.href='payment.html'" id="upgradeBtn" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-transform active:scale-95 uppercase tracking-wider text-sm">
-                Upgrade Plan
-            </button>
-        </section>
-
-        <section id="achievementsSection" class="glass-panel rounded-3xl p-6 shadow-lg">
-            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                <i class="fas fa-trophy text-yellow-500"></i> Achievements
-            </h3>
-            
-            <div id="achievementsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                </div>
-        </section>
-
-        <section id="controlsSection" class="glass-panel rounded-3xl p-6 shadow-lg">
-            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                <i class="fas fa-cog text-slate-400"></i> Account Settings
-            </h3>
-            
-            <div class="space-y-3">
-                <button id="btnResetPassword" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
-                            <i class="fas fa-lock text-xs"></i>
-                        </div>
-                        <span class="text-sm font-bold text-slate-200">Change Password</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-600 text-xs"></i>
-                </button>
-
-                <button id="btnManageSub" onclick="window.location.href='payment.html'" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                            <i class="fas fa-credit-card text-xs"></i>
-                        </div>
-                        <span class="text-sm font-bold text-slate-200">Manage Subscription</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-600 text-xs"></i>
-                </button>
-
-                <button id="btnLogout" class="w-full flex items-center justify-between p-4 bg-[#050A15] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
-                            <i id="logoutIcon" class="fas fa-sign-out-alt text-xs"></i>
-                        </div>
-                        <span id="logoutText" class="text-sm font-bold text-slate-200">Log Out</span>
-                    </div>
-                </button>
-
-                <div class="pt-5 mt-3 border-t border-white/5">
-                    <button id="btnDeleteAccount" class="w-full p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded-2xl text-sm font-bold transition-colors">
-                        Delete Account
-                    </button>
+        <div class="group-container">
+            <div class="list-item" id="btnResetPassword">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-lock text-slate-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Change Password</span>
                 </div>
             </div>
-        </section>
+            <div class="list-item" id="btnLogout">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-sign-out-alt text-red-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Log Out</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" id="btnDeleteAccount">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-trash text-red-500 text-lg"></i></div>
+                    <span class="text-red-500 font-medium">Delete Account</span>
+                </div>
+            </div>
+        </div>
 
     </main>
 
-    <nav id="bottomNav" class="bottom-nav">
+    <nav class="bottom-nav">
         <a href="homepage.html" class="nav-item">
-            <i class="fas fa-home"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
+            </svg>
             <span class="nav-label">Home</span>
         </a>
+        
         <a href="study.html" class="nav-item">
-            <i class="fas fa-folder"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
             <span class="nav-label">Library</span>
         </a>
-        <a href="create.html" class="nav-item create-btn">
-            <div class="create-circle">
-                <i class="fas fa-plus"></i>
-            </div>
+        
+        <a href="create.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
             <span class="nav-label">Create</span>
         </a>
+        
         <a href="leaderboard.html" class="nav-item">
-            <i class="fas fa-trophy"></i>
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
             <span class="nav-label">Leaders</span>
         </a>
+        
         <a href="profile.html" class="nav-item active">
-            <i class="fas fa-user"></i>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // IMPORT ADDED HERE
         import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -285,13 +340,43 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- THEME TOGGLE LOGIC WITH SWITCH ANIMATION ---
+        function updateThemeUI() {
+            const isLight = document.documentElement.classList.contains('light-mode');
+            document.getElementById('themeText').innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            document.getElementById('themeIcon').className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
+            
+            const switchBg = document.getElementById('themeSwitchBg');
+            const switchKnob = document.getElementById('themeSwitchKnob');
+            
+            if (isLight) {
+                switchBg.classList.remove('bg-slate-600');
+                switchBg.classList.add('bg-blue-500');
+                switchKnob.style.transform = 'translateX(20px)'; // Slide to the right
+            } else {
+                switchBg.classList.add('bg-slate-600');
+                switchBg.classList.remove('bg-blue-500');
+                switchKnob.style.transform = 'translateX(0)'; // Slide to the left
+            }
+        }
+        
+        // Initial setup on load
+        updateThemeUI();
+
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {
+            const isLight = document.documentElement.classList.toggle('light-mode');
+            localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
+            updateThemeUI();
+        });
+        // -------------------------
+
         const MASTER_ACHIEVEMENTS = [
-            { id: "first_quiz", title: "First Steps", desc: "Generated your first set", icon: "fa-seedling" },
-            { id: "streak_3", title: "On Fire", desc: "3 day study streak", icon: "fa-fire" },
-            { id: "accuracy_80", title: "Sharpshooter", desc: "Averaged 80%+ accuracy", icon: "fa-bullseye" },
-            { id: "mcq_100", title: "Century Club", desc: "Answered 100 MCQs", icon: "fa-check-double" },
-            { id: "elite_member", title: "Elite Scholar", desc: "Subscribed to Elite", icon: "fa-crown" },
-            { id: "night_owl", title: "Night Owl", desc: "Studied past midnight", icon: "fa-moon" }
+            { id: "first_quiz", title: "First Steps", desc: "First set", icon: "fa-seedling" },
+            { id: "streak_3", title: "On Fire", desc: "3 day streak", icon: "fa-fire" },
+            { id: "accuracy_80", title: "Sharpshooter", desc: "80%+ accuracy", icon: "fa-bullseye" },
+            { id: "mcq_100", title: "Century", desc: "100 MCQs", icon: "fa-check-double" },
+            { id: "elite_member", title: "Elite", desc: "Subscribed", icon: "fa-crown" },
+            { id: "night_owl", title: "Night Owl", desc: "Late study", icon: "fa-moon" }
         ];
 
         function renderAchievements(unlockedIds) {
@@ -299,43 +384,35 @@
             grid.innerHTML = "";
             MASTER_ACHIEVEMENTS.forEach(ach => {
                 const isUnlocked = unlockedIds.includes(ach.id);
-                const stateClass = isUnlocked ? "achievement-unlocked bg-[#0B1120]" : "achievement-locked bg-[#050A15]";
-                const iconColor = isUnlocked ? "text-blue-400" : "text-slate-600";
+                // Updated to use CSS variables for theme support
+                const stateClass = isUnlocked ? "border-[var(--accent-btn)] bg-[var(--bg-body)] shadow-[0_0_15px_rgba(167,139,250,0.1)]" : "border-[var(--border-color)] bg-[var(--bg-body)] opacity-50 grayscale";
+                const iconColor = isUnlocked ? "text-[var(--accent-btn)]" : "text-[var(--text-muted)]";
                 
                 grid.innerHTML += `
-                    <div class="${stateClass} border rounded-2xl p-4 flex flex-col items-center text-center transition-all relative overflow-hidden">
-                        ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[#050A15]/80"><i class="fas fa-lock text-slate-500 text-xl"></i></div>` : ''}
-                        <div class="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-2 ${iconColor}">
-                            <i class="fas ${ach.icon} text-lg"></i>
+                    <div class="${stateClass} border rounded-2xl p-3 flex flex-col items-center text-center transition-all relative overflow-hidden">
+                        ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-surface)]/50"><i class="fas fa-lock text-[var(--text-muted)]"></i></div>` : ''}
+                        <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center mb-1.5 ${iconColor}">
+                            <i class="fas ${ach.icon} text-sm"></i>
                         </div>
-                        <h4 class="text-xs font-bold text-white mb-1">${ach.title}</h4>
-                        <p class="text-[9px] text-slate-400 leading-tight">${ach.desc}</p>
+                        <h4 class="text-[10px] font-bold text-[var(--text-main)] mb-0.5">${ach.title}</h4>
+                        <p class="text-[8px] text-[var(--text-muted)] leading-tight">${ach.desc}</p>
                     </div>
                 `;
             });
         }
 
         function setDefaultUI() {
-            document.getElementById("planBadge").textContent = "Free Plan";
-            document.getElementById("planBadge").className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap bg-slate-700 border-slate-500 text-white transition-all";
+            document.getElementById("planBadgeText").textContent = "Free";
+            document.getElementById("planBadgeText").className = "text-sm font-bold text-[var(--text-muted)]";
             document.getElementById("streakCount").textContent = "0";
             document.getElementById("memberSince").textContent = "--";
             
             document.getElementById("usageCount").textContent = "0";
-            document.getElementById("usageRemaining").textContent = "5 left";
-            document.getElementById("usageRemaining").className = "text-sm font-bold text-slate-300";
             document.getElementById("usageProgressBar").style.width = "0%";
-            document.getElementById("usageProgressBar").className = "h-full bg-slate-400 transition-all duration-700 ease-out";
-            
-            document.getElementById("miniFree").classList.remove('opacity-40');
-            document.getElementById("miniFree").classList.add('border-slate-500/50', 'bg-white/5');
-            document.getElementById("miniPremium").classList.add('opacity-40');
-            document.getElementById("miniElite").classList.add('opacity-40');
             
             renderAchievements([]);
         }
 
-        // --- NEW BULLETPROOF HYBRID AUTHENTICATION GATEKEEPER ---
         const savedUserStr = localStorage.getItem("nativeUser");
         let nativeUserObj = null;
         try { 
@@ -347,14 +424,12 @@
         onAuthStateChanged(auth, async (firebaseUser) => {
             let activeUser = null;
 
-            // 1. Real Web Login
             if (firebaseUser && !firebaseUser.isAnonymous) {
                 activeUser = firebaseUser;
                 const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
                 localStorage.setItem("nativeUser", JSON.stringify(userData));
                 nativeUserObj = userData;
             } 
-            // 2. Native User Fallback & Bridge
             else if (nativeUserObj && nativeUserObj.uid) {
                 activeUser = nativeUserObj;
                 if (!firebaseUser) {
@@ -365,7 +440,6 @@
             if (activeUser) {
                 window.currentUser = activeUser;
 
-                // Pre-fill what we know immediately to prevent flickering
                 const email = activeUser.email || "";
                 const name = activeUser.displayName || email.split("@")[0] || "User";
                 
@@ -373,12 +447,10 @@
                 document.getElementById("userEmail").textContent = email;
                 document.getElementById("userInitial").textContent = email ? email.charAt(0).toUpperCase() : "?";
 
-                // Pull the rest from Firestore safely
                 try {
                     let userRef = doc(db, "users", activeUser.uid);
                     let userDoc = await getDoc(userRef);
 
-                    // Fallback lookup
                     if (!userDoc.exists() && activeUser.email) {
                         userRef = doc(db, "users", activeUser.email);
                         userDoc = await getDoc(userRef);
@@ -396,8 +468,6 @@
                     if (userData.createdAt) {
                         const dateObj = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
                         document.getElementById("memberSince").textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-                    } else {
-                        document.getElementById("memberSince").textContent = "--";
                     }
 
                     const plan = userData.plan || "free";
@@ -405,64 +475,32 @@
                     const isToday = userData.lastDailyReset === today;
                     const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
                     
-                    const expiry = userData.subscriptionExpiry ? userData.subscriptionExpiry.toDate() : null;
                     const unlockedIds = userData.achievements || [];
 
-                    const badge = document.getElementById('planBadge');
-                    badge.className = "absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-lg whitespace-nowrap transition-all";
-                    
+                    const badgeText = document.getElementById('planBadgeText');
                     if (plan === "elite") {
-                        badge.classList.add("bg-yellow-500/20", "border-yellow-500/50", "text-yellow-400");
-                        badge.innerHTML = `<i class="fas fa-crown mr-1"></i> Elite`;
+                        badgeText.textContent = "Elite";
+                        badgeText.className = "text-sm font-bold text-yellow-500";
                     } else if (plan === "premium") {
-                        badge.classList.add("bg-blue-600", "border-blue-400", "text-white");
-                        badge.innerHTML = `<i class="fas fa-star mr-1"></i> Premium`;
+                        badgeText.textContent = "Premium";
+                        badgeText.className = "text-sm font-bold text-blue-500";
                     } else {
-                        badge.classList.add("bg-slate-700", "border-slate-500", "text-white");
-                        badge.textContent = "Free Plan";
-                    }
-
-                    if (expiry && plan !== "free") {
-                        document.getElementById('expiryContainer').classList.remove('hidden');
-                        document.getElementById('expiryDate').textContent = expiry.toLocaleDateString();
+                        badgeText.textContent = "Free";
+                        badgeText.className = "text-sm font-bold text-[var(--text-muted)]";
                     }
 
                     const usageCountEl = document.getElementById('usageCount');
-                    const usageRemEl = document.getElementById('usageRemaining');
                     const barEl = document.getElementById('usageProgressBar');
                     
-                    document.getElementById('miniFree').classList.add('opacity-40');
-                    document.getElementById('miniPremium').classList.add('opacity-40');
-                    document.getElementById('miniElite').classList.add('opacity-40');
-
                     usageCountEl.textContent = dailyUsage;
 
                     if (plan === "elite") {
-                        document.getElementById('miniElite').classList.remove('opacity-40');
-                        document.getElementById('miniElite').classList.add('border-yellow-500/50', 'bg-yellow-500/10');
-                        
-                        const rem = Math.max(0, 50 - dailyUsage);
-                        usageRemEl.textContent = `${rem} left`;
-                        usageRemEl.className = "text-sm font-bold text-yellow-500";
                         barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
                         barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
-                        document.getElementById('upgradeBtn').classList.add('hidden');
-                    } 
-                    else if (plan === "premium") {
-                        document.getElementById('miniPremium').classList.remove('opacity-40');
-                        document.getElementById('miniPremium').classList.add('border-blue-500/50', 'bg-blue-500/10');
-                        
-                        const rem = Math.max(0, 30 - dailyUsage); 
-                        usageRemEl.textContent = `${rem} left`;
+                    } else if (plan === "premium") {
                         barEl.style.width = `${Math.min(100, (dailyUsage / 30) * 100)}%`;
-                    } 
-                    else {
-                        document.getElementById('miniFree').classList.remove('opacity-40');
-                        document.getElementById('miniFree').classList.add('border-slate-500/50', 'bg-white/5');
-                        
-                        const rem = Math.max(0, 5 - dailyUsage);
-                        usageRemEl.textContent = `${rem} left`;
-                        usageRemEl.className = "text-sm font-bold text-slate-300";
+                        barEl.className = "h-full bg-blue-500 transition-all duration-700 ease-out";
+                    } else {
                         barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
                         barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
                     }
@@ -470,7 +508,7 @@
                     renderAchievements(unlockedIds);
 
                 } catch (e) {
-                    console.warn("Firestore Error/Restricted. Defaulting to free UI.", e);
+                    console.warn("Firestore Error. Defaulting to free UI.", e);
                     setDefaultUI();
                 }
             } else {

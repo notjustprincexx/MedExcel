@@ -1,60 +1,803 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
-  <style>
-    /* Floating Animation */
-    @keyframes float {
-      0%, 100% { transform: translate(200px, 200px) rotate(-10deg) translateY(0px); }
-      50% { transform: translate(200px, 200px) rotate(-10deg) translateY(-15px); }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#09090b">
+    <title>MedExcel Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    <script>
+        // TOP SCRIPT: Allows Native Google Users to render the page instantly
+        (function () {
+            const savedUser = localStorage.getItem("nativeUser");
+            if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+                try { window.currentUser = JSON.parse(savedUser); } catch (e) {}
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            /* Premium Dark App Color System */
+            --bg-body: #09090b; 
+            --bg-surface: #121216; 
+            --bg-glass: rgba(255, 255, 255, 0.03); 
+            
+            --text-main: #ffffff; 
+            --text-muted: #94a3b8; 
+            
+            --accent-btn: #a78bfa; /* Lavender/Purple color */
+            --accent-green: #34d399; 
+            --accent-orange: #f97316;
+            
+            --border-glass: rgba(255, 255, 255, 0.06); 
+            
+            --radius-btn: 100px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            --radius-card: 24px;
+            
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        body { 
+            background-color: var(--bg-body); color: var(--text-main);
+            height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
+            overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+        }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            color: transparent !important;
+            border-color: transparent !important;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .skeleton * {
+            visibility: hidden;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Header */
+        .header-bar { 
+            padding: 1.5rem 1.25rem 1rem; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 10; position: sticky; top: 0; 
+            background: rgba(9, 9, 11, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        }
+        .greeting-title { 
+            font-size: 1.15rem; 
+            font-weight: 700; flex: 1; 
+            white-space: nowrap; letter-spacing: -0.01em; 
+            color: var(--text-main); margin: 0;
+            display: flex; align-items: center;
+        }
+        
+        .streak-badge { 
+            display: flex; align-items: center; justify-content: center; gap: 0.375rem; 
+            padding: 0.4rem 0.875rem; border-radius: 9999px; 
+            background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.15); 
+            color: var(--accent-orange); font-size: 0.9375rem; font-weight: 700; cursor: pointer;
+            transition: transform 0.15s var(--ease-out);
+            min-height: 36px; min-width: 65px;
+        }
+        .streak-badge:active { transform: scale(0.95); }
+
+        /* Main Content */
+        .main-content { flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; gap: 1.75rem; }
+        
+        .section-wrapper { display: flex; flex-direction: column; gap: 1rem; }
+        .section-title { 
+            font-size: 0.75rem; font-weight: 800; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.08em; 
+        }
+
+        /* Continue Studying Card */
+        .continue-card { 
+            padding: 1.25rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .continue-card:hover { background: #1a1a20; }
+        .continue-card:active { transform: scale(0.97); }
+        .card-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+        .icon-box { 
+            width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+            color: #60a5fa; font-size: 1.25rem;
+        }
+        .card-details { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .card-title { font-weight: 700; font-size: 0.9375rem; color: var(--text-main); margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+        .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .progress-badge { 
+            background: rgba(59, 130, 246, 0.15); 
+            color: #60a5fa; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            padding: 0.375rem 0.5rem; 
+            border-radius: 6px; 
+            flex-shrink: 0;
+            margin-left: 0.75rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Primary Add Funds Style Button */
+        .add-funds-btn {
+            display: block; width: 100%;
+            background: var(--accent-btn);
+            color: #000000; 
+            text-align: center;
+            padding: 1.125rem;
+            border-radius: var(--radius-btn);
+            font-weight: 700;
+            font-size: 1.0625rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), opacity 0.2s;
+            margin-top: 0.5rem;
+        }
+        .add-funds-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+        /* Crypto Style Cards Grid */
+        .crypto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .crypto-card { 
+            padding: 1.25rem; 
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: var(--bg-surface);
+            border-radius: var(--radius-card);
+            text-decoration: none;
+            min-height: 140px;
+            transition: transform 0.15s var(--ease-out);
+        }
+        .crypto-card:active { transform: scale(0.96); }
+        
+        .crypto-icon-wrapper { margin-bottom: 1rem; }
+        .crypto-coin-icon { 
+            width: 36px; height: 36px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1rem; color: white;
+        }
+        .coin-btc { background: #f7931a; } 
+        .coin-eth { background: #627eea; } 
+
+        .crypto-info { display: flex; flex-direction: column; gap: 0.25rem; }
+        .crypto-ticker { font-size: 1.125rem; font-weight: 700; color: var(--text-main); }
+        .crypto-name { font-size: 0.9375rem; color: var(--text-muted); font-weight: 400; }
+        .crypto-change { font-size: 0.875rem; font-weight: 500; color: var(--accent-green); margin-top: 0.125rem; }
+
+        /* Promo Banner Styles */
+        .promo-banner {
+            background: rgba(167, 139, 250, 0.05);
+            border: 1px solid rgba(167, 139, 250, 0.15);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .promo-banner:active { transform: scale(0.97); }
+        .promo-icon { color: var(--accent-btn); font-size: 1.5rem; }
+        .promo-text { flex: 1; }
+        .promo-text h4 { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .promo-text p { color: var(--text-muted); font-size: 0.8125rem; line-height: 1.4; }
+
+        /* List Rows Styles */
+        .list-row {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.25rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            transition: transform 0.15s var(--ease-out), background 0.2s;
+        }
+        .list-row:hover { background: #1a1a20; }
+        .list-row:active { transform: scale(0.97); }
+        .list-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem; flex-shrink: 0; margin-right: 1rem;
+        }
+        .list-info { flex: 1; display: flex; flex-direction: column; gap: 0.125rem; white-space: nowrap; overflow: hidden; }
+        .list-title { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; }
+        .list-sub { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
+        .list-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; flex-shrink: 0; margin-left: 0.5rem; }
+        .list-value { color: var(--text-main); font-size: 0.875rem; font-weight: 500; }
+        .list-change { color: var(--accent-green); font-size: 0.75rem; font-weight: 600; }
+        .list-change.neutral { color: var(--text-muted); }
+
+        /* Navigation */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: var(--bg-body); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
+            color: #71717a; transition: color 0.2s, transform 0.15s var(--ease-out); cursor: pointer; flex: 1; 
+        }
+        .nav-item.active { color: var(--accent-btn); } /* UPDATED: Now uses the purple/lavender color */
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { 
+            width: 24px; height: 24px; 
+            display: block; 
+            stroke: currentColor; 
+            stroke-width: 2.25; 
+            stroke-linecap: round; 
+            stroke-linejoin: round;
+        }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+
+        /* Dialogs */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); transition: opacity 0.3s;}
+        .ok-backdrop.active { display: flex; }
+        
+        #streakModalBackdrop { align-items: flex-end; }
+        .streak-dialog { 
+            width: 100%; max-width: 100%; 
+            background: var(--bg-surface); 
+            border-radius: var(--radius-card) var(--radius-card) 0 0; 
+            padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); 
+            transform: translateY(100%); opacity: 0; 
+            transition: transform 0.4s var(--ease-out), opacity 0.3s ease; 
+            text-align: center; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+        .ok-backdrop.active .streak-dialog { transform: translateY(0); opacity: 1; }
+        
+        .streak-dialog-title { font-size: 1rem; font-weight: 500; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.4; }
+        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .day-label { font-size: 0.75rem; color: #71717a; font-weight: 600; }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; }
+        .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
+        .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
+        .btn-checkin { 
+            width: 100%; padding: 1.125rem; font-weight: 600; font-size: 1.0625rem; 
+            margin-bottom: 0.5rem; display: block; 
+            background: var(--accent-btn); color: #000000; 
+            border-radius: var(--radius-btn); transition: transform 0.15s;
+        }
+        .btn-checkin:active { transform: scale(0.97); }
+    </style>
+</head>
+<body>
+
+    <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
+        <div class="streak-dialog" id="streakDialog">
+            <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
+            <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
+            <h3 class="streak-dialog-title">Keep the fire alive<br>check in today!</h3>
+            <div class="calendar-row" id="calendarRow"></div>
+            <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
+        </div>
+    </div>
+
+    <header class="header-bar">
+        <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
+        <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+            <i id="headerFireIcon" class="fas fa-fire"></i>
+            <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        
+        <div id="continueStudyingSection" class="section-wrapper">
+            <h2 class="section-title">Continue Studying</h2>
+            <a href="study.html" class="continue-card">
+                <div class="card-left">
+                    <div id="continueIconBox" class="icon-box skeleton">
+                        <i id="continueIcon" class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="card-details">
+                        <h3 id="continueTitle" class="card-title skeleton" style="width: 130px; height: 16px; border-radius: 4px; margin-bottom: 6px;"></h3>
+                        <p class="card-meta skeleton" id="continueMeta" style="width: 90px; height: 12px; border-radius: 4px;"></p>
+                    </div>
+                </div>
+                <div class="progress-badge skeleton" id="continueProgressText" style="width: 44px; height: 24px;"></div>
+            </a>
+        </div>
+
+        <a href="create.html" class="add-funds-btn">
+            Create Material
+        </a>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">For Your Studies</h2>
+            <div class="crypto-grid">
+                
+                <a href="study.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-btc">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">LIB</span>
+                        <span class="crypto-name">My Library</span>
+                        <span class="crypto-change">+ Active</span>
+                    </div>
+                </a>
+
+                <a href="profile.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <div class="crypto-coin-icon coin-eth">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">PROG</span>
+                        <span class="crypto-name">My Progress</span>
+                        <span class="crypto-change">+ Tracker</span>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <h2 class="section-title">Weekly Target</h2>
+            <a href="profile.html" class="promo-banner">
+                <div class="promo-icon"><i class="fas fa-bullseye"></i></div>
+                <div class="promo-text">
+                    <h4>Study Consistency</h4>
+                    <p>You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="section-wrapper" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <h2 class="section-title" style="margin-bottom: 0;">Recent Decks</h2>
+                <a href="study.html" style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-decoration: none; letter-spacing: 0.05em;">View All <i class="fas fa-chevron-right" style="margin-left: 2px;"></i></a>
+            </div>
+            
+            <div>
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fas fa-heartbeat"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Cardiology 101</span>
+                        <span class="list-sub">45 Cards • Anatomy</span>
+                    </div>
+                    <div class="list-stats">
+                        <span class="list-value">Just now</span>
+                        <span class="list-change">+92%</span>
+                    </div>
+                </a>
+                
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fas fa-brain"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Neurology Terms</span>
+                        <span class="list-sub">120 Cards • Medicine</span>
+                    </div>
+                    <div class="list-stats">
+                        <span class="list-value">Yesterday</span>
+                        <span class="list-change neutral">0%</span>
+                    </div>
+                </a>
+
+                <a href="study.html" class="list-row">
+                    <div class="list-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;"><i class="fas fa-capsules"></i></div>
+                    <div class="list-info">
+                        <span class="list-title">Pharmacology Basics</span>
+                        <span class="list-sub">85 Cards • Drugs</span>
+                    </div>
+                    <div class="list-stats">
+                        <span class="list-value">2 days ago</span>
+                        <span class="list-change">+78%</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="homepage.html" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
+            </svg>
+            <span class="nav-label">Home</span>
+        </a>
+        
+        <a href="study.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-label">Library</span>
+        </a>
+        
+        <a href="create.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span class="nav-label">Create</span>
+        </a>
+        
+        <a href="leaderboard.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="nav-label">Leaders</span>
+        </a>
+        
+        <a href="profile.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+    <script>
+    function getTimeEmoji() {
+        const hour = new Date().getHours();
+        if (hour < 12) return '⛅';
+        if (hour < 18) return '☀️';
+        return '🌙';
     }
 
-    /* Breathing Animation */
-    @keyframes breathe {
-      0%, 100% { transform: scale(1, 1); }
-      50% { transform: scale(1.02, 0.98); }
+    let currentStreakCount = 0;
+    let hasCheckedInToday = false;
+
+    async function updateStatusBar(color) {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = Capacitor.Plugins;
+                await StatusBar.setBackgroundColor({ color: color });
+            } catch (e) {}
+        }
     }
 
-    /* Blinking Animation */
-    @keyframes blink {
-      0%, 90%, 100% { transform: scaleY(1); }
-      95% { transform: scaleY(0.1); }
+    function buildCalendarRow() {
+        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        const dates = [];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; 
+        
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - currentDayIndex + i);
+            dates.push(d.getDate());
+        }
+
+        let html = '';
+        for(let i=0; i<7; i++) {
+            let circleClass = "day-circle";
+            let content = dates[i];
+            
+            if (i < currentDayIndex) {
+                circleClass += " done";
+                content = '<i class="fas fa-check"></i>';
+            } else if (i === currentDayIndex) {
+                circleClass += " active";
+                if (hasCheckedInToday) {
+                    content = '<i class="fas fa-check"></i>';
+                }
+            }
+
+            html += `
+            <div class="day-col">
+                <span class="day-label">${labels[i]}</span>
+                <div class="${circleClass}">${content}</div>
+            </div>
+            `;
+        }
+        return html;
     }
 
-    /* Pupil Movement */
-    @keyframes look {
-      0%, 100% { transform: translateX(0px); }
-      25% { transform: translateX(-6px); }
-      75% { transform: translateX(6px); }
+    function openStreakModal() {
+        document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+        const btn = document.getElementById('closeStreakModal');
+        
+        document.getElementById('modalDayCount').textContent = currentStreakCount;
+        
+        if (hasCheckedInToday) {
+            btn.textContent = "Awesome!";
+        } else {
+            btn.textContent = "Check in today!";
+        }
+        
+        document.getElementById('streakModalBackdrop').classList.add('active');
+        document.getElementById('streakDialog').style.opacity = '1';
+        
+        updateStatusBar('#09090b');
     }
 
-    .character-group {
-      animation: float 4s ease-in-out infinite;
-    }
+    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
+    window.initUserUI = async function(user) {
+        try {
+            let savedName = "Guest";
+            if (user && user.displayName) {
+                savedName = user.displayName;
+            } else if (user && user.email) {
+                savedName = user.email.split("@")[0];
+            } 
 
-    .body-group {
-      animation: breathe 3s ease-in-out infinite;
-    }
+            // REMOVE SKELETONS AND POPULATE REAL HEADER DATA
+            const greetingTitle = document.getElementById('greetingTitle');
+            greetingTitle.classList.remove('skeleton');
+            greetingTitle.style.width = 'auto';
+            greetingTitle.style.height = 'auto';
+            
+            if (savedName && savedName !== "Guest" && greetingTitle) {
+                greetingTitle.innerHTML = `Hi, ${savedName} ${getTimeEmoji()}`;
+            } else if (greetingTitle) {
+                 greetingTitle.innerHTML = `Hi, Guest ${getTimeEmoji()}`;
+            }
 
-    .eye-group {
-      transform-origin: -6px -56px;
-      animation: blink 4.5s infinite;
-    }
+            const storageKey = 'medexcel_streak_' + user.uid;
+            let userStats = JSON.parse(localStorage.getItem(storageKey));
+            
+            if (window.fetchUserStreak) {
+                const serverStats = await window.fetchUserStreak(user.uid);
+                if (serverStats && serverStats.lastDate) {
+                    userStats = serverStats;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                }
+            }
 
-    .pupil {
-      animation: look 7s ease-in-out infinite;
-    }
-  </style>
+            if (!userStats) {
+                userStats = { count: 0, lastDate: null };
+            }
+            
+            const todayStr = new Date().toDateString();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toDateString();
 
-  <g class="character-group">
-    <g class="body-group">
-      <rect x="-70" y="-120" width="140" height="240" rx="28" fill="#2a85ff" />
+            if (userStats.lastDate === todayStr) {
+                hasCheckedInToday = true;
+                currentStreakCount = userStats.count;
+            } else if (userStats.lastDate === yesterdayStr) {
+                hasCheckedInToday = false;
+                currentStreakCount = userStats.count + 1; 
+            } else {
+                hasCheckedInToday = false;
+                currentStreakCount = 1; 
+            }
 
-      <g class="eye-group">
-        <ellipse cx="-6" cy="-56" rx="24" ry="14" fill="#ffffff" />
-        <circle class="pupil" cx="2" cy="-56" r="8" fill="#000000" />
-      </g>
+            const headerFireIcon = document.getElementById('headerFireIcon');
+            const headerDisplay = document.getElementById('headerStreakDisplay');
+            
+            headerDisplay.classList.remove('skeleton');
+            headerDisplay.style.width = 'auto';
+            headerDisplay.style.height = 'auto';
 
-      <path d="M -40 -20 L 40 -20 A 40 38 0 0 1 -40 -20 Z" fill="#000000" />
+            if (!hasCheckedInToday) {
+                headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
+                headerFireIcon.style.opacity = '0.4'; 
+                
+                const messages = [
+                    "Keep the fire alive<br>check in today!",
+                    "You're doing great!<br>Claim your daily streak."
+                ];
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                const titleEl = document.querySelector('.streak-dialog-title');
+                if(titleEl) titleEl.innerHTML = msg;
+                
+            } else {
+                headerDisplay.textContent = currentStreakCount;
+                headerFireIcon.style.opacity = '1';
+            }
 
-      <path d="M -26 -20 L -8 -20 L -8 -6 A 4 4 0 0 1 -12 -2 L -22 -2 A 4 4 0 0 1 -26 -6 Z" fill="#ffffff" />
-    </g>
-  </g>
-</svg>
+            if(window.lottie) {
+                if (window.streakLottieAnim) window.streakLottieAnim.destroy();
+                document.getElementById('modalStreakLottie').innerHTML = ''; 
+                window.streakLottieAnim = lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'fire.json' });
+            }
+
+            if (!hasCheckedInToday) {
+                openStreakModal();
+            }
+
+            document.getElementById('closeStreakModal').onclick = () => {
+                if (!hasCheckedInToday) {
+                    userStats.count = currentStreakCount;
+                    userStats.lastDate = todayStr;
+                    localStorage.setItem(storageKey, JSON.stringify(userStats));
+                    hasCheckedInToday = true;
+                    
+                    if (window.syncUserStreak) {
+                        window.syncUserStreak(user.uid, currentStreakCount, todayStr);
+                    }
+                }
+
+                document.getElementById('streakDialog').style.opacity = '0';
+                
+                setTimeout(() => {
+                    document.getElementById('streakModalBackdrop').classList.remove('active');
+                    updateStatusBar('#09090b'); 
+                    
+                    headerDisplay.textContent = currentStreakCount;
+                    headerFireIcon.style.opacity = '1';
+                    
+                    headerFireIcon.classList.add('fire-pop-anim');
+                    setTimeout(() => {
+                        headerFireIcon.classList.remove('fire-pop-anim');
+                    }, 600); 
+                }, 300); 
+            };
+
+            document.getElementById('streakModalBackdrop').addEventListener('click', (e) => {
+                if (e.target.id === 'streakModalBackdrop') {
+                    document.getElementById('closeStreakModal').click();
+                }
+            });
+
+            // REMOVE SKELETONS AND POPULATE "CONTINUE STUDYING" REAL DATA
+            let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid));
+            if (!quizzes || quizzes.length === 0) {
+                quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
+            }
+            
+            const cTitle = document.getElementById('continueTitle');
+            const cMeta = document.getElementById('continueMeta');
+            const cProgress = document.getElementById('continueProgressText');
+            const cIconBox = document.getElementById('continueIconBox');
+
+            // Strip skeleton styles
+            cTitle.classList.remove('skeleton');
+            cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
+            
+            cMeta.classList.remove('skeleton');
+            cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
+            
+            cProgress.classList.remove('skeleton');
+            cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
+            
+            cIconBox.classList.remove('skeleton');
+            
+            if (quizzes.length > 0) {
+                // Populate active deck data
+                const lastQuiz = quizzes[quizzes.length - 1]; 
+                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
+                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
+                
+                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cProgress.textContent = `+${progress}%`; 
+                cMeta.innerHTML = `<span id="continueCardCount">${totalQs}</span> items • <span id="continueSubject">${lastQuiz.subject || 'GENERAL'}</span>`;
+            } else {
+                // Graceful Empty State (keeps layout stable)
+                cTitle.textContent = "No recent activity";
+                cProgress.textContent = "0%";
+                cProgress.style.background = "rgba(255,255,255,0.05)";
+                cProgress.style.color = "var(--text-muted)";
+                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
+            }
+            
+        } catch(e) { console.warn("UI Init failed", e); }
+    };
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+
+        window.syncUserStreak = async function(uid, count, dateStr) {
+            try {
+                await setDoc(doc(db, "users", uid), { streak: count, lastCheckIn: dateStr }, { merge: true });
+            } catch(e) {}
+        };
+        
+        window.fetchUserStreak = async function(uid) {
+            try {
+                const docSnap = await getDoc(doc(db, "users", uid));
+                if (docSnap.exists() && docSnap.data().lastCheckIn) {
+                    return { count: docSnap.data().streak || 0, lastDate: docSnap.data().lastCheckIn };
+                }
+            } catch(e) {}
+            return null;
+        };
+
+        window.logoutUser = async function() {
+            try { await signOut(auth); } catch (e) {}
+            localStorage.removeItem("nativeUser"); 
+            window.location.replace("index.html");
+        };
+
+        async function ensureAndCheckUser(user) {
+            try {
+                let userRef = doc(db, "users", user.uid);
+                let docSnap = await getDoc(userRef);
+
+                if (!docSnap.exists() && user.email) {
+                    userRef = doc(db, "users", user.email);
+                    docSnap = await getDoc(userRef);
+                }
+
+                if (!docSnap.exists()) {
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: user.email, uid: user.uid, plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp()
+                    }, { merge: true });
+                }
+            } catch (error) {
+                console.warn("User validation issue", error);
+            }
+        }
+
+        const savedUserStr = localStorage.getItem("nativeUser");
+        let nativeUserObj = null;
+        try { 
+            if (savedUserStr && savedUserStr !== "undefined" && savedUserStr !== "null") {
+                nativeUserObj = JSON.parse(savedUserStr); 
+            }
+        } catch(e) {}
+
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            let activeUser = null;
+
+            if (firebaseUser && !firebaseUser.isAnonymous) {
+                activeUser = firebaseUser;
+                const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
+                localStorage.setItem("nativeUser", JSON.stringify(userData));
+                nativeUserObj = userData;
+            } 
+            else if (nativeUserObj && nativeUserObj.uid) {
+                activeUser = nativeUserObj;
+                if (!firebaseUser) {
+                    try { await signInAnonymously(auth); } catch (e) {}
+                }
+            }
+
+            if (activeUser) {
+                window.currentUser = activeUser;
+                if (!window.uiInitialized) {
+                    await window.initUserUI(activeUser); 
+                    window.uiInitialized = true; 
+                }
+                ensureAndCheckUser(activeUser);
+            } else {
+                setTimeout(() => {
+                    const check = localStorage.getItem("nativeUser");
+                    if (!auth.currentUser && (!check || check === "null")) {
+                        window.currentUser = null;
+                        localStorage.removeItem("nativeUser");
+                        window.location.replace("index.html");
+                    }
+                }, 2500);
+            }
+        });
+    </script>
+</body>
+</html>
