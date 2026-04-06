@@ -317,22 +317,6 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Primary Add Funds Style Button */
-        .add-funds-btn {
-            display: block; width: 100%;
-            background: var(--accent-btn);
-            color: var(--btn-text); 
-            text-align: center;
-            padding: 1.125rem;
-            border-radius: var(--radius-btn);
-            font-weight: 700;
-            font-size: 1.0625rem;
-            text-decoration: none;
-            transition: transform 0.15s var(--ease-snap), background-color 0.3s ease;
-            margin-top: 0.5rem;
-        }
-        .add-funds-btn:active { transform: scale(0.97); }
-
         /* Horizontal Scroll Container */
         .crypto-scroll-container { 
             display: flex; 
@@ -543,18 +527,18 @@
         <div class="promo-carousel-wrapper">
             <div class="promo-carousel hide-scroll" id="promoCarousel">
                 
-                <a href="study.html" class="promo-consultation-card">
+                <a href="payment.html" class="promo-consultation-card">
                     <div class="promo-bg-shape"></div>
                     <div class="promo-text-area">
                         <div class="promo-discount-row">
                             <span class="promo-percentage">50%</span>
                             <span class="promo-extra">
-                                <span>FASTER</span>
-                                <span>RECALL</span>
+                                <span>OFF</span>
+                                <span>PREMIUM</span>
                             </span>
                         </div>
-                        <p class="promo-desc">Improve exam score<br>with active recall</p>
-                        <div class="promo-btn">Start Studying</div>
+                        <p class="promo-desc">Get your first month absolutely free!</p>
+                        <div class="promo-btn">Upgrade Now</div>
                     </div>
                     <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
                 </a>
@@ -619,12 +603,8 @@
             </a>
         </div>
 
-        <a href="create.html" class="add-funds-btn">
-            Create Material
-        </a>
-
         <div class="section-wrapper" style="margin-top: 1rem;">
-            <h2 class="section-title">For Your Studies</h2>
+            <h2 class="section-title" style="text-transform: none; font-size: 0.85rem; letter-spacing: normal;">What would you like to study?</h2>
             
             <div class="crypto-scroll-container hide-scroll">
                 
@@ -705,8 +685,8 @@
             <a href="profile.html" class="promo-banner">
                 <div class="promo-icon"><i class="fas fa-bullseye"></i></div>
                 <div class="promo-text">
-                    <h4>Study Consistency</h4>
-                    <p>You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
+                    <h4 id="targetTitle" style="transition: opacity 0.3s ease;">Study Consistency</h4>
+                    <p id="targetDesc" style="transition: opacity 0.3s ease;">You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
                 </div>
             </a>
         </div>
@@ -831,6 +811,31 @@
             });
         });
     }
+    // ---------------------------
+
+    // --- WEEKLY TARGET ROTATOR ---
+    const targetMessages = [
+        { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
+        { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." },
+        { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." },
+        { title: "Mastery Approaching", desc: "You are doing great! A few more sessions and you'll master this week's topics." }
+    ];
+    let currentTargetIdx = 0;
+    setInterval(() => {
+        currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
+        const titleEl = document.getElementById('targetTitle');
+        const descEl = document.getElementById('targetDesc');
+        if(titleEl && descEl) {
+            titleEl.style.opacity = '0';
+            descEl.style.opacity = '0';
+            setTimeout(() => {
+                titleEl.textContent = targetMessages[currentTargetIdx].title;
+                descEl.textContent = targetMessages[currentTargetIdx].desc;
+                titleEl.style.opacity = '1';
+                descEl.style.opacity = '1';
+            }, 300);
+        }
+    }, 5000);
     // ---------------------------
 
     function getTimeEmoji() {
