@@ -638,9 +638,26 @@
     }
 
     // --- ADD THIS HERE TO FIX THE APP LOAD THEME BUG ---
-    window.addEventListener('DOMContentLoaded', () => {
+    // --- ROBUST STATUS BAR INITIALIZATION ---
+function initStatusBar() {
+    // 1. Check if Capacitor is fully loaded into the window
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
         updateStatusBar();
-    });
+        
+        // 2. Fire again after 500ms and 1500ms. 
+        // This guarantees that when the native Splash Screen hides, 
+        // our custom theme colors immediately take priority!
+        setTimeout(updateStatusBar, 500);
+        setTimeout(updateStatusBar, 1500);
+    } else {
+        // If Capacitor isn't injected yet, wait 100ms and try again
+        setTimeout(initStatusBar, 100);
+    }
+}
+
+// Start the check as soon as the DOM is ready
+window.addEventListener('DOMContentLoaded', initStatusBar);
+// ----------------------------------------
 
     function buildCalendarRow() {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
