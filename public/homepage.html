@@ -38,8 +38,8 @@
             --text-main: #ffffff; 
             --text-muted: #94a3b8; 
             
-            --accent-btn: #a78bfa; /* Lavender button color */
-            --btn-text: #000000; /* Dark text for light button */
+            --accent-btn: #a78bfa; 
+            --btn-text: #000000; 
             
             --accent-green: #34d399; 
             --accent-orange: #f97316;
@@ -68,8 +68,8 @@
             --text-main: #0f172a; 
             --text-muted: #64748b; 
             
-            --accent-btn: #8b5cf6; /* Darker purple for contrast */
-            --btn-text: #ffffff; /* Light text for dark button */
+            --accent-btn: #8b5cf6; 
+            --btn-text: #ffffff; 
             
             --accent-green: #10b981; 
             --accent-orange: #ea580c;
@@ -628,13 +628,19 @@
     async function updateStatusBar(color) {
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
-                const { StatusBar } = Capacitor.Plugins;
+                const { StatusBar, Style } = Capacitor.Plugins;
                 const isLight = document.documentElement.classList.contains('light-mode');
                 const bgColor = isLight ? '#f1f5f9' : '#09090b';
                 await StatusBar.setBackgroundColor({ color: bgColor });
+                await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
             } catch (e) {}
         }
     }
+
+    // --- ADD THIS HERE TO FIX THE APP LOAD THEME BUG ---
+    window.addEventListener('DOMContentLoaded', () => {
+        updateStatusBar();
+    });
 
     function buildCalendarRow() {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
