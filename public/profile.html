@@ -237,7 +237,37 @@
                 <span class="text-[var(--text-main)] font-medium">Achievements</span>
             </div>
             <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
                 </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+            </div>
         </div>
 
         <div class="group-container">
@@ -340,6 +370,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- CAPACITOR STATUS BAR SYNC ---
+        async function updateStatusBar() {
+            if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+                try {
+                    const { StatusBar, Style } = Capacitor.Plugins;
+                    const isLight = document.documentElement.classList.contains('light-mode');
+                    
+                    const bgColor = isLight ? '#f1f5f9' : '#09090b';
+                    await StatusBar.setBackgroundColor({ color: bgColor });
+                    
+                    await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
+                } catch (error) {
+                    console.warn("Failed to update status bar:", error);
+                }
+            }
+        }
+
         // --- THEME TOGGLE LOGIC WITH SWITCH ANIMATION ---
         function updateThemeUI() {
             const isLight = document.documentElement.classList.contains('light-mode');
@@ -358,6 +405,9 @@
                 switchBg.classList.remove('bg-blue-500');
                 switchKnob.style.transform = 'translateX(0)'; // Slide to the left
             }
+
+            // Keep the native status bar synced up on page load!
+            updateStatusBar();
         }
         
         // Initial setup on load
