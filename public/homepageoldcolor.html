@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
     <script>
+        // Check for saved theme preference to prevent flickering
+        (function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+
         // TOP SCRIPT: Allows Native Google Users to render the page instantly
         (function () {
             const savedUser = localStorage.getItem("nativeUser");
@@ -21,40 +29,77 @@
     </script>
     <style>
         :root {
-            /* Premium Dark App Color System */
+            /* Premium Dark App Color System (Default) */
             --bg-body: #09090b; 
             --bg-surface: #121216; 
-            --bg-glass: rgba(255, 255, 255, 0.03); 
+            --bg-hover: #1a1a20;
+            --bg-glass: rgba(255, 255, 255, 0.05); 
             
             --text-main: #ffffff; 
             --text-muted: #94a3b8; 
             
-            --accent-btn: #a78bfa; /* Lavender/Purple color */
+            --accent-btn: #a78bfa; 
+            --btn-text: #000000; 
+            
             --accent-green: #34d399; 
             --accent-orange: #f97316;
             
             --border-glass: rgba(255, 255, 255, 0.06); 
+            
+            --header-bg: rgba(9, 9, 11, 0.95);
+            --nav-icon: #71717a;
+            --day-circle: #27272a;
             
             --radius-btn: 100px;
             --radius-md: 16px;
             --radius-lg: 20px;
             --radius-card: 24px;
             
-            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .light-mode {
+            /* Premium Light App Color System */
+            --bg-body: #f1f5f9; 
+            --bg-surface: #ffffff; 
+            --bg-hover: #f8fafc;
+            --bg-glass: rgba(0, 0, 0, 0.05); 
+            
+            --text-main: #0f172a; 
+            --text-muted: #64748b; 
+            
+            --accent-btn: #8b5cf6; 
+            --btn-text: #ffffff; 
+            
+            --accent-green: #10b981; 
+            --accent-orange: #ea580c;
+            
+            --border-glass: rgba(0, 0, 0, 0.06); 
+            
+            --header-bg: rgba(241, 245, 249, 0.95);
+            --nav-icon: #94a3b8;
+            --day-circle: #e2e8f0;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        
         body { 
             background-color: var(--bg-body); color: var(--text-main);
             height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
             overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+        
         a { text-decoration: none; color: inherit; }
         button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
 
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
         /* Skeleton Loading Animation */
         .skeleton {
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 75%);
+            background: linear-gradient(90deg, rgba(128, 128, 128, 0.1) 25%, rgba(128, 128, 128, 0.2) 50%, rgba(128, 128, 128, 0.1) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite linear;
             color: transparent !important;
@@ -62,9 +107,7 @@
             pointer-events: none;
             overflow: hidden;
         }
-        .skeleton * {
-            visibility: hidden;
-        }
+        .skeleton * { visibility: hidden; }
         @keyframes shimmer {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
@@ -75,7 +118,8 @@
             padding: 1.5rem 1.25rem 1rem; 
             display: flex; align-items: center; justify-content: space-between; 
             z-index: 10; position: sticky; top: 0; 
-            background: rgba(9, 9, 11, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            background: var(--header-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            transition: background-color 0.3s ease;
         }
         .greeting-title { 
             font-size: 1.15rem; 
@@ -114,14 +158,14 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border-glass);
             text-decoration: none;
-            transition: transform 0.15s var(--ease-out), background 0.2s;
+            transition: transform 0.15s var(--ease-snap), background 0.2s;
         }
-        .continue-card:hover { background: #1a1a20; }
+        .continue-card:hover { background: var(--bg-hover); }
         .continue-card:active { transform: scale(0.97); }
         .card-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
         .icon-box { 
             width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
-            background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+            background: var(--bg-glass); border-radius: 50%;
             color: #60a5fa; font-size: 1.25rem;
         }
         .card-details { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -129,7 +173,7 @@
         .card-meta { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
         .progress-badge { 
             background: rgba(59, 130, 246, 0.15); 
-            color: #60a5fa; 
+            color: #3b82f6; 
             font-size: 0.75rem; 
             font-weight: 700; 
             padding: 0.375rem 0.5rem; 
@@ -143,87 +187,146 @@
         .add-funds-btn {
             display: block; width: 100%;
             background: var(--accent-btn);
-            color: #000000; 
+            color: var(--btn-text); 
             text-align: center;
             padding: 1.125rem;
             border-radius: var(--radius-btn);
             font-weight: 700;
             font-size: 1.0625rem;
             text-decoration: none;
-            transition: transform 0.15s var(--ease-out), opacity 0.2s;
+            transition: transform 0.15s var(--ease-snap), background-color 0.3s ease;
             margin-top: 0.5rem;
         }
-        .add-funds-btn:active { transform: scale(0.97); opacity: 0.9; }
+        .add-funds-btn:active { transform: scale(0.97); }
 
-        /* Crypto Style Cards Grid */
-        .crypto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        /* Horizontal Scroll Container */
+        .crypto-scroll-container { 
+            display: flex; 
+            flex-wrap: nowrap; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            gap: 0.75rem; 
+            padding-bottom: 0.75rem; 
+            scroll-snap-type: x mandatory; 
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
         .crypto-card { 
+            width: 160px; 
+            flex-shrink: 0; 
+            scroll-snap-align: center; 
             padding: 1.25rem; 
             display: flex; flex-direction: column; justify-content: space-between;
             background: var(--bg-surface);
             border-radius: var(--radius-card);
             text-decoration: none;
             min-height: 140px;
-            transition: transform 0.15s var(--ease-out);
+            transition: transform 0.15s var(--ease-snap), background 0.2s;
         }
+        .crypto-card:hover { background: var(--bg-hover); }
         .crypto-card:active { transform: scale(0.96); }
         
-        .crypto-icon-wrapper { margin-bottom: 1rem; }
-        .crypto-coin-icon { 
-            width: 36px; height: 36px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 1rem; color: white;
-        }
-        .coin-btc { background: #f7931a; } 
-        .coin-eth { background: #627eea; } 
+        .crypto-icon-wrapper { margin-bottom: 1rem; display: flex; align-items: flex-start; }
 
         .crypto-info { display: flex; flex-direction: column; gap: 0.25rem; }
         .crypto-ticker { font-size: 1.125rem; font-weight: 700; color: var(--text-main); }
         .crypto-name { font-size: 0.9375rem; color: var(--text-muted); font-weight: 400; }
         .crypto-change { font-size: 0.875rem; font-weight: 500; color: var(--accent-green); margin-top: 0.125rem; }
 
-        /* Promo Banner Styles */
+        /* Promo Banner (Weekly Target) */
         .promo-banner {
-            background: rgba(167, 139, 250, 0.05);
-            border: 1px solid rgba(167, 139, 250, 0.15);
-            border-radius: var(--radius-md);
+            display: flex; 
+            gap: 1rem; 
             padding: 1.25rem;
-            display: flex;
+            background: rgba(139, 92, 246, 0.05); /* Faint purple background */
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: var(--radius-card);
+            text-decoration: none;
             align-items: flex-start;
-            gap: 1rem;
-            text-decoration: none;
-            transition: transform 0.15s var(--ease-out), background 0.2s;
         }
-        .promo-banner:active { transform: scale(0.97); }
-        .promo-icon { color: var(--accent-btn); font-size: 1.5rem; }
-        .promo-text { flex: 1; }
-        .promo-text h4 { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
-        .promo-text p { color: var(--text-muted); font-size: 0.8125rem; line-height: 1.4; }
+        .promo-icon {
+            width: 2.5rem; 
+            height: 2.5rem; 
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.15); 
+            color: #a78bfa;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 1.25rem; 
+            flex-shrink: 0;
+        }
+        .promo-text h4 { 
+            font-size: 0.9375rem; 
+            color: var(--text-main); 
+            margin-bottom: 0.25rem; 
+            font-weight: 700;
+        }
+        .promo-text p { 
+            font-size: 0.8125rem; 
+            color: var(--text-muted); 
+            line-height: 1.4; 
+        }
 
-        /* List Rows Styles */
-        .list-row {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.25rem;
-            background: var(--bg-surface);
-            border-radius: var(--radius-md);
-            margin-bottom: 0.5rem;
-            text-decoration: none;
-            transition: transform 0.15s var(--ease-out), background 0.2s;
+        /* Recent Decks Section */
+        .recent-header-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 0.5rem; 
         }
-        .list-row:hover { background: #1a1a20; }
-        .list-row:active { transform: scale(0.97); }
-        .list-icon {
-            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 1.15rem; flex-shrink: 0; margin-right: 1rem;
+        .view-all { 
+            font-size: 0.8125rem; 
+            color: var(--text-main); 
+            font-weight: 600; 
+            text-decoration: none; 
         }
-        .list-info { flex: 1; display: flex; flex-direction: column; gap: 0.125rem; white-space: nowrap; overflow: hidden; }
-        .list-title { color: var(--text-main); font-size: 0.9375rem; font-weight: 600; text-overflow: ellipsis; overflow: hidden; }
-        .list-sub { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; }
-        .list-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; flex-shrink: 0; margin-left: 0.5rem; }
-        .list-value { color: var(--text-main); font-size: 0.875rem; font-weight: 500; }
-        .list-change { color: var(--accent-green); font-size: 0.75rem; font-weight: 600; }
-        .list-change.neutral { color: var(--text-muted); }
+        .recent-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.75rem; 
+        }
+        .recent-card {
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: var(--bg-surface); 
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-glass);
+            text-decoration: none; 
+            transition: transform 0.15s var(--ease-snap), background 0.2s;
+        }
+        .recent-card:hover { background: var(--bg-hover); }
+        .recent-card:active { transform: scale(0.97); }
+        
+        .recent-icon-box {
+            width: 3rem; 
+            height: 3rem; 
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            flex-shrink: 0; 
+            margin-right: 1rem; 
+            font-size: 1.25rem;
+        }
+        
+        /* Icon color variations */
+        .icon-blue { background: rgba(59, 130, 246, 0.1); color: #60a5fa; }
+        .icon-yellow { background: rgba(234, 179, 8, 0.1); color: #facc15; }
+        .icon-green { background: rgba(16, 185, 129, 0.1); color: #34d399; }
+        
+        .recent-info { flex: 1; display: flex; flex-direction: column; }
+        .recent-title { font-size: 0.9375rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.125rem; }
+        .recent-meta { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .recent-stats { display: flex; flex-direction: column; align-items: flex-end; }
+        .recent-time { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.25rem; }
+        .recent-score { font-size: 0.875rem; font-weight: 700; }
+        .score-good { color: var(--accent-green); }
+        .score-neutral { color: var(--text-muted); }
 
         /* Navigation */
         .bottom-nav { 
@@ -231,12 +334,12 @@
             background: var(--bg-body); 
             padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
             display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+            transition: background-color 0.3s ease;
         }
         .nav-item { 
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
-            color: #71717a; transition: color 0.2s, transform 0.15s var(--ease-out); cursor: pointer; flex: 1; 
-        }
-        .nav-item.active { color: var(--accent-btn); } /* UPDATED: Now uses the purple/lavender color */
+            color: var(--nav-icon); transition: color 0.2s, transform 0.15s var(--ease-snap); cursor: pointer; flex: 1; text-decoration: none;}
+        .nav-item.active { color: var(--accent-btn); }
         .nav-item:active { transform: scale(0.9); }
         .nav-item svg { 
             width: 24px; height: 24px; 
@@ -259,7 +362,7 @@
             border-radius: var(--radius-card) var(--radius-card) 0 0; 
             padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); 
             transform: translateY(100%); opacity: 0; 
-            transition: transform 0.4s var(--ease-out), opacity 0.3s ease; 
+            transition: transform 0.4s var(--ease-snap), background-color 0.3s ease, opacity 0.3s ease; 
             text-align: center; 
             display: flex; flex-direction: column; align-items: center; 
         }
@@ -269,14 +372,14 @@
         .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
         .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
         .day-label { font-size: 0.75rem; color: #71717a; font-weight: 600; }
-        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--day-circle); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; transition: background-color 0.3s; }
         .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
         .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
         .btn-checkin { 
             width: 100%; padding: 1.125rem; font-weight: 600; font-size: 1.0625rem; 
             margin-bottom: 0.5rem; display: block; 
-            background: var(--accent-btn); color: #000000; 
-            border-radius: var(--radius-btn); transition: transform 0.15s;
+            background: var(--accent-btn); color: var(--btn-text); 
+            border-radius: var(--radius-btn); transition: transform 0.15s, background-color 0.3s;
         }
         .btn-checkin:active { transform: scale(0.97); }
     </style>
@@ -286,7 +389,7 @@
     <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
         <div class="streak-dialog" id="streakDialog">
             <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
-            <div style="font-size: 2rem; font-weight: 700; color: white; margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
             <h3 class="streak-dialog-title">Keep the fire alive<br>check in today!</h3>
             <div class="calendar-row" id="calendarRow"></div>
             <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
@@ -325,31 +428,75 @@
 
         <div class="section-wrapper" style="margin-top: 1rem;">
             <h2 class="section-title">For Your Studies</h2>
-            <div class="crypto-grid">
+            
+            <div class="crypto-scroll-container hide-scroll">
                 
-                <a href="study.html" class="crypto-card">
+                <a href="#" class="crypto-card"> 
                     <div class="crypto-icon-wrapper">
-                        <div class="crypto-coin-icon coin-btc">
-                            <i class="fas fa-folder"></i>
-                        </div>
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 52px; height: 52px;">
+                            <rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/>
+                            <rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/>
+                            <circle cx="32" cy="7" r="3" fill="#fbbf24"/>
+                            <path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                            <path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                            <rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/>
+                            <rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/>
+                        </svg>
                     </div>
                     <div class="crypto-info">
-                        <span class="crypto-ticker">LIB</span>
-                        <span class="crypto-name">My Library</span>
-                        <span class="crypto-change">+ Active</span>
+                        <span class="crypto-ticker">MCQ</span>
+                        <span class="crypto-name">Multiple Choice Question</span>
+                        <span class="crypto-change">Practice</span>
+                    </div>
+                </a>
+
+                <a href="#" class="crypto-card"> 
+                    <div class="crypto-icon-wrapper">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 52px; height: 52px;">
+                            <rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/>
+                            <rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/>
+                            <rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/>
+                            <rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/>
+                            <rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/>
+                        </svg>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">Flashcards</span>
+                        <span class="crypto-name">Practice active recall</span>
+                        <span class="crypto-change">Flip & Learn</span>
+                    </div>
+                </a>
+
+                <a href="study.html" class="crypto-card">
+                    <div class="crypto-icon-wrapper">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 52px; height: 52px;">
+                            <path d="M10 20C10 16.6863 12.6863 14 16 14H48C51.3137 14 54 16.6863 54 20V44C54 47.3137 51.3137 50 48 50H16C12.6863 50 10 47.3137 10 44V20Z" fill="#fde68a" opacity="0.8"/>
+                            <path d="M10 28C10 24.6863 12.6863 22 16 22H48C51.3137 22 54 24.6863 54 28V44C54 47.3137 51.3137 50 48 50H16C12.6863 50 10 47.3137 10 44V28Z" fill="#a78bfa"/>
+                            <path d="M10 36C10 32.6863 12.6863 30 16 30H48C51.3137 30 54 32.6863 54 36V44C54 47.3137 51.3137 50 48 50H16C12.6863 50 10 47.3137 10 44V36Z" fill="#000000" opacity="0.9"/>
+                            <path d="M24 40L28 44L40 34" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="crypto-info">
+                        <span class="crypto-ticker">Library</span>
+                        <span class="crypto-name">My saved deck</span>
+                        <span class="crypto-change">Review</span>
                     </div>
                 </a>
 
                 <a href="profile.html" class="crypto-card">
                     <div class="crypto-icon-wrapper">
-                        <div class="crypto-coin-icon coin-eth">
-                            <i class="fas fa-chart-pie"></i>
-                        </div>
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 52px; height: 52px;">
+                            <rect x="10" y="42" width="10" height="12" rx="2" fill="#000000" opacity="0.9"/>
+                            <rect x="27" y="30" width="10" height="24" rx="2" fill="#000000" opacity="0.9"/>
+                            <rect x="44" y="18" width="10" height="36" rx="2" fill="#000000" opacity="0.9"/>
+                            <path d="M10 35L24 24L38 28L54 10" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+                            <path d="M46 10H54V18" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+                        </svg>
                     </div>
                     <div class="crypto-info">
-                        <span class="crypto-ticker">PROG</span>
-                        <span class="crypto-name">My Progress</span>
-                        <span class="crypto-change">+ Tracker</span>
+                        <span class="crypto-ticker">Progress</span>
+                        <span class="crypto-name">Track my progress</span>
+                        <span class="crypto-change">Tracker</span>
                     </div>
                 </a>
 
@@ -367,46 +514,58 @@
             </a>
         </div>
 
-        <div class="section-wrapper" style="margin-top: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                <h2 class="section-title" style="margin-bottom: 0;">Recent Decks</h2>
-                <a href="study.html" style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-decoration: none; letter-spacing: 0.05em;">View All <i class="fas fa-chevron-right" style="margin-left: 2px;"></i></a>
+        <div class="section-wrapper" style="margin-top: 1.5rem;">
+            <div class="recent-header-row">
+                <h2 class="section-title" style="margin:0;">Recent Decks</h2>
+                <a href="study.html" class="view-all">View All <i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-left: 0.25rem;"></i></a>
             </div>
             
-            <div>
-                <a href="study.html" class="list-row">
-                    <div class="list-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fas fa-heartbeat"></i></div>
-                    <div class="list-info">
-                        <span class="list-title">Cardiology 101</span>
-                        <span class="list-sub">45 Cards • Anatomy</span>
+            <div class="recent-list">
+                <a href="#" class="recent-card">
+                    <div style="display: flex; align-items: center;">
+                        <div class="recent-icon-box icon-blue">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="recent-info">
+                            <span class="recent-title">Cardiology 101</span>
+                            <span class="recent-meta">45 Cards • Anatomy</span>
+                        </div>
                     </div>
-                    <div class="list-stats">
-                        <span class="list-value">Just now</span>
-                        <span class="list-change">+92%</span>
-                    </div>
-                </a>
-                
-                <a href="study.html" class="list-row">
-                    <div class="list-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fas fa-brain"></i></div>
-                    <div class="list-info">
-                        <span class="list-title">Neurology Terms</span>
-                        <span class="list-sub">120 Cards • Medicine</span>
-                    </div>
-                    <div class="list-stats">
-                        <span class="list-value">Yesterday</span>
-                        <span class="list-change neutral">0%</span>
+                    <div class="recent-stats">
+                        <span class="recent-time">Just now</span>
+                        <span class="recent-score score-good">+92%</span>
                     </div>
                 </a>
 
-                <a href="study.html" class="list-row">
-                    <div class="list-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;"><i class="fas fa-capsules"></i></div>
-                    <div class="list-info">
-                        <span class="list-title">Pharmacology Basics</span>
-                        <span class="list-sub">85 Cards • Drugs</span>
+                <a href="#" class="recent-card">
+                    <div style="display: flex; align-items: center;">
+                        <div class="recent-icon-box icon-yellow">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="recent-info">
+                            <span class="recent-title">Neurology Terms</span>
+                            <span class="recent-meta">120 Cards • Medicine</span>
+                        </div>
                     </div>
-                    <div class="list-stats">
-                        <span class="list-value">2 days ago</span>
-                        <span class="list-change">+78%</span>
+                    <div class="recent-stats">
+                        <span class="recent-time">Yesterday</span>
+                        <span class="recent-score score-neutral">0%</span>
+                    </div>
+                </a>
+
+                <a href="#" class="recent-card">
+                    <div style="display: flex; align-items: center;">
+                        <div class="recent-icon-box icon-green">
+                            <i class="fas fa-capsules"></i>
+                        </div>
+                        <div class="recent-info">
+                            <span class="recent-title">Pharmacology Ba...</span>
+                            <span class="recent-meta">85 Cards • Drugs</span>
+                        </div>
+                    </div>
+                    <div class="recent-stats">
+                        <span class="recent-time">2 days ago</span>
+                        <span class="recent-score score-good">+78%</span>
                     </div>
                 </a>
             </div>
@@ -469,11 +628,36 @@
     async function updateStatusBar(color) {
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
-                const { StatusBar } = Capacitor.Plugins;
-                await StatusBar.setBackgroundColor({ color: color });
+                const { StatusBar, Style } = Capacitor.Plugins;
+                const isLight = document.documentElement.classList.contains('light-mode');
+                const bgColor = isLight ? '#f1f5f9' : '#09090b';
+                await StatusBar.setBackgroundColor({ color: bgColor });
+                await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
             } catch (e) {}
         }
     }
+
+    // --- ADD THIS HERE TO FIX THE APP LOAD THEME BUG ---
+    // --- ROBUST STATUS BAR INITIALIZATION ---
+function initStatusBar() {
+    // 1. Check if Capacitor is fully loaded into the window
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+        updateStatusBar();
+        
+        // 2. Fire again after 500ms and 1500ms. 
+        // This guarantees that when the native Splash Screen hides, 
+        // our custom theme colors immediately take priority!
+        setTimeout(updateStatusBar, 500);
+        setTimeout(updateStatusBar, 1500);
+    } else {
+        // If Capacitor isn't injected yet, wait 100ms and try again
+        setTimeout(initStatusBar, 100);
+    }
+}
+
+// Start the check as soon as the DOM is ready
+window.addEventListener('DOMContentLoaded', initStatusBar);
+// ----------------------------------------
 
     function buildCalendarRow() {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -527,10 +711,9 @@
         document.getElementById('streakModalBackdrop').classList.add('active');
         document.getElementById('streakDialog').style.opacity = '1';
         
-        updateStatusBar('#09090b');
+        updateStatusBar();
     }
 
-    // --- UI INITIALIZATION TRIGGERED BY AUTH STATE ---
     window.initUserUI = async function(user) {
         try {
             let savedName = "Guest";
@@ -540,7 +723,6 @@
                 savedName = user.email.split("@")[0];
             } 
 
-            // REMOVE SKELETONS AND POPULATE REAL HEADER DATA
             const greetingTitle = document.getElementById('greetingTitle');
             greetingTitle.classList.remove('skeleton');
             greetingTitle.style.width = 'auto';
@@ -633,7 +815,7 @@
                 
                 setTimeout(() => {
                     document.getElementById('streakModalBackdrop').classList.remove('active');
-                    updateStatusBar('#09090b'); 
+                    updateStatusBar(); 
                     
                     headerDisplay.textContent = currentStreakCount;
                     headerFireIcon.style.opacity = '1';
@@ -651,7 +833,6 @@
                 }
             });
 
-            // REMOVE SKELETONS AND POPULATE "CONTINUE STUDYING" REAL DATA
             let quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid));
             if (!quizzes || quizzes.length === 0) {
                 quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
@@ -662,7 +843,6 @@
             const cProgress = document.getElementById('continueProgressText');
             const cIconBox = document.getElementById('continueIconBox');
 
-            // Strip skeleton styles
             cTitle.classList.remove('skeleton');
             cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
             
@@ -675,7 +855,6 @@
             cIconBox.classList.remove('skeleton');
             
             if (quizzes.length > 0) {
-                // Populate active deck data
                 const lastQuiz = quizzes[quizzes.length - 1]; 
                 const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
@@ -685,10 +864,9 @@
                 cProgress.textContent = `+${progress}%`; 
                 cMeta.innerHTML = `<span id="continueCardCount">${totalQs}</span> items • <span id="continueSubject">${lastQuiz.subject || 'GENERAL'}</span>`;
             } else {
-                // Graceful Empty State (keeps layout stable)
                 cTitle.textContent = "No recent activity";
                 cProgress.textContent = "0%";
-                cProgress.style.background = "rgba(255,255,255,0.05)";
+                cProgress.style.background = "rgba(128,128,128,0.1)";
                 cProgress.style.color = "var(--text-muted)";
                 cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
             }

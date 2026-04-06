@@ -148,35 +148,14 @@
             text-transform: uppercase; letter-spacing: 0.08em; 
         }
 
-        /* --- CAROUSEL ADDITIONS --- */
-        .promo-carousel-wrapper {
-            margin-bottom: 0.5rem;
-            position: relative;
-            width: 100%;
-        }
-
-        .promo-carousel {
-            display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            gap: 1rem;
-            padding-bottom: 0.25rem;
-            -webkit-overflow-scrolling: touch;
-        }
-        .promo-carousel::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* EXACT CONSULTATION PROMO CARD DESIGN */
+        /* NEW CONSULTATION PROMO CARD (Match Screenshot Exactly) */
         .promo-consultation-card {
-            min-width: 100%;
-            scroll-snap-align: center;
-            background: #4A1D96; /* Deep purple */
+            background: #4A1D96; /* Deep purple matching the screenshot */
             border-radius: 1.5rem;
             padding: 1.5rem;
             display: flex;
             align-items: center;
-            margin-bottom: 0 !important; /* Overriding for carousel */
+            margin-bottom: 0.5rem;
             position: relative;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(74, 29, 150, 0.2);
@@ -247,39 +226,41 @@
             cursor: pointer;
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            display: inline-block;
         }
 
+        /* Connected SVG Image styling */
         .promo-doctor-img {
             position: absolute;
             bottom: 0;
             right: -5%;
-            height: 120%; 
+            height: 120%; /* Lets him pop out slightly */
             max-height: 190px;
             z-index: 2;
             object-fit: contain;
             object-position: bottom right;
-            pointer-events: none; 
+            pointer-events: none; /* Prevents image from blocking clicks */
         }
 
-        /* Nav Dots shifted to below the card for the Carousel */
-        .promo-dots-container {
+        /* Nav Dots at bottom */
+        .promo-dots {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 0.75rem;
+            gap: 4px;
+            z-index: 2;
         }
         .promo-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background: var(--border-glass);
-            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.3);
         }
         .promo-dot.active {
-            width: 16px;
+            width: 14px;
             border-radius: 100px;
-            background: var(--accent-btn);
+            background: rgba(255,255,255,0.9);
         }
 
         /* Continue Studying Card */
@@ -540,69 +521,30 @@
 
     <main class="main-content">
         
-        <div class="promo-carousel-wrapper">
-            <div class="promo-carousel hide-scroll" id="promoCarousel">
-                
-                <a href="payment.html" class="promo-consultation-card">
-                    <div class="promo-bg-shape"></div>
-                    <div class="promo-text-area">
-                        <div class="promo-discount-row">
-                            <span class="promo-percentage">50%</span>
-                            <span class="promo-extra">
-                                <span>OFF</span>
-                                <span>PREMIUM</span>
-                            </span>
-                        </div>
-                        <p class="promo-desc">Get your first month absolutely free!</p>
-                        <div class="promo-btn">Upgrade Now</div>
-                    </div>
-                    <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
-                </a>
-
-                <a href="study.html" class="promo-consultation-card">
-                    <div class="promo-bg-shape"></div>
-                    <div class="promo-text-area">
-                        <div class="promo-discount-row">
-                            <span class="promo-percentage">2x</span>
-                            <span class="promo-extra">
-                                <span>DAILY</span>
-                                <span>REWARD</span>
-                            </span>
-                        </div>
-                        <p class="promo-desc">Complete 20 flashcards today to earn double XP!</p>
-                        <div class="promo-btn">Start Challenge</div>
-                    </div>
-                    <div class="promo-doctor-img" style="display: flex; align-items: center; justify-content: center; font-size: 5.5rem; color: #ffffff; opacity: 0.85; right: 5%; height: 100%;">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                </a>
-
-                <a href="create.html" class="promo-consultation-card">
-                    <div class="promo-bg-shape"></div>
-                    <div class="promo-text-area">
-                        <div class="promo-discount-row">
-                            <span class="promo-percentage">AI</span>
-                            <span class="promo-extra">
-                                <span>DECK</span>
-                                <span>BUILDER</span>
-                            </span>
-                        </div>
-                        <p class="promo-desc">Turn your notes into study decks in seconds.</p>
-                        <div class="promo-btn">Create Now</div>
-                    </div>
-                    <div class="promo-doctor-img" style="display: flex; align-items: center; justify-content: center; font-size: 5rem; color: #ffffff; opacity: 0.85; right: 5%; height: 100%;">
-                        <i class="fas fa-magic"></i>
-                    </div>
-                </a>
-
+        <a href="payment.html" class="promo-consultation-card">
+            <div class="promo-bg-shape"></div>
+            
+            <div class="promo-text-area">
+                <div class="promo-discount-row">
+                    <span class="promo-percentage">15%</span>
+                    <span class="promo-extra">
+                        <span>EXTRA</span>
+                        <span>DISCOUNT</span>
+                    </span>
+                </div>
+                <p class="promo-desc">Get your first consultation absolutely free!</p>
+                <button class="promo-btn">Get Now</button>
             </div>
             
-            <div class="promo-dots-container" id="carouselIndicators">
+            <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
+
+            <div class="promo-dots">
                 <div class="promo-dot active"></div>
                 <div class="promo-dot"></div>
                 <div class="promo-dot"></div>
+                <div class="promo-dot"></div>
             </div>
-        </div>
+        </a>
         <div id="continueStudyingSection" class="section-wrapper">
             <h2 class="section-title">Continue Studying</h2>
             <a href="study.html" class="continue-card">
@@ -812,27 +754,6 @@
     </nav>
 
     <script>
-    // --- Carousel Sync Logic ---
-    const carousel = document.getElementById('promoCarousel');
-    const indicators = document.querySelectorAll('.promo-dot');
-
-    if(carousel && indicators.length > 0) {
-        carousel.addEventListener('scroll', () => {
-            const scrollPosition = carousel.scrollLeft;
-            const cardWidth = carousel.offsetWidth;
-            const activeIndex = Math.round(scrollPosition / cardWidth);
-
-            indicators.forEach((dot, index) => {
-                if (index === activeIndex) {
-                    dot.classList.add('active');
-                } else {
-                    dot.classList.remove('active');
-                }
-            });
-        });
-    }
-    // ---------------------------
-
     function getTimeEmoji() {
         const hour = new Date().getHours();
         if (hour < 12) return '⛅';
@@ -855,6 +776,7 @@
         }
     }
 
+    // --- ROBUST STATUS BAR INITIALIZATION ---
     function initStatusBar() {
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
             updateStatusBar();
