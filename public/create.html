@@ -308,7 +308,7 @@
         .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
 
         /* GAMIFIED RESULTS SCREEN STYLES */
-        .results-fullscreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; position: relative; z-index: 10; padding: 1rem; }
+        .results-fullscreen { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; position: relative; z-index: 10; padding: 2rem 1rem 1rem; }
         .lesson-complete-title { color: var(--accent-yellow); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-shadow: 0 4px 15px rgba(234, 179, 8, 0.2); text-align: center; z-index: 10; letter-spacing: -0.02em;}
         
         .stats-row { display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem; z-index: 10; }
@@ -348,10 +348,19 @@
 <body>
 
     <div id="aiLoader" class="loader-screen hidden" role="status">
-        <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+        <div style="text-align: center; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 300px;">
             <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
             <div class="loader-title">MedExcel is scanning...</div>
             <div class="loader-subtitle" id="loadingText">Preparing to analyze document...</div>
+            <div style="width: 100%; margin-top: 1.5rem;">
+                <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.12); border-radius: 100px; overflow: hidden;">
+                    <div id="scanProgressBar" style="height: 100%; width: 0%; background: var(--accent-btn); border-radius: 100px; transition: width 1s linear;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                    <span id="scanElapsedLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">0s elapsed</span>
+                    <span id="scanEstLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">~30s remaining</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -594,6 +603,7 @@
         "Almost there..."
     ];
     let messageInterval = null;
+    let scanProgressInterval = null;
 
     const savedUserStr = localStorage.getItem("nativeUser");
     let nativeUserObj = null;
@@ -1125,6 +1135,27 @@
         
         if (lottieAnimation) lottieAnimation.play();
         
+        // Start scan progress indicator
+        const ESTIMATED_SECS = 30;
+        let scanElapsed = 0;
+        const scanProgressBar = document.getElementById('scanProgressBar');
+        const scanElapsedLabel = document.getElementById('scanElapsedLabel');
+        const scanEstLabel = document.getElementById('scanEstLabel');
+        scanProgressBar.style.transition = 'none';
+        scanProgressBar.style.width = '0%';
+        scanElapsedLabel.textContent = '0s elapsed';
+        scanEstLabel.textContent = `~${ESTIMATED_SECS}s remaining`;
+        setTimeout(() => { scanProgressBar.style.transition = 'width 1s linear'; }, 50);
+        scanProgressInterval = setInterval(() => {
+            scanElapsed++;
+            // Progress slows as it approaches 90% to avoid reaching 100% before done
+            const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
+            scanProgressBar.style.width = progress + '%';
+            scanElapsedLabel.textContent = `${scanElapsed}s elapsed`;
+            const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
+            scanEstLabel.textContent = remaining > 0 ? `~${remaining}s remaining` : 'Almost done...';
+        }, 1000);
+        
         let msgIndex = 0;
         loadingText.style.opacity = 0;
         setTimeout(() => {
@@ -1247,20 +1278,23 @@
 
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
+            clearInterval(scanProgressInterval);
 
             aiLoader.classList.add('hidden');
             setupView.style.display = 'none';
             interactiveView.classList.add('active');
+            document.getElementById('backBtn').style.display = 'flex';
+            document.getElementById('backBtn').onclick = window.goBackFromInteractive;
             window.renderCurrentCard();
             
         } catch (error) {
             console.error("Error generating quiz:", error);
             if (lottieAnimation) lottieAnimation.stop();
             clearInterval(messageInterval);
-
-            alert("CRASH REASON: " + error.message);
+            clearInterval(scanProgressInterval);
 
             aiLoader.classList.add('hidden');
+            alert("CRASH REASON: " + error.message);
             generateBtn.disabled = false;
             generateBtn.classList.add('active');
             document.getElementById('backBtn').style.display = 'flex'; // Restore back button

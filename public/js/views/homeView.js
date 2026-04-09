@@ -1,279 +1,183 @@
-// js/views/homeView.js
-import { auth, db } from '../app.js';
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { auth } from '../firebase.js';
+
+export let windowHomeRotator = null;
 
 export const HomeView = {
-    render: async () => {
+    render: () => {
         return `
-            <div id="streakModalBackdrop" class="fixed inset-0 hidden items-start justify-center z-[99999] bg-black/70 backdrop-blur-sm transition-opacity opacity-0">
-                <div class="w-full bg-gradient-to-b from-[#050814] to-[#0f0505] rounded-b-[24px] pt-[calc(env(safe-area-inset-top,0px)+2rem)] px-6 pb-10 transform -translate-y-full transition-transform duration-400 ease-out text-center border-b border-orange-500/15 flex flex-col items-center" id="streakDialog">
-                    <div id="modalStreakLottie" style="width: 72px; height: 72px; margin-bottom: 0.25rem;"></div>
-                    <div class="text-3xl font-extrabold text-white mb-1">Day <span id="modalDayCount">1</span></div>
-                    <h3 class="text-[15px] text-slate-400 font-medium mb-6 leading-relaxed">Keep the fire alive<br>check in today!</h3>
-                    <div class="flex justify-center gap-2 w-full mb-10" id="calendarRow"></div>
-                    <button id="closeStreakModal" class="w-[90%] max-w-[320px] bg-orange-500 text-white py-4 rounded-full font-extrabold text-lg uppercase tracking-widest shadow-[0_5px_0_#c2410c,0_8px_16px_rgba(249,115,22,0.3)] active:translate-y-[5px] active:shadow-[0_0px_0_#c2410c,0_4px_8px_rgba(249,115,22,0.3)] transition-all block mx-auto">Check in today!</button>
+            <style>
+                .header-bar { padding: 1.5rem 1.25rem 1rem; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: sticky; top: 0; background: var(--header-bg); backdrop-filter: blur(16px); }
+                .greeting-title { font-size: 1.15rem; font-weight: 700; flex: 1; margin: 0; display: flex; align-items: center; }
+                .streak-badge { display: flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: 9999px; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.15); color: var(--accent-orange); font-size: 0.9375rem; font-weight: 700; cursor: pointer; }
+                .main-content { padding: 0.5rem 1.25rem 2rem; display: flex; flex-direction: column; gap: 1.75rem; }
+                .section-title { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem;}
+                .promo-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; }
+                .promo-consultation-card { min-width: 100%; scroll-snap-align: center; background: #4A1D96; border-radius: 1.5rem; padding: 1.5rem; display: flex; align-items: center; position: relative; overflow: hidden; min-height: 160px; color: white;}
+                .promo-bg-shape { position: absolute; top: 0; right: 0; bottom: 0; left: 40%; background: #6D28D9; transform: skewX(-15deg); z-index: 1; }
+                .promo-text-area { position: relative; z-index: 2; width: 60%; }
+                .promo-doctor-img { position: absolute; bottom: 0; right: -5%; height: 120%; max-height: 190px; z-index: 2; pointer-events: none; }
+                .promo-dots-container { display: flex; justify-content: center; gap: 6px; margin-top: 0.75rem; }
+                .promo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-glass); transition: all 0.3s; }
+                .promo-dot.active { width: 16px; border-radius: 100px; background: var(--accent-btn); }
+                .continue-card { padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-glass); text-decoration: none; }
+                .promo-banner { display: flex; gap: 1rem; padding: 1.25rem; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.1); border-radius: var(--radius-card); }
+            </style>
+            <div id="streakModalBackdrop" class="ok-backdrop" aria-hidden="true">
+                <div class="streak-dialog" id="streakDialog">
+                    <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; letter-spacing: -0.02em;">Day <span id="modalDayCount">1</span></div>
+                    <h3 class="streak-dialog-title" style="margin-bottom: 1.5rem; color: var(--text-muted);">Keep the fire alive<br>check in today!</h3>
+                    <div class="flex justify-center gap-2 w-full mb-6" id="calendarRow"></div>
+                    <button id="closeStreakModal" class="btn-checkin">Check in today!</button>
                 </div>
             </div>
 
-            <header class="pt-6 pb-4 px-6 flex items-center justify-between z-10 sticky top-0 bg-[#050814]/85 backdrop-blur-md">
-                <h1 id="greetingTitle" class="text-lg font-semibold flex-1 whitespace-nowrap truncate">Welcome back</h1>
-                <div class="flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-orange-500/10 border border-orange-500/15 text-orange-500 text-sm font-extrabold cursor-pointer" id="headerStreakBadge">
-                    <i id="headerFireIcon" class="fas fa-fire text-lg"></i>
-                    <span id="headerStreakDisplay">0</span>
+            <header class="header-bar">
+                <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
+                <div class="streak-badge" id="headerStreakBadge">
+                    <i id="headerFireIcon" class="fas fa-fire"></i>
+                    <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 flex flex-col gap-8">
-                
-                <div id="goProBanner" class="hidden items-center gap-4 py-3 px-5 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/15 shadow-[0_2px_0_rgba(234,179,8,0.1)] cursor-pointer active:translate-y-[2px] active:shadow-none transition-all">
-                    <div id="crownLottieContainer" class="w-12 h-12 flex-shrink-0 opacity-90"></div>
-                    <div class="flex-1">
-                        <h3 class="text-yellow-300 font-bold text-[15px] mb-0.5">Upgrade to Pro</h3>
-                        <p class="text-yellow-300/70 text-xs font-medium">Unlock unlimited AI generations</p>
+            <main class="main-content">
+                <div class="promo-carousel-wrapper">
+                    <div class="promo-carousel hide-scroll" id="promoCarousel">
+                        <a href="#/study" class="promo-consultation-card">
+                            <div class="promo-bg-shape"></div>
+                            <div class="promo-text-area">
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-3xl font-bold">2x</span>
+                                    <span class="text-[0.65rem] font-bold leading-tight">DAILY<br>REWARD</span>
+                                </div>
+                                <p class="text-sm mb-4 opacity-90">Complete 20 flashcards today to earn double XP!</p>
+                                <div class="bg-white/20 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold inline-block">Start Challenge</div>
+                            </div>
+                            <div class="promo-doctor-img flex items-center text-[5.5rem] opacity-80"><i class="fas fa-bolt"></i></div>
+                        </a>
+                        <a href="#/create" class="promo-consultation-card" style="background:#0f766e;">
+                            <div class="promo-bg-shape" style="background:#14b8a6;"></div>
+                            <div class="promo-text-area">
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-3xl font-bold">AI</span>
+                                    <span class="text-[0.65rem] font-bold leading-tight">DECK<br>BUILDER</span>
+                                </div>
+                                <p class="text-sm mb-4 opacity-90">Turn your notes into study decks in seconds.</p>
+                                <div class="bg-white/20 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold inline-block">Create Now</div>
+                            </div>
+                            <div class="promo-doctor-img flex items-center text-[5rem] opacity-80"><i class="fas fa-magic"></i></div>
+                        </a>
                     </div>
-                    <button id="dismissGoProBtn" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white bg-white/5 active:scale-95 transition-all z-10"><i class="fas fa-times"></i></button>
+                    <div class="promo-dots-container" id="carouselIndicators">
+                        <div class="promo-dot active"></div><div class="promo-dot"></div>
+                    </div>
                 </div>
 
-                <div id="continueStudyingSection" class="hidden">
-                    <h2 class="text-xs font-extrabold text-slate-400 mb-3.5 uppercase tracking-widest pl-1">Continue Studying</h2>
-                    <a href="#/library" class="block p-5 relative overflow-hidden bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 active:scale-95 transition-all">
-                        <div class="absolute bottom-0 left-0 h-1 bg-white/5 w-full"><div id="continueProgressBar" class="h-full bg-blue-500 transition-all duration-500"></div></div>
-                        <div class="flex items-center gap-4 mb-1">
-                            <div class="w-12 h-12 flex items-center justify-center flex-shrink-0 drop-shadow-md">
-                                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g></svg>
+                <div class="flex flex-col gap-3">
+                    <h2 class="section-title">Continue Studying</h2>
+                    <a href="#/study" class="continue-card">
+                        <div class="flex items-center gap-4 flex-1 min-w-0">
+                            <div id="continueIconBox" class="w-12 h-12 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl shrink-0 skeleton">
+                                <i class="fas fa-layer-group"></i>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-start gap-3 mb-1">
-                                    <h3 id="continueTitle" class="font-bold text-sm text-slate-100 line-clamp-2">Quiz Title</h3>
-                                    <span id="continueProgressText" class="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">0%</span>
-                                </div>
-                                <p class="text-slate-400 text-xs font-medium"><span id="continueCardCount">0</span> items • <span id="continueSubject" class="uppercase">Subject</span></p>
+                            <div class="flex flex-col justify-center flex-1 min-w-0">
+                                <h3 id="continueTitle" class="font-bold text-[var(--text-main)] truncate skeleton" style="width:100px;height:16px;"></h3>
+                                <p class="text-xs font-medium text-[var(--text-muted)] uppercase mt-1 skeleton" id="continueMeta" style="width:60px;height:12px;"></p>
                             </div>
                         </div>
+                        <div class="bg-blue-500/15 text-blue-500 text-xs font-bold px-2 py-1.5 rounded-md ml-3 skeleton" id="continueProgressText" style="width:40px;height:24px;"></div>
                     </a>
                 </div>
 
-                <div>
-                    <h2 class="text-xs font-extrabold text-slate-400 mb-3.5 uppercase tracking-widest pl-1">Quick Actions</h2>
-                    <div class="grid grid-cols-2 gap-3.5">
-                        
-                        <a href="#/create" class="col-span-2 p-6 relative overflow-hidden flex items-center justify-between rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400/40 shadow-[0_5px_0_#1e3a8a,0_10px_20px_-5px_rgba(37,99,235,0.5)] active:translate-y-[5px] active:shadow-[0_0px_0_#1e3a8a,0_4px_8px_-2px_rgba(37,99,235,0.5)] transition-all">
-                            <div class="relative z-10">
-                                <h3 class="text-lg font-extrabold text-white flex items-center gap-2 mb-1">Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i></h3>
-                                <p class="text-white/80 text-xs font-medium">Upload notes to create materials instantly.</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-full bg-white/15 border border-white/20 flex items-center justify-center relative z-10"><i class="fas fa-arrow-right text-white text-sm"></i></div>
-                        </a>
-                        
-                        <a href="#/create" class="p-4 flex flex-col items-start gap-1 text-left bg-[#0a0f1d] border border-white/5 rounded-2xl shadow-[0_3px_0_rgba(255,255,255,0.02),0_4px_12px_rgba(0,0,0,0.4)] hover:bg-[#0f1629] active:translate-y-[3px] active:shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-all">
-                            <div class="w-12 h-12 flex items-center justify-center mb-1"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><g transform="translate(32, 32)"><g transform="rotate(45) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#88868A"/></g><g transform="rotate(25) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#D2D0D6"/></g><g transform="rotate(5) translate(-14, -20)"><rect width="28" height="40" rx="3" fill="#4CBAD6"/></g></g></svg></div>
-                            <span class="font-bold text-sm text-slate-200 mt-2">Flashcards</span>
-                        </a>
-
-                        <a href="#/create" class="p-4 flex flex-col items-start gap-1 text-left bg-[#0a0f1d] border border-white/5 rounded-2xl shadow-[0_3px_0_rgba(255,255,255,0.02),0_4px_12px_rgba(0,0,0,0.4)] hover:bg-[#0f1629] active:translate-y-[3px] active:shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-all">
-                            <div class="w-12 h-12 flex items-center justify-center mb-1"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><g transform="translate(32, 32)"><g transform="rotate(-5) translate(-18, -22)"><rect width="36" height="44" rx="3" fill="#EAE8EC"/><path d="M0 3 C0 1.34315 1.34315 0 3 0 L33 0 C34.6569 0 36 1.34315 36 3 L36 12 L0 12 Z" fill="#F4A261"/><circle cx="8" cy="20" r="3" fill="#F4A261"/><rect x="14" y="18" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="30" r="3" fill="#C5C3C8"/><rect x="14" y="28" width="14" height="4" rx="2" fill="#C5C3C8"/><circle cx="8" cy="40" r="3" fill="#C5C3C8"/><rect x="14" y="38" width="10" height="4" rx="2" fill="#C5C3C8"/></g></g></svg></div>
-                            <span class="font-bold text-sm text-slate-200 mt-2">MCQ Quiz</span>
-                        </a>
-
+                <div class="flex flex-col gap-3">
+                    <h2 class="section-title">Weekly Target</h2>
+                    <div class="promo-banner">
+                        <div class="w-10 h-10 rounded-full bg-purple-500/15 text-purple-400 flex items-center justify-center text-xl shrink-0"><i class="fas fa-bullseye"></i></div>
+                        <div>
+                            <h4 id="targetTitle" class="text-sm font-bold text-[var(--text-main)] mb-1 transition-opacity duration-300">Study Consistency</h4>
+                            <p id="targetDesc" class="text-xs text-[var(--text-muted)] leading-relaxed transition-opacity duration-300">You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
+                        </div>
                     </div>
                 </div>
             </main>
         `;
     },
-
-    afterRender: async () => {
-        let currentStreakCount = 0;
-        let hasCheckedInToday = false;
-
-        // 1. User Greeting
-        if (window.currentUser) {
-            let savedName = window.currentUser.displayName || window.currentUser.email?.split("@")[0] || "Guest";
-            const greetingTitle = document.getElementById('greetingTitle');
-            const hour = new Date().getHours();
-            const emoji = hour < 12 ? '⛅' : hour < 18 ? '☀️' : '🌙';
-            if (savedName !== "Guest") {
-                greetingTitle.innerHTML = `Hi, ${savedName} ${emoji}`;
-            } else {
-                greetingTitle.innerHTML = `Welcome ${emoji}`;
-            }
-        }
-
-        // 2. Streak Logic
-        const storageKey = 'medexcel_streak_tracker_active';
-        let userStats = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastDate: null };
-        
-        const todayStr = new Date().toDateString();
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toDateString();
-
-        if (userStats.lastDate === todayStr) {
-            hasCheckedInToday = true;
-            currentStreakCount = userStats.count;
-        } else if (userStats.lastDate === yesterdayStr) {
-            hasCheckedInToday = false;
-            currentStreakCount = userStats.count + 1; 
-        } else {
-            hasCheckedInToday = false;
-            currentStreakCount = 1; 
-        }
-
-        const headerDisplay = document.getElementById('headerStreakDisplay');
-        const headerFireIcon = document.getElementById('headerFireIcon');
-
-        if (!hasCheckedInToday) {
-            headerDisplay.textContent = Math.max(0, currentStreakCount - 1);
-            headerFireIcon.style.opacity = '0.4'; 
-        } else {
-            headerDisplay.textContent = currentStreakCount;
-            headerFireIcon.style.opacity = '1';
-        }
-
-        // 3. Calendar UI Builder
-        function buildCalendarRow() {
-            const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-            const dates = [];
-            const today = new Date();
-            const currentDayIndex = (today.getDay() + 6) % 7; 
-            
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(today);
-                d.setDate(today.getDate() - currentDayIndex + i);
-                dates.push(d.getDate());
-            }
-
-            let html = '';
-            for(let i=0; i<7; i++) {
-                let circleClass = "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ";
-                let content = dates[i];
-                
-                if (i < currentDayIndex) {
-                    circleClass += "text-orange-500 text-lg";
-                    content = '<i class="fas fa-check"></i>';
-                } else if (i === currentDayIndex) {
-                    if (hasCheckedInToday) {
-                        circleClass += "bg-orange-500/10 border border-orange-500/30 text-orange-500 text-lg";
-                        content = '<i class="fas fa-check"></i>';
-                    } else {
-                        circleClass += "bg-orange-500/10 border border-orange-500/30 text-orange-500";
-                    }
-                } else {
-                    circleClass += "bg-white/5 text-slate-500";
-                }
-
-                html += `
-                <div class="flex flex-col items-center gap-2">
-                    <span class="text-[11px] text-slate-400 font-semibold">${labels[i]}</span>
-                    <div class="${circleClass}">${content}</div>
-                </div>`;
-            }
-            return html;
-        }
-
-        // 4. Streak Modal Logic
-        const streakBackdrop = document.getElementById('streakModalBackdrop');
-        const streakDialog = document.getElementById('streakDialog');
-
-        function openStreakModal() {
-            document.getElementById('calendarRow').innerHTML = buildCalendarRow();
-            const btn = document.getElementById('closeStreakModal');
-            document.getElementById('modalDayCount').textContent = currentStreakCount;
-            
-            btn.textContent = hasCheckedInToday ? "Awesome!" : "Check in today!";
-            
-            streakBackdrop.classList.remove('hidden');
-            streakBackdrop.classList.add('flex');
-            // Allow display block to render before opacity transition
-            void streakBackdrop.offsetWidth; 
-            streakBackdrop.classList.remove('opacity-0');
-            streakDialog.classList.remove('-translate-y-full');
-        }
-
-        if (!hasCheckedInToday) {
-            openStreakModal();
-        }
-
-        document.getElementById('headerStreakBadge').addEventListener('click', openStreakModal);
-
-        document.getElementById('closeStreakModal').addEventListener('click', () => {
-            if (!hasCheckedInToday) {
-                userStats.count = currentStreakCount;
-                userStats.lastDate = todayStr;
-                localStorage.setItem(storageKey, JSON.stringify(userStats));
-                hasCheckedInToday = true;
-            }
-
-            streakDialog.classList.add('-translate-y-full');
-            streakBackdrop.classList.add('opacity-0');
-            
-            setTimeout(() => {
-                streakBackdrop.classList.add('hidden');
-                streakBackdrop.classList.remove('flex');
-                
-                headerDisplay.textContent = currentStreakCount;
-                headerFireIcon.style.opacity = '1';
-                
-                // Optional: CSS bounce class for fire icon
-                headerFireIcon.classList.add('scale-125');
-                setTimeout(() => headerFireIcon.classList.remove('scale-125'), 300); 
-            }, 300); 
-        });
-
-        // 5. Pro Banner Logic
-        const goProBanner = document.getElementById('goProBanner');
-        const dismissBtn = document.getElementById('dismissGoProBtn');
-        const snoozeTime = localStorage.getItem('medexcel_gopro_snooze');
-        
-        // Load Crown Lottie
-        if (window.lottie && goProBanner) {
-            window.lottie.loadAnimation({
-                container: document.getElementById('crownLottieContainer'),
-                renderer: 'svg', loop: true, autoplay: true, path: 'crown.json' // Ensure this path is correct on your server
+    mount: () => {
+        const carousel = document.getElementById('promoCarousel');
+        const indicators = document.querySelectorAll('.promo-dot');
+        if(carousel && indicators.length > 0) {
+            carousel.addEventListener('scroll', () => {
+                const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                indicators.forEach((dot, idx) => dot.classList.toggle('active', idx === activeIndex));
             });
         }
 
-        if (window.currentUser) {
-            try {
-                let userRef = doc(db, "users", window.currentUser.uid);
-                let docSnap = await getDoc(userRef);
-                if (docSnap.exists()) {
-                    const plan = docSnap.data().plan || "free";
-                    if (plan === "free" && (!snoozeTime || Date.now() > parseInt(snoozeTime, 10))) {
-                        goProBanner.classList.remove('hidden');
-                        goProBanner.classList.add('flex');
-                    }
-                }
-            } catch(e) {}
+        if (windowHomeRotator) clearInterval(windowHomeRotator);
+        const targets = [
+            { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
+            { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." }
+        ];
+        let targetIdx = 0;
+        windowHomeRotator = setInterval(() => {
+            targetIdx = (targetIdx + 1) % targets.length;
+            const tEl = document.getElementById('targetTitle');
+            const dEl = document.getElementById('targetDesc');
+            if(tEl && dEl) {
+                tEl.style.opacity = '0'; dEl.style.opacity = '0';
+                setTimeout(() => {
+                    tEl.textContent = targets[targetIdx].title; dEl.textContent = targets[targetIdx].desc;
+                    tEl.style.opacity = '1'; dEl.style.opacity = '1';
+                }, 300);
+            }
+        }, 6000);
+
+        let activeUser = auth.currentUser || JSON.parse(localStorage.getItem('nativeUser'));
+        const titleEl = document.getElementById('greetingTitle');
+        
+        if (activeUser && titleEl) {
+            const hour = new Date().getHours();
+            const emoji = hour < 12 ? '⛅' : hour < 18 ? '☀️' : '🌙';
+            const name = activeUser.displayName || activeUser.email?.split('@')[0] || 'User';
+            titleEl.textContent = `Hi, ${name} ${emoji}`;
+            titleEl.classList.remove('skeleton');
+
+            document.getElementById('headerStreakDisplay').textContent = "1";
+            document.getElementById('headerStreakDisplay').classList.remove('skeleton');
+            
+            document.getElementById('continueTitle').textContent = "Cardiology 101";
+            document.getElementById('continueMeta').textContent = "45 ITEMS • ANATOMY";
+            document.getElementById('continueProgressText').textContent = "+92%";
+            ['continueTitle', 'continueMeta', 'continueProgressText', 'continueIconBox'].forEach(id => 
+                document.getElementById(id).classList.remove('skeleton')
+            );
         }
 
-        dismissBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            goProBanner.style.opacity = '0';
-            goProBanner.style.transform = 'scale(0.95)';
-            setTimeout(() => { goProBanner.style.display = 'none'; }, 300);
-            
-            const snoozeUntil = Date.now() + 259200000; // Snooze for 3 days
-            localStorage.setItem('medexcel_gopro_snooze', snoozeUntil.toString());
-        });
+        const modal = document.getElementById('streakModalBackdrop');
+        const openBtn = document.getElementById('headerStreakBadge');
+        const closeBtn = document.getElementById('closeStreakModal');
 
-        goProBanner.addEventListener('click', () => { window.location.hash = "#/profile"; });
+        if (openBtn) {
+            openBtn.addEventListener('click', () => {
+                const days = ['M','T','W','T','F','S','S'];
+                let html = '';
+                days.forEach((d, i) => {
+                    let cls = i < 3 ? 'done' : (i===3 ? 'active' : '');
+                    let content = i < 4 ? '<i class="fas fa-check"></i>' : (20+i);
+                    html += `<div class="flex flex-col items-center gap-1"><span class="text-xs text-zinc-500 font-bold">${d}</span><div class="day-circle ${cls}">${content}</div></div>`;
+                });
+                document.getElementById('calendarRow').innerHTML = html;
+                
+                if(window.lottie && !window.streakLottieAnim) {
+                    window.streakLottieAnim = lottie.loadAnimation({ container: document.getElementById('modalStreakLottie'), renderer: 'svg', loop: true, autoplay: true, path: 'https://assets2.lottiefiles.com/packages/lf20_touohxv0.json' });
+                }
+                modal.classList.add('active');
+            });
+        }
 
-        // 6. Continue Studying Logic
-        const quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes')) || [];
-        const continueSection = document.getElementById('continueStudyingSection');
-        if (quizzes.length > 0) {
-            const lastQuiz = quizzes[quizzes.length - 1];
-            const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
-            const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
-            let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
-            
-            document.getElementById('continueTitle').textContent = lastQuiz.title || 'Untitled Quiz';
-            document.getElementById('continueProgressText').textContent = `${progress}%`;
-            document.getElementById('continueProgressBar').style.width = `${progress}%`;
-            document.getElementById('continueCardCount').textContent = totalQs;
-            document.getElementById('continueSubject').textContent = lastQuiz.subject || 'General';
-            continueSection.classList.remove('hidden');
-            continueSection.classList.add('block');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
         }
     }
 };

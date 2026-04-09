@@ -182,158 +182,161 @@
 </head>
 <body>
 
-    <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
-        <div class="loader-content">
-            <div class="loader-graphic-container">
-                <div id="lottieLoader" class="lottie-loader-layer"></div>
-            </div>
-            <div class="loading-text">Loading MedExcel...</div>
-        </div>
-    </div>
-
-    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="ok-dialog" role="document">
-            <h3 id="okTitle" class="dialog-title">Notice</h3>
-            <p id="okMessage" class="dialog-msg">Message goes here</p>
-            <div class="dialog-actions">
-                <button id="okCancel" class="btn-cancel">Cancel</button>
-                <button id="okConfirm" class="btn-confirm">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="introScreen" class="screen active">
+    <div id="app" style="transition: opacity 0.2s ease-in-out; opacity: 1; height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative;">
         
-        <div class="top-bar-overlay">
-            <button class="btn-skip-new" onclick="showAuthSelection()">Skip</button>
+        <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
+            <div class="loader-content">
+                <div class="loader-graphic-container">
+                    <div id="lottieLoader" class="lottie-loader-layer"></div>
+                </div>
+                <div class="loading-text">Loading MedExcel...</div>
+            </div>
         </div>
 
-        <div class="carousel-container" id="onboardingCarousel">
+        <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+            <div class="ok-dialog" role="document">
+                <h3 id="okTitle" class="dialog-title">Notice</h3>
+                <p id="okMessage" class="dialog-msg">Message goes here</p>
+                <div class="dialog-actions">
+                    <button id="okCancel" class="btn-cancel">Cancel</button>
+                    <button id="okConfirm" class="btn-confirm">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="introScreen" class="screen active">
             
-            <div class="onboarding-slide theme-dark" style="background-color: #fee5c6;">
-                <div class="slide-content left-align">
-                    <h2 class="slide-title">AI-Powered<br>Decks</h2>
-                    <div class="vertical-dots">
-                        <span></span><span></span><span></span><span></span>
-                    </div>
-                </div>
-                <img src="pic1.svg" alt="AI Features" class="slide-character char-right">
-                <div class="card-controls controls-left">
-                    <button class="btn-next-card" onclick="nextSlide()">Next</button>
-                    <div class="card-dots">
-                        <div class="card-dot active"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                    </div>
-                </div>
+            <div class="top-bar-overlay">
+                <button class="btn-skip-new" onclick="showAuthSelection()">Skip</button>
             </div>
 
-            <div class="onboarding-slide theme-light" style="background-color: #b5b9e9;">
-                <div class="slide-content right-align">
-                    <h2 class="slide-title">Master Active<br>Recall</h2>
-                    <div class="vertical-dots">
-                        <span></span><span></span><span></span><span></span>
+            <div class="carousel-container" id="onboardingCarousel">
+                
+                <div class="onboarding-slide theme-dark" style="background-color: #fee5c6;">
+                    <div class="slide-content left-align">
+                        <h2 class="slide-title">AI-Powered<br>Decks</h2>
+                        <div class="vertical-dots">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <img src="pic1.svg" alt="AI Features" class="slide-character char-right">
+                    <div class="card-controls controls-left">
+                        <button class="btn-next-card" onclick="nextSlide()">Next</button>
+                        <div class="card-dots">
+                            <div class="card-dot active"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                        </div>
                     </div>
                 </div>
-                <img src="pic2.svg" alt="Active Recall" class="slide-character char-left">
-                <div class="card-controls controls-right">
-                    <button class="btn-next-card" onclick="nextSlide()">Next</button>
-                    <div class="card-dots">
-                        <div class="card-dot"></div>
-                        <div class="card-dot active"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="onboarding-slide theme-light" style="background-color: #53B55C;">
-                <div class="slide-content right-align">
-                    <h2 class="slide-title">Track Your<br>Progress</h2>
-                    <div class="vertical-dots">
-                        <span></span><span></span><span></span><span></span>
+                <div class="onboarding-slide theme-light" style="background-color: #b5b9e9;">
+                    <div class="slide-content right-align">
+                        <h2 class="slide-title">Master Active<br>Recall</h2>
+                        <div class="vertical-dots">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <img src="pic2.svg" alt="Active Recall" class="slide-character char-left">
+                    <div class="card-controls controls-right">
+                        <button class="btn-next-card" onclick="nextSlide()">Next</button>
+                        <div class="card-dots">
+                            <div class="card-dot"></div>
+                            <div class="card-dot active"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                        </div>
                     </div>
                 </div>
-                <img src="pic3.svg" alt="Track Progress" class="slide-character char-left">
-                <div class="card-controls controls-right">
-                    <button class="btn-next-card" onclick="nextSlide()">Next</button>
-                    <div class="card-dots">
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot active"></div>
-                        <div class="card-dot"></div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="onboarding-slide theme-light" style="background-color: #455168;">
-                <div class="slide-content left-align">
-                    <h2 class="slide-title">Achieve<br>Excellence</h2>
-                    <div class="vertical-dots">
-                        <span></span><span></span><span></span><span></span>
+                <div class="onboarding-slide theme-light" style="background-color: #53B55C;">
+                    <div class="slide-content right-align">
+                        <h2 class="slide-title">Track Your<br>Progress</h2>
+                        <div class="vertical-dots">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <img src="pic3.svg" alt="Track Progress" class="slide-character char-left">
+                    <div class="card-controls controls-right">
+                        <button class="btn-next-card" onclick="nextSlide()">Next</button>
+                        <div class="card-dots">
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot active"></div>
+                            <div class="card-dot"></div>
+                        </div>
                     </div>
                 </div>
-                <img src="pic4.svg" alt="Excellence" class="slide-character char-right">
-                <div class="card-controls controls-left">
-                    <button class="btn-next-card" onclick="showAuthSelection()">Start</button>
-                    <div class="card-dots">
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot"></div>
-                        <div class="card-dot active"></div>
-                    </div>
-                </div>
-            </div>
 
+                <div class="onboarding-slide theme-light" style="background-color: #455168;">
+                    <div class="slide-content left-align">
+                        <h2 class="slide-title">Achieve<br>Excellence</h2>
+                        <div class="vertical-dots">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <img src="pic4.svg" alt="Excellence" class="slide-character char-right">
+                    <div class="card-controls controls-left">
+                        <button class="btn-next-card" onclick="showAuthSelection()">Start</button>
+                        <div class="card-dots">
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot"></div>
+                            <div class="card-dot active"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
+
+        <div id="authSelectionScreen" class="screen">
+            <div class="auth-selection active">
+                <div style="width: 80px; height: 80px; border-radius: 20px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; border: 1px solid var(--border-color); color: var(--accent-blue); font-size: 2rem;">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <h2 class="auth-title">MedExcel</h2>
+                <p class="auth-sub">Your intelligent study companion.</p>
+                
+                <button onclick="toggleLogin(true, true)" class="btn-auth-primary">Create Account</button>
+                <button onclick="toggleLogin(true, false)" class="btn-auth-secondary">Log In</button>
+            </div>
+        </div>
+
+        <div id="loginScreen" class="login-modal">
+            <div class="login-header">
+                <button onclick="toggleLogin(false)" class="btn-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h2 id="loginHeading" class="login-title">Enter your details</h2>
+            </div>
+            <div class="login-form">
+                <div class="input-group">
+                    <div id="nameRow" class="input-row" style="display: none;">
+                        <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+                    </div>
+                    <div class="input-row">
+                        <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
+                    </div>
+                    <div class="input-row">
+                        <input id="loginPassword" type="password" placeholder="Password" class="input-field">
+                        <button onclick="togglePassword()" class="btn-toggle-pw">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8-11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                </div>
+                <button id="signInBtn" class="btn-signin">Sign In</button>
+                <button class="btn-forgot">Forgot Password</button>
+                
+                <button onclick="startGoogleLogin()" class="btn-google">
+                    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    <span class="google-text">GOOGLE</span>
+                </button>
+            </div>
+        </div>
+
     </div>
-
-    <div id="authSelectionScreen" class="screen">
-        <div class="auth-selection active">
-            <div style="width: 80px; height: 80px; border-radius: 20px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; border: 1px solid var(--border-color); color: var(--accent-blue); font-size: 2rem;">
-                <i class="fas fa-stethoscope"></i>
-            </div>
-            <h2 class="auth-title">MedExcel</h2>
-            <p class="auth-sub">Your intelligent study companion.</p>
-            
-            <button onclick="toggleLogin(true, true)" class="btn-auth-primary">Create Account</button>
-            <button onclick="toggleLogin(true, false)" class="btn-auth-secondary">Log In</button>
-        </div>
-    </div>
-
-    <div id="loginScreen" class="login-modal">
-        <div class="login-header">
-            <button onclick="toggleLogin(false)" class="btn-close">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <h2 id="loginHeading" class="login-title">Enter your details</h2>
-        </div>
-        <div class="login-form">
-            <div class="input-group">
-                <div id="nameRow" class="input-row" style="display: none;">
-                    <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
-                </div>
-                <div class="input-row">
-                    <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
-                </div>
-                <div class="input-row">
-                    <input id="loginPassword" type="password" placeholder="Password" class="input-field">
-                    <button onclick="togglePassword()" class="btn-toggle-pw">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8-11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-                </div>
-            </div>
-            <button id="signInBtn" class="btn-signin">Sign In</button>
-            <button class="btn-forgot">Forgot Password</button>
-            
-            <button onclick="startGoogleLogin()" class="btn-google">
-                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                <span class="google-text">GOOGLE</span>
-            </button>
-        </div>
-    </div>
-
     <script>
         function nextSlide() {
             const container = document.getElementById('onboardingCarousel');
@@ -587,6 +590,115 @@
                 }
             });
         }
+    </script>
+
+    <script>
+        // SPA Router System
+        (function initSPARouter() {
+            const pageCache = new Map();
+            let isNavigating = false;
+
+            // Initialize caching for the current page
+            pageCache.set(window.location.pathname + window.location.search, document.body.innerHTML);
+
+            // Handle browser Back/Forward buttons
+            window.addEventListener('popstate', (e) => {
+                const url = window.location.pathname + window.location.search + window.location.hash;
+                loadPage(url, false);
+            });
+
+            // Intercept all clicks on the document
+            document.addEventListener('click', (e) => {
+                // Traverse up to find an anchor tag
+                const link = e.target.closest('a');
+                if (!link || !link.href) return;
+
+                const url = new URL(link.href);
+                const currentUrl = new URL(window.location.href);
+
+                // Ignore external links, new tabs, or anchor jumps on the same page
+                if (url.origin !== currentUrl.origin || link.target === '_blank') return;
+                if (url.pathname === currentUrl.pathname && url.search === currentUrl.search) return;
+
+                e.preventDefault();
+                loadPage(url.pathname + url.search + url.hash, true);
+            });
+
+            async function loadPage(url, pushHistory = true) {
+                if (isNavigating) return;
+                isNavigating = true;
+
+                const appContainer = document.getElementById('app');
+                if (!appContainer) {
+                    window.location.href = url; // Fallback if container is missing
+                    return;
+                }
+
+                // Trigger fade out
+                appContainer.style.opacity = '0';
+
+                try {
+                    let html;
+                    
+                    // Check cache first
+                    if (pageCache.has(url)) {
+                        html = pageCache.get(url);
+                    } else {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error('Failed to fetch page');
+                        html = await response.text();
+                        pageCache.set(url, html); // Cache the fetched page
+                    }
+
+                    // Parse the fetched HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // Wait for the fade-out transition (200ms)
+                    setTimeout(() => {
+                        if (pushHistory) {
+                            window.history.pushState({ url }, doc.title, url);
+                        }
+                        document.title = doc.title;
+
+                        // Extract the #app content if it exists in the fetched page, otherwise fallback to body
+                        const fetchedApp = doc.body.querySelector('#app');
+                        appContainer.innerHTML = fetchedApp ? fetchedApp.innerHTML : doc.body.innerHTML;
+
+                        // Execute scripts safely without duplicating Firebase/Global logic
+                        executePageScripts(appContainer);
+
+                        // Trigger fade in
+                        appContainer.style.opacity = '1';
+                        isNavigating = false;
+                    }, 200);
+
+                } catch (error) {
+                    console.warn("SPA Load Failed, falling back to standard navigation:", error);
+                    window.location.href = url;
+                }
+            }
+
+            function executePageScripts(container) {
+                const scripts = container.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    // Safety Constraint: Do NOT re-run Firebase initializations or module scripts
+                    // to prevent "Firebase App already exists" errors or duplicate global variables.
+                    const scriptText = oldScript.innerHTML || "";
+                    if (oldScript.src && oldScript.src.includes('firebase')) return;
+                    if (scriptText.includes('initializeApp(firebaseConfig)')) return;
+                    if (oldScript.type === 'module') return; 
+
+                    // Create a new script tag to force browser execution
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    if (oldScript.innerHTML) {
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    }
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            }
+        })();
     </script>
 </body>
 </html>
