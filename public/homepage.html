@@ -89,7 +89,8 @@
             display: none; flex-direction: column; width: 100%; height: 100%;
             overflow: hidden; position: absolute; inset: 0; z-index: 10;
         }
-        .app-view.active { display: flex; }
+        .app-view.active { display: flex; animation: pageEnter 0.28s var(--ease-snap) forwards; }
+        @keyframes pageEnter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* General Utilities */
         .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
@@ -463,18 +464,8 @@
             </aside>
 
             <main id="studyPracticePanel" class="practice-panel">
-                <header class="h-[72px] lg:h-[88px] flex items-center justify-between px-5 lg:px-8 shrink-0 border-b border-[var(--border-color)]">
-                    <div class="flex items-center gap-4 w-full lg:w-auto">
-                        <button onclick="window.closePracticeMobile()" class="w-10 h-10 rounded-full bg-[var(--bg-glass)] flex items-center justify-center text-[var(--text-main)] text-xl lg:hidden"><i class="fas fa-arrow-left"></i></button>
-                        <div class="flex gap-3">
-                            <div class="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-sm font-bold bg-[var(--bg-glass)] text-[var(--accent-yellow)]">
-                                <i class="fas fa-bolt"></i> <span id="studyXpDisplay">0 XP</span>
-                            </div>
-                            <div class="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-sm font-bold bg-[var(--bg-glass)] text-[var(--accent-orange)]">
-                                <i class="fas fa-fire"></i> <span id="studyStreakDisplay">0 Day</span>
-                            </div>
-                        </div>
-                    </div>
+                <header id="studyPracticeHeader" class="h-[64px] flex items-center gap-3 px-5 shrink-0 border-b border-[var(--border-color)]">
+                    <button onclick="window.closePracticeMobile()" class="w-10 h-10 rounded-full bg-[var(--bg-glass)] flex items-center justify-center text-[var(--text-main)] text-xl lg:hidden"><i class="fas fa-arrow-left"></i></button>
                 </header>
 
                 <div id="studyPracticeArea" class="flex-1 overflow-y-auto p-4 lg:p-8 flex items-center justify-center pb-8 hide-scroll">
@@ -1109,11 +1100,31 @@
         // Variable to hold the animation so it doesn't duplicate
         var fireLottieAnim = null;
 
+        const streakDailyMessages = [
+            { title: "Rest day recharged?", sub: "Sunday reset — show up today<br>and keep that streak burning! 🔥" },
+            { title: "New week, new goals!", sub: "Monday energy — check in now<br>and set the tone for the week! 💪" },
+            { title: "Two days strong!", sub: "You showed up yesterday.<br>Do it again today — it adds up! ⚡" },
+            { title: "Midweek momentum!", sub: "Wednesday warriors don't quit.<br>Stay consistent, stay ahead! 🏆" },
+            { title: "Almost at the weekend!", sub: "Thursday push — one more day<br>before you can brag about it! 😅" },
+            { title: "Friday fire!", sub: "End the week strong.<br>Check in and protect that streak! 🎯" },
+            { title: "Weekend warrior mode!", sub: "Saturday hustle — the best students<br>don't take days off. Let's go! 🚀" }
+        ];
+        
         window.openStreakModal = function() {
             document.getElementById('calendarRow').innerHTML = buildCalendarRow();
             const btn = document.getElementById('closeStreakModal');
             document.getElementById('modalDayCount').textContent = currentStreakCount;
-            btn.textContent = hasCheckedInToday ? "Awesome!" : "Check in today!";
+            btn.textContent = hasCheckedInToday ? "Awesome! 🎉" : "Check in today!";
+            
+            const todayMsg = streakDailyMessages[new Date().getDay()];
+            const titleEl = document.getElementById('streakDialogTitle');
+            if (titleEl) {
+                if (hasCheckedInToday) {
+                    titleEl.innerHTML = `You're on fire! 🔥<br>Keep this streak going tomorrow!`;
+                } else {
+                    titleEl.innerHTML = `${todayMsg.sub}`;
+                }
+            }
             
             if (!fireLottieAnim) {
                 fireLottieAnim = lottie.loadAnimation({
@@ -1154,6 +1165,7 @@
         }
 
         window.closePracticeMobile = function() {
+            window.exitStudyQuizMode();
             if (window.innerWidth < 1024) {
                 document.getElementById('libraryPanel').classList.remove('hidden');
                 document.getElementById('studyPracticePanel').classList.remove('active');
@@ -1169,7 +1181,52 @@
         }
 
         window.promptDelete = function(e, id) { e.stopPropagation(); window.quizToDelete = id; document.getElementById('deleteModalBackdrop').classList.add('show'); };
-        window.startPractice = function(exam) { isExamMode = exam; currentQuestionIndex = 0; examScore = 0; window.renderStudyQuestion(); }
+
+        window.enterStudyQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = 'translateY(100%)';
+            const panel = document.getElementById('studyPracticePanel');
+            panel.style.position = 'fixed';
+            panel.style.inset = '0';
+            panel.style.zIndex = '200';
+            panel.style.background = 'var(--bg-body)';
+            const header = document.getElementById('studyPracticeHeader');
+            if (header) header.style.display = 'none';
+            const area = document.getElementById('studyPracticeArea');
+            area.style.padding = '0';
+            area.style.paddingBottom = '0';
+            area.style.alignItems = 'stretch';
+            area.style.justifyContent = 'flex-start';
+        };
+
+        window.exitStudyQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = '';
+            const panel = document.getElementById('studyPracticePanel');
+            panel.style.position = '';
+            panel.style.inset = '';
+            panel.style.zIndex = '';
+            panel.style.background = '';
+            const header = document.getElementById('studyPracticeHeader');
+            if (header) header.style.display = '';
+            const area = document.getElementById('studyPracticeArea');
+            area.style.padding = '';
+            area.style.paddingBottom = '';
+            area.style.alignItems = '';
+            area.style.justifyContent = '';
+        };
+
+        window.startPractice = function(exam) {
+            isExamMode = exam;
+            currentQuestionIndex = 0;
+            examScore = 0;
+            // Reset answered state for all questions
+            if (currentQuiz && currentQuiz.questions) {
+                currentQuiz.questions.forEach(q => { q.answered = false; });
+            }
+            window.enterStudyQuizMode();
+            window.renderStudyQuestion();
+        }
 
         window.renderStudyQuestion = function() {
             if (!currentQuiz || !currentQuiz.questions) return;
@@ -1177,69 +1234,148 @@
 
             const q = currentQuiz.questions[currentQuestionIndex];
             const area = document.getElementById('studyPracticeArea');
-            const progress = ((currentQuestionIndex) / currentQuiz.questions.length) * 100;
+            const progressPercent = ((currentQuestionIndex + 1) / currentQuiz.questions.length) * 100;
+            const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
 
-            let optionsHtml = q.options.map((opt, idx) => `
-                <button onclick="window.selectStudyAnswer(${idx})" class="option-btn group transition-all w-full text-left p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-body)] flex gap-3 hover:border-[var(--accent-btn)]">
-                    <span class="font-bold text-[var(--text-muted)] shrink-0">${String.fromCharCode(65 + idx)}</span>
-                    <span class="text-[15px]">${opt}</span>
-                </button>
-            `).join('');
+            const safeQuestion = window.escapeHTML(q.text || q.front || q.question || "No question");
+            const safeAnswer   = window.escapeHTML(q.back  || q.answer || "");
+
+            let contentHTML = '';
+
+            if (isMCQSession) {
+                let optionsHTML = '<div style="display:flex;flex-direction:column;gap:0.5rem;flex-shrink:0;width:100%;">';
+                q.options.forEach((opt, idx) => {
+                    const key = String.fromCharCode(65 + idx);
+                    optionsHTML += `<button class="study-mcq-opt" data-idx="${idx}" style="width:100%;text-align:left;padding:0.75rem 0.875rem;border-radius:var(--radius-md);background:var(--bg-body);border:1px solid var(--border-glass);display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;color:var(--text-main);transition:border-color 0.15s;"><span style="font-weight:600;color:var(--text-muted);background:var(--bg-surface);border:1px solid var(--border-glass);width:1.625rem;height:1.625rem;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:0.75rem;flex-shrink:0;margin-top:0.125rem;">${key}</span><span style="flex:1;font-size:0.9rem;line-height:1.4;padding-top:0.125rem;font-weight:500;">${window.escapeHTML(opt)}</span></button>`;
+                });
+                optionsHTML += '</div>';
+                contentHTML = `
+                    <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-card);padding:1rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+                        <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;padding-right:0.25rem;" class="hide-scroll">
+                            <h3 style="font-weight:700;color:var(--text-main);font-size:0.9375rem;line-height:1.6;margin-bottom:1rem;flex-shrink:0;">${safeQuestion}</h3>
+                            ${optionsHTML}
+                            <div id="studyExplanationArea" style="display:none;flex-direction:column;gap:0.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-glass);flex-shrink:0;"></div>
+                        </div>
+                    </div>`;
+            } else {
+                contentHTML = `
+                    <div id="studyFlashcardEl" style="flex:1;position:relative;perspective:1000px;cursor:pointer;min-height:0;width:100%;">
+                        <div id="studyFlipInner" style="position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 0.5s var(--ease-snap);border-radius:var(--radius-card);">
+                            <div style="position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--radius-card);padding:1.5rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow-y:auto;background:var(--bg-surface);z-index:2;transform:rotateY(0deg);">
+                                <span style="position:absolute;top:1.5rem;font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Question</span>
+                                <h3 style="font-weight:600;font-size:1.125rem;line-height:1.5;margin-top:1rem;color:var(--text-main);">${safeQuestion}</h3>
+                                <p style="position:absolute;bottom:1.25rem;font-size:0.8125rem;font-weight:500;display:flex;align-items:center;gap:0.375rem;color:var(--text-muted);"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                            <div style="position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--radius-card);padding:1.5rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow-y:auto;background:var(--accent-btn);transform:rotateY(180deg);box-shadow:0 10px 25px -5px rgba(0,0,0,0.2);z-index:1;">
+                                <span style="position:absolute;top:1.5rem;font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--btn-text);opacity:0.7;">Answer</span>
+                                <p style="font-weight:600;font-size:1.125rem;line-height:1.5;margin-top:1rem;color:var(--btn-text);">${safeAnswer}</p>
+                                <p style="position:absolute;bottom:1.25rem;font-size:0.8125rem;font-weight:500;display:flex;align-items:center;gap:0.375rem;color:var(--btn-text);opacity:0.8;"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            const isLast = currentQuestionIndex === currentQuiz.questions.length - 1;
+            const nextDisabled = isMCQSession && !q.answered;
 
             area.innerHTML = `
-                <div class="w-full max-w-3xl flex flex-col h-full py-2 fade-in">
-                    <div class="mb-6 shrink-0">
-                        <div class="flex justify-between text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-3">
-                            <span>Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}</span>
-                        </div>
-                        <div class="h-1.5 w-full bg-[var(--bg-glass)] rounded-full overflow-hidden"><div class="h-full bg-[var(--accent-btn)] rounded-full transition-all" style="width: ${progress}%"></div></div>
+                <div style="display:flex;flex-direction:column;height:100%;width:100%;padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:680px;margin:0 auto;" class="fade-in">
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-shrink:0;">
+                        <button onclick="window.closePracticeMobile()" style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;flex-shrink:0;transition:0.2s;" ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform=''"><i class="fas fa-arrow-left"></i></button>
+                        <h2 style="font-size:0.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;flex:1;">${isMCQSession ? 'MCQ Session' : 'Flashcard Session'}</h2>
+                        <span style="font-size:0.8125rem;font-weight:600;color:var(--text-main);">${currentQuestionIndex + 1} / ${currentQuiz.questions.length}</span>
                     </div>
-                    <div class="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col flex-1 overflow-y-auto">
-                        <h3 class="text-lg font-bold text-[var(--text-main)] mb-6">${q.text}</h3>
-                        <div class="flex flex-col gap-3" id="studyOptionsContainer">${optionsHtml}</div>
-                        <div id="studyExplanationArea" class="hidden flex-col gap-3 mt-6 pt-6 border-t border-[var(--border-color)]"></div>
+                    <div style="width:100%;height:6px;background:var(--bg-body);border-radius:100px;overflow:hidden;margin-bottom:1rem;border:1px solid var(--border-glass);flex-shrink:0;">
+                        <div style="height:100%;background:var(--accent-btn);border-radius:100px;transition:width 0.4s var(--ease-snap);width:${progressPercent}%;"></div>
                     </div>
-                    <div class="mt-4 flex justify-end shrink-0">
-                        <button id="studyNextBtn" onclick="window.renderStudyQuestion()" class="hidden w-full lg:w-auto bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 px-8 rounded-full">
-                            ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Session' : 'Continue'}
-                        </button>
+                    ${contentHTML}
+                    <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-shrink:0;">
+                        <button id="studyPrevBtn" style="flex:1;padding:1rem;border-radius:var(--radius-btn);font-size:0.9375rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);${currentQuestionIndex === 0 ? 'opacity:0.4;cursor:not-allowed;' : ''}">Previous</button>
+                        <button id="studyNextBtn" style="flex:1;padding:1rem;border-radius:var(--radius-btn);font-size:0.9375rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);${nextDisabled ? 'opacity:0.4;cursor:not-allowed;' : ''}">${isLast ? 'Finish' : 'Next'}</button>
                     </div>
                 </div>
             `;
-        }
 
-        window.selectStudyAnswer = function(selectedIndex) {
-            const q = currentQuiz.questions[currentQuestionIndex];
-            const isCorrect = selectedIndex === q.correct;
-            const container = document.getElementById('studyOptionsContainer');
-            const explanationArea = document.getElementById('studyExplanationArea');
+            // Attach event listeners
+            if (isMCQSession) {
+                const btns = area.querySelectorAll('.study-mcq-opt');
+                btns.forEach(btn => btn.addEventListener('click', () => window.handleStudyMCQSelection(btn, q, btns)));
+            } else {
+                const fc = document.getElementById('studyFlashcardEl');
+                fc.addEventListener('click', () => {
+                    const inner = document.getElementById('studyFlipInner');
+                    inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)';
+                });
+            }
+
+            const prevBtn = document.getElementById('studyPrevBtn');
             const nextBtn = document.getElementById('studyNextBtn');
 
-            if (isCorrect) { examScore++; window.addXP(10); }
+            prevBtn.addEventListener('click', () => {
+                if (currentQuestionIndex > 0) { currentQuestionIndex--; window.renderStudyQuestion(); }
+            });
+            nextBtn.addEventListener('click', () => {
+                if (nextDisabled) return;
+                if (currentQuestionIndex < currentQuiz.questions.length - 1) { currentQuestionIndex++; window.renderStudyQuestion(); }
+                else { window.finishStudyQuiz(); }
+            });
+        }
 
-            Array.from(container.children).forEach((btn, idx) => {
+        window.handleStudyMCQSelection = function(selectedBtn, q, allBtns) {
+            if (q.answered) return;
+            q.answered = true;
+
+            const selectedIdx = parseInt(selectedBtn.dataset.idx);
+            const isCorrect = selectedIdx === q.correct;
+            if (isCorrect) examScore++;
+
+            allBtns.forEach(btn => {
+                const idx = parseInt(btn.dataset.idx);
                 btn.disabled = true;
-                if (idx === q.correct) { btn.classList.add('bg-green-500/10', 'border-green-500/30', 'text-green-500'); } 
-                else if (idx === selectedIndex && !isCorrect) { btn.classList.add('bg-red-500/10', 'border-red-500/30', 'text-red-500'); } 
-                else { btn.classList.add('opacity-50'); }
+                btn.style.cursor = 'not-allowed';
+                if (idx === q.correct) {
+                    btn.style.background = 'rgba(16,185,129,0.1)';
+                    btn.style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.style.color = 'var(--accent-green)';
+                    btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.querySelector('span').style.color = 'var(--accent-green)';
+                } else if (idx === selectedIdx) {
+                    btn.style.background = 'rgba(239,68,68,0.1)';
+                    btn.style.borderColor = 'rgba(239,68,68,0.3)';
+                    btn.style.color = 'var(--accent-red)';
+                    btn.querySelector('span').style.borderColor = 'rgba(239,68,68,0.3)';
+                    btn.querySelector('span').style.color = 'var(--accent-red)';
+                } else {
+                    btn.style.opacity = '0.4';
+                }
             });
 
-            explanationArea.innerHTML = `
-                <div class="font-bold mb-1">${isCorrect ? '<span class="text-green-500">Correct!</span>' : '<span class="text-red-500">Incorrect</span>'}</div>
-                ${q.explanation ? `<div class="text-sm text-[var(--text-light)]">${q.explanation}</div>` : ''}
+            const expl = document.getElementById('studyExplanationArea');
+            expl.innerHTML = `
+                <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
+                    ${isCorrect ? '<span style="color:var(--accent-green)"><i class="fas fa-check-circle"></i> Correct!</span>' : '<span style="color:var(--accent-red)"><i class="fas fa-times-circle"></i> Incorrect</span>'}
+                </div>
+                ${q.explanation ? `<div style="background:var(--bg-body);padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--text-main);font-size:0.875rem;line-height:1.5;"><span style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem;font-size:0.7rem;text-transform:uppercase;">Explanation</span>${window.escapeHTML(q.explanation)}</div>` : ''}
             `;
-            
-            explanationArea.classList.remove('hidden'); explanationArea.classList.add('flex');
-            nextBtn.classList.remove('hidden'); nextBtn.classList.add('block');
-            currentQuestionIndex++;
+            expl.style.display = 'flex';
+
+            // Unlock Next button
+            const nextBtn = document.getElementById('studyNextBtn');
+            if (nextBtn) { nextBtn.style.opacity = '1'; nextBtn.style.cursor = 'pointer'; }
+
+            setTimeout(() => { expl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
         }
 
         window.finishStudyQuiz = async function() {
-            window.addXP(50);
+            const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
+            const totalXP = isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20);
+            window.addXP(totalXP);
+
             if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
-            currentQuiz.stats.attempts++; currentQuiz.stats.lastScore = examScore;
+            currentQuiz.stats.attempts++;
+            currentQuiz.stats.lastScore = examScore;
             if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
-            
+
             if (window.currentUser) {
                 try {
                     const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -1247,21 +1383,45 @@
                     localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
                 } catch(e) { console.error("Cloud stats sync failed", e); }
             }
-            
+
             const area = document.getElementById('studyPracticeArea');
-            const percentage = Math.round((examScore / currentQuiz.questions.length) * 100);
-            
+            const total = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const percentage = total > 0 ? Math.round((examScore / total) * 100) : 100;
+            let stars = 1; if (percentage >= 80) stars = 3; else if (percentage >= 50) stars = 2;
+            const starsHTML = [1,2,3].map(s => `<i class="fas fa-star" style="font-size:1.75rem;color:${s <= stars ? 'var(--accent-yellow)' : 'var(--border-color)'};filter:${s <= stars ? 'drop-shadow(0 0 6px rgba(251,191,36,0.5))' : 'none'};"></i>`).join('');
+
             area.innerHTML = `
-                <div class="w-full max-w-md text-center bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-8 fade-in">
-                    <h2 class="text-2xl font-bold text-[var(--text-main)] mb-2">Session Complete!</h2>
-                    <div class="bg-[var(--bg-body)] rounded-xl p-6 mb-6 mt-6 border border-[var(--border-color)]">
-                        <p class="text-xs text-[var(--text-muted)] uppercase font-bold mb-2">Final Score</p>
-                        <p class="text-4xl font-extrabold text-[var(--text-main)]">${examScore} / ${currentQuiz.questions.length}</p>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:500px;margin:0 auto;" class="fade-in">
+                    <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">${starsHTML}</div>
+                    <h2 style="font-size:1.75rem;font-weight:800;color:var(--text-main);margin-bottom:0.5rem;text-align:center;">${isMCQSession ? 'Quiz Complete!' : 'Review Complete!'}</h2>
+                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:2rem;">${currentQuiz.title}</p>
+                    <div style="display:flex;gap:0.75rem;width:100%;margin-bottom:2.5rem;">
+                        ${isMCQSession ? `
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Score</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${examScore}<span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;"> / ${total}</span></div>
+                        </div>
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Accuracy</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:${percentage >= 80 ? 'var(--accent-green)' : percentage >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)'};">${percentage}%</div>
+                        </div>` : `
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Cards Reviewed</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${total}</div>
+                        </div>`}
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">XP Earned</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);"><i class="fas fa-bolt" style="color:var(--accent-yellow);font-size:1.25rem;"></i> ${totalXP}</div>
+                        </div>
                     </div>
-                    <button onclick="window.closePracticeMobile()" class="w-full bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 rounded-full">Return to Library</button>
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;margin-top:auto;">
+                        <button onclick="window.startPractice(false)" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);">Try Again</button>
+                        <button onclick="window.closePracticeMobile()" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);">Back to Library</button>
+                    </div>
                 </div>
             `;
         }
+
 
         // --- CREATE UI LOGIC ---
         window.showCustomUpgradeModal = function(limit) {
@@ -1713,20 +1873,22 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             filtered.slice().reverse().forEach(quiz => {
                 const qLength = quiz.questions ? quiz.questions.length : 0;
                 const isMCQ = quiz.type && quiz.type.includes("Multiple");
-                const iconClass = isMCQ ? "fas fa-list-ol" : "fas fa-clone";
-                const iconColor = isMCQ ? "var(--accent-blue)" : "var(--accent-btn)";
                 const itemLabel = isMCQ ? "Questions" : "Cards";
+                const iconSvg = isMCQ
+                    ? `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>`
+                    : `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>`;
                 
                 container.innerHTML += `
                     <div class="quiz-item fade-in group" onclick="window.loadQuizOverview(${quiz.id})">
-                        <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0">
-                            <i class="${iconClass}" style="color: ${iconColor}; font-size: 1.25rem;"></i>
+                        <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0 overflow-hidden">
+                            ${iconSvg}
                             ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
                         </div>
                         <div class="flex-1 min-w-0 py-1">
-                            <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1">${quiz.title}</h3>
-                            <div class="flex items-center gap-1.5 text-[var(--text-muted)] text-[13px] font-medium uppercase tracking-wide">
-                                <span class="truncate max-w-[100px]">${quiz.subject}</span><span>•</span><span>${qLength} ${itemLabel}</span>
+                            <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${quiz.title}</h3>
+                            <div class="flex items-center gap-2 text-[var(--text-muted)] text-[12px] font-semibold">
+                                <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${quiz.subject || 'General'}</span>
+                                <span class="shrink-0">${qLength} ${itemLabel}</span>
                             </div>
                         </div>
                         <button onclick="window.promptDelete(event, ${quiz.id})" class="p-2.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 lg:opacity-60"><i class="fas fa-trash-alt"></i></button>
