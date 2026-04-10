@@ -270,13 +270,42 @@
         </div>
     </div>
 
-    <div id="logoutModalBackdrop" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-icon bg-red-500/10 text-red-500"><i class="fas fa-sign-out-alt"></i></div>
-            <h3 class="modal-title">Log Out</h3>
-            <p class="modal-text">Are you sure you want to sign out of your account?</p>
-            <button id="confirmLogoutBtn" class="modal-btn-primary bg-red-500 text-white">Yes, Log Out</button>
-            <button onclick="closeGlobalModal('logoutModalBackdrop')" class="modal-btn-secondary">Cancel</button>
+    <!-- Delete Account Modal -->
+    <div id="accountDeleteBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
+        <div id="accountDeleteSheet" style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fas fa-trash-alt" style="color:#ef4444;font-size:1.125rem;"></i>
+            </div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.5rem;">Delete Account</h3>
+            <p style="font-size:0.875rem;color:var(--text-muted);text-align:center;line-height:1.6;margin-bottom:1.5rem;">This will permanently delete your account and all your data. This action <strong style="color:var(--text-main);">cannot be undone.</strong></p>
+            <div style="margin-bottom:1.25rem;">
+                <p style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:0.5rem;">Type <strong style="color:#ef4444;">delete account</strong> to confirm</p>
+                <input id="deleteAccountInput" type="text" placeholder="delete account" autocomplete="off" autocorrect="off" spellcheck="false"
+                    oninput="window.checkDeleteInput()"
+                    style="width:100%;padding:0.875rem 1rem;border-radius:0.875rem;border:1.5px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.9375rem;outline:none;transition:border-color 0.2s;box-sizing:border-box;">
+            </div>
+            <button id="confirmAccountDeleteBtn" onclick="window.executeDeleteAccount()" disabled
+                style="width:100%;padding:1rem;background:#ef4444;color:white;border:none;border-radius:9999px;font-size:1rem;font-weight:700;cursor:not-allowed;opacity:0.35;margin-bottom:0.625rem;transition:opacity 0.2s,transform 0.15s;">
+                Delete My Account
+            </button>
+            <button onclick="window.closeDeleteAccountModal()"
+                style="width:100%;padding:1rem;background:transparent;color:var(--text-muted);border:none;border-radius:9999px;font-size:0.9375rem;font-weight:600;cursor:pointer;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <div id="logoutModalBackdrop" class="modal-backdrop" style="align-items:flex-end;">
+        <div style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);" id="logoutSheetInner">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(248,113,113,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fas fa-sign-out-alt" style="color:#f87171;font-size:1.25rem;"></i>
+            </div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.375rem;">Log Out?</h3>
+            <p style="font-size:0.875rem;color:var(--text-muted);text-align:center;margin-bottom:1.75rem;line-height:1.5;">You'll need to sign back in to access your account.</p>
+            <button id="confirmLogoutBtn" style="width:100%;padding:1rem;background:#f87171;color:white;border:none;border-radius:9999px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Yes, Log Out</button>
+            <button onclick="closeGlobalModal('logoutModalBackdrop')" style="width:100%;padding:1rem;background:transparent;color:var(--text-muted);border:none;border-radius:9999px;font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
         </div>
     </div>
 
@@ -663,76 +692,92 @@
             <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)]">Profile</h1>
         </header>
 
-        <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll">
-            <div class="bg-[var(--bg-surface)] rounded-[1rem] p-[0.875rem] px-5 flex items-center gap-3 text-[var(--text-muted)] mb-6 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
-                <i class="fas fa-search"></i>
-                <span class="text-sm">Search</span>
-            </div>
+        <main class="flex-1 overflow-y-auto pb-32 hide-scroll" style="padding:1rem 1rem 8rem;">
 
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div class="flex items-center justify-between p-[1.125rem] px-5">
-                    <div class="flex items-center gap-4">
-                       <div class="relative shrink-0 cursor-pointer" onclick="window.openAvatarPicker()" title="Change avatar">
-                           <div id="profileAvatarWrap" class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border-2 border-orange-200 flex items-center justify-center font-bold text-2xl overflow-hidden">
-                               <span id="userInitial">?</span>
-                           </div>
-                           <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--accent-btn)] flex items-center justify-center shadow-md">
-                               <i class="fas fa-pen text-white" style="font-size:7px;"></i>
-                           </div>
-                       </div>
-                       <div class="flex flex-col">
-                           <span id="userName" class="font-bold text-[var(--text-main)] text-lg leading-tight">Loading...</span>
-                           <span id="userEmail" class="text-sm text-[var(--text-muted)] mt-0.5">...</span>
-                       </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
-                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)] border-b border-[var(--border-color)]" onclick="navigateTo('view-payment')">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 flex justify-center"><i class="fas fa-layer-group text-blue-500 text-lg"></i></div>
-                        <span class="text-[var(--text-main)] font-medium">Current Plan</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span id="planBadgeText" class="text-sm font-bold text-[var(--text-muted)]">Loading...</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-start gap-3 p-[1.125rem] px-5">
-                    <div class="flex justify-between items-center w-full">
-                        <div class="flex items-center gap-3">
-                            <div class="w-6 flex justify-center"><i class="fas fa-bolt text-yellow-500 text-lg"></i></div>
-                            <span class="text-[var(--text-main)] font-medium">Daily Generations</span>
+            <!-- User Card -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;gap:1rem;padding:1.125rem 1.25rem;">
+                    <div style="position:relative;flex-shrink:0;cursor:pointer;" onclick="window.openAvatarPicker()">
+                        <div id="profileAvatarWrap" style="width:56px;height:56px;border-radius:50%;background:rgba(249,115,22,0.1);color:var(--accent-orange);border:2px solid var(--border-color);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.375rem;overflow:hidden;">
+                            <span id="userInitial">?</span>
                         </div>
-                        <span class="text-sm font-bold text-[var(--text-muted)]"><span id="usageCount">0</span> used</span>
+                        <div style="position:absolute;bottom:0;right:0;width:18px;height:18px;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-surface);">
+                            <i class="fas fa-pen" style="font-size:6px;color:white;"></i>
+                        </div>
                     </div>
-                    <div class="w-full h-2 bg-[var(--bg-body)] rounded-full overflow-hidden border border-[var(--border-color)]">
-                        <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-700 ease-out" style="width: 0%;"></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
+                            <span id="userName" style="font-size:1rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading...</span>
+                            <span id="profileLevelBadge" style="flex-shrink:0;font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:9999px;background:rgba(167,139,250,0.12);color:var(--accent-btn);letter-spacing:0.05em;white-space:nowrap;">LVL 1</span>
+                        </div>
+                        <span id="userEmail" style="font-size:0.8rem;color:var(--text-muted);">...</span>
+                    </div>
+                </div>
+                <!-- Subtle XP bar -->
+                <div style="padding:0 1.25rem 1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                        <span style="font-size:0.7rem;color:var(--text-muted);font-weight:600;">XP to next level</span>
+                        <span id="profileXpLabel" style="font-size:0.7rem;color:var(--accent-btn);font-weight:600;">0 / 500</span>
+                    </div>
+                    <div style="width:100%;height:4px;background:var(--bg-body);border-radius:9999px;overflow:hidden;">
+                        <div id="profileXpBar" style="height:100%;border-radius:9999px;background:linear-gradient(90deg,var(--accent-btn),#c084fc);transition:width 0.8s var(--ease-snap);width:0%;"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
-                <div class="flex items-center justify-between p-[1.125rem] px-5 border-b border-[var(--border-color)]">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 flex justify-center"><i class="fas fa-fire text-orange-500 text-lg"></i></div>
-                        <span class="text-[var(--text-main)] font-medium">Study Streak</span>
+            <!-- Stats -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-fire" style="color:#f97316;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Study Streak</span>
                     </div>
-                    <span class="text-sm font-bold text-[var(--text-muted)]"><span id="profileStreakCount">0</span> Days</span>
+                    <span style="font-size:0.875rem;font-weight:700;color:var(--text-muted);"><span id="profileStreakCount">0</span> Days</span>
                 </div>
-                <div class="flex items-center justify-between p-[1.125rem] px-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 flex justify-center"><i class="fas fa-calendar-alt text-emerald-500 text-lg"></i></div>
-                        <span class="text-[var(--text-main)] font-medium">Member Since</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-bolt" style="color:#fbbf24;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Total XP</span>
                     </div>
-                    <span id="memberSince" class="text-sm font-medium text-[var(--text-muted)]">--</span>
+                    <span id="studyXpDisplay" style="font-size:0.875rem;font-weight:700;color:var(--text-muted);">0</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-calendar-alt" style="color:#34d399;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Member Since</span>
+                    </div>
+                    <span id="memberSince" style="font-size:0.875rem;font-weight:600;color:var(--text-muted);">--</span>
                 </div>
             </div>
 
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] p-4 px-5">
-                <div class="flex items-center gap-3 mb-4 px-1">
-                    <div class="w-6 flex justify-center"><i class="fas fa-trophy text-yellow-500 text-lg"></i></div>
-                    <span class="text-[var(--text-main)] font-medium">Achievements</span>
+            <!-- Plan & Usage -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);cursor:pointer;" onclick="navigateTo('view-payment')">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i id="planIcon" class="fas fa-lock" style="color:#64748b;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Current Plan</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span id="planBadgeText" style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">Loading...</span>
+                        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.7rem;"></i>
+                    </div>
+                </div>
+                <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.5rem;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <span style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);">Daily Generations</span>
+                        <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);"><span id="usageCount">0</span> used &nbsp;<span id="maxLimitText" style="font-weight:500;">(Max: 15)</span></span>
+                    </div>
+                    <div style="width:100%;height:5px;background:var(--bg-body);border-radius:9999px;overflow:hidden;border:1px solid var(--border-color);">
+                        <div id="usageProgressBar" style="height:100%;border-radius:9999px;background:#3b82f6;transition:width 0.7s ease-out;width:0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievements -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1rem 1.125rem;">
+                <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:1rem;">
+                    <i class="fas fa-trophy" style="color:#fbbf24;width:16px;text-align:center;"></i>
+                    <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Achievements</span>
                 </div>
                 <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
                     <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
@@ -741,44 +786,49 @@
                 </div>
             </div>
 
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" id="themeToggleBtn">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 flex justify-center"><i id="themeIcon" class="fas fa-moon text-indigo-400 text-lg"></i></div>
-                        <span class="text-[var(--text-main)] font-medium">Appearance</span>
+            <!-- Preferences -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;" id="themeToggleBtn">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i id="themeIcon" class="fas fa-moon" style="color:#818cf8;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Appearance</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span id="themeText" class="text-sm font-medium text-[var(--text-muted)]">Dark Mode</span>
-                        <div id="themeSwitchBg" class="w-11 h-6 bg-slate-600 rounded-full relative transition-colors duration-300 flex items-center p-1">
-                            <div id="themeSwitchKnob" class="w-4 h-4 bg-white rounded-full transition-transform duration-300 transform shadow-sm"></div>
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <span id="themeText" style="font-size:0.8125rem;color:var(--text-muted);">Dark Mode</span>
+                        <div id="themeSwitchBg" style="width:44px;height:24px;background:#475569;border-radius:9999px;position:relative;transition:background 0.3s;display:flex;align-items:center;padding:0 3px;">
+                            <div id="themeSwitchKnob" style="width:18px;height:18px;background:white;border-radius:50%;transition:transform 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-           <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
-    <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)] border-b border-[var(--border-color)]" onclick="window.sendPasswordReset();">
-        <div class="flex items-center gap-3">
-            <div class="w-6 flex justify-center"><i class="fas fa-lock text-slate-400 text-lg"></i></div>
-            <span class="text-[var(--text-main)] font-medium">Change Password</span>
-        </div>
-    </div>
-    <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" onclick="window.showLogoutModal()">
-        <div class="flex items-center gap-3">
-            <div class="w-6 flex justify-center"><i class="fas fa-sign-out-alt text-red-400 text-lg"></i></div>
-            <span class="text-[var(--text-main)] font-medium">Log Out</span>
-        </div>
-    </div>
-</div>
-
-            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" onclick="window.confirmDeleteAccount()">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 flex justify-center"><i class="fas fa-trash text-red-500 text-lg"></i></div>
-                        <span class="text-red-500 font-medium">Delete Account</span>
+            <!-- Account Actions -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border-color);" onclick="window.sendPasswordReset()">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-lock" style="color:#94a3b8;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Change Password</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.7rem;"></i>
+                </div>
+                <div style="display:flex;align-items:center;padding:1rem 1.25rem;cursor:pointer;" onclick="window.showLogoutModal()">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-sign-out-alt" style="color:#f87171;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:#f87171;">Log Out</span>
                     </div>
                 </div>
             </div>
+
+            <!-- Delete Account -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid rgba(239,68,68,0.2);">
+                <div style="display:flex;align-items:center;padding:1rem 1.25rem;cursor:pointer;" onclick="window.showDeleteAccountModal()">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <i class="fas fa-trash-alt" style="color:#ef4444;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.875rem;font-weight:600;color:#ef4444;">Delete Account</span>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </section>
 
@@ -1018,10 +1068,100 @@
         // --- UTILS & MODALS ---
         window.closeGlobalModal = function(id) {
             const modal = document.getElementById(id);
-            if(modal) modal.classList.remove('show');
+            if (!modal) return;
+            if (id === 'logoutModalBackdrop') {
+                const sheet = document.getElementById('logoutSheetInner');
+                if(sheet) { sheet.style.transform='translateY(100%)'; sheet.style.opacity='0'; }
+                modal.style.opacity = '0';
+                setTimeout(() => { modal.style.display='none'; }, 400);
+            } else {
+                modal.classList.remove('show');
+            }
         };
         window.showLoginModal = function() { document.getElementById('loginModalBackdrop').classList.add('show'); };
-        window.showLogoutModal = function() { document.getElementById('logoutModalBackdrop').classList.add('show'); };
+        window.showLogoutModal = function() {
+            const backdrop = document.getElementById('logoutModalBackdrop');
+            const sheet = document.getElementById('logoutSheetInner');
+            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
+            requestAnimationFrame(() => { if(sheet) { sheet.style.transform='translateY(0)'; sheet.style.opacity='1'; } });
+        };
+
+        // Level calculation — exponential growth
+        window.getProfileLevel = function(xp) {
+            const thresholds = [0, 500, 1200, 2200, 3700, 6000, 9500, 14500, 21500, 31500, 50000];
+            let level = 1;
+            for (let i = 0; i < thresholds.length; i++) { if (xp >= thresholds[i]) level = i + 1; else break; }
+            const cur = xp - thresholds[level - 1];
+            const needed = (thresholds[level] || thresholds[level - 1] + 20000) - thresholds[level - 1];
+            return { level, cur, needed };
+        };
+
+        window.updateProfileXP = function(xp) {
+            const { level, cur, needed } = window.getProfileLevel(xp || 0);
+            const badge = document.getElementById('profileLevelBadge'); if (badge) badge.textContent = 'LVL ' + level;
+            const bar = document.getElementById('profileXpBar'); if (bar) bar.style.width = Math.min(100, (cur / needed) * 100) + '%';
+            const label = document.getElementById('profileXpLabel'); if (label) label.textContent = cur.toLocaleString() + ' / ' + needed.toLocaleString();
+            const xpEl = document.getElementById('studyXpDisplay'); if (xpEl) xpEl.textContent = (xp || 0).toLocaleString() + ' XP';
+        };
+
+        // Plan icon — Free or Premium only
+        window.updatePlanIcon = function(plan) {
+            const iconEl  = document.getElementById('planIcon');
+            const textEl  = document.getElementById('planBadgeText');
+            const barEl   = document.getElementById('usageProgressBar');
+            const plans = {
+                premium: { icon: 'fas fa-gem',  color: '#3b82f6', label: 'Premium', bar: '#3b82f6' },
+                free:    { icon: 'fas fa-lock', color: '#64748b', label: 'Free',    bar: '#94a3b8' },
+            };
+            const p = plans[plan] || plans.free;
+            if (iconEl) { iconEl.className = p.icon; iconEl.style.color = p.color; }
+            if (textEl) { textEl.textContent = p.label; textEl.style.color = p.color; }
+            if (barEl)  barEl.style.background = p.bar;
+        };
+
+        // Delete account modal
+        window.showDeleteAccountModal = function() {
+            const backdrop = document.getElementById('accountDeleteBackdrop');
+            const sheet    = document.getElementById('accountDeleteSheet');
+            const input    = document.getElementById('deleteAccountInput');
+            if (input) input.value = '';
+            window.checkDeleteInput();
+            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
+            requestAnimationFrame(() => { if (sheet) { sheet.style.transform = 'translateY(0)'; sheet.style.opacity = '1'; } });
+        };
+        window.closeDeleteAccountModal = function() {
+            const backdrop = document.getElementById('accountDeleteBackdrop');
+            const sheet    = document.getElementById('accountDeleteSheet');
+            if (sheet) { sheet.style.transform = 'translateY(100%)'; sheet.style.opacity = '0'; }
+            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => backdrop.style.display = 'none', 400); }
+        };
+        window.checkDeleteInput = function() {
+            const input = document.getElementById('deleteAccountInput');
+            const btn   = document.getElementById('confirmAccountDeleteBtn');
+            if (!input || !btn) return;
+            const match = input.value.trim().toLowerCase() === 'delete account';
+            btn.disabled = !match;
+            btn.style.opacity  = match ? '1'        : '0.35';
+            btn.style.cursor   = match ? 'pointer'  : 'not-allowed';
+            input.style.borderColor = input.value.length > 0 ? (match ? '#34d399' : '#f87171') : 'var(--border-color)';
+        };
+        window.executeDeleteAccount = async function() {
+            const btn = document.getElementById('confirmAccountDeleteBtn');
+            if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
+            try {
+                if (window.currentUser?.uid) {
+                    try { await deleteDoc(doc(db, "users", window.currentUser.uid)); } catch(e) {}
+                }
+                try { await signOut(auth); } catch(e) {}
+                localStorage.clear();
+                window.location.replace("index.html");
+            } catch(e) {
+                if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1'; }
+                alert("Failed to delete account. Please try again.");
+            }
+        };
+
+        // logout handled by window.showLogoutModal defined above
         
         window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
         window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
@@ -1787,12 +1927,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             }
         };
 
-        window.confirmDeleteAccount = async function() {
-            if(confirm("DANGER: Are you sure you want to delete your account? All data will be lost.")) {
-                try { await signOut(auth); } catch(e) {}
-                localStorage.clear(); window.location.replace("index.html");
-            }
-        };
+        window.confirmDeleteAccount = window.showDeleteAccountModal;
 
         document.getElementById('confirmLogoutBtn').onclick = window.logoutUser;
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
@@ -1943,9 +2078,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         // Build an avatar element for a leaderboard user
         function lbAvatarHTML(user, size, currentUserId) {
             const isMe = user.uid === currentUserId;
-            const saved = isMe ? localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest')) : null;
-            if (isMe && saved !== null && AVATAR_GRID) {
-                const a = AVATAR_GRID[parseInt(saved)];
+            // Use Firestore avatarIndex for all users; fall back to localStorage for current user
+            let avatarIndex = user.avatarIndex ?? null;
+            if (isMe && avatarIndex === null) {
+                const saved = localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest'));
+                if (saved !== null) avatarIndex = parseInt(saved);
+            }
+            if (avatarIndex !== null && AVATAR_GRID) {
+                const a = AVATAR_GRID[parseInt(avatarIndex)];
                 if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
@@ -1984,6 +2124,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                         displayName: data.displayName || data.email?.split('@')[0] || "User",
                         xp: data.xp,
                         weeklyXp: data.weeklyXp || 0,
+                        avatarIndex: data.avatarIndex ?? null,
                     });
                 });
                 window._lbUsers = fetched;
@@ -2226,7 +2367,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
            avatar grid image (the 3×3 character sheet).
            e.g. "assets/avatars.jpg" or "https://yourcdn.com/avatars.jpg"
         ========================================= */
-        const AVATAR_IMAGE_PATH = "avatar.svg"; // <-- UPDATE THIS PATH
+        const AVATAR_IMAGE_PATH = "avatar.svg";
 
         // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
         const AVATAR_GRID = [
@@ -2310,6 +2451,10 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         window.selectAvatar = function(index) {
             localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
+            // Save to Firestore so other users can see it in the leaderboard
+            if (window.currentUser?.uid) {
+                try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index }).catch(() => {}); } catch(e) {}
+            }
             window.applyAvatar();
             // Highlight in picker
             AVATAR_GRID.forEach((_, i) => {
@@ -2415,23 +2560,25 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     if (data.createdAt) { const dateObj = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt); const memberSince = document.getElementById("memberSince"); if(memberSince) memberSince.textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); }
 
                     window.userPlan = data.plan || "free"; const isToday = data.lastDailyReset === new Date().toISOString().split("T")[0]; const dailyUsage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
-                    const badgeText = document.getElementById('planBadgeText'); const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
+                    const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
                     if(usageCountEl) usageCountEl.textContent = dailyUsage;
 
                     const planConfig = {
-                        elite:   { max: 40, cap: 50, label: "Elite",   cls: "text-sm font-bold text-yellow-500", bar: "h-full bg-yellow-500 transition-all duration-700 ease-out" },
-                        premium: { max: 30, cap: 30, label: "Premium", cls: "text-sm font-bold text-blue-500",   bar: "h-full bg-blue-500 transition-all duration-700 ease-out" },
-                        free:    { max: 15, cap:  5, label: "Free",    cls: "text-sm font-bold text-[var(--text-muted)]", bar: "h-full bg-slate-400 transition-all duration-700 ease-out" }
+                        premium: { max: 30, cap: 30, bar: "#3b82f6" },
+                        free:    { max: 15, cap:  5, bar: "#94a3b8" }
                     };
                     const pc = planConfig[window.userPlan] || planConfig.free;
                     window.allowedMaxItems = pc.max;
-                    if(badgeText) { badgeText.textContent = pc.label; badgeText.className = pc.cls; }
-                    if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / pc.cap) * 100)}%`; barEl.className = pc.bar; }
+                    if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / pc.cap) * 100)}%`; barEl.style.background = pc.bar; }
                     const maxText = document.getElementById('maxLimitText'); if(maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
-                    
+
+                    // Update plan icon & XP level
+                    window.updatePlanIcon(window.userPlan);
+                    window.updateProfileXP(data.xp || 0);
+
                     window.renderAchievements(data.achievements || []);
-                    window.updateHomeContinueCard(); // Refresh home UI
-                    window.renderLibrary('all', ''); // Load Library
+                    window.updateHomeContinueCard();
+                    window.renderLibrary('all', '');
                 }
             } catch(e) { console.warn("Init Error:", e); }
         };

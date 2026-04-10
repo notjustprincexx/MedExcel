@@ -832,79 +832,109 @@
         </main>
     </section>
 
-    <section id="view-payment" class="app-view bg-themebg" style="background-color: #050A15;">
-        <header class="w-full flex items-center justify-between p-6 z-20">
-            <button onclick="navigateTo('view-profile')" class="w-10 h-10 rounded-full bg-[#0A1120] border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
-                <i class="fas fa-arrow-left text-lg"></i>
-            </button>
-            <div class="w-10"></div>
+    <!-- ===================== PAYMENT VIEW ===================== -->
+    <style>
+        #view-payment { background: var(--bg-body); overflow: hidden; }
+        .pplan-card { flex:1; border-radius:16px; padding:.85rem .75rem; border:1.5px solid var(--border-color); background:var(--bg-surface); cursor:pointer; text-align:center; transition:all .2s; position:relative; }
+        .pplan-card.active { border-color:var(--accent-btn); background:rgba(167,139,250,.08); }
+        .pplan-card .pbadge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:#f97316; color:#fff; font-size:.5rem; font-weight:800; padding:2px 8px; border-radius:100px; white-space:nowrap; text-transform:uppercase; letter-spacing:.05em; }
+        .pplan-check { width:20px; height:20px; border-radius:50%; border:1.5px solid var(--border-color); background:transparent; display:flex; align-items:center; justify-content:center; margin:0 auto .5rem; transition:.2s; }
+        .pplan-card.active .pplan-check { background:var(--accent-btn); border-color:var(--accent-btn); }
+        .pplan-card.active .pplan-check::after { content:''; width:5px; height:8px; border-right:2px solid #000; border-bottom:2px solid #000; transform:rotate(45deg) translate(-1px,-1px); display:block; }
+        .pcd-unit { display:flex; flex-direction:column; align-items:center; }
+        .pcd-num { font-size:1rem; font-weight:800; color:var(--accent-btn); line-height:1.1; }
+        .pcd-lbl { font-size:.42rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+        .pay-btn { width:100%; padding:.95rem; background:var(--accent-btn); color:var(--btn-text); border:none; border-radius:100px; font-size:.9375rem; font-weight:800; cursor:pointer; transition:transform .15s,opacity .15s; box-shadow:0 4px 24px rgba(167,139,250,.3); }
+        .pay-btn:active { transform:scale(.97); }
+    </style>
+
+    <section id="view-payment" class="app-view" style="flex-direction:column; overflow:hidden;">
+        <header style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .5rem;flex-shrink:0;">
+            <button onclick="navigateTo('view-profile')" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;"><i class="fas fa-arrow-left" style="font-size:.875rem;"></i></button>
+            <span style="font-size:.8125rem;font-weight:700;color:var(--text-muted);letter-spacing:.01em;">Upgrade to Premium</span>
+            <div style="width:36px;"></div>
         </header>
 
-        <main class="flex-grow flex flex-col relative z-10 w-full max-w-md mx-auto overflow-y-auto px-6 pb-20 hide-scroll">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold tracking-tight mb-2 text-white">Subscription</h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-4">Compare Plans</p>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:.25rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1rem);overflow:hidden;">
+
+            <!-- Top: icon + headline -->
+            <div style="text-align:center;margin-bottom:.875rem;">
+                <div style="width:52px;height:52px;border-radius:16px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);display:inline-flex;align-items:center;justify-content:center;margin-bottom:.75rem;">
+                    <i class="fas fa-gem" style="color:var(--accent-btn);font-size:1.25rem;"></i>
+                </div>
+                <h1 style="font-size:1.375rem;font-weight:800;color:var(--text-main);letter-spacing:-.02em;line-height:1.25;margin:0;">Study without limits.</h1>
+                <p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem;">Everything you need to ace your exams.</p>
             </div>
 
-            <div class="flex flex-col gap-6 w-full">
-                <div class="w-full bg-[#0A1120] border-2 border-blue-600/50 rounded-2xl p-6 flex flex-col relative transition-all shadow-[0_0_20px_rgba(37,99,235,0.1)] mt-3">
-                    <div class="absolute -top-3.5 left-5 bg-gradient-to-r from-blue-600 to-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg border border-blue-400/30">Recommended</div>
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold text-white mb-1">Premium</h3>
-                        <div class="flex items-baseline gap-1 mt-2">
-                            <span class="text-2xl font-bold text-white">₦3,500</span><span class="text-slate-500 text-xs font-medium">/mo</span>
-                        </div>
-                    </div>
-                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>100 AI generations / month</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>Max 25k chars / upload</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span class="font-medium text-white">AI voice explanation mode</span></li>
-                    </ul>
-                    <button onclick="window.startPayment('premium')" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold tracking-wide transition-colors shadow-lg shadow-blue-900/20">Try Premium for ₦3,500</button>
+            <!-- Features card -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:20px;padding:.25rem 1rem;margin-bottom:.875rem;">
+                <div style="display:flex;align-items:center;gap:.875rem;padding:.65rem 0;border-bottom:1px solid var(--border-color);">
+                    <div style="width:30px;height:30px;border-radius:9px;background:rgba(167,139,250,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-bolt" style="color:var(--accent-btn);font-size:.75rem;"></i></div>
+                    <div><div style="font-size:.875rem;font-weight:600;color:var(--text-main);">100+ AI generations / month</div><div style="font-size:.7rem;color:var(--text-muted);">Flashcards & MCQs from your notes</div></div>
                 </div>
-
-                <div class="w-full bg-[#0A1120] border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-yellow-500/50">
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold text-white mb-1">Elite</h3>
-                        <div class="flex items-baseline gap-1 mt-2">
-                            <span class="text-2xl font-bold text-white">₦7,000</span><span class="text-slate-500 text-xs font-medium">/mo</span>
-                        </div>
-                    </div>
-                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Unlimited AI generations</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span>Max 30k chars / upload</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Advanced AI Tutor Mode</span></li>
-                    </ul>
-                    <button onclick="window.startPayment('elite')" class="w-full py-3.5 bg-[#050A15] border border-slate-700 hover:border-yellow-500/50 text-yellow-500 rounded-xl text-sm font-bold tracking-wide transition-colors">Try Elite for ₦7,000</button>
+                <div style="display:flex;align-items:center;gap:.875rem;padding:.65rem 0;border-bottom:1px solid var(--border-color);">
+                    <div style="width:30px;height:30px;border-radius:9px;background:rgba(52,211,153,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-file-upload" style="color:#34d399;font-size:.75rem;"></i></div>
+                    <div><div style="font-size:.875rem;font-weight:600;color:var(--text-main);">Increased file upload size</div><div style="font-size:.7rem;color:var(--text-muted);">Upload longer lecture notes & PDFs</div></div>
                 </div>
-
-                <div class="w-full bg-[#0A1120] border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-slate-600">
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold text-white mb-1">Basic Access</h3>
-                        <div class="flex items-baseline gap-1 mt-2">
-                            <span class="text-2xl font-bold text-white">₦0</span><span class="text-slate-500 text-xs font-medium">/mo</span>
-                        </div>
-                    </div>
-                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>1 AI generation / day</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Max 5 items / generation</span></li>
-                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Manual flashcard builder</span></li>
-                    </ul>
-                    <button onclick="navigateTo('view-home')" class="w-full py-3.5 bg-[#050A15] border border-slate-700 hover:border-slate-500 text-slate-300 rounded-xl text-sm font-bold tracking-wide transition-colors">Continue Free</button>
+                <div style="display:flex;align-items:center;gap:.875rem;padding:.65rem 0;">
+                    <div style="width:30px;height:30px;border-radius:9px;background:rgba(251,191,36,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-layer-group" style="color:#fbbf24;font-size:.75rem;"></i></div>
+                    <div><div style="font-size:.875rem;font-weight:600;color:var(--text-main);">More questions per generation</div><div style="font-size:.7rem;color:var(--text-muted);">Up to 30 questions per study set</div></div>
                 </div>
             </div>
-            <div class="mt-8 flex items-center justify-center opacity-50">
-                <p class="text-[10px] text-slate-400 flex items-center gap-1.5 font-medium tracking-wide"><i class="fas fa-lock text-slate-500"></i> Secure payments processed by Paystack</p>
+
+            <!-- Plan picker: two cards side by side -->
+            <div style="display:flex;gap:.625rem;margin-bottom:.75rem;margin-top:.125rem;">
+                <div class="pplan-card active" id="pCardMonthly" onclick="window.switchPayPlan('monthly')">
+                    <div class="pplan-check" id="pCheckMonthly"></div>
+                    <div style="font-size:.8125rem;font-weight:700;color:var(--text-main);">Monthly</div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:.2rem 0 .1rem;">₦3,500</div>
+                    <div style="font-size:.65rem;color:var(--text-muted);">/month</div>
+                </div>
+                <div class="pplan-card" id="pCardYearly" onclick="window.switchPayPlan('yearly')" style="position:relative;">
+                    <span class="pbadge">Best value!</span>
+                    <div class="pplan-check" id="pCheckYearly"></div>
+                    <div style="font-size:.8125rem;font-weight:700;color:var(--text-main);">Yearly</div>
+                    <div style="display:flex;align-items:baseline;justify-content:center;gap:.25rem;margin:.2rem 0 .1rem;">
+                        <span id="pYearlyOrig" style="font-size:.75rem;color:var(--text-muted);text-decoration:line-through;">₦42,000</span>
+                        <span style="font-size:1.125rem;font-weight:800;color:var(--text-main);">₦29,400</span>
+                    </div>
+                    <div style="font-size:.65rem;color:var(--text-muted);">₦2,450/mo · save 30%</div>
+                </div>
             </div>
-        </main>
-        
+
+            <!-- Countdown (yearly only) -->
+            <div id="payDealBox" style="display:none;align-items:center;justify-content:space-between;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.18);border-radius:14px;padding:.625rem 1rem;margin-bottom:.75rem;gap:.5rem;">
+                <div style="font-size:.8rem;color:var(--text-muted);">🔥 <strong style="color:var(--text-main);">30% off</strong> — expires in</div>
+                <div style="display:flex;align-items:center;gap:.35rem;flex-shrink:0;">
+                    <div class="pcd-unit"><span class="pcd-num" id="payH">23</span><span class="pcd-lbl">hr</span></div>
+                    <span style="color:var(--accent-btn);font-weight:800;font-size:.875rem;padding-bottom:6px;">:</span>
+                    <div class="pcd-unit"><span class="pcd-num" id="payM">59</span><span class="pcd-lbl">min</span></div>
+                    <span style="color:var(--accent-btn);font-weight:800;font-size:.875rem;padding-bottom:6px;">:</span>
+                    <div class="pcd-unit"><span class="pcd-num" id="payS">59</span><span class="pcd-lbl">sec</span></div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <button class="pay-btn" id="payCTABtn" onclick="window.handlePayCTA()">Subscribe Monthly — ₦3,500</button>
+
+            <!-- Skip + footer -->
+            <div style="text-align:center;margin-top:.625rem;">
+                <button onclick="navigateTo('view-profile')" style="background:none;border:none;font-size:.8rem;color:var(--text-muted);cursor:pointer;padding:.25rem .5rem;">Maybe later</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:.75rem;margin-top:.375rem;">
+                <span style="font-size:.6rem;color:var(--text-muted);opacity:.45;cursor:pointer;">Terms</span>
+                <span style="color:var(--text-muted);opacity:.2;font-size:.5rem;">•</span>
+                <span style="font-size:.6rem;color:var(--text-muted);opacity:.45;cursor:pointer;">Privacy</span>
+                <span style="color:var(--text-muted);opacity:.2;font-size:.5rem;">•</span>
+                <span style="font-size:.6rem;color:var(--text-muted);opacity:.45;display:flex;align-items:center;gap:.25rem;"><i class="fas fa-lock" style="font-size:.55rem;"></i> Paystack secured</span>
+            </div>
+        </div>
+
         <div id="paymentModalOverlay" class="fixed inset-0 bg-black/80 z-[100] hidden opacity-0 transition-opacity duration-300 flex-col justify-end">
             <div id="paymentSheet" class="bg-white w-full h-[85vh] md:h-[90vh] md:max-w-md md:mx-auto md:rounded-t-3xl rounded-t-2xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col overflow-hidden relative">
                 <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white z-10">
                     <h2 class="text-slate-800 font-bold text-lg">Complete Subscription</h2>
-                    <button onclick="window.closePaymentModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button onclick="window.closePaymentModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600"><i class="fas fa-times"></i></button>
                 </div>
                 <iframe id="paystackIframe" src="" class="w-full h-full border-none flex-grow bg-slate-50"></iframe>
             </div>
@@ -1858,6 +1888,78 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         }
     
    
+        // ---- PAYMENT PAGE LOGIC ----
+        (function() {
+            let currentPlan = 'monthly';
+            let cdInterval = null;
+
+            function getCountdownEnd() {
+                let end = sessionStorage.getItem('payCountdownEnd');
+                if (!end) {
+                    end = Date.now() + (23 * 3600000 + 59 * 60000 + 59000);
+                    sessionStorage.setItem('payCountdownEnd', end);
+                }
+                return parseInt(end);
+            }
+
+            function tickCountdown() {
+                const diff = Math.max(0, getCountdownEnd() - Date.now());
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                const pad = n => String(n).padStart(2, '0');
+                const hEl = document.getElementById('payH');
+                const mEl = document.getElementById('payM');
+                const sEl = document.getElementById('payS');
+                if (hEl) hEl.textContent = pad(h);
+                if (mEl) mEl.textContent = pad(m);
+                if (sEl) sEl.textContent = pad(s);
+            }
+
+            function startCountdown() {
+                clearInterval(cdInterval);
+                tickCountdown();
+                cdInterval = setInterval(tickCountdown, 1000);
+            }
+
+            window.switchPayPlan = function(plan) {
+                currentPlan = plan;
+                const cM = document.getElementById('pCardMonthly');
+                const cY = document.getElementById('pCardYearly');
+                const dealBox = document.getElementById('payDealBox');
+                const ctaEl = document.getElementById('payCTABtn');
+                if (!cM) return;
+
+                if (plan === 'monthly') {
+                    cM.classList.add('active'); cY.classList.remove('active');
+                    if (dealBox) dealBox.style.display = 'none';
+                    clearInterval(cdInterval);
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Monthly — ₦3,500';
+                } else {
+                    cM.classList.remove('active'); cY.classList.add('active');
+                    if (dealBox) { dealBox.style.display = 'flex'; startCountdown(); }
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Yearly — ₦29,400';
+                }
+            };
+
+            window.handlePayCTA = function() {
+                if (currentPlan === 'monthly') window.startPayment('premium');
+                else window.startPayment('premium_yearly');
+            };
+
+            // Review carousel dots
+            document.addEventListener('DOMContentLoaded', function() {
+                const track = document.getElementById('payReviewTrack');
+                const dots = document.querySelectorAll('#payReviewDots .pay-review-dot');
+                if (track && dots.length) {
+                    track.addEventListener('scroll', () => {
+                        const idx = Math.round(track.scrollLeft / track.clientWidth);
+                        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+                    }, { passive: true });
+                }
+            });
+        })();
+
         // --- PAYMENT UI LOGIC ---
         window.openPaymentModal = function(url) {
             const modal = document.getElementById('paymentModalOverlay');
@@ -1879,7 +1981,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         window.startPayment = function(plan) {
             if (!window.currentUser) { window.showLoginModal(); return; }
             if (plan === "free") { navigateTo("view-home"); return; }
-            if (plan === "premium") { window.openPaymentModal("https://paystack.shop/pay/5wqjry1l0a"); return; }
+            if (plan === "premium" || plan === "premium_monthly") { window.openPaymentModal("https://paystack.shop/pay/5wqjry1l0a"); return; }
+            if (plan === "premium_yearly") { window.openPaymentModal("https://paystack.shop/pay/5wqjry1l0a"); return; }
             if (plan === "elite") { window.openPaymentModal("https://paystack.shop/pay/lw17s2ggpj"); return; }
         };
     </script>
