@@ -24,7 +24,9 @@
                     const { StatusBar } = window.Capacitor.Plugins;
                     const isLight = savedTheme === 'light';
                     StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
-                    StatusBar.setStyle({ style: isLight ? 'DARK' : 'LIGHT' });
+                    // 'LIGHT' = dark/black icons (use on light backgrounds)
+                    // 'DARK'  = light/white icons (use on dark backgrounds)
+                    StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
                 } catch(e) {}
             }
         })();
@@ -1029,7 +1031,9 @@
                     try {
                         const { StatusBar } = window.Capacitor.Plugins;
                         StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
-                        StatusBar.setStyle({ style: isLight ? 'DARK' : 'LIGHT' });
+                        // 'LIGHT' = dark/black icons (use on light backgrounds)
+                        // 'DARK'  = light/white icons (use on dark backgrounds)
+                        StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
                     } catch(e) {}
                 }
             });
