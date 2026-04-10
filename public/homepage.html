@@ -1943,9 +1943,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         // Build an avatar element for a leaderboard user
         function lbAvatarHTML(user, size, currentUserId) {
             const isMe = user.uid === currentUserId;
-            const saved = isMe ? localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest')) : null;
-            if (isMe && saved !== null && AVATAR_GRID) {
-                const a = AVATAR_GRID[parseInt(saved)];
+            // Use Firestore avatarIndex for all users; fall back to localStorage for current user
+            let avatarIndex = user.avatarIndex ?? null;
+            if (isMe && avatarIndex === null) {
+                const saved = localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest'));
+                if (saved !== null) avatarIndex = parseInt(saved);
+            }
+            if (avatarIndex !== null && AVATAR_GRID) {
+                const a = AVATAR_GRID[parseInt(avatarIndex)];
                 if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
@@ -1984,6 +1989,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                         displayName: data.displayName || data.email?.split('@')[0] || "User",
                         xp: data.xp,
                         weeklyXp: data.weeklyXp || 0,
+                        avatarIndex: data.avatarIndex ?? null,
                     });
                 });
                 window._lbUsers = fetched;
@@ -2226,7 +2232,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
            avatar grid image (the 3×3 character sheet).
            e.g. "assets/avatars.jpg" or "https://yourcdn.com/avatars.jpg"
         ========================================= */
-        const AVATAR_IMAGE_PATH = "avatar.svg"; // <-- UPDATE THIS PATH
+        const AVATAR_IMAGE_PATH = "avatar.svg";
 
         // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
         const AVATAR_GRID = [
@@ -2310,6 +2316,10 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         window.selectAvatar = function(index) {
             localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
+            // Save to Firestore so other users can see it in the leaderboard
+            if (window.currentUser?.uid) {
+                try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index }).catch(() => {}); } catch(e) {}
+            }
             window.applyAvatar();
             // Highlight in picker
             AVATAR_GRID.forEach((_, i) => {
