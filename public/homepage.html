@@ -541,86 +541,121 @@
         </main>
     </section>
 
-    <section id="view-leaderboard" class="app-view">
-        <header class="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 sticky top-0 z-40 bg-[var(--bg-body)] bg-opacity-95 backdrop-blur-md transition-colors duration-300">
+    <section id="view-leaderboard" class="app-view" style="position:relative;">
+        <!-- Header -->
+        <header style="padding:1.5rem 1.25rem 0.75rem;flex-shrink:0;position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;gap:1rem;">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">Leaderboard</h1>
-                <p class="text-xs text-[var(--text-muted)] font-bold uppercase tracking-widest mt-1">Global Rankings</p>
+                <h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-main);">Leaderboard</h1>
+                <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-top:2px;">Global Rankings</p>
             </div>
-            <div class="border border-[var(--border-color)] bg-[var(--bg-surface)] px-3 py-1.5 rounded-full flex items-center gap-2 min-h-[32px] min-w-[70px] justify-center transition-colors duration-300">
-                <i class="fas fa-fire text-orange-500"></i>
-                <span class="text-xs font-bold text-[var(--text-main)] skeleton rounded" id="currentUserXp" style="width: 35px; height: 16px;"></span>
+            <div class="streak-badge" style="cursor:default;">
+                <i class="fas fa-fire"></i>
+                <span id="currentUserXp" class="skeleton rounded" style="width:35px;height:18px;display:inline-block;"></span>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll" style="-webkit-overflow-scrolling: touch;">
-            <div class="flex bg-[var(--bg-surface)] rounded-xl p-1 border border-[var(--border-color)] mb-8 mx-2 transition-colors duration-300">
-                <button class="flex-1 py-2 text-sm font-bold rounded-lg bg-[var(--accent-btn)] text-[var(--btn-text)] shadow-md transition-all">All Time</button>
-                <button class="flex-1 py-2 text-sm font-bold rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">This Week</button>
+        <main class="hide-scroll" style="flex:1;overflow-y:auto;padding:1rem 1rem 7rem;-webkit-overflow-scrolling:touch;">
+
+            <!-- Tabs -->
+            <div style="display:flex;background:var(--bg-surface);border-radius:0.875rem;padding:0.25rem;border:1px solid var(--border-color);margin-bottom:1.5rem;">
+                <button id="lbTabAllTime" onclick="window.switchLbTab('alltime')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:var(--accent-btn);color:var(--btn-text);cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(139,92,246,0.3);">All Time</button>
+                <button id="lbTabWeek" onclick="window.switchLbTab('week')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;">This Week</button>
             </div>
 
-            <section class="flex justify-center items-end h-64 mt-6 mb-10 gap-3 px-2" id="podiumContainer">
-                <div class="flex flex-col items-center w-1/3 relative z-10">
-                    <div class="relative mb-2">
-                        <div class="w-14 h-14 rounded-full border-4 border-slate-300 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative skeleton transition-colors duration-300" id="avatarBox2">
-                            <span class="text-lg font-bold text-[var(--text-muted)]" id="avatar2">?</span>
+            <!-- Podium -->
+            <section id="podiumContainer" style="display:flex;justify-content:center;align-items:flex-end;gap:0.75rem;padding:0.5rem 0.25rem;margin-bottom:1.5rem;min-height:220px;">
+                <!-- 2nd place -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;">
+                    <div style="position:relative;margin-bottom:0.5rem;">
+                        <div id="avatarBox2" style="width:56px;height:56px;border-radius:50%;border:3px solid #94a3b8;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;" class="skeleton">
+                            <span style="font-size:1.125rem;font-weight:700;color:var(--text-muted);" id="avatar2">?</span>
                         </div>
-                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-xs border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">2</div>
+                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;background:#94a3b8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:white;border:2px solid var(--bg-body);z-index:20;">2</div>
                     </div>
-                    <h3 class="text-xs font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name2" style="width: 60px; height: 14px;"></h3>
-                    <p class="text-[10px] text-[var(--accent-btn)] font-bold mt-1 skeleton rounded" id="xp2" style="width: 35px; height: 12px;"></p>
-                    <div class="w-full h-20 bg-gradient-to-t from-slate-400/20 to-slate-400/5 mt-3 rounded-t-xl border-t border-slate-400/30"></div>
+                    <h3 id="name2" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:60px;height:14px;"></h3>
+                    <p id="xp2" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;" class="skeleton rounded" style="width:35px;height:12px;"></p>
+                    <div style="width:100%;height:72px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(148,163,184,0.2),rgba(148,163,184,0.05));border-top:2px solid rgba(148,163,184,0.3);"></div>
                 </div>
 
-                <div class="flex flex-col items-center w-1/3 relative z-20">
-                    <i class="fas fa-crown text-yellow-400 text-xl mb-1 filter drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"></i>
-                    <div class="relative mb-2">
-                        <div class="w-20 h-20 rounded-full border-4 border-yellow-400 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative shadow-[0_0_20px_rgba(250,204,21,0.3)] skeleton transition-colors duration-300" id="avatarBox1">
-                            <span class="text-2xl font-bold text-[var(--text-muted)]" id="avatar1">?</span>
+                <!-- 1st place -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:2;">
+                    <div style="font-size:1.25rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(250,204,21,0.9));">👑</div>
+                    <div style="position:relative;margin-bottom:0.5rem;">
+                        <div id="avatarBox1" style="width:76px;height:76px;border-radius:50%;border:3px solid #facc15;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;box-shadow:0 0 24px rgba(250,204,21,0.35);" class="skeleton">
+                            <span style="font-size:1.5rem;font-weight:700;color:var(--text-muted);" id="avatar1">?</span>
                         </div>
-                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-sm border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">1</div>
+                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:26px;height:26px;background:#facc15;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;color:#1a1a00;border:2px solid var(--bg-body);z-index:20;">1</div>
                     </div>
-                    <h3 class="text-sm font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name1" style="width: 80px; height: 18px;"></h3>
-                    <p class="text-[11px] text-yellow-500 font-bold mt-1 skeleton rounded" id="xp1" style="width: 45px; height: 14px;"></p>
-                    <div class="w-full h-28 bg-gradient-to-t from-yellow-500/20 to-yellow-500/5 mt-3 rounded-t-xl border-t border-yellow-500/40 relative overflow-hidden">
-                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+                    <h3 id="name1" style="font-size:0.875rem;font-weight:800;color:var(--text-main);margin-top:0.75rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:80px;height:18px;"></h3>
+                    <p id="xp1" style="font-size:0.75rem;font-weight:700;color:#eab308;margin-top:4px;" class="skeleton rounded" style="width:45px;height:14px;"></p>
+                    <div style="width:100%;height:104px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(234,179,8,0.2),rgba(234,179,8,0.04));border-top:2px solid rgba(234,179,8,0.4);position:relative;overflow:hidden;">
+                        <div style="position:absolute;inset:0;background:url('https://www.transparenttextures.com/patterns/stardust.png');opacity:0.2;"></div>
                     </div>
                 </div>
 
-                <div class="flex flex-col items-center w-1/3 relative z-10">
-                    <div class="relative mb-2">
-                        <div class="w-14 h-14 rounded-full border-4 border-amber-500 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative skeleton transition-colors duration-300" id="avatarBox3">
-                            <span class="text-lg font-bold text-[var(--text-muted)]" id="avatar3">?</span>
+                <!-- 3rd place -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;">
+                    <div style="position:relative;margin-bottom:0.5rem;">
+                        <div id="avatarBox3" style="width:56px;height:56px;border-radius:50%;border:3px solid #f59e0b;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;" class="skeleton">
+                            <span style="font-size:1.125rem;font-weight:700;color:var(--text-muted);" id="avatar3">?</span>
                         </div>
-                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-xs border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">3</div>
+                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:white;border:2px solid var(--bg-body);z-index:20;">3</div>
                     </div>
-                    <h3 class="text-xs font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name3" style="width: 60px; height: 14px;"></h3>
-                    <p class="text-[10px] text-[var(--accent-btn)] font-bold mt-1 skeleton rounded" id="xp3" style="width: 35px; height: 12px;"></p>
-                    <div class="w-full h-16 bg-gradient-to-t from-amber-500/20 to-amber-500/5 mt-3 rounded-t-xl border-t border-amber-500/30"></div>
+                    <h3 id="name3" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:60px;height:14px;"></h3>
+                    <p id="xp3" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;" class="skeleton rounded" style="width:35px;height:12px;"></p>
+                    <div style="width:100%;height:56px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(245,158,11,0.2),rgba(245,158,11,0.05));border-top:2px solid rgba(245,158,11,0.3);"></div>
                 </div>
             </section>
 
-            <section class="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl p-4">
-                <div id="leaderboardList" class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]">
-                        <div class="flex items-center gap-4 w-full">
-                            <div class="w-4 h-4 skeleton rounded shrink-0"></div>
-                            <div class="w-10 h-10 rounded-full skeleton shrink-0"></div>
-                            <div class="w-24 h-4 rounded skeleton"></div>
+            <!-- Ranked List -->
+            <section style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1.5rem;overflow:hidden;">
+                <div style="padding:0.875rem 1rem 0.5rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;">
+                    <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Top 10</span>
+                    <i class="fas fa-medal" style="color:var(--accent-btn);font-size:0.875rem;"></i>
+                </div>
+                <div id="leaderboardList" class="hide-scroll" style="display:flex;flex-direction:column;gap:0.375rem;padding:0.5rem;max-height:420px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+                    <!-- skeleton rows -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
+                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
+                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
+                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
+                            <div class="skeleton rounded" style="width:96px;height:14px;"></div>
                         </div>
-                        <div class="w-12 h-4 rounded skeleton shrink-0"></div>
+                        <div class="skeleton rounded" style="width:48px;height:14px;"></div>
                     </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]">
-                        <div class="flex items-center gap-4 w-full">
-                            <div class="w-4 h-4 skeleton rounded shrink-0"></div>
-                            <div class="w-10 h-10 rounded-full skeleton shrink-0"></div>
-                            <div class="w-20 h-4 rounded skeleton"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
+                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
+                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
+                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
+                            <div class="skeleton rounded" style="width:72px;height:14px;"></div>
                         </div>
-                        <div class="w-10 h-4 rounded skeleton shrink-0"></div>
+                        <div class="skeleton rounded" style="width:40px;height:14px;"></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
+                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
+                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
+                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
+                            <div class="skeleton rounded" style="width:80px;height:14px;"></div>
+                        </div>
+                        <div class="skeleton rounded" style="width:44px;height:14px;"></div>
                     </div>
                 </div>
             </section>
         </main>
+
+        <!-- Pinned Your Rank Bar -->
+        <div id="yourRankBar" style="display:none;position:absolute;bottom:72px;left:0;right:0;z-index:50;padding:0 1rem 0.5rem;">
+            <div style="background:var(--accent-btn);border-radius:1rem;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.875rem;box-shadow:0 -4px 24px rgba(139,92,246,0.25);">
+                <div id="yourRankAvatarWrap" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:white;overflow:hidden;flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.8125rem;font-weight:800;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="yourRankName">You</div>
+                    <div style="font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.7);" id="yourRankXp"></div>
+                </div>
+                <div style="background:rgba(255,255,255,0.2);border-radius:0.5rem;padding:0.25rem 0.625rem;flex-shrink:0;">
+                    <span style="font-size:0.75rem;font-weight:800;color:white;" id="yourRankNum">#—</span>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section id="view-profile" class="app-view">
@@ -1894,47 +1929,178 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         // Leaderboard Logic
+        // Leaderboard colour palette for user initials
+        const LB_COLORS = [
+            ['#7c3aed','#ede9fe'],['#0369a1','#e0f2fe'],['#065f46','#d1fae5'],
+            ['#9a3412','#ffedd5'],['#be185d','#fce7f3'],['#1e40af','#dbeafe'],
+            ['#854d0e','#fef9c3'],['#4d7c0f','#ecfccb'],['#155e75','#cffafe'],
+        ];
+        function lbColorFor(name) {
+            let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+            return LB_COLORS[Math.abs(h) % LB_COLORS.length];
+        }
+
+        // Build an avatar element for a leaderboard user
+        function lbAvatarHTML(user, size, currentUserId, borderColor) {
+            const isMe = user.uid === currentUserId;
+            const saved = localStorage.getItem('medexcel_avatar_index');
+            if (isMe && saved !== null && AVATAR_GRID) {
+                const a = AVATAR_GRID[parseInt(saved)];
+                if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
+            }
+            const [bg, fg] = lbColorFor(user.displayName || '?');
+            const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
+            return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*0.35)}px;color:${fg};flex-shrink:0;">${initial}</div>`;
+        }
+
+        // Tab state
+        window._lbTab = 'alltime';
+        window._lbUsers = [];
+        window._lbUserId = null;
+
+        window.switchLbTab = function(tab) {
+            window._lbTab = tab;
+            const allBtn = document.getElementById('lbTabAllTime');
+            const wkBtn  = document.getElementById('lbTabWeek');
+            const active = 'background:var(--accent-btn);color:var(--btn-text);box-shadow:0 2px 8px rgba(139,92,246,0.3);';
+            const inactive = 'background:transparent;color:var(--text-muted);box-shadow:none;';
+            if (allBtn) allBtn.style.cssText += (tab === 'alltime' ? active : inactive);
+            if (wkBtn)  wkBtn.style.cssText  += (tab === 'week'    ? active : inactive);
+            if (window._lbUsers.length) window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
+        };
+
         window.loadLeaderboard = async function(currentUserId) {
+            window._lbUserId = currentUserId;
             try {
                 const uiXP = document.getElementById('currentUserXp');
-                if(uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.width = 'auto'; uiXP.style.height = 'auto'; uiXP.textContent = window.formatXP(window.userStats.xp); }
+                if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
                 const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
-                const querySnapshot = await getDocs(q);
-                let fetchedUsers = [];
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data(); if(data.xp && data.xp > 0) fetchedUsers.push({ uid: doc.id, displayName: data.displayName || data.email?.split('@')[0] || "User", xp: data.xp });
+                const snap = await getDocs(q);
+                let fetched = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.xp && data.xp > 0) fetched.push({
+                        uid: d.id,
+                        displayName: data.displayName || data.email?.split('@')[0] || "User",
+                        xp: data.xp,
+                        weeklyXp: data.weeklyXp || 0,
+                    });
                 });
-                window.renderLeaderboardDOM(fetchedUsers, currentUserId);
-            } catch(e) { 
-                const listContainer = document.getElementById('leaderboardList');
-                if(listContainer) {
-                    if(e.message.includes("index")) listContainer.innerHTML = `<div class="text-center text-yellow-500 py-6 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i> Firebase requires an Index.</div>`;
-                    else listContainer.innerHTML = `<div class="text-center text-[var(--text-muted)] py-6 text-sm">Failed to load leaderboard.</div>`;
+                window._lbUsers = fetched;
+                window.renderLeaderboardDOM(fetched, currentUserId);
+            } catch(e) {
+                const lc = document.getElementById('leaderboardList');
+                if (lc) {
+                    lc.innerHTML = e.message?.includes("index")
+                        ? `<div style="text-align:center;color:#f59e0b;padding:1.5rem;font-size:0.875rem;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Firebase index required.</div>`
+                        : `<div style="text-align:center;color:var(--text-muted);padding:1.5rem;font-size:0.875rem;">Failed to load leaderboard.</div>`;
                 }
             }
         };
 
-        window.renderLeaderboardDOM = function(users, currentUserId) {
+        window.renderLeaderboardDOM = function(allUsers, currentUserId) {
+            const useWeekly = window._lbTab === 'week';
+            // Sort by the right XP field
+            let users = [...allUsers].sort((a,b) => (useWeekly ? b.weeklyXp - a.weeklyXp : b.xp - a.xp));
+            // Filter out zero weekly XP if in weekly mode
+            if (useWeekly) users = users.filter(u => u.weeklyXp > 0);
+
             const listContainer = document.getElementById('leaderboardList');
-            const skeletons = ['name1', 'xp1', 'avatarBox1', 'name2', 'xp2', 'avatarBox2', 'name3', 'xp3', 'avatarBox3'];
-            skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width = 'auto'; el.style.height = 'auto'; } });
+            const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
+            skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
-            if (users.length === 0) { listContainer.innerHTML = '<div class="text-center text-[var(--text-muted)] py-6 text-sm font-medium">No users have earned XP yet! Go study to be #1!</div>'; return; }
+            // Empty state
+            if (users.length === 0) {
+                ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='---'; });
+                ['xp1','xp2','xp3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">${useWeekly ? 'No activity this week yet — go study!' : 'No users have earned XP yet!'}</div>`;
+                document.getElementById('yourRankBar').style.display = 'none';
+                return;
+            }
+
+            const xpField = useWeekly ? 'weeklyXp' : 'xp';
+
+            // --- Podium top 3 ---
+            const podiumSlots = [
+                { nameId:'name1', xpId:'xp1', boxId:'avatarBox1', avatarId:'avatar1' },
+                { nameId:'name2', xpId:'xp2', boxId:'avatarBox2', avatarId:'avatar2' },
+                { nameId:'name3', xpId:'xp3', boxId:'avatarBox3', avatarId:'avatar3' },
+            ];
+            const podiumOrder = [users[0], users[1], users[2]]; // 1st, 2nd, 3rd
+            podiumSlots.forEach((slot, i) => {
+                const u = podiumOrder[i];
+                const nameEl = document.getElementById(slot.nameId);
+                const xpEl   = document.getElementById(slot.xpId);
+                const boxEl  = document.getElementById(slot.boxId);
+                if (!u) { if(nameEl) nameEl.textContent='—'; if(xpEl) xpEl.textContent=''; return; }
+                if (nameEl) nameEl.textContent = u.displayName;
+                if (xpEl)   xpEl.textContent   = window.formatXP(u[xpField]);
+                if (boxEl) {
+                    const size = i === 0 ? 76 : 56;
+                    boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId);
+                }
+            });
+
+            // --- Ranked list (ranks 4–10) ---
             listContainer.innerHTML = '';
+            if (users.length <= 3) {
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} so far. Be the one to break in!</div>`;
+            }
 
-            if(users[0]) { document.getElementById('name1').textContent = users[0].displayName; document.getElementById('xp1').textContent = window.formatXP(users[0].xp); document.getElementById('avatar1').textContent = window.getInitial(users[0].displayName); }
-            if(users[1]) { document.getElementById('name2').textContent = users[1].displayName; document.getElementById('xp2').textContent = window.formatXP(users[1].xp); document.getElementById('avatar2').textContent = window.getInitial(users[1].displayName); } else { document.getElementById('name2').textContent = "---"; }
-            if(users[2]) { document.getElementById('name3').textContent = users[2].displayName; document.getElementById('xp3').textContent = window.formatXP(users[2].xp); document.getElementById('avatar3').textContent = window.getInitial(users[2].displayName); } else { document.getElementById('name3').textContent = "---"; }
+            let currentUserRank = -1;
+            users.forEach((user, index) => {
+                const rank = index + 1;
+                if (user.uid === currentUserId) currentUserRank = rank;
+                if (rank <= 3 || rank > 10) return; // podium already shown, cap at 10
 
-            users.slice(3).forEach((user, index) => {
-                const rank = index + 4; const isCurrentUser = user.uid === currentUserId;
-                const bgClass = isCurrentUser ? "bg-[var(--accent-btn)]/10 border-[var(--accent-btn)]" : "bg-[var(--bg-surface)] border-[var(--border-color)]";
-                const textColor = isCurrentUser ? "text-[var(--accent-btn)]" : "text-[var(--text-main)]";
+                const isMe = user.uid === currentUserId;
+                const avatarHTML = lbAvatarHTML(user, 40, currentUserId);
+                const [bg] = lbColorFor(user.displayName);
+                const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
+                const nameCls = isMe ? 'color:var(--accent-btn);' : 'color:var(--text-main);';
+
                 listContainer.innerHTML += `
-                    <div class="flex items-center justify-between p-3 rounded-xl border ${bgClass} transition-colors" style="animation: fadeIn 0.3s ease-out forwards; opacity: 0; animation-delay: ${index * 0.05}s;">
-                        <div class="flex items-center gap-4"><span class="text-sm font-bold text-[var(--text-muted)] w-4 text-center">${rank}</span><div class="w-10 h-10 rounded-full bg-[var(--podium-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] font-bold shadow-inner">${window.getInitial(user.displayName)}</div><div><h4 class="text-sm font-bold ${textColor}">${user.displayName} ${isCurrentUser ? '<span class="text-[10px] ml-2 px-2 py-0.5 bg-[var(--accent-btn)] text-[var(--btn-text)] rounded-full">YOU</span>' : ''}</h4></div></div><div class="text-right"><span class="text-xs font-bold text-[var(--text-muted)]">${window.formatXP(user.xp)}</span></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
+                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
+                            ${avatarHTML}
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    ${user.displayName}
+                                    ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:var(--btn-text);border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex-shrink:0;margin-left:0.75rem;text-align:right;">
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user[xpField])}</span>
+                        </div>
                     </div>`;
             });
+
+            // --- Pinned Your Rank Bar ---
+            const bar = document.getElementById('yourRankBar');
+            if (currentUserRank > 0 && bar) {
+                const me = users[currentUserRank - 1];
+                const saved = localStorage.getItem('medexcel_avatar_index');
+                const avatarWrap = document.getElementById('yourRankAvatarWrap');
+                if (avatarWrap) {
+                    if (saved !== null && AVATAR_GRID) {
+                        const a = AVATAR_GRID[parseInt(saved)];
+                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
+                    } else {
+                        avatarWrap.textContent = window.getInitial ? window.getInitial(me.displayName) : me.displayName.charAt(0).toUpperCase();
+                    }
+                }
+                const rankNameEl = document.getElementById('yourRankName');
+                const rankXpEl   = document.getElementById('yourRankXp');
+                const rankNumEl  = document.getElementById('yourRankNum');
+                if (rankNameEl) rankNameEl.textContent = me.displayName;
+                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me[xpField]) + ' XP';
+                if (rankNumEl)  rankNumEl.textContent   = `#${currentUserRank}`;
+                bar.style.display = 'block';
+            } else if (bar) {
+                bar.style.display = 'none';
+            }
         };
         
         // Create Generation API Logic
