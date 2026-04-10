@@ -1941,9 +1941,9 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         }
 
         // Build an avatar element for a leaderboard user
-        function lbAvatarHTML(user, size, currentUserId, borderColor) {
+        function lbAvatarHTML(user, size, currentUserId) {
             const isMe = user.uid === currentUserId;
-            const saved = localStorage.getItem('medexcel_avatar_index');
+            const saved = isMe ? localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest')) : null;
             if (isMe && saved !== null && AVATAR_GRID) {
                 const a = AVATAR_GRID[parseInt(saved)];
                 if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
@@ -2081,7 +2081,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const bar = document.getElementById('yourRankBar');
             if (currentUserRank > 0 && bar) {
                 const me = users[currentUserRank - 1];
-                const saved = localStorage.getItem('medexcel_avatar_index');
+                const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
                 const avatarWrap = document.getElementById('yourRankAvatarWrap');
                 if (avatarWrap) {
                     if (saved !== null && AVATAR_GRID) {
@@ -2287,7 +2287,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             }
 
             // Highlight currently selected
-            const saved = localStorage.getItem('medexcel_avatar_index');
+            const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
             AVATAR_GRID.forEach((_, i) => {
                 const btn = document.getElementById(`avatarOption${i}`);
                 if (btn) btn.style.borderColor = (String(i) === saved) ? 'var(--accent-btn)' : 'var(--border-color)';
@@ -2309,7 +2309,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         window.selectAvatar = function(index) {
-            localStorage.setItem('medexcel_avatar_index', String(index));
+            localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
             window.applyAvatar();
             // Highlight in picker
             AVATAR_GRID.forEach((_, i) => {
@@ -2320,7 +2320,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         window.applyAvatar = function() {
-            const saved = localStorage.getItem('medexcel_avatar_index');
+            const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
             const wrap = document.getElementById('profileAvatarWrap');
             const homeBtn = document.getElementById('homeAvatarBtn');
             const initial = document.getElementById('userInitial');
