@@ -292,9 +292,12 @@
 
 
     <section id="view-home" class="app-view active">
-        <header class="home-header">
-            <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
-            <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+        <header class="home-header" style="gap: 0.75rem;">
+            <div id="homeAvatarBtn" onclick="navigateTo('view-profile')" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;cursor:pointer;overflow:hidden;border:2px solid var(--border-color);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:var(--accent-orange);transition:border-color 0.2s;" title="Profile">
+                <span id="homeAvatarInitial">?</span>
+            </div>
+            <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px; font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;"></h1>
+            <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()" style="flex-shrink:0;">
                 <i id="headerFireIcon" class="fas fa-fire"></i>
                 <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
             </div>
@@ -634,8 +637,13 @@
             <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <div class="flex items-center justify-between p-[1.125rem] px-5">
                     <div class="flex items-center gap-4">
-                       <div class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border border-orange-200 flex items-center justify-center font-bold text-2xl shrink-0">
-                           <span id="userInitial">?</span>
+                       <div class="relative shrink-0 cursor-pointer" onclick="window.openAvatarPicker()" title="Change avatar">
+                           <div id="profileAvatarWrap" class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border-2 border-orange-200 flex items-center justify-center font-bold text-2xl overflow-hidden">
+                               <span id="userInitial">?</span>
+                           </div>
+                           <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--accent-btn)] flex items-center justify-center shadow-md">
+                               <i class="fas fa-pen text-white" style="font-size:7px;"></i>
+                           </div>
                        </div>
                        <div class="flex flex-col">
                            <span id="userName" class="font-bold text-[var(--text-main)] text-lg leading-tight">Loading...</span>
@@ -2044,6 +2052,147 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         
 
+        /* =========================================
+           AVATAR PICKER
+           =========================================
+           HOW TO USE:
+           Set AVATAR_IMAGE_PATH to the relative or absolute path of your
+           avatar grid image (the 3×3 character sheet).
+           e.g. "assets/avatars.jpg" or "https://yourcdn.com/avatars.jpg"
+        ========================================= */
+        const AVATAR_IMAGE_PATH = "avatar.svg"; // <-- UPDATE THIS PATH
+
+        // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
+        const AVATAR_GRID = [
+            { col: 0, row: 0, label: "Rainbow" },
+            { col: 1, row: 0, label: "Hijab" },
+            { col: 2, row: 0, label: "Curls" },
+            { col: 0, row: 1, label: "Turban" },
+            { col: 1, row: 1, label: "Beard" },
+            { col: 2, row: 1, label: "Glasses" },
+            { col: 0, row: 2, label: "Cap" },
+            { col: 1, row: 2, label: "Pink Specs" },
+            { col: 2, row: 2, label: "Blonde" },
+        ];
+
+        window.openAvatarPicker = function() {
+            let backdrop = document.getElementById('avatarPickerBackdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'avatarPickerBackdrop';
+                backdrop.className = 'modal-backdrop';
+                backdrop.style.cssText = 'align-items: flex-end;';
+                backdrop.innerHTML = `
+                    <div style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:var(--radius-card) var(--radius-card) 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);" id="avatarPickerSheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                            <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-main);">Choose Your Avatar</h3>
+                            <button onclick="window.closeAvatarPicker()" style="background:var(--bg-hover);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:var(--text-muted);font-size:1rem;">✕</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;" id="avatarGrid">
+                        ${AVATAR_GRID.map((a, i) => `
+                            <button onclick="window.selectAvatar(${i})" id="avatarOption${i}" style="
+                                background:var(--bg-body);
+                                border:2px solid var(--border-color);
+                                border-radius:1rem;
+                                padding:0.5rem;
+                                cursor:pointer;
+                                display:flex;
+                                flex-direction:column;
+                                align-items:center;
+                                gap:0.5rem;
+                                transition:border-color 0.2s,transform 0.15s;
+                                -webkit-tap-highlight-color:transparent;
+                            " onmousedown="this.style.transform='scale(0.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.94)'" ontouchend="this.style.transform=''">
+                                <div style="
+                                    width:64px;height:64px;border-radius:50%;overflow:hidden;
+                                    background-image:url('${AVATAR_IMAGE_PATH}');
+                                    background-size:300% 300%;
+                                    background-position:${a.col * 50}% ${a.row * 50}%;
+                                    flex-shrink:0;
+                                "></div>
+                                <span style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);">${a.label}</span>
+                            </button>
+                        `).join('')}
+                        </div>
+                    </div>
+                `;
+                backdrop.addEventListener('click', (e) => { if (e.target === backdrop) window.closeAvatarPicker(); });
+                document.body.appendChild(backdrop);
+            }
+
+            // Highlight currently selected
+            const saved = localStorage.getItem('medexcel_avatar_index');
+            AVATAR_GRID.forEach((_, i) => {
+                const btn = document.getElementById(`avatarOption${i}`);
+                if (btn) btn.style.borderColor = (String(i) === saved) ? 'var(--accent-btn)' : 'var(--border-color)';
+            });
+
+            backdrop.style.display = 'flex';
+            requestAnimationFrame(() => {
+                backdrop.style.opacity = '1';
+                const sheet = document.getElementById('avatarPickerSheet');
+                if (sheet) { sheet.style.transform = 'translateY(0)'; sheet.style.opacity = '1'; }
+            });
+        };
+
+        window.closeAvatarPicker = function() {
+            const backdrop = document.getElementById('avatarPickerBackdrop');
+            const sheet = document.getElementById('avatarPickerSheet');
+            if (sheet) { sheet.style.transform = 'translateY(100%)'; sheet.style.opacity = '0'; }
+            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => { backdrop.style.display = 'none'; }, 400); }
+        };
+
+        window.selectAvatar = function(index) {
+            localStorage.setItem('medexcel_avatar_index', String(index));
+            window.applyAvatar();
+            // Highlight in picker
+            AVATAR_GRID.forEach((_, i) => {
+                const btn = document.getElementById(`avatarOption${i}`);
+                if (btn) btn.style.borderColor = (i === index) ? 'var(--accent-btn)' : 'var(--border-color)';
+            });
+            setTimeout(() => window.closeAvatarPicker(), 350);
+        };
+
+        window.applyAvatar = function() {
+            const saved = localStorage.getItem('medexcel_avatar_index');
+            const wrap = document.getElementById('profileAvatarWrap');
+            const homeBtn = document.getElementById('homeAvatarBtn');
+            const initial = document.getElementById('userInitial');
+            const storedInitial = initial ? initial.textContent : (document.getElementById('homeAvatarInitial') ? document.getElementById('homeAvatarInitial').textContent : '?');
+
+            if (saved !== null) {
+                const a = AVATAR_GRID[parseInt(saved)];
+                if (a) {
+                    const bgStyle = `background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;`;
+                    // Profile page avatar
+                    if (wrap) {
+                        wrap.style.background = 'var(--bg-surface)';
+                        wrap.style.border = '2px solid var(--accent-btn)';
+                        wrap.innerHTML = `<div style="${bgStyle}"></div>`;
+                    }
+                    // Home header avatar
+                    if (homeBtn) {
+                        homeBtn.style.borderColor = 'var(--accent-btn)';
+                        homeBtn.innerHTML = `<div style="${bgStyle}"></div>`;
+                    }
+                    return;
+                }
+            }
+            // Fallback: show initial
+            if (wrap) {
+                wrap.style.background = '';
+                wrap.style.border = '';
+                wrap.innerHTML = `<span id="userInitial">${storedInitial}</span>`;
+            }
+            if (homeBtn) {
+                homeBtn.style.borderColor = 'var(--border-color)';
+                homeBtn.innerHTML = `<span id="homeAvatarInitial">${storedInitial}</span>`;
+            }
+        };
+
+        // Apply on load
+        document.addEventListener('DOMContentLoaded', window.applyAvatar);
+
         // Initialize User Data (Master Hub)
         window.initUserUI = async function(user) {
             try {
@@ -2053,6 +2202,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 const uNameEl = document.getElementById("userName"); if(uNameEl) uNameEl.textContent = savedName;
                 const uEmailEl = document.getElementById("userEmail"); if(uEmailEl) uEmailEl.textContent = user.email || "";
                 const uInitEl = document.getElementById("userInitial"); if(uInitEl) uInitEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
+                const uHomeInit = document.getElementById("homeAvatarInitial"); if(uHomeInit) uHomeInit.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
+                window.applyAvatar();
 
                 // Fetch Quizzes securely
                 try {
