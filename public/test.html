@@ -18,6 +18,17 @@
         (function() {
             const savedTheme = localStorage.getItem('medexcel_theme');
             if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
+            // Sync Capacitor status bar on load
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { StatusBar } = window.Capacitor.Plugins;
+                    const isLight = savedTheme === 'light';
+                    StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+                    // 'LIGHT' = dark/black icons (use on light backgrounds)
+                    // 'DARK'  = light/white icons (use on dark backgrounds)
+                    StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+                } catch(e) {}
+            }
         })();
 
         // Tailwind Config
@@ -1015,6 +1026,16 @@
                 const isLight = document.documentElement.classList.toggle('light-mode');
                 localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
                 window.updateThemeUI();
+                // Sync Capacitor status bar on theme change
+                if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                    try {
+                        const { StatusBar } = window.Capacitor.Plugins;
+                        StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+                        // 'LIGHT' = dark/black icons (use on light backgrounds)
+                        // 'DARK'  = light/white icons (use on dark backgrounds)
+                        StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+                    } catch(e) {}
+                }
             });
         }
 
