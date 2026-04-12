@@ -1,547 +1,698 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050814">
-    <title>MedExcel - Study Companion</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const savedUser = localStorage.getItem("nativeUser");
+if (savedUser && savedUser !== "undefined" && savedUser !== "null") { window.location.replace("homepage.html"); }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050A15">
+<title>MedExcel - Welcome</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <style>
-        /* ================= GLOBAL SPA STYLES ================= */
-        :root {
-            --bg-main: #050A15; --bg-card: #0B1120;
-            --text-main: #ffffff; --text-muted: #94a3b8;
-            --accent-blue: #3b82f6; --accent-orange: #f97316;
-            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
+<style>
+:root{--bg:#050A15;--bg2:#0B1120;--text:#fff;--muted:#6b7f97;--light:#adb8c8;--purple:#7c3aed;--pl:#a78bfa;--pd:#4c1d95;--border:rgba(255,255,255,0.07);--ease:cubic-bezier(0.19,1,0.22,1);--eo:cubic-bezier(0.33,1,0.68,1);--r:18px;--rl:24px;--rp:100px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+::-webkit-scrollbar{display:none!important;} *{scrollbar-width:none!important;}
+body{font-family:'Inter',ui-sans-serif,sans-serif;background:var(--bg);color:var(--text);height:100dvh;width:100vw;overflow:hidden;-webkit-user-select:none;user-select:none;display:flex;flex-direction:column;}
+button{cursor:pointer;border:none;outline:none;background:transparent;font-family:inherit;color:inherit;}
+input{font-family:inherit;outline:none;border:none;background:transparent;color:var(--text);}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-        body { background-color: var(--bg-main); color: var(--text-main); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; user-select: none; -webkit-user-select: none; }
-        
-        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
-        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+/* DIALOG */
+.ok-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:99999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);}
+.ok-dialog{width:90%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;transform:scale(.95);opacity:0;transition:all .2s var(--eo);}
+.ok-backdrop.active .ok-dialog{transform:scale(1);opacity:1;}
+.dialog-title{font-size:1.1rem;font-weight:700;margin-bottom:.5rem;}
+.dialog-msg{color:var(--light);font-size:.875rem;margin-bottom:1.5rem;line-height:1.6;}
+.dialog-actions{display:flex;justify-content:flex-end;gap:.75rem;}
+.btn-cancel{padding:.5rem 1rem;color:var(--muted);font-weight:700;font-size:.875rem;}
+.btn-confirm{padding:.5rem 1.5rem;background:var(--purple);color:#fff;border-radius:var(--r);font-weight:700;font-size:.875rem;}
 
-        /* The Magic of the SPA: Hiding and Showing Pages */
-        .spa-page { display: none; width: 100vw; height: 100vh; overflow-y: auto; overflow-x: hidden; flex-direction: column; position: absolute; inset: 0; padding-bottom: 6rem; }
-        .spa-page.active { display: flex; animation: fadeIn 0.3s var(--ease-out) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* SCREENS */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;z-index:10;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .36s var(--ease),transform .36s var(--ease);background:var(--bg);overflow:hidden;}
+.screen.active{opacity:1;pointer-events:auto;transform:translateY(0);}
 
-        /* ================= GLOBAL COMPONENTS (Modals & Nav) ================= */
-        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 21, 0.95); z-index: 10000; transition: opacity 0.3s; }
-        .loader-screen.hidden { opacity: 0; pointer-events: none; }
-        
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-        .modal-backdrop.active { opacity: 1; visibility: visible; }
-        .modal-content { background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; transform: scale(0.95); transition: 0.3s; text-align: center; }
-        .modal-backdrop.active .modal-content { transform: scale(1); }
+/* CROSS PATTERN BG */
+.cross-bg{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='rgba(255%2C255%2C255%2C0.05)' stroke-width='1.2' stroke-linecap='round'%3E%3Cline x1='18' y1='20' x2='22' y2='20'/%3E%3Cline x1='20' y1='18' x2='20' y2='22'/%3E%3C/g%3E%3C/svg%3E");background-size:40px 40px;pointer-events:none;z-index:0;}
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(5, 10, 21, 0.98); border-top: 1px solid rgba(255,255,255,0.05); padding: 0.75rem 1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; color: #64748b; font-size: 1.25rem; transition: 0.2s; }
-        .nav-item.active { color: white; }
-        .nav-item span { font-size: 0.625rem; font-weight: 500; }
+/* STORY BARS */
+.story-bars{position:absolute;top:0;left:0;right:0;padding:max(env(safe-area-inset-top),1rem) 1.25rem 0;display:flex;gap:5px;z-index:100;pointer-events:none;}
+.story-bar{flex:1;height:3px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden;}
+.story-bar-fill{height:100%;background:rgba(255,255,255,.8);width:0%;border-radius:2px;}
+.story-bar.done .story-bar-fill{width:100%;}
+.story-bar.active .story-bar-fill{width:45%;}
+.skip-btn{position:absolute;top:max(env(safe-area-inset-top),1rem);right:1.25rem;z-index:101;color:rgba(255,255,255,.45);font-size:.78rem;font-weight:700;padding:.4rem .9rem;background:rgba(255,255,255,.08);border-radius:20px;letter-spacing:.05em;margin-top:6px;transition:background .2s;}
+.skip-btn:active{background:rgba(255,255,255,.14);}
 
-        /* ================= PAGE SPECIFIC STYLES ================= */
-        /* Landing Page */
-        .onboarding-wrapper { display: flex; width: 100%; height: 100vh; overflow-x: auto; scroll-snap-type: x mandatory; }
-        .slide { flex: 0 0 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; padding: 2rem; text-align: center; }
-        .login-modal { position: absolute; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: 0.3s; opacity: 0; pointer-events: none; transform: translateY(40px); }
-        .login-modal.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+/* CAROUSEL */
+.carousel-vp{position:absolute;inset:0;overflow:hidden;}
+.carousel-track{display:flex;height:100%;transition:transform .52s var(--ease);will-change:transform;}
+.c-slide{flex:0 0 100vw;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;}
 
-        /* Home Page */
-        .card-primary { background: linear-gradient(135deg, #2563eb, #4338ca); border-radius: 20px; border: 1px solid rgba(96, 165, 250, 0.4); box-shadow: 0 5px 0 #1e3a8a; }
-        .card-soft { background: #0a0f1d; border-radius: 16px; border: 1px solid rgba(255,255,255,0.04); }
-        .streak-dialog { border-radius: 0 0 24px 24px; transform: translateY(-100%); margin-top: auto; margin-bottom: auto; }
-        .modal-backdrop.active .streak-dialog { transform: translateY(0); }
+/* SLIDE LAYOUT */
+.slide-inner{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;padding:calc(max(env(safe-area-inset-top),1rem) + 52px) 1.5rem 0;}
+.slide-eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:.45rem;}
+.slide-title{font-size:2.1rem;font-weight:900;line-height:1.1;letter-spacing:-.035em;margin-bottom:.4rem;}
+.slide-sub{font-size:.875rem;color:var(--muted);font-weight:500;line-height:1.55;max-width:255px;}
+.slide-art{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;padding:0.5rem 0;}
+.slide-art svg{width:min(100%,310px);height:auto;max-height:50vmax;}
+.slide-footer{display:flex;align-items:center;justify-content:space-between;padding-bottom:max(env(safe-area-inset-bottom),1.5rem);}
+.slide-dots{display:flex;gap:6px;align-items:center;}
+.slide-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s;}
+.slide-dot.active{width:20px;border-radius:3px;background:rgba(255,255,255,.8);}
+.slide-cta{padding:.875rem 1.625rem;font-weight:800;font-size:.875rem;border-radius:var(--rp);letter-spacing:.01em;transition:transform .15s;display:flex;align-items:center;gap:.4rem;}
+.slide-cta:active{transform:scale(.96);}
 
-        /* Create Page */
-        .upload-zone { border: 2px dashed rgba(51, 65, 85, 0.5); border-radius: 1rem; padding: 2rem; background: rgba(30, 41, 59, 0.3); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
-        .upload-zone.active { border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05); }
-        .file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-        .flashcard-wrapper { flex: 1; position: relative; perspective: 1000px; width: 100%; min-height: 300px; }
-        .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s; }
-        .flashcard-wrapper.flipped .flip-inner { transform: rotateY(180deg); }
-        .flashcard-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(51, 65, 85, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .flashcard-front { background: rgba(30, 41, 59, 0.5); z-index: 2; transform: rotateY(0deg); }
-        .flashcard-back { background: rgba(37, 99, 235, 0.9); transform: rotateY(180deg); }
+/* SVG ANIMATIONS */
+@keyframes float-a{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes float-b{0%,100%{transform:translateY(-5px)}50%{transform:translateY(5px)}}
+@keyframes float-c{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-7px) rotate(3deg)}}
+@keyframes pulse-glow{0%,100%{opacity:.5}50%{opacity:1}}
+.svg-float{animation:float-a 4s ease-in-out infinite;}
+.svg-float-b{animation:float-b 3.5s ease-in-out infinite;}
+.svg-float-c{animation:float-c 4.5s ease-in-out infinite .5s;}
+.pulse-glow{animation:pulse-glow 2.5s ease-in-out infinite;}
 
-        /* Library & Profile */
-        .glass-panel { background: #0B1120; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
-    </style>
+/* ONBOARDING Q */
+.ob-hdr{position:absolute;top:0;left:0;right:0;padding:max(env(safe-area-inset-top),.875rem) 1.25rem 0;z-index:10;display:flex;align-items:center;gap:.75rem;}
+.ob-back{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted);transition:all .2s;flex-shrink:0;opacity:0;pointer-events:none;}
+.ob-back.show{opacity:1;pointer-events:auto;}
+.ob-back:active{transform:scale(.93);}
+.ob-prog{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;}
+.ob-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pl));border-radius:2px;transition:width .4s var(--ease);}
+.ob-num{font-size:.72rem;font-weight:700;color:var(--muted);flex-shrink:0;}
+
+.ob-vp{flex:1;position:relative;overflow:hidden;margin-top:calc(max(env(safe-area-inset-top),.875rem) + 46px);}
+.ob-step{position:absolute;inset:0;opacity:0;pointer-events:none;transform:translateX(32px);transition:opacity .36s var(--ease),transform .36s var(--ease);overflow-y:auto;padding:1.25rem 1.5rem 6rem;}
+.ob-step.active{opacity:1;pointer-events:auto;transform:translateX(0);}
+.ob-step.exit{opacity:0;transform:translateX(-32px);}
+.ob-ey{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--pl);margin-bottom:.4rem;}
+.ob-ttl{font-size:1.8rem;font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:.35rem;}
+.ob-sub{font-size:.875rem;color:var(--muted);font-weight:500;line-height:1.55;margin-bottom:1.5rem;}
+
+/* CARD GRID */
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.sel-card{background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:var(--r);padding:1rem .875rem;display:flex;flex-direction:column;gap:.35rem;cursor:pointer;transition:all .18s var(--eo);position:relative;overflow:hidden;}
+.sel-card:active{transform:scale(.96);}
+.sel-card.sel{border-color:rgba(167,139,250,.6);background:rgba(124,58,237,.12);}
+.sel-card-icon{font-size:1.5rem;}
+.sel-card-label{font-size:.875rem;font-weight:700;line-height:1.2;}
+.sel-card-desc{font-size:.74rem;color:var(--muted);font-weight:500;line-height:1.3;}
+.sel-card-chk{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#fff;opacity:0;transform:scale(.3);transition:all .2s var(--eo);}
+.sel-card.sel .sel-card-chk{opacity:1;transform:scale(1);}
+
+/* DRUM */
+.drum-wrap{position:relative;height:228px;overflow:hidden;}
+.drum-ft{position:absolute;top:0;left:0;right:0;height:82px;background:linear-gradient(to bottom,var(--bg) 0%,transparent 100%);z-index:2;pointer-events:none;}
+.drum-fb{position:absolute;bottom:0;left:0;right:0;height:82px;background:linear-gradient(to top,var(--bg) 0%,transparent 100%);z-index:2;pointer-events:none;}
+.drum-sel{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);height:56px;border-top:1.5px solid rgba(167,139,250,.3);border-bottom:1.5px solid rgba(167,139,250,.3);background:rgba(124,58,237,.07);border-radius:14px;pointer-events:none;z-index:1;}
+.drum-list{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;position:relative;z-index:0;}
+.drum-list::before,.drum-list::after{content:'';display:block;height:86px;}
+.drum-item{height:56px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;font-size:1.35rem;font-weight:700;color:rgba(255,255,255,.2);cursor:pointer;transition:color .1s,font-size .1s;}
+.drum-item.dnear{color:rgba(255,255,255,.45);font-size:1.6rem;}
+.drum-item.dact{color:var(--pl);font-size:2rem;font-weight:900;}
+.drum-cap{text-align:center;font-size:.72rem;font-weight:700;color:var(--muted);margin-top:.6rem;text-transform:uppercase;letter-spacing:.09em;}
+
+/* PILLS */
+.pill-list{display:flex;flex-direction:column;gap:.625rem;}
+.sel-pill{background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:var(--r);padding:.875rem 1.125rem;display:flex;align-items:center;gap:.875rem;cursor:pointer;transition:all .18s var(--eo);}
+.sel-pill:active{transform:scale(.98);}
+.sel-pill.sel{border-color:rgba(167,139,250,.6);background:rgba(124,58,237,.12);}
+.pil-ico{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;transition:background .2s;}
+.sel-pill.sel .pil-ico{background:rgba(124,58,237,.25);}
+.pil-txt{flex:1;}
+.pil-lbl{font-size:.9375rem;font-weight:700;}
+.pil-sub{font-size:.78rem;color:var(--muted);margin-top:1px;}
+.pil-radio{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.15);flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.sel-pill.sel .pil-radio{border-color:var(--pl);background:var(--purple);}
+.pil-radio::after{content:'';width:7px;height:7px;border-radius:50%;background:#fff;opacity:0;transform:scale(0);transition:all .2s;}
+.sel-pill.sel .pil-radio::after{opacity:1;transform:scale(1);}
+
+/* DOCK */
+.ob-dock{position:absolute;bottom:0;left:0;right:0;padding:.875rem 1.5rem max(env(safe-area-inset-bottom),1.25rem);background:linear-gradient(to top,var(--bg) 60%,transparent);z-index:10;}
+.ob-next{width:100%;background:linear-gradient(135deg,var(--purple),#5b21b6);color:#fff;font-weight:800;font-size:1rem;padding:1rem;border-radius:var(--rp);box-shadow:0 6px 24px rgba(124,58,237,.28);transition:transform .15s,opacity .2s;opacity:.4;pointer-events:none;}
+.ob-next.rdy{opacity:1;pointer-events:auto;}
+.ob-next:active{transform:scale(.97);}
+
+/* READY */
+#readyScreen{padding:max(env(safe-area-inset-top),2rem) 1.5rem max(env(safe-area-inset-bottom),2rem);justify-content:center;}
+.rdy-badge{font-size:3rem;margin-bottom:1rem;}
+.rdy-ttl{font-size:2.1rem;font-weight:900;letter-spacing:-.03em;line-height:1.08;margin-bottom:.5rem;}
+.rdy-sub{font-size:.9rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.5;}
+.sum-list{display:flex;flex-direction:column;gap:.625rem;width:100%;margin-bottom:2rem;}
+.sum-row{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--r);padding:.875rem 1rem;display:flex;align-items:center;gap:.875rem;}
+.sum-ico{width:38px;height:38px;border-radius:10px;background:rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.sum-lbl{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+.sum-val{font-size:.9375rem;font-weight:700;margin-top:1px;}
+.rdy-cta{width:100%;background:linear-gradient(135deg,var(--purple),#5b21b6);color:#fff;font-weight:800;font-size:1rem;padding:1rem;border-radius:var(--rp);box-shadow:0 6px 24px rgba(124,58,237,.28);transition:transform .15s;}
+.rdy-cta:active{transform:scale(.97);}
+
+/* AUTH */
+.auth-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;}
+.auth-logo{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,var(--purple),#4f46e5);display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1.5rem;box-shadow:0 8px 32px rgba(124,58,237,.3);}
+.auth-ttl{font-size:2rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.4rem;}
+.auth-sub{color:var(--muted);font-size:.9rem;margin-bottom:2.75rem;line-height:1.5;}
+.btn-ap{width:100%;max-width:320px;background:linear-gradient(135deg,var(--purple),#5b21b6);color:#fff;font-weight:800;padding:1.1rem;border-radius:var(--rp);margin-bottom:.875rem;font-size:1rem;box-shadow:0 6px 24px rgba(124,58,237,.28);transition:transform .15s;}
+.btn-ap:active{transform:scale(.97);}
+.btn-as{width:100%;max-width:320px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-weight:700;padding:1.1rem;border-radius:var(--rp);font-size:1rem;transition:transform .15s,background .2s;}
+.btn-as:active{transform:scale(.97);background:rgba(255,255,255,.04);}
+
+/* LOGIN */
+.login-modal{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding:1.5rem;transition:all .3s ease;opacity:0;transform:translateY(40px);pointer-events:none;}
+.login-modal.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+.login-hdr{display:flex;align-items:center;justify-content:space-between;margin:.5rem 0 2.5rem;}
+.btn-close{color:var(--muted);padding:.5rem;margin-left:-.5rem;}
+.login-ttl{color:var(--muted);font-weight:700;font-size:1.125rem;flex:1;text-align:center;margin-right:1.5rem;}
+.login-form{width:100%;max-width:24rem;margin:0 auto;}
+.input-group{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:1.5rem;overflow:hidden;transition:border-color .2s;}
+.input-group:focus-within{border-color:rgba(167,139,250,.4);}
+.input-row{position:relative;border-bottom:1.5px solid var(--border);}
+.input-row:last-child{border-bottom:none;}
+.input-field{width:100%;padding:1rem;font-weight:500;font-size:.9375rem;}
+.input-field::placeholder{color:var(--muted);}
+.btn-tpw{position:absolute;right:1rem;top:50%;transform:translateY(-50%);color:var(--muted);}
+.btn-si{width:100%;background:linear-gradient(135deg,var(--purple),#5b21b6);color:#fff;font-weight:800;font-size:.9375rem;padding:1rem;border-radius:var(--rp);margin-bottom:1rem;box-shadow:0 4px 16px rgba(124,58,237,.25);transition:transform .1s;}
+.btn-si:active{transform:scale(.97);}
+.btn-fp{width:100%;color:var(--pl);font-weight:700;font-size:.875rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3rem;}
+.btn-goog{width:100%;display:flex;align-items:center;justify-content:center;gap:.625rem;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:.875rem;transition:all .15s;}
+.btn-goog:active{transform:scale(.97);}
+.goog-txt{color:var(--light);font-weight:700;font-size:.875rem;letter-spacing:.03em;}
+</style>
 </head>
 <body>
+<!-- DIALOG -->
+<div id="okBackdrop" class="ok-backdrop"><div class="ok-dialog"><h3 id="okTitle" class="dialog-title">Notice</h3><p id="okMessage" class="dialog-msg"></p><div class="dialog-actions"><button id="okCancel" class="btn-cancel">Cancel</button><button id="okConfirm" class="btn-confirm">OK</button></div></div></div>
 
-    <div id="globalLoader" class="loader-screen hidden">
-        <div class="flex flex-col items-center">
-            <div id="lottieLoader" style="width: 80px; height: 80px;"></div>
-            <div id="loaderText" class="text-slate-300 text-sm font-bold mt-4 animate-pulse">Loading MedExcel...</div>
+<!-- INTRO CAROUSEL -->
+<div id="introScreen" class="screen active">
+  <div class="story-bars">
+    <div class="story-bar active" id="sb0"><div class="story-bar-fill"></div></div>
+    <div class="story-bar" id="sb1"><div class="story-bar-fill"></div></div>
+    <div class="story-bar" id="sb2"><div class="story-bar-fill"></div></div>
+  </div>
+  <button class="skip-btn" onclick="startOnboarding()">SKIP</button>
+  <div class="carousel-vp">
+  <div class="carousel-track" id="carouselTrack">
+<!-- SLIDE 1: AI DECKS -->
+<div class="c-slide">
+  <div class="cross-bg"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 62% 50%,rgba(124,58,237,.28) 0%,transparent 62%);z-index:1;pointer-events:none;"></div>
+  <!-- particles -->
+  <div style="position:absolute;inset:0;z-index:1;pointer-events:none;">
+    <div style="position:absolute;top:20%;left:6%;width:11px;height:11px;border-radius:50%;background:#f97316;box-shadow:0 0 14px #f97316;opacity:.9;"></div>
+    <div style="position:absolute;top:67%;right:7%;width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 10px #3b82f6;opacity:.8;"></div>
+    <div style="position:absolute;top:29%;right:6%;width:6px;height:6px;border-radius:50%;background:#a78bfa;opacity:.7;"></div>
+    <div style="position:absolute;bottom:25%;left:6%;width:6px;height:6px;border-radius:50%;background:#34d399;opacity:.65;"></div>
+    <div style="position:absolute;top:53%;left:4%;width:4px;height:4px;border-radius:50%;background:#fbbf24;opacity:.7;"></div>
+    <svg style="position:absolute;top:14%;right:12%;width:13px;height:13px;opacity:.18;" viewBox="0 0 14 14"><line x1="0" y1="0" x2="14" y2="14" stroke="white" stroke-width="1.5"/><line x1="14" y1="0" x2="0" y2="14" stroke="white" stroke-width="1.5"/></svg>
+    <svg style="position:absolute;bottom:28%;left:10%;width:11px;height:11px;opacity:.15;" viewBox="0 0 14 14"><line x1="0" y1="0" x2="14" y2="14" stroke="white" stroke-width="1.5"/><line x1="14" y1="0" x2="0" y2="14" stroke="white" stroke-width="1.5"/></svg>
+  </div>
+  <div class="slide-inner">
+    <div>
+      <div class="slide-eyebrow" style="color:#a78bfa;">AI Learning</div>
+      <h2 class="slide-title">AI-Powered<br>Study Decks</h2>
+      <p class="slide-sub">Generate smart flashcards from any medical topic instantly.</p>
+    </div>
+    <div class="slide-art">
+      <svg viewBox="0 0 300 295" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="50%"><stop offset="0%" stop-color="#7c3aed" stop-opacity=".5"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+          <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#6d28d9"/><stop offset="100%" stop-color="#2e1065"/></linearGradient>
+          <linearGradient id="g4" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#4c1d95"/><stop offset="100%" stop-color="#1a0a40"/></linearGradient>
+          <linearGradient id="g5" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#0c0a22"/></linearGradient>
+          <filter id="f1"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="f2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <!-- ground glow -->
+        <ellipse cx="150" cy="287" rx="85" ry="13" fill="url(#g1)"/>
+        <!-- card stack (fan) -->
+        <g transform="rotate(-22 150 78)" opacity=".32"><rect x="108" y="22" width="84" height="112" rx="11" fill="url(#g5)" stroke="#2e1065" stroke-width="1.2"/></g>
+        <g transform="rotate(-8 150 78)" opacity=".65">
+          <rect x="108" y="22" width="84" height="112" rx="11" fill="url(#g5)" stroke="#5b21b6" stroke-width="1.5"/>
+          <line x1="126" y1="80" x2="180" y2="80" stroke="#5b21b6" stroke-width="1.3" stroke-linecap="round" opacity=".5"/>
+          <line x1="126" y1="92" x2="172" y2="92" stroke="#5b21b6" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>
+        </g>
+        <!-- front card -->
+        <g class="svg-float-c">
+          <rect x="108" y="22" width="84" height="112" rx="11" fill="url(#g5)" stroke="#a78bfa" stroke-width="2"/>
+          <circle cx="150" cy="50" r="16" fill="rgba(124,58,237,.35)" stroke="#a78bfa" stroke-width="1.5"/>
+          <path d="M154 37L146 52h6l-6 11 11-15h-6z" fill="#c4b5fd"/>
+          <line x1="124" y1="77" x2="176" y2="77" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+          <line x1="124" y1="90" x2="168" y2="90" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round" opacity=".65"/>
+          <line x1="124" y1="102" x2="158" y2="102" stroke="#7c3aed" stroke-width="1.3" stroke-linecap="round" opacity=".45"/>
+          <rect x="124" y="113" width="52" height="15" rx="7.5" fill="rgba(124,58,237,.55)"/>
+          <text x="150" y="124.5" text-anchor="middle" font-size="7" fill="#c4b5fd" font-weight="700" letter-spacing=".5" font-family="Inter,sans-serif">AI POWERED</text>
+        </g>
+        <!-- isometric cube -->
+        <polygon points="94,189 150,226 150,288 94,255" fill="url(#g4)"/>
+        <polygon points="206,189 206,255 150,288 150,226" fill="url(#g3)"/>
+        <polygon points="150,152 206,189 150,226 94,189" fill="url(#g2)"/>
+        <polygon points="150,152 206,189 150,226 94,189" fill="none" stroke="rgba(196,181,253,.4)" stroke-width="1"/>
+        <line x1="150" y1="226" x2="150" y2="288" stroke="rgba(0,0,0,.2)" stroke-width="1"/>
+        <circle cx="150" cy="152" r="4" fill="rgba(196,181,253,.8)" filter="url(#f2)"/>
+        <!-- sparkle -->
+        <g transform="translate(255,83)" fill="#fbbf24" opacity=".9" filter="url(#f2)">
+          <polygon points="0,-8 1.9,-2.9 7.6,-2.5 3.1,1.7 4.7,7.4 0,4.5 -4.7,7.4 -3.1,1.7 -7.6,-2.5 -1.9,-2.9"/>
+        </g>
+        <!-- plus -->
+        <g stroke="#34d399" stroke-width="2" stroke-linecap="round" opacity=".7" transform="translate(47,157)"><line x1="-6" y1="0" x2="6" y2="0"/><line x1="0" y1="-6" x2="0" y2="6"/></g>
+        <circle cx="206" cy="152" r="7" fill="rgba(167,139,250,.2)" stroke="rgba(167,139,250,.45)" stroke-width="1" class="svg-float-b"/>
+      </svg>
+    </div>
+    <div class="slide-footer">
+      <div class="slide-dots"><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div></div>
+      <button class="slide-cta" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 6px 20px rgba(124,58,237,.4);" onclick="nextSlide()">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 2: NEURAL NETWORK -->
+<div class="c-slide">
+  <div class="cross-bg"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 40% 52%,rgba(59,130,246,.22) 0%,transparent 60%);z-index:1;pointer-events:none;"></div>
+  <div style="position:absolute;inset:0;z-index:1;pointer-events:none;">
+    <div style="position:absolute;top:22%;right:7%;width:10px;height:10px;border-radius:50%;background:#06b6d4;box-shadow:0 0 12px #06b6d4;opacity:.85;"></div>
+    <div style="position:absolute;top:66%;left:7%;width:8px;height:8px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa;opacity:.75;"></div>
+    <div style="position:absolute;bottom:23%;right:9%;width:5px;height:5px;border-radius:50%;background:#3b82f6;opacity:.7;"></div>
+    <div style="position:absolute;top:40%;left:5%;width:5px;height:5px;border-radius:50%;background:#f97316;opacity:.6;"></div>
+    <svg style="position:absolute;top:16%;left:13%;width:12px;height:12px;opacity:.17;" viewBox="0 0 14 14"><line x1="0" y1="0" x2="14" y2="14" stroke="white" stroke-width="1.5"/><line x1="14" y1="0" x2="0" y2="14" stroke="white" stroke-width="1.5"/></svg>
+  </div>
+  <div class="slide-inner">
+    <div>
+      <div class="slide-eyebrow" style="color:#60a5fa;">Neural Science</div>
+      <h2 class="slide-title">Master<br>Active Recall</h2>
+      <p class="slide-sub">Science-backed spaced repetition that wires knowledge in.</p>
+    </div>
+    <div class="slide-art">
+      <svg viewBox="0 0 300 275" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="n1" cx="50%" cy="50%"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".8"/><stop offset="100%" stop-color="#1e40af" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="n2" cx="50%" cy="50%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0e7490"/></radialGradient>
+          <radialGradient id="n3" cx="50%" cy="50%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4c1d95"/></radialGradient>
+          <radialGradient id="n4" cx="50%" cy="50%"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".4"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+          <filter id="nf1"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="nf2"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="nf3"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <circle cx="150" cy="137" r="72" fill="url(#n4)"/>
+        <circle cx="150" cy="137" r="95" stroke="rgba(59,130,246,.1)" stroke-width="1" stroke-dasharray="4 6"/>
+        <circle cx="150" cy="137" r="66" stroke="rgba(59,130,246,.16)" stroke-width="1" stroke-dasharray="3 5"/>
+        <!-- connection lines outer -->
+        <g stroke="rgba(59,130,246,.18)" stroke-width="1" filter="url(#nf3)">
+          <line x1="150" y1="42" x2="232" y2="90"/><line x1="232" y1="90" x2="232" y2="184"/><line x1="232" y1="184" x2="150" y2="232"/><line x1="150" y1="232" x2="68" y2="184"/><line x1="68" y1="184" x2="68" y2="90"/><line x1="68" y1="90" x2="150" y2="42"/>
+          <line x1="150" y1="42" x2="232" y2="184" opacity=".55"/><line x1="232" y1="90" x2="68" y2="184" opacity=".55"/>
+        </g>
+        <!-- center lines -->
+        <g stroke="rgba(96,165,250,.32)" stroke-width="1.5" filter="url(#nf3)">
+          <line x1="150" y1="137" x2="150" y2="42"/><line x1="150" y1="137" x2="232" y2="90"/><line x1="150" y1="137" x2="232" y2="184"/><line x1="150" y1="137" x2="150" y2="232"/><line x1="150" y1="137" x2="68" y2="184"/><line x1="150" y1="137" x2="68" y2="90"/>
+        </g>
+        <!-- outer nodes: top(150,42) tr(232,90) br(232,184) bot(150,232) bl(68,184) tl(68,90) -->
+        <circle cx="150" cy="42" r="14" fill="url(#n2)" opacity=".9" filter="url(#nf2)"/><circle cx="150" cy="42" r="8" fill="#06b6d4"/><circle cx="150" cy="42" r="3" fill="white" opacity=".9"/>
+        <circle cx="232" cy="90" r="11" fill="url(#n3)" opacity=".85" filter="url(#nf2)"/><circle cx="232" cy="90" r="6" fill="#7c3aed"/><circle cx="232" cy="90" r="2.5" fill="white" opacity=".9"/>
+        <circle cx="232" cy="184" r="13" fill="url(#n2)" opacity=".88" filter="url(#nf2)"/><circle cx="232" cy="184" r="7" fill="#06b6d4"/><circle cx="232" cy="184" r="2.5" fill="white" opacity=".9"/>
+        <circle cx="150" cy="232" r="10" fill="url(#n3)" opacity=".8" filter="url(#nf2)"/><circle cx="150" cy="232" r="5.5" fill="#7c3aed"/><circle cx="150" cy="232" r="2" fill="white" opacity=".9"/>
+        <circle cx="68" cy="184" r="12" fill="url(#n2)" opacity=".87" filter="url(#nf2)"/><circle cx="68" cy="184" r="6.5" fill="#06b6d4"/><circle cx="68" cy="184" r="2.5" fill="white" opacity=".9"/>
+        <circle cx="68" cy="90" r="11" fill="url(#n3)" opacity=".83" filter="url(#nf2)"/><circle cx="68" cy="90" r="6" fill="#7c3aed"/><circle cx="68" cy="90" r="2.5" fill="white" opacity=".9"/>
+        <!-- center -->
+        <circle cx="150" cy="137" r="38" fill="url(#n1)" filter="url(#nf1)" class="pulse-glow"/>
+        <circle cx="150" cy="137" r="28" fill="#1d4ed8" opacity=".95"/>
+        <circle cx="150" cy="137" r="20" fill="#2563eb"/>
+        <!-- brain icon -->
+        <path d="M143 129C138 125 133 127 132 133C131 139 135 143 140 143H143V129Z" fill="rgba(255,255,255,.75)"/>
+        <path d="M157 129C162 125 167 127 168 133C169 139 165 143 160 143H157V129Z" fill="rgba(255,255,255,.75)"/>
+        <rect x="143" y="128" width="14" height="16" rx="1" fill="#1d4ed8"/>
+        <line x1="150" y1="128" x2="150" y2="144" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+        <circle cx="143" cy="131" r="4.5" fill="rgba(255,255,255,.12)"/>
+        <!-- floaters -->
+        <circle cx="190" cy="55" r="4" fill="#06b6d4" opacity=".5" class="svg-float-b"/>
+        <circle cx="108" cy="215" r="3" fill="#a78bfa" opacity=".55" class="svg-float"/>
+        <!-- sparkle -->
+        <g transform="translate(40,48)" fill="#fbbf24" opacity=".85"><polygon points="0,-8 1.9,-2.9 7.6,-2.5 3.1,1.7 4.7,7.4 0,4.5 -4.7,7.4 -3.1,1.7 -7.6,-2.5 -1.9,-2.9" transform="scale(.8)"/></g>
+      </svg>
+    </div>
+    <div class="slide-footer">
+      <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div></div>
+      <button class="slide-cta" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 6px 20px rgba(37,99,235,.4);" onclick="nextSlide()">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 3: PROGRESS BARS -->
+<div class="c-slide">
+  <div class="cross-bg"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(16,185,129,.18) 0%,transparent 60%);z-index:1;pointer-events:none;"></div>
+  <div style="position:absolute;inset:0;z-index:1;pointer-events:none;">
+    <div style="position:absolute;top:20%;left:7%;width:10px;height:10px;border-radius:50%;background:#fbbf24;box-shadow:0 0 12px #fbbf24;opacity:.9;"></div>
+    <div style="position:absolute;top:64%;right:7%;width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;opacity:.8;"></div>
+    <div style="position:absolute;bottom:25%;left:9%;width:6px;height:6px;border-radius:50%;background:#f97316;opacity:.65;"></div>
+    <div style="position:absolute;top:36%;right:9%;width:5px;height:5px;border-radius:50%;background:#a78bfa;opacity:.6;"></div>
+    <svg style="position:absolute;top:15%;right:12%;width:12px;height:12px;opacity:.18;" viewBox="0 0 14 14"><line x1="0" y1="0" x2="14" y2="14" stroke="white" stroke-width="1.5"/><line x1="14" y1="0" x2="0" y2="14" stroke="white" stroke-width="1.5"/></svg>
+    <svg style="position:absolute;bottom:30%;left:11%;width:10px;height:10px;opacity:.15;" viewBox="0 0 14 14"><line x1="0" y1="0" x2="14" y2="14" stroke="white" stroke-width="1.5"/><line x1="14" y1="0" x2="0" y2="14" stroke="white" stroke-width="1.5"/></svg>
+  </div>
+  <div class="slide-inner">
+    <div>
+      <div class="slide-eyebrow" style="color:#34d399;">Progress</div>
+      <h2 class="slide-title">Track &<br>Excel Daily</h2>
+      <p class="slide-sub">Streaks, XP, and insights to fuel your motivation every day.</p>
+    </div>
+    <div class="slide-art">
+      <svg viewBox="0 0 300 285" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="p1f" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#065f46"/></linearGradient>
+          <linearGradient id="p1s" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#064e3b"/></linearGradient>
+          <linearGradient id="p1t" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+          <linearGradient id="p2f" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#1e3a5f"/></linearGradient>
+          <linearGradient id="p2s" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e3a5f"/></linearGradient>
+          <linearGradient id="p2t" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
+          <linearGradient id="p3f" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+          <linearGradient id="p3s" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+          <linearGradient id="p3t" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#ddd6fe"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+          <radialGradient id="pgg" cx="50%" cy="50%"><stop offset="0%" stop-color="#10b981" stop-opacity=".4"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></radialGradient>
+          <filter id="pf1"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="pf2"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <ellipse cx="150" cy="274" rx="112" ry="13" fill="url(#pgg)"/>
+        <!-- grid lines -->
+        <g stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="3 5">
+          <line x1="40" y1="255" x2="265" y2="255"/><line x1="40" y1="215" x2="265" y2="215"/><line x1="40" y1="175" x2="265" y2="175"/><line x1="40" y1="135" x2="265" y2="135"/><line x1="40" y1="95" x2="265" y2="95"/>
+        </g>
+        <line x1="40" y1="95" x2="40" y2="260" stroke="rgba(255,255,255,.09)" stroke-width="1"/>
+        <!-- bar 1 green, short (h=65) -->
+        <rect x="72" y="190" width="32" height="65" fill="url(#p1f)" rx="2"/>
+        <polygon points="104,190 118,181 118,246 104,255" fill="url(#p1s)" opacity=".85"/>
+        <polygon points="72,190 104,190 118,181 86,181" fill="url(#p1t)"/>
+        <!-- bar 2 blue, medium (h=115) -->
+        <rect x="134" y="140" width="32" height="115" fill="url(#p2f)" rx="2"/>
+        <polygon points="166,140 180,131 180,246 166,255" fill="url(#p2s)" opacity=".85"/>
+        <polygon points="134,140 166,140 180,131 148,131" fill="url(#p2t)"/>
+        <!-- bar 3 purple, tall (h=170) -->
+        <rect x="196" y="85" width="32" height="170" fill="url(#p3f)" rx="2"/>
+        <polygon points="228,85 242,76 242,246 228,255" fill="url(#p3s)" opacity=".85"/>
+        <polygon points="196,85 228,85 242,76 210,76" fill="url(#p3t)"/>
+        <!-- gold star above tallest bar -->
+        <g class="svg-float" transform="translate(219,46)" filter="url(#pf1)">
+          <circle cx="0" cy="0" r="20" fill="rgba(251,191,36,.18)"/>
+          <polygon points="0,-18 4.3,-6.2 17,-5.6 7.4,3.8 10.5,17.1 0,10.7 -10.5,17.1 -7.4,3.8 -17,-5.6 -4.3,-6.2" fill="#fbbf24" stroke="#f59e0b" stroke-width="1"/>
+          <circle cx="-5" cy="-9" r="3" fill="rgba(255,255,255,.5)"/>
+        </g>
+        <!-- confetti -->
+        <circle cx="178" cy="40" r="4" fill="#34d399" opacity=".8" class="svg-float-b"/>
+        <circle cx="258" cy="50" r="3.5" fill="#f97316" opacity=".75" class="svg-float-c"/>
+        <circle cx="262" cy="78" r="3" fill="#a78bfa" opacity=".65"/>
+        <circle cx="170" cy="72" r="2.5" fill="#fbbf24" opacity=".6" class="svg-float-b"/>
+        <!-- trend arrow -->
+        <path d="M48 235L100 215L148 172L210 122" stroke="rgba(167,139,250,.35)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+        <polygon points="210,115 215,127 205,125" fill="rgba(167,139,250,.45)"/>
+        <!-- plus cross -->
+        <g stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" opacity=".7" transform="translate(47,113)"><line x1="-6" y1="0" x2="6" y2="0"/><line x1="0" y1="-6" x2="0" y2="6"/></g>
+      </svg>
+    </div>
+    <div class="slide-footer">
+      <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div></div>
+      <button class="slide-cta" style="background:linear-gradient(135deg,#059669,#065f46);color:#fff;box-shadow:0 6px 20px rgba(16,185,129,.4);" onclick="startOnboarding()">Let's Go <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+</div>
+
+  </div></div><!-- /carousel-track /carousel-vp -->
+</div><!-- /introScreen -->
+<!-- ONBOARDING Q SCREEN -->
+<div id="onboardingScreen" class="screen">
+  <div class="ob-hdr">
+    <button class="ob-back" id="obBack" onclick="obGoBack()"><i class="fas fa-chevron-left"></i></button>
+    <div class="ob-prog"><div class="ob-prog-fill" id="obFill"></div></div>
+    <div class="ob-num" id="obNum">1 / 4</div>
+  </div>
+  <div class="ob-vp">
+    <!-- STEP 1 GOAL -->
+    <div class="ob-step active" id="step0">
+      <div class="ob-ey">Step 1 of 4</div>
+      <h2 class="ob-ttl">What's your<br>main goal?</h2>
+      <p class="ob-sub">We'll build your plan around it.</p>
+      <div class="card-grid" id="goalGrid">
+        <div class="sel-card" onclick="pickCard(this,'goalGrid','goal','boards')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">🎯</div><div class="sel-card-label">Pass Boards</div><div class="sel-card-desc">USMLE, PLAB, nationals</div></div>
+        <div class="sel-card" onclick="pickCard(this,'goalGrid','goal','finals')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">📚</div><div class="sel-card-label">Ace Finals</div><div class="sel-card-desc">Semester end exams</div></div>
+        <div class="sel-card" onclick="pickCard(this,'goalGrid','goal','ahead')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">🚀</div><div class="sel-card-label">Stay Ahead</div><div class="sel-card-desc">Daily coursework</div></div>
+        <div class="sel-card" onclick="pickCard(this,'goalGrid','goal','residency')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">🏥</div><div class="sel-card-label">Residency</div><div class="sel-card-desc">Specialise &amp; apply</div></div>
+      </div>
+    </div>
+    <!-- STEP 2 DRUM -->
+    <div class="ob-step" id="step1">
+      <div class="ob-ey">Step 2 of 4</div>
+      <h2 class="ob-ttl">Daily study<br>commitment?</h2>
+      <p class="ob-sub">Scroll to your target. Even 5 min builds a streak.</p>
+      <div class="drum-wrap">
+        <div class="drum-ft"></div><div class="drum-fb"></div><div class="drum-sel"></div>
+        <div class="drum-list" id="drumList">
+          <div class="drum-item" data-val="5">5 min / day</div>
+          <div class="drum-item" data-val="10">10 min / day</div>
+          <div class="drum-item" data-val="15">15 min / day</div>
+          <div class="drum-item" data-val="20">20 min / day</div>
+          <div class="drum-item" data-val="30">30 min / day</div>
+          <div class="drum-item" data-val="45">45 min / day</div>
+          <div class="drum-item" data-val="60">1 hour / day</div>
         </div>
+      </div>
+      <div class="drum-cap">Scroll to select</div>
     </div>
-
-    <div id="globalModal" class="modal-backdrop">
-        <div class="modal-content">
-            <h3 id="modalTitle" class="text-lg font-bold mb-2">Notice</h3>
-            <p id="modalMessage" class="text-sm text-slate-400 mb-6">Message goes here</p>
-            <div class="flex justify-end gap-3">
-                <button id="modalCancel" class="px-4 py-2 text-slate-400 font-bold hidden">Cancel</button>
-                <button id="modalConfirm" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl">OK</button>
-            </div>
-        </div>
+    <!-- STEP 3 LEVEL -->
+    <div class="ob-step" id="step2">
+      <div class="ob-ey">Step 3 of 4</div>
+      <h2 class="ob-ttl">What stage<br>are you at?</h2>
+      <p class="ob-sub">Content matched to where you are in med school.</p>
+      <div class="pill-list" id="levelList">
+        <div class="sel-pill" onclick="pickPill(this,'levelList','level','premed')"><div class="pil-ico">🌱</div><div class="pil-txt"><div class="pil-lbl">Pre-med / Foundation</div><div class="pil-sub">Building the basics</div></div><div class="pil-radio"></div></div>
+        <div class="sel-pill" onclick="pickPill(this,'levelList','level','year1')"><div class="pil-ico">📖</div><div class="pil-txt"><div class="pil-lbl">Year 1 – 2</div><div class="pil-sub">Anatomy, biochem, physio</div></div><div class="pil-radio"></div></div>
+        <div class="sel-pill" onclick="pickPill(this,'levelList','level','year3')"><div class="pil-ico">🔬</div><div class="pil-txt"><div class="pil-lbl">Year 3 – 4</div><div class="pil-sub">Rotations &amp; pathology</div></div><div class="pil-radio"></div></div>
+        <div class="sel-pill" onclick="pickPill(this,'levelList','level','final')"><div class="pil-ico">🎓</div><div class="pil-txt"><div class="pil-lbl">Final Year / Graduate</div><div class="pil-sub">Boards &amp; beyond</div></div><div class="pil-radio"></div></div>
+      </div>
     </div>
-
-    <nav id="bottomNav" class="bottom-nav hidden">
-        <a href="#home" class="nav-item" data-target="home"><i class="fas fa-home"></i><span>Home</span></a>
-        <a href="#create" class="nav-item" data-target="create"><i class="fas fa-plus"></i><span>Create</span></a>
-        <a href="#library" class="nav-item" data-target="library"><i class="fas fa-folder"></i><span>Library</span></a>
-        <a href="#profile" class="nav-item" data-target="profile"><i class="fas fa-user"></i><span>Profile</span></a>
-    </nav>
-
-
-    <div id="page-landing" class="spa-page active">
-        <div class="onboarding-wrapper">
-            <div class="slide">
-                <h2 class="text-2xl font-bold mt-6">Welcome to MedExcel</h2>
-                <p class="text-slate-400 mt-2">Your intelligent study companion.</p>
-                <div class="mt-8 text-slate-500 text-sm animate-pulse">Swipe <i class="fas fa-arrow-right ml-1"></i></div>
-            </div>
-            <div class="slide">
-                <h2 class="text-2xl font-bold mt-6">Stress-Free Studying</h2>
-                <p class="text-slate-400 mt-2 mb-8">Take a breath. We've got the hard part covered.</p>
-                <button onclick="toggleLoginModal(true, true)" class="w-full max-w-sm bg-blue-500 text-white font-bold p-4 rounded-2xl mb-4">Get Started</button>
-                <button onclick="toggleLoginModal(true, false)" class="w-full max-w-sm border-2 border-slate-700 text-blue-400 font-bold p-4 rounded-2xl">I Have An Account</button>
-            </div>
-        </div>
-
-        <div id="loginModal" class="login-modal">
-            <div class="flex justify-between items-center mb-8 mt-4">
-                <button onclick="toggleLoginModal(false)" class="text-slate-400 p-2"><i class="fas fa-times text-xl"></i></button>
-                <h2 id="loginHeading" class="text-lg font-bold">Enter Details</h2>
-                <div class="w-8"></div> </div>
-            <div class="w-full max-w-sm mx-auto flex flex-col gap-4">
-                <div class="bg-[#0B1120] border-2 border-slate-800 rounded-xl overflow-hidden">
-                    <input id="authName" type="text" placeholder="Your name" class="w-full p-4 border-b border-slate-800 hidden">
-                    <input id="authEmail" type="email" placeholder="Email" class="w-full p-4 border-b border-slate-800">
-                    <input id="authPassword" type="password" placeholder="Password" class="w-full p-4">
-                </div>
-                <button id="btnEmailAuth" class="w-full bg-slate-700 text-white font-bold p-4 rounded-xl mt-2">Sign In</button>
-                <button onclick="window.startGoogleLogin()" class="w-full bg-[#0B1120] border-2 border-slate-800 p-4 rounded-xl font-bold mt-4 flex justify-center items-center gap-2">
-                    <i class="fab fa-google text-blue-400"></i> Continue with Google
-                </button>
-            </div>
-        </div>
+    <!-- STEP 4 WHEN -->
+    <div class="ob-step" id="step3">
+      <div class="ob-ey">Step 4 of 4</div>
+      <h2 class="ob-ttl">Best time<br>to study?</h2>
+      <p class="ob-sub">We'll send smart reminders at the right moment.</p>
+      <div class="card-grid" id="whenGrid">
+        <div class="sel-card" onclick="pickCard(this,'whenGrid','when','morning')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">☀️</div><div class="sel-card-label">Morning</div><div class="sel-card-desc">6 AM – 12 PM</div></div>
+        <div class="sel-card" onclick="pickCard(this,'whenGrid','when','afternoon')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">⚡</div><div class="sel-card-label">Afternoon</div><div class="sel-card-desc">12 PM – 5 PM</div></div>
+        <div class="sel-card" onclick="pickCard(this,'whenGrid','when','evening')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">🌙</div><div class="sel-card-label">Evening</div><div class="sel-card-desc">5 PM – 10 PM</div></div>
+        <div class="sel-card" onclick="pickCard(this,'whenGrid','when','anytime')"><div class="sel-card-chk"><i class="fas fa-check"></i></div><div class="sel-card-icon">🎲</div><div class="sel-card-label">Anytime</div><div class="sel-card-desc">Flexible</div></div>
+      </div>
     </div>
+  </div>
+  <div class="ob-dock"><button class="ob-next" id="obNext" onclick="obGoNext()">Continue</button></div>
+</div>
 
+<!-- READY SCREEN -->
+<div id="readyScreen" class="screen">
+  <div class="rdy-badge">🎉</div>
+  <h2 class="rdy-ttl">Your plan<br>is ready!</h2>
+  <p class="rdy-sub">Here's what we've built for you.</p>
+  <div class="sum-list">
+    <div class="sum-row"><div class="sum-ico">🎯</div><div><div class="sum-lbl">Goal</div><div class="sum-val" id="sGoal">—</div></div></div>
+    <div class="sum-row"><div class="sum-ico">⏱️</div><div><div class="sum-lbl">Daily Time</div><div class="sum-val" id="sTime">—</div></div></div>
+    <div class="sum-row"><div class="sum-ico">📚</div><div><div class="sum-lbl">Stage</div><div class="sum-val" id="sLevel">—</div></div></div>
+    <div class="sum-row"><div class="sum-ico">🔔</div><div><div class="sum-lbl">Reminders</div><div class="sum-val" id="sWhen">—</div></div></div>
+  </div>
+  <button class="rdy-cta" onclick="showAuth()">Create My Account →</button>
+</div>
 
-    <div id="page-home" class="spa-page">
-        <header class="p-6 pb-4 flex justify-between items-center sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
-            <h1 id="homeGreeting" class="text-lg font-bold">Welcome back</h1>
-            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 text-orange-500 font-bold border border-orange-500/20">
-                <i class="fas fa-fire"></i> <span id="homeStreak">0</span>
-            </div>
-        </header>
-        <main class="flex-1 p-6 pt-2">
-            <div id="proBanner" class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-center gap-4 mb-6 hidden">
-                <i class="fas fa-crown text-yellow-500 text-2xl"></i>
-                <div class="flex-1">
-                    <h3 class="text-yellow-400 font-bold text-sm">Upgrade to Pro</h3>
-                    <p class="text-yellow-400/70 text-xs">Unlock unlimited AI generations</p>
-                </div>
-            </div>
+<!-- AUTH -->
+<div id="authSelectionScreen" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">🩺</div>
+    <h2 class="auth-ttl">MedExcel</h2>
+    <p class="auth-sub">Save your plan and start your<br>learning journey today.</p>
+    <button onclick="toggleLogin(true,true)" class="btn-ap">Create Account</button>
+    <button onclick="toggleLogin(true,false)" class="btn-as">Log In</button>
+  </div>
+</div>
 
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Actions</h2>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="#create" class="col-span-2 card-primary p-6 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">Generate with AI <i class="fas fa-sparkles text-yellow-300 text-sm"></i></h3>
-                        <p class="text-white/80 text-xs font-medium">Upload notes to create materials instantly.</p>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30"><i class="fas fa-arrow-right text-white"></i></div>
-                </a>
-                <a href="#create" class="card-soft p-4 flex flex-col gap-2">
-                    <i class="fas fa-clone text-2xl text-slate-400"></i>
-                    <span class="font-bold text-sm">Flashcards</span>
-                </a>
-                <a href="#create" class="card-soft p-4 flex flex-col gap-2">
-                    <i class="fas fa-list-ul text-2xl text-blue-400"></i>
-                    <span class="font-bold text-sm">MCQ Quiz</span>
-                </a>
-            </div>
-        </main>
+<!-- LOGIN MODAL -->
+<div id="loginScreen" class="login-modal">
+  <div class="login-hdr">
+    <button onclick="toggleLogin(false)" class="btn-close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 id="loginHeading" class="login-ttl">Enter your details</h2>
+  </div>
+  <div class="login-form">
+    <div class="input-group">
+      <div id="nameRow" class="input-row" style="display:none;"><input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field"></div>
+      <div class="input-row"><input id="emailInput" type="text" placeholder="Username or email" class="input-field"></div>
+      <div class="input-row"><input id="loginPassword" type="password" placeholder="Password" class="input-field"><button onclick="togglePassword()" class="btn-tpw"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
     </div>
+    <button id="signInBtn" class="btn-si">Sign In</button>
+    <button class="btn-fp">Forgot Password</button>
+    <button onclick="startGoogleLogin()" class="btn-goog">
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <span class="goog-txt">Continue with Google</span>
+    </button>
+  </div>
+</div>
+<script>
+/* CAROUSEL */
+let cSlide=0;
+const track=document.getElementById('carouselTrack');
+function goSlide(n){
+  cSlide=Math.max(0,Math.min(2,n));
+  track.style.transform=`translateX(-${cSlide*100}%)`;
+  ['sb0','sb1','sb2'].forEach((id,i)=>{
+    const b=document.getElementById(id);
+    b.className='story-bar'+(i<cSlide?' done':i===cSlide?' active':'');
+  });
+  document.querySelectorAll('.slide-dot').forEach((d,i)=>{
+    d.className='slide-dot'+(i===cSlide?' active':'');
+  });
+}
+function nextSlide(){cSlide<2?goSlide(cSlide+1):startOnboarding();}
+let tx=0;
+track.parentElement.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+track.parentElement.addEventListener('touchend',e=>{const dx=tx-e.changedTouches[0].clientX;if(Math.abs(dx)>48)dx>0?nextSlide():goSlide(cSlide-1);},{passive:true});
+
+/* ONBOARDING */
+const ans={goal:null,time:'15',level:null,when:null};
+const gLbls={boards:'Pass Board Exams',finals:'Ace My Finals',ahead:'Stay Ahead',residency:'Residency Prep'};
+const lLbls={premed:'Pre-med / Foundation',year1:'Year 1–2',year3:'Year 3–4',final:'Final Year'};
+const wLbls={morning:'Morning (6–12 PM)',afternoon:'Afternoon (12–5 PM)',evening:'Evening (5–10 PM)',anytime:'Anytime'};
+let obStep=0;
+
+function startOnboarding(){
+  document.getElementById('introScreen').classList.remove('active');
+  document.getElementById('onboardingScreen').classList.add('active');
+  updOb(); initDrum();
+}
+
+function obGoNext(){
+  const keys=['goal','time','level','when'];
+  if(!ans[keys[obStep]])return;
+  if(obStep<3)goObStep(obStep+1); else showReady();
+}
+function obGoBack(){
+  if(obStep>0)goObStep(obStep-1);
+  else{document.getElementById('onboardingScreen').classList.remove('active');document.getElementById('introScreen').classList.add('active');}
+}
+function goObStep(n){
+  const cur=document.getElementById('step'+obStep);
+  cur.classList.add('exit');
+  setTimeout(()=>cur.classList.remove('active','exit'),380);
+  obStep=n;
+  setTimeout(()=>{document.getElementById('step'+obStep).classList.add('active');updOb();},50);
+}
+function updOb(){
+  document.getElementById('obFill').style.width=((obStep/4)*100)+'%';
+  document.getElementById('obNum').textContent=`${obStep+1} / 4`;
+  document.getElementById('obBack').classList.toggle('show',obStep>0);
+  updBtn();
+}
+function updBtn(){
+  const keys=['goal','time','level','when'];
+  document.getElementById('obNext').classList.toggle('rdy',!!ans[keys[obStep]]);
+}
+function pickCard(el,grid,key,val){
+  document.querySelectorAll('#'+grid+' .sel-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); ans[key]=val; updBtn();
+}
+function pickPill(el,list,key,val){
+  document.querySelectorAll('#'+list+' .sel-pill').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel'); ans[key]=val; updBtn();
+}
+
+/* DRUM */
+function initDrum(){
+  const drum=document.getElementById('drumList');
+  const items=[...drum.querySelectorAll('.drum-item')];
+  const IH=56;
+  function upd(){
+    const st=drum.scrollTop, center=st+drum.clientHeight/2;
+    let ai=0,md=Infinity;
+    items.forEach((item,i)=>{const ic=item.offsetTop+IH/2,d=Math.abs(center-ic);if(d<md){md=d;ai=i;}});
+    items.forEach((item,i)=>{const d=Math.abs(i-ai);item.className='drum-item'+(d===0?' dact':d===1?' dnear':'');});
+    ans.time=items[ai].dataset.val; updBtn();
+  }
+  drum.addEventListener('scroll',upd,{passive:true});
+  setTimeout(()=>{drum.scrollTop=2*IH;upd();},80);
+}
+
+/* READY */
+function showReady(){
+  document.getElementById('onboardingScreen').classList.remove('active');
+  document.getElementById('readyScreen').classList.add('active');
+  document.getElementById('sGoal').textContent=gLbls[ans.goal]||'—';
+  document.getElementById('sTime').textContent=ans.time+' min / day';
+  document.getElementById('sLevel').textContent=lLbls[ans.level]||'—';
+  document.getElementById('sWhen').textContent=wLbls[ans.when]||'—';
+  try{localStorage.setItem('medexcel_onboarding',JSON.stringify({...ans,ts:Date.now()}));}catch(e){}
+}
+function showAuth(){
+  ['readyScreen','onboardingScreen','introScreen'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('authSelectionScreen').classList.add('active');
+}
+
+/* AUTH */
+window.isSignupMode=false;
+function toggleLogin(show,signup=false){
+  const l=document.getElementById('loginScreen'),t=document.getElementById('loginHeading'),s=document.getElementById('signInBtn'),n=document.getElementById('nameRow');
+  window.isSignupMode=!!signup;
+  if(show){t.textContent=signup?'Create your account':'Enter your details';s.textContent=signup?'Sign Up':'Sign In';n.style.display=signup?'block':'none';l.classList.add('show');}
+  else{l.classList.remove('show');setTimeout(()=>{window.isSignupMode=false;t.textContent='Enter your details';s.textContent='Sign In';n.style.display='none';},300);}
+}
+function togglePassword(){const p=document.getElementById('loginPassword');p.type=p.type==='password'?'text':'password';}
+window.toggleLogin=toggleLogin;
+window.startGoogleLogin=function(){
+  if(window.Android&&window.Android.startGoogleSignIn){window.Android.startGoogleSignIn();}
+  else{alert('Native login not available.');}
+};
+
+/* DIALOG */
+window.showDialog=function(msg,title='Notice',opts={}){
+  return new Promise(res=>{
+    const bd=document.getElementById('okBackdrop'),tl=document.getElementById('okTitle'),ml=document.getElementById('okMessage'),ok=document.getElementById('okConfirm'),cn=document.getElementById('okCancel');
+    tl.textContent=title;ml.textContent=msg;ok.textContent=opts.okText||'OK';cn.textContent=opts.cancelText||'Cancel';cn.style.display=opts.hideCancel?'none':'block';
+    bd.style.display='flex';void bd.offsetWidth;bd.classList.add('active');
+    const done=r=>{bd.classList.remove('active');setTimeout(()=>{bd.style.display='none';res(r);},200);};
+    ok.onclick=()=>done(true);cn.onclick=()=>done(false);
+  });
+};
 
 
-    <div id="page-create" class="spa-page">
-        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
-            <h1 class="text-xl font-bold">Create Material</h1>
-        </header>
-        <main class="flex-1 p-6 flex flex-col">
-            <div id="createSetupView" class="flex-1 flex flex-col gap-8">
-                <div>
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">1. Source Material</h2>
-                    <div id="uploadZone" class="upload-zone">
-                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
-                        <div id="uploadIcon" class="w-14 h-14 rounded-full bg-[#0B1120] flex items-center justify-center mb-4 text-slate-300 border border-slate-700 text-2xl"><i class="fas fa-cloud-upload-alt"></i></div>
-                        <h3 id="uploadTitle" class="font-bold text-white mb-1">Tap to Upload File</h3>
-                        <p id="uploadSubtitle" class="text-xs text-slate-400">PDF, PPTX, DOCX, TXT, or Images</p>
-                    </div>
-                </div>
 
-                <div id="configZone" class="opacity-50 pointer-events-none transition-opacity">
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">2. Configuration</h2>
-                    <div class="bg-[#0B1120] rounded-xl p-4 border border-slate-700 mb-4">
-                        <label class="text-xs text-slate-400 font-medium block mb-1">Topic Focus (Optional)</label>
-                        <input type="text" id="topicInput" placeholder="e.g., Mechanism of Action" class="w-full text-sm">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 bg-[#0B1120] p-1 rounded-xl border border-slate-700 mb-4">
-                        <button id="btnTypeFC" class="py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Flashcards</button>
-                        <button id="btnTypeMCQ" class="py-2 rounded-lg text-sm font-medium text-slate-400">Multiple Choice</button>
-                    </div>
-                    <div class="bg-[#0B1120] rounded-xl p-5 border border-slate-700">
-                        <div class="flex justify-between items-center mb-4">
-                            <label class="text-xs text-slate-400 font-medium">Items</label>
-                            <span id="sliderVal" class="text-sm font-medium bg-slate-800 px-3 py-1 rounded-md">5</span>
-                        </div>
-                        <input type="range" id="itemSlider" min="1" max="40" value="5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none">
-                    </div>
-                </div>
+(function(){
+  try{const h=(location.hash||'').replace('#','').toLowerCase(),p=new URLSearchParams(location.search),a=p.get('action')?p.get('action').toLowerCase():null;
+  if(h==='login'||a==='login'){showAuth();setTimeout(()=>toggleLogin(true,false),100);}
+  else if(h==='signup'||a==='signup'){showAuth();setTimeout(()=>toggleLogin(true,true),100);}
+  }catch(e){}
+})();
+</script>
 
-                <button id="btnGenerate" disabled class="w-full bg-[#0B1120] text-slate-500 font-bold p-4 rounded-xl border border-slate-700 mt-auto transition-colors">Generate Content</button>
-            </div>
-        </main>
-    </div>
-
-
-    <div id="page-library" class="spa-page">
-        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
-            <h1 class="text-xl font-bold">My Library</h1>
-        </header>
-        <main class="flex-1 p-6 space-y-6">
-            <section class="glass-panel rounded-2xl p-5">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-chart-pie text-blue-500 mr-2"></i> Overview</h2>
-                <div class="grid grid-cols-2 gap-3 mb-5">
-                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Total MCQs</p>
-                        <p id="libMcqCount" class="text-2xl font-black text-white">0</p>
-                    </div>
-                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Flashcards</p>
-                        <p id="libFcCount" class="text-2xl font-black text-blue-400">0</p>
-                    </div>
-                </div>
-            </section>
-            <section>
-                <div class="flex justify-between items-end mb-4">
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">My Sets</h2>
-                    <span id="libSetsText" class="text-[10px] font-bold text-blue-400">0 Sets</span>
-                </div>
-                <div id="libSetsContainer" class="space-y-4"></div>
-            </section>
-        </main>
-    </div>
-
-
-    <div id="page-profile" class="spa-page">
-        <header class="p-6 pb-4 border-b border-white/5 sticky top-0 bg-[#050A15]/90 backdrop-blur z-10">
-            <h1 class="text-xl font-bold">Profile</h1>
-        </header>
-        <main class="flex-1 p-6 space-y-6">
-            <section class="glass-panel rounded-3xl p-6 flex flex-col items-center text-center">
-                <div class="w-24 h-24 rounded-full bg-[#050A15] border-4 border-[#0B1120] flex items-center justify-center text-3xl font-bold text-slate-300 mb-4 relative">
-                    <span id="profInitial">?</span>
-                    <div id="profPlanBadge" class="absolute -bottom-2 px-3 py-1 rounded-full text-[10px] font-black uppercase border bg-slate-700 text-white">Free</div>
-                </div>
-                <h2 id="profName" class="text-lg font-bold">Loading...</h2>
-                <p id="profEmail" class="text-xs text-slate-400 mb-5">...</p>
-            </section>
-
-            <section class="glass-panel rounded-3xl p-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-chart-line text-blue-400 mr-2"></i> Daily Usage</h3>
-                <div class="bg-[#050A15] rounded-xl p-4 border border-white/5 mb-4 flex justify-between items-center">
-                    <div>
-                        <p id="profUsageCount" class="text-2xl font-black">0</p>
-                        <p class="text-[10px] uppercase text-slate-500 font-bold">Generations</p>
-                    </div>
-                    <p id="profUsageLeft" class="text-sm font-bold text-blue-400">5 left</p>
-                </div>
-                <button class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-xl text-sm">Upgrade Plan</button>
-            </section>
-
-            <button onclick="logoutUser()" class="w-full flex items-center gap-3 p-4 bg-[#0B1120] rounded-2xl border border-white/5 text-red-400 font-bold text-sm">
-                <i class="fas fa-sign-out-alt"></i> Log Out
-            </button>
-        </main>
-    </div>
-
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
-
-        // 1. Initialize Firebase (Done ONLY ONCE)
-        const firebaseConfig = { 
-            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
-            authDomain: "medxcel.firebaseapp.com", 
-            projectId: "medxcel", 
-            storageBucket: "medxcel.firebasestorage.app", 
-            messagingSenderId: "649180317389", 
-            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
-        };
-        const app = initializeApp(firebaseConfig); 
-        const auth = getAuth(app); 
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        const functions = getFunctions(app, "us-central1");
-
-        let currentUser = null;
-        let userData = null;
-
-        // 2. Global Utilities
-        window.showGlobalModal = (msg, title = "Notice", showCancel = false, onConfirm = null) => {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalMessage').textContent = msg;
-            document.getElementById('modalCancel').style.display = showCancel ? 'block' : 'none';
-            
-            const modal = document.getElementById('globalModal');
-            modal.classList.add('active');
-
-            document.getElementById('modalConfirm').onclick = () => {
-                modal.classList.remove('active');
-                if (onConfirm) onConfirm();
-            };
-            document.getElementById('modalCancel').onclick = () => modal.classList.remove('active');
-        };
-
-        window.showLoader = (text) => {
-            document.getElementById('loaderText').textContent = text;
-            document.getElementById('globalLoader').classList.remove('hidden');
-        };
-        window.hideLoader = () => document.getElementById('globalLoader').classList.add('hidden');
-
-        // 3. The Vanilla SPA Router
-        const pages = ['landing', 'home', 'create', 'library', 'profile'];
-        
-        function navigateTo(hash) {
-            hash = hash.replace('#', '') || 'landing';
-            
-            // Security redirects
-            if (hash === 'landing' && currentUser) hash = 'home';
-            if (hash !== 'landing' && !currentUser) hash = 'landing';
-
-            // Hide all pages, show active page
-            pages.forEach(p => document.getElementById(`page-${p}`).classList.remove('active'));
-            document.getElementById(`page-${hash}`).classList.add('active');
-
-            // Handle Bottom Nav visibility and highlight
-            const nav = document.getElementById('bottomNav');
-            if (hash === 'landing') {
-                nav.classList.add('hidden');
-            } else {
-                nav.classList.remove('hidden');
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    if (item.dataset.target === hash) item.classList.add('active');
-                    else item.classList.remove('active');
-                });
-            }
-
-            // Trigger Page Updates
-            if (hash === 'home') updateHomeUI();
-            if (hash === 'library') updateLibraryUI();
-            if (hash === 'profile') updateProfileUI();
-        }
-
-        window.addEventListener('hashchange', () => navigateTo(window.location.hash));
-
-        // 4. Firebase Authentication Listener
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                try {
-                    let uRef = doc(db, "users", user.uid);
-                    let snap = await getDoc(uRef);
-                    if (!snap.exists()) {
-                        await setDoc(uRef, { email: user.email, uid: user.uid, plan: "free", dailyUsage: 0 }, { merge: true });
-                        snap = await getDoc(uRef);
-                    }
-                    userData = snap.data();
-                } catch(e) {}
-                navigateTo(window.location.hash || 'home');
-            } else {
-                currentUser = null;
-                userData = null;
-                navigateTo('landing');
-            }
-        });
-
-        // 5. Landing Page Logic (Login/Signup)
-        let isSignup = false;
-        window.toggleLoginModal = (show, signupMode = false) => {
-            const modal = document.getElementById('loginModal');
-            isSignup = signupMode;
-            if (show) {
-                document.getElementById('loginHeading').textContent = isSignup ? 'Create Account' : 'Welcome Back';
-                document.getElementById('authName').style.display = isSignup ? 'block' : 'none';
-                document.getElementById('btnEmailAuth').textContent = isSignup ? 'Sign Up' : 'Sign In';
-                modal.classList.add('show');
-            } else {
-                modal.classList.remove('show');
-            }
-        };
-
-        document.getElementById('btnEmailAuth').addEventListener('click', async () => {
-            const email = document.getElementById('authEmail').value.trim();
-            const pass = document.getElementById('authPassword').value;
-            const name = document.getElementById('authName').value.trim();
-
-            if (!email || !pass) return showGlobalModal("Please enter email and password.");
-            
-            showLoader("Authenticating...");
-            try {
-                if (isSignup) {
-                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                    await updateProfile(cred.user, { displayName: name });
-                } else {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                }
-                hideLoader();
-                toggleLoginModal(false);
-            } catch (err) {
-                hideLoader();
-                showGlobalModal(err.message, "Error");
-            }
-        });
-
-        window.logoutUser = async () => {
-            showGlobalModal("Are you sure you want to log out?", "Log Out", true, async () => {
-                showLoader("Logging out...");
-                await signOut(auth);
-                hideLoader();
-            });
-        };
-
-        // 6. Home & Profile Logic
-        function updateHomeUI() {
-            if(!currentUser) return;
-            const name = currentUser.displayName || currentUser.email.split("@")[0];
-            document.getElementById('homeGreeting').textContent = `Hi, ${name} 👋`;
-        }
-
-        function updateProfileUI() {
-            if(!currentUser) return;
-            document.getElementById('profName').textContent = currentUser.displayName || 'Student';
-            document.getElementById('profEmail').textContent = currentUser.email;
-            document.getElementById('profInitial').textContent = currentUser.email.charAt(0).toUpperCase();
-
-            if(userData) {
-                document.getElementById('profUsageCount').textContent = userData.dailyUsage || 0;
-                const limit = userData.plan === 'elite' ? 50 : userData.plan === 'premium' ? 30 : 5;
-                document.getElementById('profUsageLeft').textContent = `${Math.max(0, limit - (userData.dailyUsage || 0))} left`;
-                document.getElementById('profPlanBadge').textContent = userData.plan === 'free' ? 'Free' : userData.plan.toUpperCase();
-            }
-        }
-
-        // 7. Create/Generate Logic
-        let selectedFile = null;
-        let quizType = "Flashcards";
-
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                selectedFile = e.target.files[0];
-                document.getElementById('uploadIcon').classList.replace('text-slate-300', 'text-blue-500');
-                document.getElementById('uploadTitle').textContent = selectedFile.name;
-                document.getElementById('uploadSubtitle').textContent = "Ready to generate";
-                document.getElementById('uploadZone').classList.add('active');
-                document.getElementById('configZone').classList.remove('opacity-50', 'pointer-events-none');
-                
-                const genBtn = document.getElementById('btnGenerate');
-                genBtn.disabled = false;
-                genBtn.classList.replace('bg-[#0B1120]', 'bg-blue-600');
-                genBtn.classList.replace('text-slate-500', 'text-white');
-            }
-        });
-
-        document.getElementById('btnTypeFC').onclick = (e) => { quizType = "Flashcards"; updateTypeBtns(e.target, document.getElementById('btnTypeMCQ')); };
-        document.getElementById('btnTypeMCQ').onclick = (e) => { quizType = "Multiple Choice"; updateTypeBtns(e.target, document.getElementById('btnTypeFC')); };
-
-        function updateTypeBtns(active, inactive) {
-            active.classList.add('bg-blue-600', 'text-white'); active.classList.remove('text-slate-400');
-            inactive.classList.remove('bg-blue-600', 'text-white'); inactive.classList.add('text-slate-400');
-        }
-
-        document.getElementById('itemSlider').oninput = (e) => document.getElementById('sliderVal').textContent = e.target.value;
-
-        document.getElementById('btnGenerate').addEventListener('click', async () => {
-            if(!selectedFile) return;
-            showLoader("AI is generating your study material...");
-            
-            try {
-                const numItems = parseInt(document.getElementById('itemSlider').value, 10);
-                const path = `uploads/${currentUser.uid}/${Date.now()}_${selectedFile.name}`;
-                await uploadBytes(ref(storage, path), selectedFile);
-                
-                const generateFunc = httpsCallable(functions, 'generateQuizFromFile');
-                const res = await generateFunc({
-                    filePath: path, fileName: selectedFile.name, quizType: quizType, 
-                    topicFocus: document.getElementById('topicInput').value, numberOfItems: numItems
-                });
-                
-                hideLoader();
-                showGlobalModal(`Successfully created ${numItems} items! Go to Library to view.`, "Success", false, () => {
-                    window.location.hash = 'library';
-                });
-            } catch (err) {
-                hideLoader();
-                showGlobalModal("Failed to generate: " + err.message, "Error");
-            }
-        });
-
-        // 8. Library Logic
-        async function updateLibraryUI() {
-            if(!currentUser) return;
-            try {
-                const q = query(collection(db, "mcqs"), where("userId", "==", currentUser.uid));
-                const snap = await getDocs(q);
-                
-                let mcqs = 0, fcs = 0;
-                const sets = new Map();
-                
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    const subj = d.subject || "General Set";
-                    if (d.type && d.type.includes("Multiple")) mcqs++; else fcs++;
-                    
-                    if (!sets.has(subj)) sets.set(subj, { name: subj, count: 0 });
-                    sets.get(subj).count++;
-                });
-                
-                document.getElementById('libMcqCount').textContent = mcqs;
-                document.getElementById('libFcCount').textContent = fcs;
-                document.getElementById('libSetsText').textContent = `${sets.size} Sets`;
-                
-                const cont = document.getElementById('libSetsContainer');
-                cont.innerHTML = sets.size === 0 ? '<p class="text-slate-500 text-sm text-center">No sets generated yet.</p>' : '';
-                
-                sets.forEach(s => {
-                    cont.innerHTML += `
-                    <div class="glass-panel p-4 rounded-xl flex justify-between items-center mb-3">
-                        <div><h3 class="font-bold text-white text-sm">${s.name}</h3><p class="text-xs text-slate-400">${s.count} items</p></div>
-                        <button class="bg-blue-600/20 text-blue-400 px-4 py-2 rounded-lg text-xs font-bold border border-blue-500/30">Review</button>
-                    </div>`;
-                });
-            } catch(e) { console.log("Library Error:", e); }
-        }
-        
-        // Initial setup
-        navigateTo(window.location.hash);
-
-    </script>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import{getAuth,setPersistence,browserLocalPersistence,signInWithEmailAndPassword,onAuthStateChanged,createUserWithEmailAndPassword,updateProfile}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import{getFirestore,doc,getDoc,setDoc,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",authDomain:"medxcel.firebaseapp.com",projectId:"medxcel",storageBucket:"medxcel.firebasestorage.app",messagingSenderId:"649180317389",appId:"1:649180317389:web:f6b9a7053a37853ea04b84",measurementId:"G-6VQYKEBMSX"};
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
+setPersistence(auth,browserLocalPersistence).catch(e=>console.error(e));
+window.onNativeLogin=async function(email,uid){
+  localStorage.setItem("nativeUser",JSON.stringify({email,uid,displayName:email.split("@")[0]}));
+  try{const r=doc(db,"users",uid),d=await getDoc(r);if(!d.exists())await setDoc(r,{email,uid,displayName:email.split("@")[0],plan:"free",dailyUsage:0,planUsed:0,lastDailyReset:new Date().toISOString().split("T")[0],createdAt:serverTimestamp()},{merge:true});}catch(e){console.warn(e);}
+  window.location.replace("homepage.html");
+};
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    localStorage.setItem("nativeUser",JSON.stringify({email:user.email,uid:user.uid,displayName:user.displayName}));
+    try{const r=doc(db,"users",user.uid),d=await getDoc(r);if(!d.exists())await setDoc(r,{email:user.email,uid:user.uid,displayName:user.displayName||user.email.split("@")[0],plan:"free",dailyUsage:0,planUsed:0,lastDailyReset:new Date().toISOString().split("T")[0],createdAt:serverTimestamp()},{merge:true});}catch(e){}
+    window.location.replace("homepage.html");return;
+  }
+  const nu=localStorage.getItem("nativeUser");
+  if(nu){window.location.replace("homepage.html");}
+});
+const eb=document.getElementById('signInBtn');
+if(eb)eb.addEventListener('click',async()=>{
+  const name=document.getElementById('nameInput').value.trim(),email=document.getElementById('emailInput').value.trim(),pass=document.getElementById('loginPassword').value;
+  if(window.isSignupMode&&!name)return await showDialog("Please enter your name.","Missing Info",{hideCancel:true});
+  if(!email||!pass)return await showDialog("Please enter email and password.","Missing Info",{hideCancel:true});
+  try{if(window.isSignupMode){const uc=await createUserWithEmailAndPassword(auth,email,pass);await updateProfile(uc.user,{displayName:name});}else{await signInWithEmailAndPassword(auth,email,pass);}}
+  catch(err){await showDialog(err.message,window.isSignupMode?"Sign Up Failed":"Login Failed",{hideCancel:true});}
+});
+</script>
 </body>
 </html>

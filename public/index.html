@@ -382,8 +382,10 @@
         setPersistence(auth, browserLocalPersistence).catch((error) => console.error("Persistence Auth Error:", error));
 
         // --- NATIVE LOGIN BRIDGE ---
-        window.onNativeLogin = async function(email, uid, idToken) {
-            console.log("Native login success:", email);
+        window.onNativeLogin = async function(email, uid, idToken, displayName) {
+            // Use the real Google name; fall back to email prefix only if name is absent
+            const resolvedName = (displayName && displayName !== "User") ? displayName : email.split("@")[0];
+            console.log("Native login success:", email, "| Name:", resolvedName);
 
             const loader = document.getElementById('loaderScreen');
             if (loader) {
@@ -397,7 +399,7 @@
             localStorage.setItem("nativeUser", JSON.stringify({
                 email: email,
                 uid: uid,
-                displayName: email.split("@")[0]
+                displayName: resolvedName
             }));
 
             // 2. Self-Heal Firestore Doc
@@ -408,7 +410,7 @@
                     await setDoc(userRef, {
                         email: email,
                         uid: uid,
-                        displayName: email.split("@")[0],
+                        displayName: resolvedName,
                         plan: "free",
                         dailyUsage: 0,
                         planUsed: 0,
