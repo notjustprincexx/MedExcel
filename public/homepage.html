@@ -3151,109 +3151,57 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     </script>
 
-    <!-- =============================================
-         PUSH NOTIFICATION DIAGNOSTICS
-         Remove this entire block once working.
-         ============================================= -->
+    <!-- TEST PUSH BUTTON — remove when done -->
+    <button onclick="sendTestNotification()" style="
+      position: fixed;
+      bottom: 120px;
+      right: 20px;
+      z-index: 9999;
+      padding: 0.75rem 1.25rem;
+      border-radius: 999px;
+      background: #8b5cf6;
+      color: white;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(139,92,246,0.4);
+      font-size: 0.9rem;
+    ">Test Push 🚀</button>
 
-    <!-- Visible on-screen log panel (fixed, top of screen) -->
-    <div id="pushDebugPanel" style="
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        z-index: 99999;
-        background: rgba(0,0,0,0.92);
-        color: #00ff88;
-        font-family: monospace;
-        font-size: 12px;
-        padding: 10px 14px;
-        max-height: 50vh;
-        overflow-y: auto;
-        border-bottom: 2px solid #8b5cf6;
-    ">
-        <strong style="color:#8b5cf6;">📡 Push Diagnostics</strong><br>
-    </div>
-
+    <!-- TEST PUSH FUNCTION — remove when done -->
     <script>
-        // On-screen logger — visible on device without needing DevTools
-        function pushLog(msg, color) {
-            console.log("[initPush]", msg);
-            const panel = document.getElementById('pushDebugPanel');
-            if (panel) {
-                const line = document.createElement('div');
-                line.style.color = color || '#00ff88';
-                line.textContent = "› " + msg;
-                panel.appendChild(line);
-                panel.scrollTop = panel.scrollHeight;
-            }
+      async function sendTestNotification() {
+        try {
+          console.log("[sendTestNotification] Sending request...");
+
+          const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/sendNotification", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              token: "fW8NGaRwRridy9Asz6DyJI:APA91bGUu1HfjtUdmHaTSHtw7j5VN1QoXYn5zvg0t809GXOEkGqiI4iAKVN04IXzBYOafv3rZihvtZGCezQGi89xJitIHEmCIVvw08rSH2pLMRENNulbphw",
+              title: "🔥 MedExcel Live",
+              body: "Push notifications are working!"
+            })
+          });
+
+          const responseText = await res.text();
+          console.log("[sendTestNotification] Status:", res.status);
+          console.log("[sendTestNotification] Response:", responseText);
+
+          if (res.ok) {
+            alert("✅ Notification sent! Check your device.");
+          } else {
+            alert("⚠️ Server error " + res.status + ":\n" + responseText);
+          }
+
+        } catch (err) {
+          console.error("[sendTestNotification] Fetch error:", err);
+          alert("❌ Request failed: " + err.message);
         }
-
-        async function initPush() {
-            pushLog("initPush() called");
-
-            // STEP 1: Is Capacitor present?
-            if (!window.Capacitor) {
-                pushLog("❌ window.Capacitor is undefined — not running in Capacitor WebView", '#ff4444');
-                return;
-            }
-            pushLog("✅ window.Capacitor found");
-
-            // STEP 2: Is this a native platform?
-            if (!window.Capacitor.isNativePlatform()) {
-                pushLog("❌ isNativePlatform() = false — running in browser, not on device", '#ff4444');
-                return;
-            }
-            pushLog("✅ isNativePlatform() = true");
-
-            // STEP 3: Is the plugin available?
-            const { PushNotifications } = window.Capacitor.Plugins;
-            if (!PushNotifications) {
-                pushLog("❌ PushNotifications plugin is MISSING from window.Capacitor.Plugins", '#ff4444');
-                pushLog("👉 Fix: npm install @capacitor/push-notifications  then  npx cap sync", '#ffaa00');
-                return;
-            }
-            pushLog("✅ PushNotifications plugin found");
-
-            try {
-                // STEP 4: Request permission
-                pushLog("⏳ Requesting permission...");
-                const permStatus = await PushNotifications.requestPermissions();
-                pushLog("Permission result: " + JSON.stringify(permStatus));
-
-                if (permStatus.receive !== 'granted') {
-                    pushLog("❌ Permission NOT granted — user denied or prompt was not shown", '#ff4444');
-                    return;
-                }
-                pushLog("✅ Permission granted");
-
-                // STEP 5: Register
-                pushLog("⏳ Calling register()...");
-                await PushNotifications.register();
-                pushLog("✅ register() called — waiting for token...");
-
-                // STEP 6: Token received
-                PushNotifications.addListener('registration', token => {
-                    pushLog("🎉 TOKEN RECEIVED!", '#00ff88');
-                    pushLog(token.value, '#ffffff');
-                    alert("✅ FCM TOKEN:\n\n" + token.value);
-                });
-
-                // STEP 7: Registration error
-                PushNotifications.addListener('registrationError', err => {
-                    pushLog("❌ registrationError: " + JSON.stringify(err), '#ff4444');
-                });
-
-            } catch (e) {
-                pushLog("❌ Exception: " + e.message, '#ff4444');
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            pushLog("DOMContentLoaded fired");
-            initPush();
-        });
+      }
     </script>
-    <!-- =============================================
-         END PUSH NOTIFICATION DIAGNOSTICS
-         ============================================= -->
+    <!-- END TEST PUSH — remove above when done -->
 </body>
 </html>
