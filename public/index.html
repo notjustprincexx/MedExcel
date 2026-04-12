@@ -183,8 +183,13 @@
                 <p class="slide-text">Crush your exams and manage your time perfectly.</p>
             </div>
             <div class="slide">
-                <div id="lottie-walk" class="lottie-box"></div>
-                <h2 class="slide-title">Stress-Free Studying</h2>
+                <div id="lottie-walk" class="lottie-box" id="secretTapTarget"></div>
+                <h2 class="slide-title" id="secretTapTarget" onclick="(function(){
+                    window._adminTaps = (window._adminTaps || 0) + 1;
+                    clearTimeout(window._adminTapTimer);
+                    window._adminTapTimer = setTimeout(function(){ window._adminTaps = 0; }, 1500);
+                    if(window._adminTaps >= 5){ window._adminTaps = 0; window.location.href = 'admin.html'; }
+                })()">Stress-Free Studying</h2>
                 <p class="slide-text">Take a breath. We've got the hard part covered.</p>
                 
                 <div class="button-group" style="margin-top: 2rem; width: 90%; max-width: 24rem;">

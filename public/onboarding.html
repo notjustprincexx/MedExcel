@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+    const savedUser = localStorage.getItem("nativeUser");
+    if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+        window.location.replace("homepage.html");
+    }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050A15">
+    <title>MedExcel - Welcome</title>
+
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        window.AssetManager = {
+            cache: {},
+            preload: function(key, url) {
+                this.cache[key] = fetch(url).then(res => res.json()).catch(err => console.warn(`Failed to preload ${key}:`, err));
+            },
+            get: async function(key) { return await this.cache[key]; }
+        };
+        AssetManager.preload('loader', 'Loader.json');
+    </script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" onload="initAnimations()"></script>
+
+    <style>
+        /* ── TOKENS ── */
+        :root {
+            --bg: #050A15;
+            --bg-card: #0B1120;
+            --bg-glass: rgba(255,255,255,0.05);
+            --bg-glass-hover: rgba(255,255,255,0.09);
+            --text: #ffffff;
+            --muted: #7d8fa8;
+            --light: #b8c6d8;
+            --purple: #7c3aed;
+            --purple-light: #a78bfa;
+            --purple-glow: rgba(124,58,237,0.35);
+            --border: rgba(255,255,255,0.07);
+            --border-active: rgba(167,139,250,0.6);
+            --ease: cubic-bezier(0.19,1,0.22,1);
+            --ease-out: cubic-bezier(0.33,1,0.68,1);
+            --r: 18px;
+            --r-lg: 24px;
+            --r-pill: 100px;
+        }
+
+        /* ── RESET ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; }
+        * { scrollbar-width: none !important; }
+
+        body {
+            font-family: 'Inter', ui-sans-serif, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; color: inherit; }
+        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text); }
+
+        /* ── AMBIENT BACKGROUND ── */
+        .ambient {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18;
+            animation: drift 8s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 400px; height: 400px; background: var(--purple); top: -120px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 300px; height: 300px; background: #3b82f6; bottom: -80px; right: -80px; animation-delay: -3s; opacity: 0.12; }
+        .orb-3 { width: 200px; height: 200px; background: var(--purple-light); top: 40%; left: 60%; animation-delay: -5s; opacity: 0.1; }
+        @keyframes drift {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(20px,30px) scale(1.08); }
+        }
+
+        /* ── LOADER ── */
+        .loader-screen {
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: var(--bg); z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+        .loader-graphic-container { position: relative; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; }
+        .lottie-loader-layer { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .loading-text { color: var(--light); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ── DIALOG ── */
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); }
+        .ok-dialog { width: 90%; max-width: 380px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.5rem; box-shadow: 0 24px 48px rgba(0,0,0,0.6); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-out); }
+        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
+        .dialog-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .dialog-msg { color: var(--light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .btn-cancel { padding: 0.5rem 1rem; color: var(--muted); font-weight: 700; font-size: 0.875rem; transition: color 0.2s; }
+        .btn-confirm { padding: 0.5rem 1.5rem; background: var(--purple); color: white; border-radius: var(--r); font-weight: 700; font-size: 0.875rem; transition: transform 0.1s; }
+        .btn-confirm:active { transform: scale(0.95); }
+
+        /* ── SCREEN SYSTEM ── */
+        .screen {
+            position: absolute; inset: 0; display: flex; flex-direction: column; z-index: 50;
+            opacity: 0; pointer-events: none; transform: scale(0.98);
+            transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+            background: var(--bg); overflow: hidden;
+        }
+        .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        /* ── ONBOARDING SHELL ── */
+        #onboardingScreen {
+            position: absolute; inset: 0; z-index: 50;
+            opacity: 1; pointer-events: auto;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+        }
+
+        /* Progress Bar */
+        .ob-progress-wrap {
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: max(env(safe-area-inset-top), 0.75rem) 1.5rem 0;
+            z-index: 10;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .ob-back-btn {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--bg-glass); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted); font-size: 0.875rem;
+            transition: all 0.2s; flex-shrink: 0;
+            opacity: 0; pointer-events: none;
+        }
+        .ob-back-btn.visible { opacity: 1; pointer-events: auto; }
+        .ob-back-btn:active { transform: scale(0.92); background: var(--bg-glass-hover); }
+        .ob-progress-bar {
+            flex: 1; height: 4px; background: rgba(255,255,255,0.08);
+            border-radius: 2px; overflow: hidden;
+        }
+        .ob-progress-fill {
+            height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-light));
+            border-radius: 2px;
+            transition: width 0.45s var(--ease);
+            width: 0%;
+        }
+        .ob-step-label {
+            font-size: 0.75rem; font-weight: 600; color: var(--muted);
+            flex-shrink: 0; min-width: 36px; text-align: right;
+        }
+
+        /* Slide Viewport */
+        .ob-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Individual step panels */
+        .ob-panel {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            padding: calc(max(env(safe-area-inset-top), 0.75rem) + 60px) 1.5rem
+                     calc(max(env(safe-area-inset-bottom), 1rem) + 100px);
+            opacity: 0; pointer-events: none;
+            transform: translateX(40px);
+            transition: opacity 0.38s var(--ease), transform 0.38s var(--ease);
+            overflow-y: auto;
+        }
+        .ob-panel.active {
+            opacity: 1; pointer-events: auto; transform: translateX(0);
+        }
+        .ob-panel.exit-left {
+            opacity: 0; transform: translateX(-40px); pointer-events: none;
+        }
+
+        /* Step heading */
+        .ob-eyebrow {
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--purple-light);
+            margin-bottom: 0.5rem;
+        }
+        .ob-title {
+            font-size: 1.75rem; font-weight: 800;
+            line-height: 1.15; letter-spacing: -0.03em;
+            color: var(--text); margin-bottom: 0.4rem;
+        }
+        .ob-sub {
+            font-size: 0.9rem; color: var(--muted); font-weight: 500;
+            margin-bottom: 1.75rem; line-height: 1.5;
+        }
+
+        /* ── OPTION CARDS (icon grid) ── */
+        .ob-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .ob-card {
+            background: var(--bg-glass);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.1rem 1rem;
+            display: flex; flex-direction: column;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-out);
+            position: relative; overflow: hidden;
+        }
+        .ob-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(124,58,237,0.12), transparent);
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .ob-card:active { transform: scale(0.96); }
+        .ob-card.selected {
+            border-color: var(--border-active);
+            background: rgba(124,58,237,0.15);
+        }
+        .ob-card.selected::before { opacity: 1; }
+        .ob-card-icon {
+            font-size: 1.5rem; line-height: 1;
+        }
+        .ob-card-label {
+            font-size: 0.9rem; font-weight: 700; color: var(--text); line-height: 1.2;
+        }
+        .ob-card-desc {
+            font-size: 0.75rem; color: var(--muted); line-height: 1.3; font-weight: 500;
+        }
+        .ob-check {
+            position: absolute; top: 0.6rem; right: 0.6rem;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--purple); display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; color: white;
+            opacity: 0; transform: scale(0.5);
+            transition: all 0.2s var(--ease-out);
+        }
+        .ob-card.selected .ob-check { opacity: 1; transform: scale(1); }
+
+        /* ── PILL OPTIONS (list) ── */
+        .ob-list { display: flex; flex-direction: column; gap: 0.625rem; }
+        .ob-pill {
+            background: var(--bg-glass);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r);
+            padding: 1rem 1.25rem;
+            display: flex; align-items: center; gap: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-out);
+            position: relative;
+        }
+        .ob-pill:active { transform: scale(0.98); }
+        .ob-pill.selected {
+            border-color: var(--border-active);
+            background: rgba(124,58,237,0.15);
+        }
+        .ob-pill-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .ob-pill.selected .ob-pill-icon {
+            background: rgba(124,58,237,0.3);
+        }
+        .ob-pill-text { flex: 1; }
+        .ob-pill-label { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+        .ob-pill-sub { font-size: 0.8rem; color: var(--muted); font-weight: 500; margin-top: 1px; }
+        .ob-pill-radio {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all 0.2s;
+        }
+        .ob-pill.selected .ob-pill-radio {
+            border-color: var(--purple-light);
+            background: var(--purple);
+        }
+        .ob-pill-radio::after {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background: white; opacity: 0; transform: scale(0); transition: all 0.2s;
+        }
+        .ob-pill.selected .ob-pill-radio::after { opacity: 1; transform: scale(1); }
+
+        /* ── WELCOME SCREEN ── */
+        #welcomePanel {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+            padding: max(env(safe-area-inset-top), 2rem) 2rem max(env(safe-area-inset-bottom), 2rem);
+        }
+        .welcome-logo-wrap {
+            width: 88px; height: 88px; border-radius: 24px;
+            background: linear-gradient(135deg, var(--purple), #4f46e5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.25rem; margin-bottom: 1.75rem;
+            box-shadow: 0 0 0 12px rgba(124,58,237,0.12), 0 0 0 24px rgba(124,58,237,0.05);
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+        @keyframes logoGlow {
+            0%,100% { box-shadow: 0 0 0 12px rgba(124,58,237,0.12), 0 0 0 24px rgba(124,58,237,0.05); }
+            50% { box-shadow: 0 0 0 16px rgba(124,58,237,0.18), 0 0 0 32px rgba(124,58,237,0.07); }
+        }
+        .welcome-brand {
+            font-size: 2.25rem; font-weight: 900; letter-spacing: -0.04em;
+            color: var(--text); margin-bottom: 0.4rem;
+        }
+        .welcome-tagline {
+            font-size: 1rem; color: var(--muted); font-weight: 500;
+            margin-bottom: 2.5rem; line-height: 1.5;
+        }
+        .welcome-social-proof {
+            display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+            margin-bottom: 3rem;
+        }
+        .proof-avatars {
+            display: flex;
+        }
+        .proof-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 2px solid var(--bg);
+            margin-left: -8px; font-size: 0.875rem;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; background: linear-gradient(135deg, #7c3aed, #3b82f6);
+        }
+        .proof-avatar:first-child { margin-left: 0; }
+        .proof-text { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+        .proof-stars { color: #fbbf24; font-size: 0.75rem; letter-spacing: 1px; }
+        .welcome-cta {
+            width: 100%; max-width: 320px;
+            background: linear-gradient(135deg, var(--purple), #6d28d9);
+            color: white; font-weight: 800; font-size: 1.0625rem;
+            padding: 1.1rem; border-radius: var(--r-pill);
+            margin-bottom: 0.875rem;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .welcome-cta:active { transform: scale(0.97); box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
+        .welcome-login {
+            font-size: 0.875rem; color: var(--muted); font-weight: 600;
+        }
+        .welcome-login span { color: var(--purple-light); cursor: pointer; }
+
+        /* ── READY SCREEN ── */
+        #readyPanel {
+            display: flex; flex-direction: column; justify-content: center;
+            padding: max(env(safe-area-inset-top), 2rem) 1.5rem max(env(safe-area-inset-bottom), 2rem);
+        }
+        .ready-badge {
+            width: 72px; height: 72px; border-radius: 20px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(99,102,241,0.2));
+            border: 1px solid rgba(167,139,250,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin-bottom: 1.25rem;
+            box-shadow: 0 0 40px rgba(124,58,237,0.2);
+        }
+        .ready-title {
+            font-size: 2rem; font-weight: 900; letter-spacing: -0.03em;
+            line-height: 1.1; margin-bottom: 0.5rem;
+        }
+        .ready-sub { font-size: 0.95rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.5; }
+        .ready-cards { display: flex; flex-direction: column; gap: 0.625rem; margin-bottom: 2rem; }
+        .ready-row {
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 0.875rem 1rem;
+            display: flex; align-items: center; gap: 0.875rem;
+        }
+        .ready-row-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: rgba(124,58,237,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .ready-row-content { flex: 1; }
+        .ready-row-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+        .ready-row-value { font-size: 0.9375rem; font-weight: 700; color: var(--text); margin-top: 1px; }
+
+        /* ── BOTTOM CTA DOCK ── */
+        .ob-cta-dock {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 1rem 1.5rem max(env(safe-area-inset-bottom), 1.25rem);
+            background: linear-gradient(to top, var(--bg) 70%, transparent);
+            z-index: 10;
+        }
+        .ob-next-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--purple), #6d28d9);
+            color: white; font-weight: 800; font-size: 1.0625rem;
+            padding: 1.05rem; border-radius: var(--r-pill);
+            box-shadow: 0 6px 24px rgba(124,58,237,0.35);
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+            opacity: 0.5; pointer-events: none;
+        }
+        .ob-next-btn.ready { opacity: 1; pointer-events: auto; }
+        .ob-next-btn:active { transform: scale(0.97); box-shadow: 0 3px 12px rgba(124,58,237,0.25); }
+
+        /* ── AUTH SELECTION SCREEN ── */
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; z-index: 50; opacity: 0; pointer-events: none; transform: scale(0.98); transition: opacity 0.35s var(--ease), transform 0.35s var(--ease); background: var(--bg); overflow: hidden; }
+        .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        .auth-selection {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            flex: 1; padding: 2rem;
+            text-align: center;
+        }
+        .auth-icon-wrap {
+            width: 80px; height: 80px; border-radius: 22px;
+            background: linear-gradient(135deg, var(--purple), #4f46e5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: white; margin-bottom: 1.5rem;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.4);
+        }
+        .auth-title { font-size: 2rem; font-weight: 900; margin-bottom: 0.4rem; letter-spacing: -0.03em; }
+        .auth-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 2.75rem; line-height: 1.5; }
+        .btn-auth-primary {
+            width: 100%; max-width: 320px;
+            background: linear-gradient(135deg, var(--purple), #6d28d9);
+            color: white; font-weight: 800; padding: 1.1rem;
+            border-radius: var(--r-pill); margin-bottom: 0.875rem;
+            font-size: 1.0625rem;
+            box-shadow: 0 6px 24px rgba(124,58,237,0.35);
+            transition: transform 0.15s;
+        }
+        .btn-auth-primary:active { transform: scale(0.97); }
+        .btn-auth-secondary {
+            width: 100%; max-width: 320px;
+            background: transparent; border: 1.5px solid var(--border);
+            color: var(--text); font-weight: 700; padding: 1.1rem;
+            border-radius: var(--r-pill); font-size: 1.0625rem;
+            transition: transform 0.15s, background 0.2s;
+        }
+        .btn-auth-secondary:active { transform: scale(0.97); background: var(--bg-glass); }
+
+        /* ── LOGIN MODAL ── */
+        .login-modal {
+            position: fixed; inset: 0; z-index: 60; background: var(--bg);
+            display: flex; flex-direction: column; padding: 1.5rem;
+            transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none;
+        }
+        .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .login-header { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
+        .btn-close { color: var(--muted); padding: 0.5rem; margin-left: -0.5rem; transition: color 0.2s; }
+        .btn-close:hover { color: var(--text); }
+        .login-title { color: var(--muted); font-weight: 700; font-size: 1.125rem; flex: 1; text-align: center; margin-right: 1.5rem; }
+        .login-form { width: 100%; max-width: 24rem; margin: 0 auto; }
+        .input-group { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--r); margin-bottom: 1.5rem; overflow: hidden; transition: border-color 0.2s; }
+        .input-group:focus-within { border-color: rgba(167,139,250,0.5); }
+        .input-row { position: relative; border-bottom: 1.5px solid var(--border); }
+        .input-row:last-child { border-bottom: none; }
+        .input-field { width: 100%; padding: 1rem; font-weight: 500; font-size: 0.9375rem; }
+        .input-field::placeholder { color: var(--muted); }
+        .btn-toggle-pw { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); transition: color 0.2s; }
+        .btn-toggle-pw:hover { color: var(--purple-light); }
+        .btn-signin {
+            width: 100%; background: linear-gradient(135deg, var(--purple), #6d28d9);
+            color: white; font-weight: 800; font-size: 0.9375rem;
+            padding: 1rem; border-radius: var(--r-pill);
+            margin-bottom: 1rem; letter-spacing: 0.025em;
+            box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+            transition: transform 0.1s;
+        }
+        .btn-signin:active { transform: scale(0.97); }
+        .btn-forgot { width: 100%; color: var(--purple-light); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3rem; transition: color 0.2s; }
+        .btn-google {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.625rem;
+            background: var(--bg-card); border: 1.5px solid var(--border);
+            border-radius: var(--r); padding: 0.875rem; transition: all 0.15s;
+        }
+        .btn-google:active { transform: scale(0.97); }
+        .google-text { color: var(--light); font-weight: 700; font-size: 0.875rem; letter-spacing: 0.04em; }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.5s var(--ease) forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+
+<!-- Ambient Background -->
+<div class="ambient" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<!-- Loader -->
+<div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
+    <div class="loader-content">
+        <div class="loader-graphic-container">
+            <div id="lottieLoader" class="lottie-loader-layer"></div>
+        </div>
+        <div class="loading-text">Loading MedExcel...</div>
+    </div>
+</div>
+
+<!-- Dialog -->
+<div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="ok-dialog">
+        <h3 id="okTitle" class="dialog-title">Notice</h3>
+        <p id="okMessage" class="dialog-msg">Message goes here</p>
+        <div class="dialog-actions">
+            <button id="okCancel" class="btn-cancel">Cancel</button>
+            <button id="okConfirm" class="btn-confirm">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ONBOARDING SHELL
+══════════════════════════════════════════ -->
+<div id="onboardingScreen">
+
+    <!-- Progress Bar (hidden on welcome/ready panels) -->
+    <div class="ob-progress-wrap" id="obProgressWrap" style="opacity:0; pointer-events:none;">
+        <button class="ob-back-btn" id="obBackBtn" onclick="obBack()" aria-label="Go back">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="ob-progress-bar">
+            <div class="ob-progress-fill" id="obProgressFill"></div>
+        </div>
+        <div class="ob-step-label" id="obStepLabel">1 / 4</div>
+    </div>
+
+    <!-- Viewport -->
+    <div class="ob-viewport">
+
+        <!-- ── WELCOME PANEL ── -->
+        <div class="ob-panel active" id="welcomePanel">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: max(env(safe-area-inset-top),2rem) 2rem max(env(safe-area-inset-bottom),2rem);">
+                <div class="welcome-logo-wrap fade-up">🩺</div>
+                <h1 class="welcome-brand fade-up delay-1">MedExcel</h1>
+                <p class="welcome-tagline fade-up delay-2">Your AI-powered study companion<br>built for medical students.</p>
+
+                <div class="welcome-social-proof fade-up delay-3">
+                    <div class="proof-avatars">
+                        <div class="proof-avatar">A</div>
+                        <div class="proof-avatar">K</div>
+                        <div class="proof-avatar">S</div>
+                        <div class="proof-avatar">M</div>
+                        <div class="proof-avatar">+</div>
+                    </div>
+                    <div class="proof-stars">★★★★★</div>
+                    <div class="proof-text">Loved by 10,000+ med students worldwide</div>
+                </div>
+
+                <button class="welcome-cta fade-up delay-4" onclick="obGoToStep(0)">
+                    Get Started &rarr;
+                </button>
+                <p class="welcome-login fade-up delay-5">
+                    Already have an account? <span onclick="showAuthSelection(); setTimeout(()=>toggleLogin(true,false),100);">Sign in</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- ── STEP 1: GOAL ── -->
+        <div class="ob-panel" id="stepGoal">
+            <span class="ob-eyebrow">Step 1 of 4</span>
+            <h2 class="ob-title">What's your<br>main goal?</h2>
+            <p class="ob-sub">We'll personalise your study plan around it.</p>
+
+            <div class="ob-grid" id="goalGrid">
+                <div class="ob-card" onclick="obSelectCard(this,'goalGrid','goal','boards')" data-value="boards">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">🎯</div>
+                    <div class="ob-card-label">Pass Board Exams</div>
+                    <div class="ob-card-desc">USMLE, PLAB or national boards</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'goalGrid','goal','finals')" data-value="finals">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">📚</div>
+                    <div class="ob-card-label">Ace My Finals</div>
+                    <div class="ob-card-desc">Semester & year-end exams</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'goalGrid','goal','ahead')" data-value="ahead">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">🚀</div>
+                    <div class="ob-card-label">Stay Ahead</div>
+                    <div class="ob-card-desc">Keep up with coursework daily</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'goalGrid','goal','residency')" data-value="residency">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">🏥</div>
+                    <div class="ob-card-label">Residency Prep</div>
+                    <div class="ob-card-desc">Specialise & apply confidently</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── STEP 2: DAILY TIME ── -->
+        <div class="ob-panel" id="stepTime">
+            <span class="ob-eyebrow">Step 2 of 4</span>
+            <h2 class="ob-title">How much time<br>can you commit?</h2>
+            <p class="ob-sub">Even 5 minutes a day builds a powerful streak.</p>
+
+            <div class="ob-list" id="timeList">
+                <div class="ob-pill" onclick="obSelectPill(this,'timeList','time','5')" data-value="5">
+                    <div class="ob-pill-icon">⚡</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">5 minutes</div>
+                        <div class="ob-pill-sub">Quick daily boost</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'timeList','time','15')" data-value="15">
+                    <div class="ob-pill-icon">🔥</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">15 minutes</div>
+                        <div class="ob-pill-sub">Recommended for steady progress</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'timeList','time','30')" data-value="30">
+                    <div class="ob-pill-icon">💪</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">30 minutes</div>
+                        <div class="ob-pill-sub">Deep focus sessions</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'timeList','time','60')" data-value="60">
+                    <div class="ob-pill-icon">🏆</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">1 hour+</div>
+                        <div class="ob-pill-sub">Serious exam prep mode</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── STEP 3: LEVEL ── -->
+        <div class="ob-panel" id="stepLevel">
+            <span class="ob-eyebrow">Step 3 of 4</span>
+            <h2 class="ob-title">What stage<br>are you at?</h2>
+            <p class="ob-sub">We'll match content to where you are in med school.</p>
+
+            <div class="ob-list" id="levelList">
+                <div class="ob-pill" onclick="obSelectPill(this,'levelList','level','premed')" data-value="premed">
+                    <div class="ob-pill-icon">🌱</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">Pre-med / Foundation</div>
+                        <div class="ob-pill-sub">Building the basics</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'levelList','level','year1')" data-value="year1">
+                    <div class="ob-pill-icon">📖</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">Year 1 — 2</div>
+                        <div class="ob-pill-sub">Anatomy, biochem, physiology</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'levelList','level','year3')" data-value="year3">
+                    <div class="ob-pill-icon">🔬</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">Year 3 — 4</div>
+                        <div class="ob-pill-sub">Clinical rotations & pathology</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+                <div class="ob-pill" onclick="obSelectPill(this,'levelList','level','year5')" data-value="year5">
+                    <div class="ob-pill-icon">🎓</div>
+                    <div class="ob-pill-text">
+                        <div class="ob-pill-label">Final Year / Graduate</div>
+                        <div class="ob-pill-sub">Boards & beyond</div>
+                    </div>
+                    <div class="ob-pill-radio"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── STEP 4: STUDY TIME ── -->
+        <div class="ob-panel" id="stepWhen">
+            <span class="ob-eyebrow">Step 4 of 4</span>
+            <h2 class="ob-title">When do you<br>study best?</h2>
+            <p class="ob-sub">We'll send smart reminders at the right time for you.</p>
+
+            <div class="ob-grid" id="whenGrid">
+                <div class="ob-card" onclick="obSelectCard(this,'whenGrid','when','morning')" data-value="morning">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">☀️</div>
+                    <div class="ob-card-label">Morning</div>
+                    <div class="ob-card-desc">6 AM – 12 PM</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'whenGrid','when','afternoon')" data-value="afternoon">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">⚡</div>
+                    <div class="ob-card-label">Afternoon</div>
+                    <div class="ob-card-desc">12 PM – 5 PM</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'whenGrid','when','evening')" data-value="evening">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">🌙</div>
+                    <div class="ob-card-label">Evening</div>
+                    <div class="ob-card-desc">5 PM – 10 PM</div>
+                </div>
+                <div class="ob-card" onclick="obSelectCard(this,'whenGrid','when','anytime')" data-value="anytime">
+                    <div class="ob-check"><i class="fas fa-check"></i></div>
+                    <div class="ob-card-icon">🎲</div>
+                    <div class="ob-card-label">Anytime</div>
+                    <div class="ob-card-desc">I'll go whenever</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── READY PANEL ── -->
+        <div class="ob-panel" id="readyPanel">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding: max(env(safe-area-inset-top),2.5rem) 0 max(env(safe-area-inset-bottom),1rem);">
+                <div class="ready-badge fade-up">🎉</div>
+                <h2 class="ready-title fade-up delay-1">Your plan<br>is ready!</h2>
+                <p class="ready-sub fade-up delay-2">We've tailored MedExcel to your goals. Here's a summary.</p>
+
+                <div class="ready-cards fade-up delay-3">
+                    <div class="ready-row">
+                        <div class="ready-row-icon">🎯</div>
+                        <div class="ready-row-content">
+                            <div class="ready-row-label">Goal</div>
+                            <div class="ready-row-value" id="summaryGoal">—</div>
+                        </div>
+                    </div>
+                    <div class="ready-row">
+                        <div class="ready-row-icon">⏱️</div>
+                        <div class="ready-row-content">
+                            <div class="ready-row-label">Daily Commitment</div>
+                            <div class="ready-row-value" id="summaryTime">—</div>
+                        </div>
+                    </div>
+                    <div class="ready-row">
+                        <div class="ready-row-icon">📚</div>
+                        <div class="ready-row-content">
+                            <div class="ready-row-label">Study Stage</div>
+                            <div class="ready-row-value" id="summaryLevel">—</div>
+                        </div>
+                    </div>
+                    <div class="ready-row">
+                        <div class="ready-row-icon">🔔</div>
+                        <div class="ready-row-content">
+                            <div class="ready-row-label">Reminder Time</div>
+                            <div class="ready-row-value" id="summaryWhen">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="ob-next-btn ready" onclick="showAuthSelection()" style="position:relative; opacity:1; pointer-events:auto; box-shadow: 0 6px 24px rgba(124,58,237,0.35); border-radius: var(--r-pill); font-weight:800; font-size:1.0625rem; padding:1.05rem; background:linear-gradient(135deg,var(--purple),#6d28d9); color:white; width:100%; margin-top:0.5rem;" id="readyCTA">
+                    Create My Account →
+                </button>
+            </div>
+        </div>
+
+    </div><!-- /ob-viewport -->
+
+    <!-- Bottom CTA dock (for steps 1-4) -->
+    <div class="ob-cta-dock" id="obCtaDock" style="display:none;">
+        <button class="ob-next-btn" id="obNextBtn" onclick="obNext()">Continue</button>
+    </div>
+
+</div><!-- /onboardingScreen -->
+
+<!-- ══════════════════════════════════════════
+     AUTH SELECTION
+══════════════════════════════════════════ -->
+<div id="authSelectionScreen" class="screen">
+    <div class="auth-selection">
+        <div class="auth-icon-wrap">🩺</div>
+        <h2 class="auth-title">MedExcel</h2>
+        <p class="auth-sub">Create an account to save your<br>progress and study plan.</p>
+        <button onclick="toggleLogin(true, true)" class="btn-auth-primary">Create Account</button>
+        <button onclick="toggleLogin(true, false)" class="btn-auth-secondary">Log In</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LOGIN MODAL
+══════════════════════════════════════════ -->
+<div id="loginScreen" class="login-modal">
+    <div class="login-header">
+        <button onclick="toggleLogin(false)" class="btn-close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <h2 id="loginHeading" class="login-title">Enter your details</h2>
+    </div>
+    <div class="login-form">
+        <div class="input-group">
+            <div id="nameRow" class="input-row" style="display: none;">
+                <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+            </div>
+            <div class="input-row">
+                <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
+            </div>
+            <div class="input-row">
+                <input id="loginPassword" type="password" placeholder="Password" class="input-field">
+                <button onclick="togglePassword()" class="btn-toggle-pw">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+        </div>
+        <button id="signInBtn" class="btn-signin">Sign In</button>
+        <button class="btn-forgot">Forgot Password</button>
+        <button onclick="startGoogleLogin()" class="btn-google">
+            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            <span class="google-text">Continue with Google</span>
+        </button>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     ONBOARDING JS
+══════════════════════════════════════════ -->
+<script>
+    /* ─── State ─── */
+    const obAnswers = { goal: null, time: null, level: null, when: null };
+    const obSteps   = ['stepGoal','stepTime','stepLevel','stepWhen','readyPanel'];
+    const TOTAL     = 4; // question steps (not counting ready)
+    let obCurrentStep = -1; // -1 = welcome
+
+    const goalLabels  = { boards:'Pass Board Exams', finals:'Ace My Finals', ahead:'Stay Ahead', residency:'Residency Prep' };
+    const timeLabels  = { '5':'5 min / day', '15':'15 min / day', '30':'30 min / day', '60':'1 hour+ / day' };
+    const levelLabels = { premed:'Pre-med / Foundation', year1:'Year 1–2', year3:'Year 3–4', year5:'Final Year' };
+    const whenLabels  = { morning:'Morning (6 AM – 12 PM)', afternoon:'Afternoon (12 PM – 5 PM)', evening:'Evening (5 PM – 10 PM)', anytime:'Anytime' };
+
+    /* ─── Navigation ─── */
+    function obGoToStep(index) {
+        const panels = ['welcomePanel',...obSteps];
+        const fromIdx = obCurrentStep + 1; // +1 to account for welcome at 0
+        const toIdx = index + 1;
+
+        // Deactivate current
+        const currentPanel = panels[fromIdx];
+        if (currentPanel) {
+            const el = document.getElementById(currentPanel);
+            if (el) { el.classList.add('exit-left'); setTimeout(() => { el.classList.remove('active','exit-left'); }, 400); }
+        }
+
+        // Activate target
+        obCurrentStep = index;
+        const targetId = obSteps[index] || (index === -1 ? 'welcomePanel' : null);
+        if (targetId) {
+            const el = document.getElementById(targetId);
+            if (el) { setTimeout(() => el.classList.add('active'), 50); }
+        }
+
+        // Progress bar & controls
+        const isQuestion = index >= 0 && index < TOTAL;
+        const isReady    = index === TOTAL;
+        const isWelcome  = index === -1;
+
+        document.getElementById('obProgressWrap').style.opacity    = isQuestion ? '1' : '0';
+        document.getElementById('obProgressWrap').style.pointerEvents = isQuestion ? 'auto' : 'none';
+        document.getElementById('obCtaDock').style.display = isQuestion ? 'flex' : 'none';
+
+        if (isQuestion) {
+            const pct = ((index) / TOTAL) * 100;
+            document.getElementById('obProgressFill').style.width = pct + '%';
+            document.getElementById('obStepLabel').textContent = `${index + 1} / ${TOTAL}`;
+            const backBtn = document.getElementById('obBackBtn');
+            backBtn.classList.toggle('visible', index > 0);
+        }
+
+        // Update next button state based on current answer
+        if (isQuestion) obUpdateNextBtn();
+
+        // Populate summary on ready
+        if (isReady) obPopulateSummary();
+    }
+
+    function obNext() {
+        const stepKey = ['goal','time','level','when'][obCurrentStep];
+        if (!obAnswers[stepKey]) return;
+        const next = obCurrentStep + 1;
+        if (next <= TOTAL) obGoToStep(next);
+    }
+
+    function obBack() {
+        if (obCurrentStep <= 0) {
+            // go back to welcome
+            obGoToStepBack(-1);
+        } else {
+            obGoToStepBack(obCurrentStep - 1);
+        }
+    }
+
+    function obGoToStepBack(index) {
+        const panels = ['welcomePanel', ...obSteps];
+        const fromIdx = obCurrentStep + 1;
+        const toIdx = index + 1;
+
+        const currentPanel = panels[fromIdx];
+        if (currentPanel) {
+            const el = document.getElementById(currentPanel);
+            if (el) {
+                el.style.transform = 'translateX(-40px)';
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.3s, transform 0.3s';
+                setTimeout(() => {
+                    el.classList.remove('active');
+                    el.style.transform = '';
+                    el.style.opacity = '';
+                    el.style.transition = '';
+                }, 320);
+            }
+        }
+
+        obCurrentStep = index;
+        const targetId = panels[toIdx];
+        if (targetId) {
+            const el = document.getElementById(targetId);
+            if (el) {
+                el.style.transform = 'translateX(-40px)';
+                el.style.opacity = '0';
+                el.style.transition = 'none';
+                void el.offsetWidth;
+                setTimeout(() => {
+                    el.classList.add('active');
+                    el.style.transition = 'opacity 0.35s var(--ease), transform 0.35s var(--ease)';
+                    el.style.transform = 'translateX(0)';
+                    el.style.opacity = '1';
+                }, 20);
+                setTimeout(() => {
+                    el.style.transform = '';
+                    el.style.opacity = '';
+                    el.style.transition = '';
+                }, 400);
+            }
+        }
+
+        const isQuestion = index >= 0 && index < TOTAL;
+        document.getElementById('obProgressWrap').style.opacity    = isQuestion ? '1' : '0';
+        document.getElementById('obProgressWrap').style.pointerEvents = isQuestion ? 'auto' : 'none';
+        document.getElementById('obCtaDock').style.display = isQuestion ? 'flex' : 'none';
+
+        if (isQuestion) {
+            const pct = ((index) / TOTAL) * 100;
+            document.getElementById('obProgressFill').style.width = pct + '%';
+            document.getElementById('obStepLabel').textContent = `${index + 1} / ${TOTAL}`;
+            document.getElementById('obBackBtn').classList.toggle('visible', index > 0);
+            obUpdateNextBtn();
+        }
+    }
+
+    /* ─── Selection helpers ─── */
+    function obSelectCard(el, gridId, key, value) {
+        document.querySelectorAll(`#${gridId} .ob-card`).forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        obAnswers[key] = value;
+        obUpdateNextBtn();
+    }
+
+    function obSelectPill(el, listId, key, value) {
+        document.querySelectorAll(`#${listId} .ob-pill`).forEach(p => p.classList.remove('selected'));
+        el.classList.add('selected');
+        obAnswers[key] = value;
+        obUpdateNextBtn();
+    }
+
+    function obUpdateNextBtn() {
+        const stepKey = ['goal','time','level','when'][obCurrentStep];
+        const btn = document.getElementById('obNextBtn');
+        if (btn) btn.classList.toggle('ready', !!obAnswers[stepKey]);
+    }
+
+    /* ─── Summary ─── */
+    function obPopulateSummary() {
+        const el = (id, labels, key) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = labels[obAnswers[key]] || '—';
+        };
+        el('summaryGoal',  goalLabels,  'goal');
+        el('summaryTime',  timeLabels,  'time');
+        el('summaryLevel', levelLabels, 'level');
+        el('summaryWhen',  whenLabels,  'when');
+
+        // Persist to localStorage for use in the app
+        try {
+            localStorage.setItem('medexcel_onboarding', JSON.stringify({
+                goal:  obAnswers.goal,
+                time:  obAnswers.time,
+                level: obAnswers.level,
+                when:  obAnswers.when,
+                completedAt: new Date().toISOString()
+            }));
+        } catch(e) {}
+    }
+
+    /* ─── Auth screen transition ─── */
+    function showAuthSelection() {
+        document.getElementById('onboardingScreen').style.opacity    = '0';
+        document.getElementById('onboardingScreen').style.transform  = 'scale(0.98)';
+        document.getElementById('onboardingScreen').style.transition = 'opacity 0.35s, transform 0.35s';
+        document.getElementById('onboardingScreen').style.pointerEvents = 'none';
+        setTimeout(() => { document.getElementById('onboardingScreen').style.display = 'none'; }, 380);
+        document.getElementById('authSelectionScreen').classList.add('active');
+    }
+</script>
+
+<script>
+    /* ─── Animations init ─── */
+    window.initAnimations = function() {
+        const injectLottie = async (elementId, cacheKey) => {
+            const data = await AssetManager.get(cacheKey);
+            if (!data) return;
+            const container = document.getElementById(elementId);
+            if (container) lottie.loadAnimation({ container, renderer: 'svg', loop: true, autoplay: true, animationData: data });
+        };
+        injectLottie('lottieLoader', 'loader');
+    };
+
+    /* ─── Loader logic ─── */
+    window.__loader = {
+        startTime: Date.now(), minMs: 0, authResolved: false, windowLoaded: false, redirecting: false,
+        checkHide() {
+            if (this.redirecting) return;
+            if (this.authResolved && this.windowLoaded) {
+                const elapsed = Date.now() - this.startTime;
+                const remaining = Math.max(0, this.minMs - elapsed);
+                setTimeout(() => {
+                    const loader = document.getElementById('loaderScreen');
+                    if (loader) { loader.style.opacity = '0'; setTimeout(() => { loader.style.visibility = 'hidden'; document.body.style.pointerEvents = 'auto'; }, 400); }
+                }, remaining);
+            }
+        }
+    };
+    document.body.style.pointerEvents = 'none';
+    window.addEventListener('load', () => { window.__loader.windowLoaded = true; window.__loader.checkHide(); });
+
+    /* ─── Dialog ─── */
+    window.showDialog = function (message, title = "Notice", options = {}) {
+        return new Promise((resolve) => {
+            const backdrop = document.getElementById("okBackdrop");
+            const titleEl  = document.getElementById("okTitle");
+            const msgEl    = document.getElementById("okMessage");
+            const btnOk    = document.getElementById("okConfirm");
+            const btnCancel= document.getElementById("okCancel");
+            titleEl.textContent  = title; msgEl.textContent = message;
+            btnOk.textContent    = options.okText || "OK";
+            btnCancel.textContent= options.cancelText || "Cancel";
+            btnCancel.style.display = options.hideCancel ? 'none' : 'block';
+            backdrop.style.display = "flex"; void backdrop.offsetWidth; backdrop.classList.add("active");
+            const cleanup = (result) => { backdrop.classList.remove("active"); setTimeout(() => { backdrop.style.display = "none"; resolve(result); }, 200); };
+            btnOk.onclick = () => cleanup(true); btnCancel.onclick = () => cleanup(false);
+        });
+    };
+
+    /* ─── Auth modal ─── */
+    window.isSignupMode = false;
+    function toggleLogin(show, signup = false) {
+        const login    = document.getElementById('loginScreen');
+        const titleEl  = document.getElementById('loginHeading');
+        const signInBtn= document.getElementById('signInBtn');
+        const nameRow  = document.getElementById('nameRow');
+        window.isSignupMode = !!signup;
+        if (show) {
+            titleEl.textContent  = signup ? 'Create your account' : 'Enter your details';
+            signInBtn.textContent= signup ? 'Sign Up' : 'Sign In';
+            nameRow.style.display= signup ? 'block' : 'none';
+            login.classList.add('show');
+        } else {
+            login.classList.remove('show');
+            setTimeout(() => { window.isSignupMode = false; titleEl.textContent = 'Enter your details'; signInBtn.textContent = 'Sign In'; nameRow.style.display = 'none'; }, 300);
+        }
+    }
+    function togglePassword() {
+        const p = document.getElementById('loginPassword');
+        p.type = p.type === "password" ? "text" : "password";
+    }
+    window.toggleLogin = toggleLogin;
+
+    window.startGoogleLogin = function() {
+        if (window.Android && window.Android.startGoogleSignIn) {
+            document.getElementById('loaderScreen').style.visibility = 'visible';
+            document.getElementById('loaderScreen').style.opacity = '1';
+            document.querySelector('.loading-text').textContent = "SIGNING IN...";
+            window.Android.startGoogleSignIn();
+        } else {
+            alert("Native login not available. Please use the mobile app.");
+        }
+    };
+
+    /* ─── Deep-link open ─── */
+    (function openAuthFromUrl() {
+        try {
+            const hash   = (location.hash || '').replace('#', '').toLowerCase();
+            const params = new URLSearchParams(location.search);
+            const action = params.get('action') ? params.get('action').toLowerCase() : null;
+            if (hash === 'login' || action === 'login') {
+                showAuthSelection();
+                setTimeout(() => toggleLogin(true, false), 100);
+            } else if (hash === 'signup' || action === 'signup') {
+                showAuthSelection();
+                setTimeout(() => toggleLogin(true, true), 100);
+            }
+        } catch (e) { console.warn('openAuthFromUrl failed', e); }
+    })();
+</script>
+
+<!-- Firebase Module Script (preserved exactly) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+        authDomain: "medxcel.firebaseapp.com",
+        projectId: "medxcel",
+        storageBucket: "medxcel.firebasestorage.app",
+        messagingSenderId: "649180317389",
+        appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
+        measurementId: "G-6VQYKEBMSX"
+    };
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    setPersistence(auth, browserLocalPersistence).catch(e => console.error("Persistence Auth Error:", e));
+
+    window.onNativeLogin = async function(email, uid) {
+        const loader = document.getElementById('loaderScreen');
+        if (loader) { loader.style.visibility = 'visible'; loader.style.opacity = '1'; const lt = document.querySelector('.loading-text'); if(lt) lt.textContent = "PREPARING APP..."; }
+        localStorage.setItem("nativeUser", JSON.stringify({ email, uid, displayName: email.split("@")[0] }));
+        try {
+            const userRef = doc(db, "users", uid); const docSnap = await getDoc(userRef);
+            if (!docSnap.exists()) {
+                await setDoc(userRef, { email, uid, displayName: email.split("@")[0], plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp() }, { merge: true });
+            }
+        } catch (e) { console.warn("Firestore sync skipped during native login", e); }
+        window.__loader.redirecting = true;
+        window.location.replace("homepage.html");
+    };
+
+    function checkAuthAndRedirect(firebaseUser) {
+        const nativeUser = localStorage.getItem("nativeUser");
+        if (nativeUser || firebaseUser) { window.__loader.redirecting = true; window.location.replace("homepage.html"); return; }
+        window.__loader.checkHide();
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        window.__loader.authResolved = true;
+        if (user) {
+            localStorage.setItem("nativeUser", JSON.stringify({ email: user.email, uid: user.uid, displayName: user.displayName }));
+            try {
+                const userRef = doc(db, "users", user.uid); const docSnap = await getDoc(userRef);
+                if (!docSnap.exists()) {
+                    await setDoc(userRef, { email: user.email, uid: user.uid, displayName: user.displayName || user.email.split("@")[0], plan: "free", dailyUsage: 0, planUsed: 0, lastDailyReset: new Date().toISOString().split("T")[0], createdAt: serverTimestamp() }, { merge: true });
+                }
+            } catch (e) {}
+        }
+        checkAuthAndRedirect(user);
+    });
+
+    const emailBtn = document.getElementById('signInBtn');
+    if (emailBtn) {
+        emailBtn.addEventListener('click', async () => {
+            const name  = document.getElementById('nameInput').value.trim();
+            const email = document.getElementById('emailInput').value.trim();
+            const pass  = document.getElementById('loginPassword').value;
+            if (window.isSignupMode && !name) return await showDialog("Please enter your name.", "Missing Info", { hideCancel: true });
+            if (!email || !pass) return await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true });
+            const loader = document.getElementById('loaderScreen');
+            loader.style.visibility = 'visible'; loader.style.opacity = '1';
+            try {
+                if (window.isSignupMode) {
+                    const uc = await createUserWithEmailAndPassword(auth, email, pass);
+                    await updateProfile(uc.user, { displayName: name });
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+            } catch (error) {
+                loader.style.opacity = '0'; setTimeout(() => loader.style.visibility = 'hidden', 400);
+                await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true });
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

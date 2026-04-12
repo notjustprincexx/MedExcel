@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#09090b">
+    <title>MedExcel — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-body:    #09090b;
+            --bg-surface: #121216;
+            --bg-hover:   #1a1a20;
+            --bg-glass:   rgba(255,255,255,0.05);
+            --text-main:  #ffffff;
+            --text-muted: #94a3b8;
+            --text-light: #cbd5e1;
+            --accent-btn:    #a78bfa;
+            --accent-blue:   #3b82f6;
+            --accent-green:  #34d399;
+            --accent-orange: #f97316;
+            --accent-red:    #f87171;
+            --accent-yellow: #fbbf24;
+            --border-color:  rgba(255,255,255,0.06);
+            --border-active: rgba(167,139,250,0.5);
+            --header-bg:     rgba(9,9,11,0.95);
+            --radius-md:   16px;
+            --radius-lg:   20px;
+            --radius-card: 24px;
+            --radius-btn:  100px;
+            --ease-snap: cubic-bezier(0.19,1,0.22,1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+        input, button, textarea { font-family: inherit; outline: none; border: none; }
+        button { cursor: pointer; background: transparent; }
+        a { text-decoration: none; }
+
+        @keyframes fadeUp   { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes shimmer  { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+        @keyframes popIn    { 0% { transform:scale(0.92); opacity:0; } 80% { transform:scale(1.02); } 100% { transform:scale(1); opacity:1; } }
+
+        /* ═══════════════════════════════════════
+           AUTH SCREEN
+        ═══════════════════════════════════════ */
+        #authScreen {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-body); z-index: 200; padding: 1.5rem;
+        }
+        .auth-wrap { width: 100%; max-width: 360px; animation: fadeUp 0.4s var(--ease-snap); }
+
+        .auth-brand { text-align: center; margin-bottom: 2rem; }
+        .auth-logo {
+            font-size: 1.875rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.03em;
+        }
+        .auth-logo span { color: var(--accent-btn); }
+        .auth-badge {
+            display: inline-block; margin-top: 0.375rem;
+            font-size: 0.6rem; font-weight: 800; padding: 3px 10px;
+            border-radius: var(--radius-btn); text-transform: uppercase; letter-spacing: 0.1em;
+            background: rgba(248,113,113,0.15); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.25);
+        }
+
+        .auth-card {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius-card); padding: 1.75rem;
+        }
+        .auth-label {
+            display: block; font-size: 0.6875rem; font-weight: 700;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem;
+        }
+        .auth-field {
+            width: 100%; background: var(--bg-body); border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md); padding: 0.875rem 1rem; color: var(--text-main);
+            font-size: 0.9375rem; transition: border-color 0.2s; margin-bottom: 1rem;
+        }
+        .auth-field:focus { border-color: var(--accent-btn); }
+        .auth-field::placeholder { color: var(--text-muted); }
+        .auth-submit {
+            width: 100%; padding: 0.9375rem; background: var(--accent-btn); color: #000;
+            border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 800;
+            margin-top: 0.25rem; transition: opacity 0.15s, transform 0.1s;
+            box-shadow: 0 4px 24px rgba(167,139,250,0.3);
+        }
+        .auth-submit:active { transform: scale(0.97); }
+        .auth-submit:disabled { opacity: 0.5; }
+        .auth-err { min-height: 1.25rem; font-size: 0.8rem; color: var(--accent-red); text-align: center; margin-top: 0.875rem; }
+
+        /* ═══════════════════════════════════════
+           DASHBOARD SHELL
+        ═══════════════════════════════════════ */
+        #dashboard { display: none; min-height: 100vh; }
+
+        /* Topbar */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--header-bg); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 1.25rem; height: 58px;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 0.625rem; }
+        .topbar-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+        .role-chip {
+            font-size: 0.55rem; font-weight: 800; padding: 2px 8px;
+            border-radius: var(--radius-btn); text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .chip-admin      { background: rgba(248,113,113,0.15); color: var(--accent-red);    border: 1px solid rgba(248,113,113,0.2); }
+        .chip-ambassador { background: rgba(249,115,22,0.15);  color: var(--accent-orange); border: 1px solid rgba(249,115,22,0.2); }
+        .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+        .topbar-email { font-size: 0.75rem; color: var(--text-muted); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .topbar-logout {
+            font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+            padding: 0.35rem 0.875rem; border: 1px solid var(--border-color);
+            border-radius: var(--radius-btn); transition: color 0.2s, border-color 0.2s;
+        }
+        .topbar-logout:hover { color: var(--accent-red); border-color: rgba(248,113,113,0.4); }
+
+        /* Tab nav */
+        .tab-nav {
+            position: sticky; top: 58px; z-index: 99;
+            background: var(--header-bg); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; overflow-x: auto; padding: 0 0.5rem;
+        }
+        .tab-nav::-webkit-scrollbar { display: none; }
+        .tab-item {
+            flex-shrink: 0; padding: 0.875rem 0.875rem;
+            font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);
+            border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; white-space: nowrap;
+        }
+        .tab-item.active { color: var(--accent-btn); border-bottom-color: var(--accent-btn); }
+
+        /* Pages */
+        .tab-page { display: none; padding: 1.25rem; max-width: 860px; margin: 0 auto; padding-bottom: 3rem; }
+        .tab-page.active { display: block; animation: fadeUp 0.25s var(--ease-snap); }
+
+        /* Section label */
+        .sec { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.5rem 0 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+        .sec:first-child { margin-top: 0; }
+
+        /* ── REVENUE HERO ── */
+        .revenue-hero {
+            background: linear-gradient(135deg, rgba(167,139,250,0.1) 0%, rgba(59,130,246,0.06) 100%);
+            border: 1px solid rgba(167,139,250,0.18); border-radius: var(--radius-card);
+            padding: 1.375rem 1.5rem; margin-bottom: 0.75rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+        }
+        .revenue-label { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .revenue-val   { font-size: 2.25rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.03em; line-height: 1.1; margin-top: 0.2rem; }
+        .revenue-sub   { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+        .revenue-icon  { font-size: 2.5rem; opacity: 0.15; flex-shrink: 0; }
+
+        /* ── STAT GRID ── */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        @media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(4,1fr); } }
+        .stat-card {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius-md); padding: 1rem;
+        }
+        .stat-icon {
+            width: 34px; height: 34px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.875rem; margin-bottom: 0.75rem;
+        }
+        .stat-val   { font-size: 1.75rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.3rem; }
+        .stat-delta { font-size: 0.7rem; font-weight: 700; margin-top: 0.4rem; color: var(--accent-green); }
+        .delta-muted { color: var(--text-muted) !important; }
+
+        /* ── CARD ── */
+        .card {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius-md); overflow: hidden; margin-bottom: 0.75rem;
+        }
+        .card-hd {
+            padding: 0.875rem 1rem; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-title { font-size: 0.8125rem; font-weight: 700; color: var(--text-main); }
+        .card-action { font-size: 0.75rem; font-weight: 700; color: var(--accent-btn); cursor: pointer; }
+
+        /* ── USER ROW ── */
+        .urow {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+        .urow:last-child { border-bottom: none; }
+        .urow.clickable { cursor: pointer; }
+        .urow.clickable:active { background: var(--bg-hover); }
+        .uavatar {
+            width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.875rem; font-weight: 700;
+            background: rgba(167,139,250,0.1); color: var(--accent-btn); border: 1px solid rgba(167,139,250,0.18);
+        }
+        .uname  { font-size: 0.8125rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap; }
+        .uemail { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+        .umeta  { margin-left: auto; text-align: right; flex-shrink: 0; }
+        .pill {
+            font-size: 0.6rem; font-weight: 800; padding: 2px 8px; border-radius: var(--radius-btn);
+            text-transform: uppercase; letter-spacing: 0.04em; display: inline-block;
+        }
+        .pill-prem { background: rgba(52,211,153,0.12); color: var(--accent-green); }
+        .pill-free { background: var(--bg-hover); color: var(--text-muted); }
+        .uxp   { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+        .udate { font-size: 0.65rem; color: var(--text-muted); opacity: 0.7; }
+        .rank-n { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); width: 1.25rem; flex-shrink: 0; text-align: center; }
+
+        /* ── PLAN BAR ── */
+        .pbar-row { padding: 0.875rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .pbar-row:last-child { border-bottom: none; }
+        .pbar-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+        .pbar-name { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-main); }
+        .pdot { width: 8px; height: 8px; border-radius: 50%; }
+        .pbar-right { display: flex; align-items: baseline; gap: 0.3rem; }
+        .pbar-count { font-size: 1rem; font-weight: 800; color: var(--text-main); }
+        .pbar-pct   { font-size: 0.7rem; color: var(--text-muted); }
+        .bar-track  { height: 5px; background: var(--bg-body); border-radius: 100px; overflow: hidden; }
+        .bar-fill   { height: 100%; border-radius: 100px; width: 0%; transition: width 1.1s var(--ease-snap); }
+
+        /* ── SKELETON ── */
+        .skel {
+            background: linear-gradient(90deg,var(--bg-hover) 25%,rgba(255,255,255,0.04) 50%,var(--bg-hover) 75%);
+            background-size: 200% 100%; animation: shimmer 1.4s infinite linear; border-radius: 6px;
+        }
+
+        /* ── EMPTY ── */
+        .empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+
+        /* ── SEARCH ── */
+        .search-bar {
+            display: flex; align-items: center; gap: 0.625rem;
+            padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color);
+        }
+        .search-bar i { color: var(--text-muted); font-size: 0.8rem; flex-shrink: 0; }
+        .search-bar input {
+            flex: 1; background: transparent; color: var(--text-main); font-size: 0.875rem;
+        }
+        .search-bar input::placeholder { color: var(--text-muted); }
+
+        /* Filter pills */
+        .filter-row { display: flex; gap: 0.5rem; padding: 0 1rem 0.75rem; flex-wrap: wrap; }
+        .fpill {
+            font-size: 0.7rem; font-weight: 700; padding: 4px 12px;
+            border-radius: var(--radius-btn); border: 1px solid var(--border-color);
+            color: var(--text-muted); background: var(--bg-hover); cursor: pointer; transition: all 0.15s;
+        }
+        .fpill.active { background: var(--accent-btn); color: #000; border-color: var(--accent-btn); }
+
+        /* ── MODAL ── */
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(4px);
+            z-index: 9999; display: none; align-items: flex-end; justify-content: center;
+        }
+        .modal-bg.show { display: flex; }
+        .modal-sheet {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius-card) var(--radius-card) 0 0;
+            width: 100%; max-width: 500px; padding: 1.5rem;
+            transform: translateY(100%); transition: transform 0.35s var(--ease-snap);
+            max-height: 85vh; overflow-y: auto;
+        }
+        .modal-bg.show .modal-sheet { transform: translateY(0); }
+        .modal-handle { width: 36px; height: 4px; background: var(--bg-hover); border-radius: 100px; margin: 0 auto 1.25rem; }
+        .mrow { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 0; border-bottom: 1px solid var(--border-color); }
+        .mrow:last-of-type { border-bottom: none; }
+        .mrow-l { font-size: 0.8rem; color: var(--text-muted); }
+        .mrow-r { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+        .mbtn {
+            width: 100%; margin-top: 1rem; padding: 0.875rem;
+            border-radius: var(--radius-btn); font-weight: 800; font-size: 0.875rem; transition: opacity 0.15s;
+        }
+        .mbtn:active { opacity: 0.8; }
+        .mbtn-primary { background: var(--accent-btn); color: #000; }
+        .mbtn-muted   { background: var(--bg-hover); color: var(--text-muted); margin-top: 0.5rem; }
+        .mbtn-danger  { background: rgba(248,113,113,0.1); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.2); margin-top: 0.5rem; }
+
+        /* ── TEAM CARD ── */
+        .info-box {
+            background: var(--bg-body); border-radius: var(--radius-md);
+            padding: 1rem; font-size: 0.8125rem; color: var(--text-muted); line-height: 1.7;
+        }
+        code { background: var(--bg-hover); padding: 1px 6px; border-radius: 5px; color: var(--accent-btn); font-size: 0.8em; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 1.5rem; left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius-btn); padding: 0.75rem 1.25rem;
+            font-size: 0.8125rem; font-weight: 600; color: var(--text-main);
+            z-index: 99999; transition: transform 0.35s var(--ease-snap);
+            white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<!-- ══════════ AUTH ══════════ -->
+<div id="authScreen">
+    <div class="auth-wrap">
+        <div class="auth-brand">
+            <div class="auth-logo">Med<span>Excel</span></div>
+            <div class="auth-badge">Restricted Access</div>
+        </div>
+        <div class="auth-card">
+            <label class="auth-label">Email</label>
+            <input class="auth-field" type="email" id="adminEmail" placeholder="admin@medexcel.app" autocomplete="email">
+            <label class="auth-label">Password</label>
+            <input class="auth-field" type="password" id="adminPass" placeholder="••••••••" autocomplete="current-password">
+            <button class="auth-submit" id="loginBtn" onclick="doAdminLogin()">Sign In</button>
+            <div class="auth-err" id="authError"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div id="dashboard">
+
+    <div class="topbar">
+        <div class="topbar-brand">
+            <span class="topbar-name">MedExcel</span>
+            <span class="role-chip chip-admin" id="roleChip">Admin</span>
+        </div>
+        <div class="topbar-right">
+            <span class="topbar-email" id="topEmail">—</span>
+            <button class="topbar-logout" onclick="doLogout()">Sign out</button>
+        </div>
+    </div>
+
+    <div class="tab-nav" id="tabNav">
+        <button class="tab-item active"  onclick="switchTab('overview')">📊 Overview</button>
+        <button class="tab-item"         onclick="switchTab('users')">👥 Users</button>
+        <button class="tab-item"         onclick="switchTab('activity')">⚡ Activity</button>
+        <button class="tab-item"         onclick="switchTab('team')">🛡️ Team</button>
+    </div>
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="tab-page active" id="tab-overview">
+
+        <div class="sec">Revenue</div>
+        <div class="revenue-hero">
+            <div>
+                <div class="revenue-label">Est. Monthly Revenue</div>
+                <div class="revenue-val" id="ovRev">₦—</div>
+                <div class="revenue-sub" id="ovRevSub">Calculating...</div>
+            </div>
+            <div class="revenue-icon">💰</div>
+        </div>
+
+        <div class="sec">At a Glance</div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(59,130,246,0.1)"><i class="fas fa-users" style="color:var(--accent-blue)"></i></div>
+                <div class="stat-val" id="ovTotal">—</div>
+                <div class="stat-label">Total Users</div>
+                <div class="stat-delta" id="ovToday">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(52,211,153,0.1)"><i class="fas fa-gem" style="color:var(--accent-green)"></i></div>
+                <div class="stat-val" id="ovPrem">—</div>
+                <div class="stat-label">Premium</div>
+                <div class="stat-delta" id="ovConv">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(167,139,250,0.1)"><i class="fas fa-bolt" style="color:var(--accent-btn)"></i></div>
+                <div class="stat-val" id="ovXP">—</div>
+                <div class="stat-label">Total XP</div>
+                <div class="stat-delta delta-muted">all users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(249,115,22,0.1)"><i class="fas fa-fire" style="color:var(--accent-orange)"></i></div>
+                <div class="stat-val" id="ovStreak">—</div>
+                <div class="stat-label">Active Streaks</div>
+                <div class="stat-delta delta-muted">streak &gt; 0</div>
+            </div>
+        </div>
+
+        <div class="sec">Plan Breakdown</div>
+        <div class="card" id="planCard"><div class="empty">Loading...</div></div>
+
+        <div class="sec">
+            Recent Signups
+            <button class="card-action" onclick="loadData()"><i class="fas fa-rotate-right" style="margin-right:4px;font-size:0.7rem;"></i>Refresh</button>
+        </div>
+        <div class="card" id="recentCard"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- ══ USERS ══ -->
+    <div class="tab-page" id="tab-users">
+        <div class="sec">
+            All Users
+            <button class="card-action" onclick="loadData()"><i class="fas fa-rotate-right" style="margin-right:4px;font-size:0.7rem;"></i>Refresh</button>
+        </div>
+        <div class="card">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="userSearch" placeholder="Search name or email…" oninput="renderUserList()">
+            </div>
+            <div class="filter-row" id="filterRow">
+                <button class="fpill active" onclick="setFilter(this,'all')">All</button>
+                <button class="fpill" onclick="setFilter(this,'premium')">💎 Premium</button>
+                <button class="fpill" onclick="setFilter(this,'free')">Free</button>
+            </div>
+            <div id="userListWrap"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- ══ ACTIVITY ══ -->
+    <div class="tab-page" id="tab-activity">
+
+        <div class="sec">Top Users by XP</div>
+        <div class="card" id="topXP"><div class="empty">Loading...</div></div>
+
+        <div class="sec">Highest Streaks</div>
+        <div class="card" id="topStreak"><div class="empty">Loading...</div></div>
+
+        <div class="sec">Most Daily Usage</div>
+        <div class="card" id="topUsage"><div class="empty">Loading...</div></div>
+
+    </div>
+
+    <!-- ══ TEAM ══ -->
+    <div class="tab-page" id="tab-team">
+
+        <div class="sec">Admins & Ambassadors</div>
+        <div class="card" id="teamCard"><div class="empty">Loading...</div></div>
+
+        <div class="sec">How to Grant Access</div>
+        <div class="card" style="padding:1rem;">
+            <div class="info-box">
+                In your Firebase console, open the user's document under <code>users / {uid}</code> and set:<br><br>
+                <code>role: "admin"</code> — full dashboard access<br>
+                <code>role: "ambassador"</code> — activity tab only<br><br>
+                No code changes needed. Access is checked on every login.
+            </div>
+        </div>
+
+        <div class="sec">Manually Upgrade a User</div>
+        <div class="card" style="padding:1rem;">
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.875rem;line-height:1.5;">
+                Enter the user's UID (tap a user row to copy it) to manually set their plan to Premium.
+            </p>
+            <input class="auth-field" style="margin-bottom:0.75rem;" type="text" id="upgradeUid" placeholder="User UID…">
+            <button class="mbtn mbtn-primary" onclick="manualUpgrade()">Set as Premium</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- User detail modal -->
+<div class="modal-bg" id="userModal" onclick="maybeCloseModal(event)">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc }
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+        authDomain: "medxcel.firebaseapp.com", projectId: "medxcel",
+        storageBucket: "medxcel.firebasestorage.app",
+        messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    window._db = db; window._updateDoc = updateDoc; window._doc = doc;
+
+    let allUsers = [];
+    let userFilter = 'all';
+
+    // ══ AUTH ══
+    window.doAdminLogin = async function() {
+        const email = document.getElementById('adminEmail').value.trim();
+        const pass  = document.getElementById('adminPass').value;
+        const err   = document.getElementById('authError');
+        const btn   = document.getElementById('loginBtn');
+        err.textContent = '';
+        if (!email || !pass) { err.textContent = 'Please fill in both fields.'; return; }
+        btn.textContent = 'Signing in…'; btn.disabled = true;
+        try { await signInWithEmailAndPassword(auth, email, pass); }
+        catch(e) { err.textContent = 'Wrong email or password.'; btn.textContent = 'Sign In'; btn.disabled = false; }
+    };
+
+    window.doLogout = async function() {
+        await signOut(auth);
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('adminEmail').value = '';
+        document.getElementById('adminPass').value = '';
+        const btn = document.getElementById('loginBtn');
+        btn.textContent = 'Sign In'; btn.disabled = false;
+    };
+
+    document.getElementById('adminPass').addEventListener('keydown', e => { if(e.key==='Enter') window.doAdminLogin(); });
+
+    onAuthStateChanged(auth, async (user) => {
+        document.getElementById('loginBtn').textContent = 'Sign In';
+        document.getElementById('loginBtn').disabled = false;
+        if (!user) return;
+        try {
+            const snap = await getDoc(doc(db, 'users', user.uid));
+            const data = snap.exists() ? snap.data() : {};
+            const role = data.role || '';
+            if (role !== 'admin' && role !== 'ambassador') {
+                document.getElementById('authError').textContent = 'Access denied.';
+                await signOut(auth); return;
+            }
+            // Show dashboard
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('topEmail').textContent = user.email;
+            const chip = document.getElementById('roleChip');
+            chip.textContent = role === 'admin' ? 'Admin' : 'Ambassador';
+            chip.className = 'role-chip ' + (role==='admin' ? 'chip-admin' : 'chip-ambassador');
+
+            // Ambassadors: only Activity tab visible
+            if (role === 'ambassador') {
+                document.querySelectorAll('.tab-item').forEach(t => t.style.display = 'none');
+                document.querySelector('[onclick="switchTab(\'activity\')"]').style.display = '';
+                switchTab('activity');
+            }
+            window.loadData();
+        } catch(e) { document.getElementById('authError').textContent = 'Could not verify your role.'; await signOut(auth); }
+    });
+
+    // ══ DATA ══
+    window.loadData = async function() {
+        try {
+            const snap = await getDocs(collection(db, 'users'));
+            allUsers = [];
+            snap.forEach(d => allUsers.push({ uid: d.id, ...d.data() }));
+            renderAll();
+        } catch(e) { toast('Failed to load data'); }
+    };
+
+    function renderAll() {
+        renderOverview();
+        renderUserList();
+        renderActivity();
+        renderTeam();
+        // Animate bars after a tick
+        setTimeout(() => {
+            document.querySelectorAll('.bar-fill[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
+        }, 80);
+    }
+
+    // ══ OVERVIEW ══
+    function renderOverview() {
+        const total   = allUsers.length;
+        const premium = allUsers.filter(u => u.plan === 'premium').length;
+        const free    = total - premium;
+        const totalXP = allUsers.reduce((s,u) => s+(u.xp||0), 0);
+        const streaks = allUsers.filter(u => (u.streak||0) > 0).length;
+        const todayStr= new Date().toDateString();
+        const newToday= allUsers.filter(u => {
+            if (!u.createdAt) return false;
+            const d = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+            return d.toDateString() === todayStr;
+        }).length;
+        const weekAgo = Date.now() - 7*24*3600000;
+        const newWeek = allUsers.filter(u => ts2ms(u.createdAt) > weekAgo).length;
+        const pct = total > 0 ? ((premium/total)*100).toFixed(1) : '0';
+
+        document.getElementById('ovRev').textContent    = '₦' + (premium*1999).toLocaleString();
+        document.getElementById('ovRevSub').textContent = `from ${premium} premium subscriber${premium!==1?'s':''}`;
+        document.getElementById('ovTotal').textContent  = total;
+        document.getElementById('ovToday').textContent  = `+${newToday} today · +${newWeek} this week`;
+        document.getElementById('ovPrem').textContent   = premium;
+        document.getElementById('ovConv').textContent   = pct + '% conversion';
+        document.getElementById('ovXP').textContent     = totalXP >= 1000 ? (totalXP/1000).toFixed(1)+'k' : totalXP;
+        document.getElementById('ovStreak').textContent = streaks;
+
+        // Plan bars
+        document.getElementById('planCard').innerHTML = [
+            barHTML('Premium', premium, total, '#34d399'),
+            barHTML('Free',    free,    total, '#52525b'),
+        ].join('');
+
+        // Recent signups
+        const recent = [...allUsers].sort((a,b) => ts2ms(b.createdAt)-ts2ms(a.createdAt)).slice(0,10);
+        document.getElementById('recentCard').innerHTML = recent.map(u => uRowHTML(u)).join('') || '<div class="empty">No users yet.</div>';
+    }
+
+    function barHTML(label, count, total, color) {
+        const pct = total > 0 ? +((count/total)*100).toFixed(1) : 0;
+        return `<div class="pbar-row">
+            <div class="pbar-top">
+                <span class="pbar-name"><span class="pdot" style="background:${color}"></span>${label}</span>
+                <span class="pbar-right"><span class="pbar-count">${count}</span><span class="pbar-pct">${pct}%</span></span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="background:${color}" data-w="${pct}"></div></div>
+        </div>`;
+    }
+
+    // ══ USER LIST ══
+    window.setFilter = function(btn, f) {
+        userFilter = f;
+        document.querySelectorAll('.fpill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderUserList();
+    };
+
+    window.renderUserList = function() {
+        const q = (document.getElementById('userSearch')?.value||'').toLowerCase();
+        let list = allUsers.filter(u => {
+            const mq = !q || (u.displayName||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q);
+            const mf = userFilter==='all' || (userFilter==='premium'&&u.plan==='premium') || (userFilter==='free'&&u.plan!=='premium');
+            return mq && mf;
+        }).sort((a,b) => ts2ms(b.createdAt)-ts2ms(a.createdAt));
+        document.getElementById('userListWrap').innerHTML = list.length
+            ? list.map(u => uRowHTML(u, true)).join('')
+            : '<div class="empty">No users found.</div>';
+    };
+
+    // ══ ACTIVITY ══
+    function renderActivity() {
+        const byXP     = [...allUsers].sort((a,b)=>(b.xp||0)-(a.xp||0)).slice(0,10);
+        const byStreak = [...allUsers].sort((a,b)=>(b.streak||0)-(a.streak||0)).filter(u=>(u.streak||0)>0).slice(0,10);
+        const byUsage  = [...allUsers].sort((a,b)=>((b.planUsed||b.dailyUsage)||0)-((a.planUsed||a.dailyUsage)||0)).slice(0,10);
+
+        document.getElementById('topXP').innerHTML     = byXP.map((u,i)    => rankHTML(u, i+1, fmt(u.xp||0)+' XP')).join('') || '<div class="empty">No data.</div>';
+        document.getElementById('topStreak').innerHTML = byStreak.map((u,i) => rankHTML(u, i+1, (u.streak||0)+' days')).join('') || '<div class="empty">No active streaks.</div>';
+        document.getElementById('topUsage').innerHTML  = byUsage.map((u,i)  => rankHTML(u, i+1, ((u.planUsed||u.dailyUsage)||0)+' uses today')).join('') || '<div class="empty">No usage data.</div>';
+    }
+
+    // ══ TEAM ══
+    function renderTeam() {
+        const team = allUsers.filter(u => u.role==='admin'||u.role==='ambassador');
+        document.getElementById('teamCard').innerHTML = team.length
+            ? team.map(u => uRowHTML(u)).join('')
+            : '<div class="empty">No team members yet. Add <code>role: "admin"</code> to a user in Firestore.</div>';
+    }
+
+    // ══ MANUAL UPGRADE ══
+    window.manualUpgrade = async function() {
+        const uid = document.getElementById('upgradeUid').value.trim();
+        if (!uid) { toast('Enter a UID'); return; }
+        try {
+            await updateDoc(doc(db,'users',uid), { plan:'premium', planUpdatedAt:new Date().toISOString(), planBy:'admin_manual' });
+            toast('✓ User upgraded to Premium');
+            document.getElementById('upgradeUid').value = '';
+            loadData();
+        } catch(e) { toast('Failed — check UID'); }
+    };
+
+    // ══ USER ROW HTML ══
+    function uRowHTML(u, clickable=false) {
+        const name    = u.displayName || u.email?.split('@')[0] || 'User';
+        const initial = name.charAt(0).toUpperCase();
+        const isPrem  = u.plan==='premium';
+        const role    = u.role;
+        const click   = clickable ? `onclick="openUserModal('${u.uid}')"` : '';
+        return `<div class="urow${clickable?' clickable':''}" ${click}>
+            <div class="uavatar">${initial}</div>
+            <div style="min-width:0;flex:1;">
+                <div class="uname">
+                    ${name}
+                    ${role==='admin'?'<span class="role-chip chip-admin" style="font-size:0.5rem;">admin</span>':''}
+                    ${role==='ambassador'?'<span class="role-chip chip-ambassador" style="font-size:0.5rem;">ambassador</span>':''}
+                </div>
+                <div class="uemail">${u.email||'—'}</div>
+            </div>
+            <div class="umeta">
+                <span class="pill ${isPrem?'pill-prem':'pill-free'}">${isPrem?'💎 Premium':'Free'}</span>
+                <div class="uxp">${fmt(u.xp||0)} XP · 🔥${u.streak||0}</div>
+                <div class="udate">${fmtDate(u.createdAt)}</div>
+            </div>
+        </div>`;
+    }
+
+    function rankHTML(u, rank, meta) {
+        const name  = u.displayName || u.email?.split('@')[0] || 'User';
+        const init  = name.charAt(0).toUpperCase();
+        const isPrem= u.plan==='premium';
+        return `<div class="urow">
+            <div class="rank-n">${rank}</div>
+            <div class="uavatar">${init}</div>
+            <div style="min-width:0;flex:1;">
+                <div class="uname">${name}</div>
+                <div class="uemail">${u.email||'—'}</div>
+            </div>
+            <div class="umeta">
+                <span class="pill ${isPrem?'pill-prem':'pill-free'}">${isPrem?'💎':'Free'}</span>
+                <div class="uxp">${meta}</div>
+            </div>
+        </div>`;
+    }
+
+    // ══ USER MODAL ══
+    window.openUserModal = function(uid) {
+        const u = allUsers.find(u => u.uid===uid);
+        if (!u) return;
+        const name = u.displayName || u.email?.split('@')[0] || 'User';
+        const isPrem = u.plan === 'premium';
+        document.getElementById('modalBody').innerHTML = `
+            <div style="font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
+                ${name}
+                ${u.role==='admin'?'<span class="role-chip chip-admin">admin</span>':''}
+                ${u.role==='ambassador'?'<span class="role-chip chip-ambassador">ambassador</span>':''}
+            </div>
+            <div class="mrow"><span class="mrow-l">Email</span><span class="mrow-r">${u.email||'—'}</span></div>
+            <div class="mrow" onclick="copyUID('${u.uid}')" style="cursor:pointer;">
+                <span class="mrow-l">UID <span style="font-size:0.65rem;opacity:0.5">(tap to copy)</span></span>
+                <span class="mrow-r" style="font-size:0.7rem;opacity:0.7;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${u.uid}</span>
+            </div>
+            <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${isPrem?'💎 Premium':'Free'}</span></div>
+            <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)}</span></div>
+            <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
+            <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} uses</span></div>
+            <div class="mrow"><span class="mrow-l">Last Reset</span><span class="mrow-r">${u.lastDailyReset||'—'}</span></div>
+            <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${u.role||'user'}</span></div>
+            <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
+            ${isPrem
+                ? `<button class="mbtn mbtn-muted" onclick="setUserPlan('${u.uid}','free')">Remove Premium</button>`
+                : `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Upgrade to Premium</button>`
+            }
+            <button class="mbtn mbtn-danger" onclick="closeUserModal()">Close</button>
+        `;
+        document.getElementById('userModal').classList.add('show');
+    };
+
+    window.setUserPlan = async function(uid, plan) {
+        try {
+            await updateDoc(doc(db,'users',uid), { plan, planUpdatedAt: new Date().toISOString(), planBy:'admin_manual' });
+            toast('✓ Plan updated');
+            closeUserModal();
+            loadData();
+        } catch(e) { toast('Failed to update plan'); }
+    };
+
+    window.copyUID = function(uid) {
+        navigator.clipboard?.writeText(uid).then(() => toast('UID copied!')).catch(() => toast(uid));
+    };
+
+    window.maybeCloseModal = function(e) {
+        if (e.target === document.getElementById('userModal')) closeUserModal();
+    };
+    window.closeUserModal = function() {
+        document.getElementById('userModal').classList.remove('show');
+    };
+
+    // ══ TABS ══
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-item').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('onclick').includes("'"+tab+"'"));
+        });
+        document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-'+tab)?.classList.add('active');
+        setTimeout(() => {
+            document.querySelectorAll('.bar-fill[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
+        }, 80);
+    };
+
+    // ══ TOAST ══
+    window.toast = function(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+    };
+
+    // ══ UTILS ══
+    function ts2ms(ts) {
+        if (!ts) return 0;
+        if (ts.toDate) return ts.toDate().getTime();
+        return new Date(ts).getTime();
+    }
+    function fmtDate(ts) {
+        if (!ts) return '—';
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    }
+    function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : n; }
+</script>
+</body>
+</html>
