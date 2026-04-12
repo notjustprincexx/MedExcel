@@ -285,9 +285,14 @@
                 <!-- Referral link copy -->
                 <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:0.75rem;padding:0.625rem 0.75rem;">
                     <span id="upgReferralLinkDisplay" style="font-size:0.75rem;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loading your link...</span>
-                    <button onclick="window.copyReferralLink('upg')" id="upgCopyBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:0.2s;">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
+                    <div style="display:flex;gap:0.375rem;flex-shrink:0;">
+                        <button onclick="window.shareReferralLink('upg')" id="upgShareBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
+                        <button onclick="window.copyReferralLink('upg')" id="upgCopyBtn" style="background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -860,9 +865,14 @@
                     <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg-body);border:1px solid var(--border-color);border-radius:0.875rem;padding:0.625rem 0.75rem;">
                         <i class="fas fa-link" style="color:var(--accent-btn);font-size:0.75rem;flex-shrink:0;"></i>
                         <span id="profileReferralLink" style="font-size:0.75rem;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loading...</span>
-                        <button onclick="window.copyReferralLink('profile')" id="profileCopyBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:0.2s;">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
+                        <div style="display:flex;gap:0.375rem;flex-shrink:0;">
+                            <button onclick="window.shareReferralLink('profile')" id="profileShareBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
+                            <button onclick="window.copyReferralLink('profile')" id="profileCopyBtn" style="background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1326,33 +1336,82 @@
             });
         };
 
+        const REFERRAL_SHARE_MESSAGE = (link) =>
+            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nJoin me and we both get rewards! Sign up here:\n${link}`;
+
+        window.shareReferralLink = async function(source) {
+            const code = window._userReferralCode || '';
+            if (!code) return;
+            const link = `https://medxcel.web.app?ref=${code}`;
+            const message = REFERRAL_SHARE_MESSAGE(link);
+
+            // Capacitor native share (Android / iOS)
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { Share } = window.Capacitor.Plugins;
+                    await Share.share({
+                        title: 'Join me on MedExcel',
+                        text: message,
+                        url: link,
+                        dialogTitle: 'Share your referral link'
+                    });
+                } catch(e) {
+                    // User cancelled — do nothing
+                    if (e.message && !e.message.includes('cancel')) {
+                        window.copyReferralLink(source);
+                    }
+                }
+                return;
+            }
+
+            // Web Share API (modern browsers)
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Join me on MedExcel', text: message, url: link });
+                } catch(e) {
+                    if (e.name !== 'AbortError') window.copyReferralLink(source);
+                }
+                return;
+            }
+
+            // Final fallback — just copy
+            window.copyReferralLink(source);
+        };
+
         window.copyReferralLink = function(source) {
             const code = window._userReferralCode || '';
             if (!code) return;
-            const link = `https://medexcel.app?ref=${code}`;
+            const link = `https://medxcel.web.app?ref=${code}`;
+            const btnId = source === 'upg' ? 'upgCopyBtn' : 'profileCopyBtn';
+            const btn = document.getElementById(btnId);
+
+            const showFeedback = (success) => {
+                if (!btn) return;
+                const orig = btn.innerHTML;
+                btn.innerHTML = success ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                btn.style.color = success ? 'var(--accent-green)' : 'var(--accent-red)';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.color = 'var(--text-muted)'; }, 2000);
+            };
+
             try {
-                navigator.clipboard.writeText(link).then(() => {
-                    const btnId = source === 'upg' ? 'upgCopyBtn' : 'profileCopyBtn';
-                    const btn = document.getElementById(btnId);
-                    if (btn) {
-                        const orig = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                        btn.style.background = 'var(--accent-green)';
-                        setTimeout(() => { btn.innerHTML = orig; btn.style.background = 'var(--accent-btn)'; }, 2000);
-                    }
+                navigator.clipboard.writeText(link).then(() => showFeedback(true)).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = link; document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); showFeedback(true); } catch(e) { showFeedback(false); }
+                    document.body.removeChild(ta);
                 });
             } catch(e) {
-                // Fallback
                 const ta = document.createElement('textarea');
                 ta.value = link; document.body.appendChild(ta); ta.select();
-                document.execCommand('copy'); document.body.removeChild(ta);
+                try { document.execCommand('copy'); showFeedback(true); } catch(e2) { showFeedback(false); }
+                document.body.removeChild(ta);
             }
         };
 
         window.loadReferralData = function(userData) {
             const code    = userData.referralCode || '';
             const count   = userData.referralCount || 0;
-            const link    = `https://medexcel.app?ref=${code}`;
+            const link    = `https://medxcel.web.app?ref=${code}`;
             window._userReferralCode = code;
 
             // Profile card
@@ -1422,7 +1481,7 @@
                 window.renderReferralTiers('upgModalTiers', count);
                 const code  = window._userReferralCode || '';
                 const upgLink = document.getElementById('upgReferralLinkDisplay');
-                if (upgLink) upgLink.textContent = code ? `medexcel.app?ref=${code}` : 'Loading...';
+                if (upgLink) upgLink.textContent = code ? `medxcel.web.app?ref=${code}` : 'Loading...';
 
                 // Show sheet
                 backdrop.style.display = 'flex';

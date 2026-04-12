@@ -3150,5 +3150,63 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         });
 
     </script>
+
+    <!-- =============================================
+         PUSH NOTIFICATION INIT
+         Remove alert() once token is confirmed.
+         ============================================= -->
+    <script>
+        async function initPush() {
+            // Guard: only runs on a real Capacitor native device (iOS / Android)
+            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+                console.log("[initPush] Not a native platform — skipping push init.");
+                return;
+            }
+
+            try {
+                // Access PushNotifications via the global Capacitor plugin bridge
+                // (matches the existing StatusBar / Share pattern used elsewhere in this app)
+                const { PushNotifications } = window.Capacitor.Plugins;
+
+                if (!PushNotifications) {
+                    console.warn("[initPush] PushNotifications plugin not available.");
+                    return;
+                }
+
+                // 1. Request permission
+                const permStatus = await PushNotifications.requestPermissions();
+
+                if (permStatus.receive === 'granted') {
+                    // 2. Register device with FCM
+                    await PushNotifications.register();
+                } else {
+                    console.warn("[initPush] Push permission denied:", permStatus.receive);
+                    return;
+                }
+
+                // 3. Token received — log and temporarily display
+                PushNotifications.addListener('registration', token => {
+                    console.log("[initPush] ✅ FCM TOKEN:", token.value);
+                    alert("FCM TOKEN:\n" + token.value); // TEMP — remove after confirming token
+                });
+
+                // 4. Handle registration errors
+                PushNotifications.addListener('registrationError', err => {
+                    console.error("[initPush] ❌ Push registration error:", err);
+                });
+
+            } catch (e) {
+                console.error("[initPush] Unexpected error:", e);
+            }
+        }
+
+        // Call on load — fires after DOM is ready
+        document.addEventListener("DOMContentLoaded", () => {
+            initPush();
+        });
+    </script>
+    <!-- =============================================
+         END PUSH NOTIFICATION INIT
+         ============================================= -->
 </body>
 </html>
