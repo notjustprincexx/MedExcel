@@ -3142,6 +3142,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
+                if (window.initPush) window.initPush(firebaseUser.uid); // Init push with confirmed user ID
             } else {
                 window.currentUser = null;
                 localStorage.clear();
@@ -3151,57 +3152,65 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     </script>
 
-    <!-- TEST PUSH BUTTON — remove when done -->
-    <button onclick="sendTestNotification()" style="
-      position: fixed;
-      bottom: 120px;
-      right: 20px;
-      z-index: 9999;
-      padding: 0.75rem 1.25rem;
-      border-radius: 999px;
-      background: #8b5cf6;
-      color: white;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(139,92,246,0.4);
-      font-size: 0.9rem;
-    ">Test Push 🚀</button>
-
-    <!-- TEST PUSH FUNCTION — remove when done -->
+    <!-- =============================================
+         PUSH NOTIFICATION — TOKEN SAVE ON LOGIN
+         Remove this block once confirmed working.
+         ============================================= -->
     <script>
-      async function sendTestNotification() {
-        try {
-          console.log("[sendTestNotification] Sending request...");
+        window.initPush = async function(userId) {
+            // Only runs on a real Capacitor native device
+            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
 
-          const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/sendNotification", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              token: "fW8NGaRwRridy9Asz6DyJI:APA91bGUu1HfjtUdmHaTSHtw7j5VN1QoXYn5zvg0t809GXOEkGqiI4iAKVN04IXzBYOafv3rZihvtZGCezQGi89xJitIHEmCIVvw08rSH2pLMRENNulbphw",
-              title: "🔥 MedExcel Live",
-              body: "Push notifications are working!"
-            })
-          });
+            const { PushNotifications } = window.Capacitor.Plugins;
+            if (!PushNotifications) {
+                console.warn("[initPush] PushNotifications plugin not available. Run: npm install @capacitor/push-notifications && npx cap sync");
+                return;
+            }
 
-          const responseText = await res.text();
-          console.log("[sendTestNotification] Status:", res.status);
-          console.log("[sendTestNotification] Response:", responseText);
+            try {
+                // Request permission
+                const permStatus = await PushNotifications.requestPermissions();
+                if (permStatus.receive !== 'granted') {
+                    console.warn("[initPush] Permission not granted:", permStatus.receive);
+                    return;
+                }
 
-          if (res.ok) {
-            alert("✅ Notification sent! Check your device.");
-          } else {
-            alert("⚠️ Server error " + res.status + ":\n" + responseText);
-          }
+                // Register with FCM
+                await PushNotifications.register();
 
-        } catch (err) {
-          console.error("[sendTestNotification] Fetch error:", err);
-          alert("❌ Request failed: " + err.message);
-        }
-      }
+                // On token received — save to backend with the confirmed userId
+                PushNotifications.addListener('registration', async (token) => {
+                    console.log("[initPush] FCM token received:", token.value);
+
+                    try {
+                        const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/saveToken", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                token: token.value,
+                                userId: userId  // Passed in from onAuthStateChanged — always valid
+                            })
+                        });
+
+                        if (res.ok) {
+                            console.log("[initPush] Token saved successfully for user:", userId);
+                        } else {
+                            console.error("[initPush] Server error saving token:", res.status, await res.text());
+                        }
+                    } catch (err) {
+                        console.error("[initPush] Failed to save token:", err);
+                    }
+                });
+
+                PushNotifications.addListener('registrationError', err => {
+                    console.error("[initPush] Registration error:", err);
+                });
+
+            } catch (e) {
+                console.error("[initPush] Unexpected error:", e);
+            }
+        };
     </script>
-    <!-- END TEST PUSH — remove above when done -->
+    <!-- END PUSH NOTIFICATION TOKEN SAVE -->
 </body>
 </html>
