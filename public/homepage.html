@@ -3142,7 +3142,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                if (window.initPush) window.initPush(firebaseUser.uid); // FCM token init
+                if (window.initPush) window.initPush(firebaseUser.uid); // PUSH INIT
             } else {
                 window.currentUser = null;
                 localStorage.clear();
@@ -3153,86 +3153,117 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </script>
 
     <!-- =============================================
-         FCM PUSH — TOKEN SAVE TO BACKEND
-         Remove this block once confirmed working.
+         FCM PUSH — BULLETPROOF VERSION
+         Remove once confirmed working.
          ============================================= -->
+
+    <!-- Manual trigger button (remove after testing) -->
+    <button id="manualPushBtn" style="
+        position: fixed; bottom: 130px; right: 16px; z-index: 99999;
+        background: #f59e0b; color: #000; font-weight: 800;
+        border: none; border-radius: 999px;
+        padding: 0.6rem 1.1rem; font-size: 0.85rem; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(245,158,11,0.5);
+    ">Force Push Init ⚡</button>
+
     <script>
         window.initPush = async function(userId) {
-            console.log("[initPush] Called with userId:", userId);
+            // STEP 0 — confirm this function is actually being called
+            alert("[initPush] CALLED
+userId: " + userId); // TEMP: remove after confirming
+
+            console.log("[initPush] ✅ CALLED — userId:", userId);
 
             // Guard: native device only
             if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
-                console.log("[initPush] Not a native platform — skipping.");
+                alert("[initPush] ❌ Not a native platform — Capacitor not detected");
+                console.error("[initPush] ❌ Not a native platform");
                 return;
             }
+            console.log("[initPush] ✅ Native platform confirmed");
 
             const { PushNotifications } = window.Capacitor.Plugins;
             if (!PushNotifications) {
-                console.error("[initPush] PushNotifications plugin missing. Run: npm install @capacitor/push-notifications && npx cap sync");
+                alert("[initPush] ❌ PushNotifications plugin MISSING\nRun: npm install @capacitor/push-notifications && npx cap sync");
+                console.error("[initPush] ❌ Plugin missing");
                 return;
             }
+            console.log("[initPush] ✅ PushNotifications plugin found");
 
-            // Request permission
-            const permStatus = await PushNotifications.requestPermissions();
-            console.log("[initPush] Permission status:", permStatus.receive);
-            if (permStatus.receive !== 'granted') {
-                console.error("[initPush] Permission not granted — aborting.");
-                return;
-            }
-
-            // Register with FCM
-            await PushNotifications.register();
-            console.log("[initPush] register() called — waiting for token...");
-
-            // Token received
+            // ⚠️ ADD LISTENERS BEFORE register() — critical on Android
+            // Cached tokens fire the event almost instantly; listener must exist first
             PushNotifications.addListener('registration', async (token) => {
-                console.log("[initPush] FCM TOKEN:", token.value);
+                console.log("[initPush] ✅ FCM TOKEN:", token.value);
 
-                // userId comes from the argument — always valid when called from onAuthStateChanged
-                // Fallback to window.currentUser.uid in case of edge-case timing
                 const uid = userId || window.currentUser?.uid || null;
                 console.log("[initPush] USER ID:", uid);
 
                 if (!uid) {
-                    console.error("[initPush] No userId found — cannot save token. Is the user logged in?");
+                    console.error("[initPush] ❌ No userId — cannot save token");
+                    alert("[initPush] ❌ No userId found at token save time");
                     return;
                 }
+
+                console.log("[initPush] Sending token to backend...");
 
                 try {
                     const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/saveToken", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            token: token.value,
-                            userId: uid
-                        })
+                        body: JSON.stringify({ token: token.value, userId: uid })
                     });
 
-                    let data;
                     const contentType = res.headers.get("content-type") || "";
-                    if (contentType.includes("application/json")) {
-                        data = await res.json();
-                    } else {
-                        data = await res.text();
-                    }
+                    const data = contentType.includes("application/json")
+                        ? await res.json()
+                        : await res.text();
 
                     console.log("[initPush] SAVE TOKEN STATUS:", res.status);
                     console.log("[initPush] SAVE TOKEN RESPONSE:", data);
+                    alert("[initPush] saveToken response\nStatus: " + res.status + "\n" + JSON.stringify(data)); // TEMP
 
-                    if (!res.ok) {
-                        console.error("[initPush] Server rejected token save — status:", res.status);
-                    }
                 } catch (err) {
-                    console.error("[initPush] SAVE TOKEN ERROR:", err);
+                    console.error("[initPush] ❌ SAVE TOKEN FETCH ERROR:", err);
+                    alert("[initPush] ❌ Fetch failed: " + err.message);
                 }
             });
 
-            // Registration error
             PushNotifications.addListener('registrationError', err => {
-                console.error("[initPush] REGISTRATION ERROR:", JSON.stringify(err));
+                console.error("[initPush] ❌ REGISTRATION ERROR:", JSON.stringify(err));
+                alert("[initPush] ❌ Registration error:\n" + JSON.stringify(err));
             });
+
+            // Request permission
+            const permStatus = await PushNotifications.requestPermissions();
+            console.log("[initPush] Permission:", permStatus.receive);
+            if (permStatus.receive !== 'granted') {
+                alert("[initPush] ❌ Permission denied: " + permStatus.receive);
+                console.error("[initPush] ❌ Permission denied");
+                return;
+            }
+            console.log("[initPush] ✅ Permission granted — calling register()");
+
+            // Register AFTER listeners are attached
+            await PushNotifications.register();
+            console.log("[initPush] ✅ register() called — token event will fire shortly");
         };
+
+        // Manual button — bypasses auth flow for isolated testing
+        document.addEventListener("DOMContentLoaded", () => {
+            const btn = document.getElementById("manualPushBtn");
+            if (btn) {
+                btn.addEventListener("click", () => {
+                    const uid = window.currentUser?.uid || null;
+                    console.log("[manualPush] Manual trigger — uid:", uid);
+                    if (window.initPush) {
+                        window.initPush(uid);
+                    } else {
+                        alert("window.initPush not defined yet");
+                    }
+                });
+            }
+        });
     </script>
-    <!-- END FCM PUSH TOKEN SAVE -->
+    <!-- END FCM PUSH -->
 </body>
 </html>
