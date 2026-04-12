@@ -1345,17 +1345,37 @@
             const link = `https://medxcel.web.app?ref=${code}`;
             const message = REFERRAL_SHARE_MESSAGE(link);
 
+            // Capacitor native share (Android / iOS)
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { Share } = window.Capacitor.Plugins;
+                    await Share.share({
+                        title: 'Join me on MedExcel',
+                        text: message,
+                        url: link,
+                        dialogTitle: 'Share your referral link'
+                    });
+                } catch(e) {
+                    // User cancelled — do nothing
+                    if (e.message && !e.message.includes('cancel')) {
+                        window.copyReferralLink(source);
+                    }
+                }
+                return;
+            }
+
+            // Web Share API (modern browsers)
             if (navigator.share) {
                 try {
                     await navigator.share({ title: 'Join me on MedExcel', text: message, url: link });
                 } catch(e) {
-                    // User cancelled share sheet — do nothing
                     if (e.name !== 'AbortError') window.copyReferralLink(source);
                 }
-            } else {
-                // Browser doesn't support share — fall back to copy
-                window.copyReferralLink(source);
+                return;
             }
+
+            // Final fallback — just copy
+            window.copyReferralLink(source);
         };
 
         window.copyReferralLink = function(source) {
