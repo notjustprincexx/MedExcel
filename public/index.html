@@ -362,7 +362,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // REAL API KEYS INJECTED
@@ -381,10 +381,10 @@
         
         setPersistence(auth, browserLocalPersistence).catch((error) => console.error("Persistence Auth Error:", error));
 
-        // --- NATIVE LOGIN BRIDGE (Fixes the Google Button & planUsed crash) ---
-        window.onNativeLogin = async function(email, uid) {
+        // --- NATIVE LOGIN BRIDGE ---
+        window.onNativeLogin = async function(email, uid, idToken) {
             console.log("Native login success:", email);
-            
+
             const loader = document.getElementById('loaderScreen');
             if (loader) {
                 loader.style.visibility = 'visible';
@@ -393,18 +393,17 @@
                 if(loadingText) loadingText.textContent = "PREPARING APP...";
             }
 
-            // 1. Save locally for the homepage
+            // 1. Save locally as fallback reference for the homepage
             localStorage.setItem("nativeUser", JSON.stringify({
                 email: email,
                 uid: uid,
                 displayName: email.split("@")[0]
             }));
 
-            // 2. Self-Heal Firestore Doc WITH planUsed: 0
+            // 2. Self-Heal Firestore Doc
             try {
                 const userRef = doc(db, "users", uid);
                 const docSnap = await getDoc(userRef);
-                
                 if (!docSnap.exists()) {
                     await setDoc(userRef, {
                         email: email,
@@ -412,7 +411,7 @@
                         displayName: email.split("@")[0],
                         plan: "free",
                         dailyUsage: 0,
-                        planUsed: 0, // <--- CRITICAL FIX FOR NEW GOOGLE USERS
+                        planUsed: 0,
                         lastDailyReset: new Date().toISOString().split("T")[0],
                         createdAt: serverTimestamp()
                     }, { merge: true });
@@ -421,7 +420,19 @@
                 console.warn("Firestore sync skipped during native login", e);
             }
 
-            // 3. Complete the bridge and redirect!
+            // 3. Sign WebView into Firebase as the real Google user (no anonymous accounts)
+            try {
+                const { GoogleAuthProvider, signInWithCredential } =
+                    await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                const credential = GoogleAuthProvider.credential(idToken);
+                await signInWithCredential(auth, credential);
+            } catch(e) {
+                // Fallback: anonymous session so homepage auth listener still fires
+                console.warn("Credential sign-in failed, falling back to anonymous:", e);
+                try { await signInAnonymously(auth); } catch(e2) {}
+            }
+
+            // 4. Redirect to app
             window.__loader.redirecting = true;
             window.location.replace("homepage.html");
         };
