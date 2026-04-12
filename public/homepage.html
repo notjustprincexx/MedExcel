@@ -3250,5 +3250,61 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             console.log("[Push] register() called — awaiting token event...");
         };
     </script>
+    <!-- TEST BUTTON — remove after confirming notifications work -->
+    <button onclick="sendTestPush()" style="
+        position: fixed; bottom: 120px; right: 20px; z-index: 9999;
+        padding: 0.75rem 1.25rem; border-radius: 999px;
+        background: #8b5cf6; color: white; font-weight: 700;
+        border: none; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(139,92,246,0.4); font-size: 0.9rem;
+    ">Test Push 🚀</button>
+
+    <script>
+        async function sendTestPush() {
+            const uid = window.currentUser?.uid || null;
+            if (!uid) { alert("Not logged in yet."); return; }
+
+            // Pull the token straight from Firestore so we use whatever was just saved
+            try {
+                const { doc, getDoc } =
+                    await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                const snap = await getDoc(doc(window.db, "users", uid));
+                const tokens = snap.data()?.tokens || [];
+
+                if (tokens.length === 0) {
+                    alert("No token found in Firestore yet.\nOpen the app fresh on your device first so initPush() can save one.");
+                    return;
+                }
+
+                const token = tokens[tokens.length - 1]; // use the most recently added
+                console.log("[TestPush] Sending to token:", token);
+
+                const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/sendNotification", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: token,
+                        title: "🔥 MedExcel",
+                        body: "Push notifications are working!",
+                        userId: uid
+                    })
+                });
+
+                const data = await res.json();
+                console.log("[TestPush] Response:", data);
+
+                if (data.success) {
+                    alert("✅ Notification sent! Check your device.");
+                } else {
+                    alert("⚠️ Sent but FCM returned an error:\n" + data.error);
+                }
+
+            } catch (err) {
+                console.error("[TestPush] Error:", err);
+                alert("❌ Failed: " + err.message);
+            }
+        }
+    </script>
+    <!-- END TEST BUTTON -->
 </body>
 </html>
