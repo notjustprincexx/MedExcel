@@ -3142,7 +3142,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                if (window.initPush) window.initPush(firebaseUser.uid); // Init push with confirmed user ID
+                if (window.initPush) window.initPush(firebaseUser.uid); // FCM token init
             } else {
                 window.currentUser = null;
                 localStorage.clear();
@@ -3153,64 +3153,86 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </script>
 
     <!-- =============================================
-         PUSH NOTIFICATION — TOKEN SAVE ON LOGIN
+         FCM PUSH — TOKEN SAVE TO BACKEND
          Remove this block once confirmed working.
          ============================================= -->
     <script>
         window.initPush = async function(userId) {
-            // Only runs on a real Capacitor native device
-            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+            console.log("[initPush] Called with userId:", userId);
 
-            const { PushNotifications } = window.Capacitor.Plugins;
-            if (!PushNotifications) {
-                console.warn("[initPush] PushNotifications plugin not available. Run: npm install @capacitor/push-notifications && npx cap sync");
+            // Guard: native device only
+            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+                console.log("[initPush] Not a native platform — skipping.");
                 return;
             }
 
-            try {
-                // Request permission
-                const permStatus = await PushNotifications.requestPermissions();
-                if (permStatus.receive !== 'granted') {
-                    console.warn("[initPush] Permission not granted:", permStatus.receive);
+            const { PushNotifications } = window.Capacitor.Plugins;
+            if (!PushNotifications) {
+                console.error("[initPush] PushNotifications plugin missing. Run: npm install @capacitor/push-notifications && npx cap sync");
+                return;
+            }
+
+            // Request permission
+            const permStatus = await PushNotifications.requestPermissions();
+            console.log("[initPush] Permission status:", permStatus.receive);
+            if (permStatus.receive !== 'granted') {
+                console.error("[initPush] Permission not granted — aborting.");
+                return;
+            }
+
+            // Register with FCM
+            await PushNotifications.register();
+            console.log("[initPush] register() called — waiting for token...");
+
+            // Token received
+            PushNotifications.addListener('registration', async (token) => {
+                console.log("[initPush] FCM TOKEN:", token.value);
+
+                // userId comes from the argument — always valid when called from onAuthStateChanged
+                // Fallback to window.currentUser.uid in case of edge-case timing
+                const uid = userId || window.currentUser?.uid || null;
+                console.log("[initPush] USER ID:", uid);
+
+                if (!uid) {
+                    console.error("[initPush] No userId found — cannot save token. Is the user logged in?");
                     return;
                 }
 
-                // Register with FCM
-                await PushNotifications.register();
+                try {
+                    const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/saveToken", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            token: token.value,
+                            userId: uid
+                        })
+                    });
 
-                // On token received — save to backend with the confirmed userId
-                PushNotifications.addListener('registration', async (token) => {
-                    console.log("[initPush] FCM token received:", token.value);
-
-                    try {
-                        const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/saveToken", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                token: token.value,
-                                userId: userId  // Passed in from onAuthStateChanged — always valid
-                            })
-                        });
-
-                        if (res.ok) {
-                            console.log("[initPush] Token saved successfully for user:", userId);
-                        } else {
-                            console.error("[initPush] Server error saving token:", res.status, await res.text());
-                        }
-                    } catch (err) {
-                        console.error("[initPush] Failed to save token:", err);
+                    let data;
+                    const contentType = res.headers.get("content-type") || "";
+                    if (contentType.includes("application/json")) {
+                        data = await res.json();
+                    } else {
+                        data = await res.text();
                     }
-                });
 
-                PushNotifications.addListener('registrationError', err => {
-                    console.error("[initPush] Registration error:", err);
-                });
+                    console.log("[initPush] SAVE TOKEN STATUS:", res.status);
+                    console.log("[initPush] SAVE TOKEN RESPONSE:", data);
 
-            } catch (e) {
-                console.error("[initPush] Unexpected error:", e);
-            }
+                    if (!res.ok) {
+                        console.error("[initPush] Server rejected token save — status:", res.status);
+                    }
+                } catch (err) {
+                    console.error("[initPush] SAVE TOKEN ERROR:", err);
+                }
+            });
+
+            // Registration error
+            PushNotifications.addListener('registrationError', err => {
+                console.error("[initPush] REGISTRATION ERROR:", JSON.stringify(err));
+            });
         };
     </script>
-    <!-- END PUSH NOTIFICATION TOKEN SAVE -->
+    <!-- END FCM PUSH TOKEN SAVE -->
 </body>
 </html>
