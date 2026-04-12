@@ -7,6 +7,17 @@
     if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
         window.location.replace("homepage.html");
     }
+
+    // Capture referral code from URL param (?ref=ABC123) before anything else
+    (function() {
+        try {
+            const params = new URLSearchParams(location.search);
+            const ref = params.get('ref');
+            if (ref && ref.length > 0) {
+                sessionStorage.setItem('medexcel_ref_code', ref.toUpperCase());
+            }
+        } catch(e) {}
+    })();
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -407,6 +418,8 @@
                 const userRef = doc(db, "users", uid);
                 const docSnap = await getDoc(userRef);
                 if (!docSnap.exists()) {
+                    const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
+                    const myCode = uid.substring(0, 8).toUpperCase();
                     await setDoc(userRef, {
                         email: email,
                         uid: uid,
@@ -415,8 +428,13 @@
                         dailyUsage: 0,
                         planUsed: 0,
                         lastDailyReset: new Date().toISOString().split("T")[0],
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        referralCode: myCode,
+                        referredBy: refCode,
+                        referralCount: 0,
+                        referralProcessed: false,
                     }, { merge: true });
+                    if (refCode) sessionStorage.removeItem('medexcel_ref_code');
                 }
             } catch (e) {
                 console.warn("Firestore sync skipped during native login", e);
@@ -466,6 +484,8 @@
                     const userRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(userRef);
                     if (!docSnap.exists()) {
+                        const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
+                        const myCode = user.uid.substring(0, 8).toUpperCase();
                         await setDoc(userRef, {
                             email: user.email,
                             uid: user.uid,
@@ -474,8 +494,13 @@
                             dailyUsage: 0,
                             planUsed: 0, // <--- CRITICAL FIX FOR NEW EMAIL USERS
                             lastDailyReset: new Date().toISOString().split("T")[0],
-                            createdAt: serverTimestamp()
+                            createdAt: serverTimestamp(),
+                            referralCode: myCode,
+                            referredBy: refCode,
+                            referralCount: 0,
+                            referralProcessed: false,
                         }, { merge: true });
+                        if (refCode) sessionStorage.removeItem('medexcel_ref_code');
                     }
                 } catch (e) {}
             }
