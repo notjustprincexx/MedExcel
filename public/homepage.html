@@ -3152,61 +3152,108 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </script>
 
     <!-- =============================================
-         PUSH NOTIFICATION INIT
-         Remove alert() once token is confirmed.
+         PUSH NOTIFICATION DIAGNOSTICS
+         Remove this entire block once working.
          ============================================= -->
+
+    <!-- Visible on-screen log panel (fixed, top of screen) -->
+    <div id="pushDebugPanel" style="
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 99999;
+        background: rgba(0,0,0,0.92);
+        color: #00ff88;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 10px 14px;
+        max-height: 50vh;
+        overflow-y: auto;
+        border-bottom: 2px solid #8b5cf6;
+    ">
+        <strong style="color:#8b5cf6;">📡 Push Diagnostics</strong><br>
+    </div>
+
     <script>
-        async function initPush() {
-            // Guard: only runs on a real Capacitor native device (iOS / Android)
-            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
-                console.log("[initPush] Not a native platform — skipping push init.");
-                return;
-            }
-
-            try {
-                // Access PushNotifications via the global Capacitor plugin bridge
-                // (matches the existing StatusBar / Share pattern used elsewhere in this app)
-                const { PushNotifications } = window.Capacitor.Plugins;
-
-                if (!PushNotifications) {
-                    console.warn("[initPush] PushNotifications plugin not available.");
-                    return;
-                }
-
-                // 1. Request permission
-                const permStatus = await PushNotifications.requestPermissions();
-
-                if (permStatus.receive === 'granted') {
-                    // 2. Register device with FCM
-                    await PushNotifications.register();
-                } else {
-                    console.warn("[initPush] Push permission denied:", permStatus.receive);
-                    return;
-                }
-
-                // 3. Token received — log and temporarily display
-                PushNotifications.addListener('registration', token => {
-                    console.log("[initPush] ✅ FCM TOKEN:", token.value);
-                    alert("FCM TOKEN:\n" + token.value); // TEMP — remove after confirming token
-                });
-
-                // 4. Handle registration errors
-                PushNotifications.addListener('registrationError', err => {
-                    console.error("[initPush] ❌ Push registration error:", err);
-                });
-
-            } catch (e) {
-                console.error("[initPush] Unexpected error:", e);
+        // On-screen logger — visible on device without needing DevTools
+        function pushLog(msg, color) {
+            console.log("[initPush]", msg);
+            const panel = document.getElementById('pushDebugPanel');
+            if (panel) {
+                const line = document.createElement('div');
+                line.style.color = color || '#00ff88';
+                line.textContent = "› " + msg;
+                panel.appendChild(line);
+                panel.scrollTop = panel.scrollHeight;
             }
         }
 
-        // Call on load — fires after DOM is ready
+        async function initPush() {
+            pushLog("initPush() called");
+
+            // STEP 1: Is Capacitor present?
+            if (!window.Capacitor) {
+                pushLog("❌ window.Capacitor is undefined — not running in Capacitor WebView", '#ff4444');
+                return;
+            }
+            pushLog("✅ window.Capacitor found");
+
+            // STEP 2: Is this a native platform?
+            if (!window.Capacitor.isNativePlatform()) {
+                pushLog("❌ isNativePlatform() = false — running in browser, not on device", '#ff4444');
+                return;
+            }
+            pushLog("✅ isNativePlatform() = true");
+
+            // STEP 3: Is the plugin available?
+            const { PushNotifications } = window.Capacitor.Plugins;
+            if (!PushNotifications) {
+                pushLog("❌ PushNotifications plugin is MISSING from window.Capacitor.Plugins", '#ff4444');
+                pushLog("👉 Fix: npm install @capacitor/push-notifications  then  npx cap sync", '#ffaa00');
+                return;
+            }
+            pushLog("✅ PushNotifications plugin found");
+
+            try {
+                // STEP 4: Request permission
+                pushLog("⏳ Requesting permission...");
+                const permStatus = await PushNotifications.requestPermissions();
+                pushLog("Permission result: " + JSON.stringify(permStatus));
+
+                if (permStatus.receive !== 'granted') {
+                    pushLog("❌ Permission NOT granted — user denied or prompt was not shown", '#ff4444');
+                    return;
+                }
+                pushLog("✅ Permission granted");
+
+                // STEP 5: Register
+                pushLog("⏳ Calling register()...");
+                await PushNotifications.register();
+                pushLog("✅ register() called — waiting for token...");
+
+                // STEP 6: Token received
+                PushNotifications.addListener('registration', token => {
+                    pushLog("🎉 TOKEN RECEIVED!", '#00ff88');
+                    pushLog(token.value, '#ffffff');
+                    alert("✅ FCM TOKEN:\n\n" + token.value);
+                });
+
+                // STEP 7: Registration error
+                PushNotifications.addListener('registrationError', err => {
+                    pushLog("❌ registrationError: " + JSON.stringify(err), '#ff4444');
+                });
+
+            } catch (e) {
+                pushLog("❌ Exception: " + e.message, '#ff4444');
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
+            pushLog("DOMContentLoaded fired");
             initPush();
         });
     </script>
     <!-- =============================================
-         END PUSH NOTIFICATION INIT
+         END PUSH NOTIFICATION DIAGNOSTICS
          ============================================= -->
 </body>
 </html>
