@@ -223,6 +223,7 @@
         .list-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
         
         /* --- PAYMENT --- */
+
     </style>
 </head>
 <body>
@@ -3015,6 +3016,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
                 if (userDoc.exists()) {
                     data = userDoc.data();
+                    // Sync Firestore avatar → localStorage so it shows correctly on any device or after account switch
+                    if (data.avatarIndex !== undefined && data.avatarIndex !== null) {
+                        localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
+                        window.applyAvatar();
+                    }
                 } else {
                     // New user — provision their Firestore document now with safe defaults
                     data = {
