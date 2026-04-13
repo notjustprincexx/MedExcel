@@ -228,7 +228,7 @@
 </head>
 <body>
 
-  <div id="aiLoader" class="loader-screen" role="status">
+  <div id="aiLoader" class="loader-screen hidden" role="status">
     <div style="text-align: center; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 300px;">
         <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
         <div style="color: #ffffff; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.375rem; letter-spacing: -0.01em; margin-top: 1rem;">MedExcel is scanning...</div>
@@ -664,8 +664,8 @@
                         </div>
                         <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;background:#94a3b8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:white;border:2px solid var(--bg-body);z-index:20;">2</div>
                     </div>
-                    <h3 id="name2" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;width:60px;height:14px;" class="skeleton rounded"></h3>
-                    <p id="xp2" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;width:35px;height:12px;" class="skeleton rounded"></p>
+                    <h3 id="name2" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:60px;height:14px;"></h3>
+                    <p id="xp2" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;" class="skeleton rounded" style="width:35px;height:12px;"></p>
                     <div style="width:100%;height:72px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(148,163,184,0.2),rgba(148,163,184,0.05));border-top:2px solid rgba(148,163,184,0.3);"></div>
                 </div>
 
@@ -1284,10 +1284,10 @@
             const btn = document.getElementById('confirmAccountDeleteBtn');
             if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
-                if (window.currentUser?.uid && window._deleteDoc && window._doc) {
-                    try { await window._deleteDoc(window._doc(window.db, "users", window.currentUser.uid)); } catch(e) {}
+                if (window.currentUser?.uid) {
+                    try { await deleteDoc(doc(db, "users", window.currentUser.uid)); } catch(e) {}
                 }
-                try { if (window._signOut && window.auth) await window._signOut(window.auth); } catch(e) {}
+                try { await signOut(auth); } catch(e) {}
                 const _delTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();
                 if (_delTheme) localStorage.setItem('medexcel_theme', _delTheme);
@@ -1980,39 +1980,7 @@ if (nextBtn) {
             document.getElementById('interactiveView').style.display = 'none';
         };
 
-        // --- LIBRARY FILTER TABS & SEARCH ---
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const searchVal = document.getElementById('librarySearchInput') ? document.getElementById('librarySearchInput').value : '';
-                window.renderLibrary(btn.dataset.filter, searchVal);
-            });
-        });
-        const librarySearchInput = document.getElementById('librarySearchInput');
-        if (librarySearchInput) {
-            librarySearchInput.addEventListener('input', (e) => {
-                const activeTabEl = document.querySelector('.tab-btn.active');
-                const filter = activeTabEl ? activeTabEl.dataset.filter : 'all';
-                window.renderLibrary(filter, e.target.value);
-            });
-        }
-
-        // --- LOTTIE LOADER INIT ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const loaderContainer = document.getElementById('lottieLoaderContainer');
-            if (loaderContainer && typeof lottie !== 'undefined') {
-                try {
-                    window.lottieAnimation = lottie.loadAnimation({
-                        container: loaderContainer,
-                        renderer: 'svg',
-                        loop: true,
-                        autoplay: false,
-                        path: 'scan.json'
-                    });
-                } catch(e) { window.lottieAnimation = null; }
-            }
-        });
+        const itemSlider = document.getElementById('itemSlider');
         const sliderValue = document.getElementById('sliderValue');
         if(itemSlider && sliderValue) {
             itemSlider.addEventListener('input', (e) => {
@@ -2147,8 +2115,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
             html += `
                 <div style="display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; flex-shrink: 0;">
-                    <button id="createPrevBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: ${currentCardIndex === 0 ? 'not-allowed' : 'pointer'}; border: 1px solid var(--border-glass); background: var(--bg-surface); color: var(--text-main); opacity: ${currentCardIndex === 0 ? '0.4' : '1'};" ${currentCardIndex === 0 ? 'disabled' : ''}>Previous</button>
-                    <button id="createNextBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: ${(isMCQMode && !card.answered) ? 'not-allowed' : 'pointer'}; border: none; background: var(--accent-btn); color: var(--btn-text); opacity: ${(isMCQMode && !card.answered) ? '0.4' : '1'};" ${(isMCQMode && !card.answered) ? 'disabled' : ''}>${currentCardIndex === generatedCards.length - 1 ? 'Finish' : 'Next'}</button>
+                    <button id="createPrevBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border-glass); background: var(--bg-surface); color: var(--text-main);" ${currentCardIndex === 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>Previous</button>
+                    <button id="createNextBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: pointer; border: none; background: var(--accent-btn); color: var(--btn-text);" ${(isMCQMode && !card.answered) ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>${currentCardIndex === generatedCards.length - 1 ? 'Finish' : 'Next'}</button>
                 </div>
                 </div>
             `;
@@ -2385,16 +2353,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         const storage = getStorage(app);
         const functions = getFunctions(app, "us-central1");
 
-        window.db   = db;
-        window.auth = auth;
-
-        // Expose Firestore helpers so non-module scripts can call them
-        window._doc       = doc;
-        window._updateDoc = updateDoc;
-        window._deleteDoc = deleteDoc;
-        window._setDoc    = setDoc;
-        window._signOut   = signOut;
-
+        window.db = db;
+        
         // Expose critical Firebase functions
         window.logoutUser = async function() {
             const savedTheme = localStorage.getItem('medexcel_theme');
@@ -2464,62 +2424,25 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
                     window.renderLibrary(activeTab, document.getElementById('librarySearchInput').value);
                     window.closeGlobalModal('deleteModalBackdrop');
-                    if (window.currentQuiz && window.currentQuiz.id === window.quizToDelete) { window.closePracticeMobile(); }
+                    if (currentQuiz && currentQuiz.id === window.quizToDelete) { window.closePracticeMobile(); }
                     window.quizToDelete = null;
                 } catch(e) { console.error("Could not delete from cloud", e); }
             }
         });
 
-        // Returns the ISO date string of the current week's Monday (used as reset key)
-        function _getWeekKey() {
-            const now = new Date();
-            const day = now.getDay(); // 0=Sun
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(now.getFullYear(), now.getMonth(), diff);
-            return monday.toISOString().split('T')[0];
-        }
-
         window.addXP = async function(amount) {
             if (amount <= 0) return;
             window.userStats.xp += amount;
-
-            // Weekly XP — reset each Monday
-            const uid = window.currentUser?.uid || 'guest';
-            const weekKey = _getWeekKey();
-            const storedWeekKey = localStorage.getItem('medexcel_weekkey_' + uid);
-            if (storedWeekKey !== weekKey) {
-                window.userStats.weeklyXp = 0;
-                localStorage.setItem('medexcel_weekkey_' + uid, weekKey);
-            }
-            window.userStats.weeklyXp = (window.userStats.weeklyXp || 0) + amount;
-
             localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
             if (window.currentUser) {
                 try {
                     let dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : "User");
-                    await setDoc(doc(db, "users", window.currentUser.uid), { 
-                        uid: window.currentUser.uid, 
-                        xp: window.userStats.xp, 
-                        weeklyXp: window.userStats.weeklyXp,
-                        displayName: dName 
-                    }, { merge: true });
+                    await setDoc(doc(db, "users", window.currentUser.uid), { uid: window.currentUser.uid, xp: window.userStats.xp, displayName: dName }, { merge: true });
                 } catch (e) { console.error("Failed to sync XP", e); }
             }
             // Update UI elements
             const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
             const uiXP2 = document.getElementById('currentUserXp'); if(uiXP2) uiXP2.textContent = window.formatXP(window.userStats.xp);
-
-            // Keep cached leaderboard data in sync so This Week tab reflects latest XP immediately
-            if (window.currentUser && Array.isArray(window._lbUsers)) {
-                const meIdx = window._lbUsers.findIndex(u => u.uid === window.currentUser.uid);
-                const dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : 'User');
-                if (meIdx >= 0) {
-                    window._lbUsers[meIdx].xp       = window.userStats.xp;
-                    window._lbUsers[meIdx].weeklyXp  = window.userStats.weeklyXp;
-                } else {
-                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, avatarIndex: null });
-                }
-            }
         };
 
         window.syncUserStreak = async function(uid, streakCount, lastDate) {
@@ -2586,7 +2509,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         window.loadQuizOverview = function(id) {
-            currentQuiz = window.currentQuiz = window.quizzes.find(q => q.id === id); window.openPracticeMobile();
+            currentQuiz = window.quizzes.find(q => q.id === id); window.openPracticeMobile();
             const area = document.getElementById('studyPracticeArea');
             const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
             const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
@@ -2617,17 +2540,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         window.toggleFavoriteCurrent = async function() {
-            if (window.currentQuiz && window.currentUser) {
-                window.currentQuiz.favorite = !window.currentQuiz.favorite;
-                try { 
-                    if (window._updateDoc && window._doc) {
-                        await window._updateDoc(window._doc(window.db, "users", window.currentUser.uid, "quizzes", window.currentQuiz.id.toString()), { favorite: window.currentQuiz.favorite }); 
-                    }
-                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes)); 
-                } catch(e) {}
-                window.loadQuizOverview(window.currentQuiz.id);
-                const activeTabEl = document.querySelector('.tab-btn.active');
-                if (activeTabEl) window.renderLibrary(activeTabEl.dataset.filter, document.getElementById('librarySearchInput').value);
+            if (currentQuiz && window.currentUser) {
+                currentQuiz.favorite = !currentQuiz.favorite;
+                try { await updateDoc(doc(db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { favorite: currentQuiz.favorite }); localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes)); } catch(e) {}
+                window.loadQuizOverview(currentQuiz.id);
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter; window.renderLibrary(activeTab, document.getElementById('librarySearchInput').value);
             }
         };
 
@@ -2670,24 +2587,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             window._lbTab = tab;
             const allBtn = document.getElementById('lbTabAllTime');
             const wkBtn  = document.getElementById('lbTabWeek');
-            if (allBtn) {
-                const on = tab === 'alltime';
-                allBtn.style.background  = on ? 'var(--accent-btn)' : 'transparent';
-                allBtn.style.color       = on ? 'var(--btn-text)'   : 'var(--text-muted)';
-                allBtn.style.boxShadow   = on ? '0 2px 8px rgba(139,92,246,0.3)' : 'none';
-            }
-            if (wkBtn) {
-                const on = tab === 'week';
-                wkBtn.style.background   = on ? 'var(--accent-btn)' : 'transparent';
-                wkBtn.style.color        = on ? 'var(--btn-text)'   : 'var(--text-muted)';
-                wkBtn.style.boxShadow    = on ? '0 2px 8px rgba(139,92,246,0.3)' : 'none';
-            }
-            // Re-fetch fresh data when switching to This Week so weeklyXp is current
-            if (tab === 'week' && window._lbUserId) {
-                window.loadLeaderboard(window._lbUserId);
-            } else if (window._lbUsers.length) {
-                window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
-            }
+            const active = 'background:var(--accent-btn);color:var(--btn-text);box-shadow:0 2px 8px rgba(139,92,246,0.3);';
+            const inactive = 'background:transparent;color:var(--text-muted);box-shadow:none;';
+            if (allBtn) allBtn.style.cssText += (tab === 'alltime' ? active : inactive);
+            if (wkBtn)  wkBtn.style.cssText  += (tab === 'week'    ? active : inactive);
+            if (window._lbUsers.length) window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
         };
 
         window.loadLeaderboard = async function(currentUserId) {
@@ -2845,7 +2749,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
                 generateBtn.disabled = true; 
                 generateBtn.style.background = 'var(--bg-surface)'; generateBtn.style.color = 'var(--text-muted)';
-                aiLoader.classList.add('show');
+                aiLoader.classList.remove('hidden'); aiLoader.classList.add('show');
                 document.getElementById('createBackBtn').style.display = 'none';
                 if (window.lottieAnimation) window.lottieAnimation.play();
                 
@@ -2921,7 +2825,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     window.quizzes = existingQuizzes;
 
                     if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
-                    aiLoader.classList.remove('show');
+                    aiLoader.classList.remove('show'); aiLoader.classList.add('hidden');
                     document.getElementById('setupView').style.display = 'none';
                     document.getElementById('interactiveView').style.display = 'flex';
                     window.enterQuizMode();
@@ -2931,7 +2835,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     console.error("Error generating quiz:", error);
                     if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
                     alert("Generation Error: " + error.message);
-                    aiLoader.classList.remove('show');
+                    aiLoader.classList.remove('show'); aiLoader.classList.add('hidden');
                     generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';
                     document.getElementById('createBackBtn').style.display = 'flex';
                 }
@@ -3148,18 +3052,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 if (data.lastCheckIn) { localStreak = { count: data.streak || 0, lastDate: data.lastCheckIn }; localStorage.setItem(storageKey, JSON.stringify(localStreak)); }
                 if (!localStreak) localStreak = { count: 0, lastDate: null };
 
-                window.userStats = { xp: data.xp || 0, weeklyXp: data.weeklyXp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
-
-                // Seed week key so addXP doesn't wipe weeklyXp on first call this session
-                const _wkKey = (function() {
-                    const now = new Date(); const day = now.getDay();
-                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                    const mon = new Date(now.getFullYear(), now.getMonth(), diff);
-                    return mon.toISOString().split('T')[0];
-                })();
-                if (!localStorage.getItem('medexcel_weekkey_' + user.uid)) {
-                    localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
-                }
+                window.userStats = { xp: data.xp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
 
                 const todayStr = new Date().toDateString(); const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); const yesterdayStr = yesterday.toDateString();
