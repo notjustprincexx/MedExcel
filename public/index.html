@@ -15,11 +15,15 @@
     } catch(e) {}
   })();
 
-  // Theme Sync Logic
   (function() {
-      const savedTheme = localStorage.getItem('medexcel_theme');
-      if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
-      else if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
+    const t = localStorage.getItem('medexcel_theme');
+    if (t === 'light') document.documentElement.classList.add('light-mode');
+    else if (t === 'dark') document.documentElement.classList.add('dark-mode');
+    else {
+      const l = window.matchMedia('(prefers-color-scheme: light)').matches;
+      localStorage.setItem('medexcel_theme', l ? 'light' : 'dark');
+      if (l) document.documentElement.classList.add('light-mode');
+    }
   })();
 </script>
 <meta charset="UTF-8">
