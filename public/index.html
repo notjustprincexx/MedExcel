@@ -273,7 +273,7 @@
   .get-started {
     position: fixed; bottom: max(3vh, 24px); left: 30px; right: 24px;
     max-width: calc(430px - 78px); margin: 0 auto; padding: 16px;
-    background: var(--ink); color: var(--bg); 
+    background: #000000; color: #ffffff; 
     border: none; border-radius: 100px;
     font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800;
     cursor: pointer; opacity: 0; animation: fadeIn 0.4s ease 0.92s forwards;
@@ -752,7 +752,7 @@
 
 <script>
   /* ══════════════════════════════════
-     SLIDE ENGINE — Flex Track Swipe Native
+     SLIDE ENGINE — Flex Track Swipe Native + Auto-Slide
   ══════════════════════════════════ */
   const EASE_SMOOTH = 'transform 0.6s cubic-bezier(0.25, 1, 0.2, 1)';
   const track = document.getElementById('track');
@@ -762,6 +762,7 @@
 
   let page = 1;
   let startX = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false;
+  let autoSlideTimer;
 
   function updateLoader(n) {
     fill.classList.remove('p2', 'p3');
@@ -769,27 +770,38 @@
     if (n === 3) fill.classList.add('p3');
   }
 
+  function resetAutoSlide() {
+    clearTimeout(autoSlideTimer);
+    if (page < 3) {
+      autoSlideTimer = setTimeout(() => {
+        goTo(page + 1);
+      }, 4000);
+    }
+  }
+
   function goTo(n) {
     if (n < 1 || n > 3) return;
     page = n;
     
-    // Animate the track
     track.style.transition = EASE_SMOOTH;
     prevTranslate = -(page - 1) * vp.clientWidth;
     track.style.transform = `translateX(${prevTranslate}px)`;
     
     updateLoader(n);
 
-    // Persist fixed button until Auth screen
     if (page === 3) {
       gsBtn.classList.add('hidden');
+      clearTimeout(autoSlideTimer); 
     } else {
       gsBtn.classList.remove('hidden');
+      resetAutoSlide(); 
     }
   }
 
-  // Bind Fixed Button -> Move Forward
+  resetAutoSlide(); 
+
   gsBtn.addEventListener('click', () => {
+    clearTimeout(autoSlideTimer); 
     if (page < 3) goTo(page + 1);
   });
 
@@ -797,13 +809,13 @@
      SWIPE / DRAG GESTURE
   ══════════════════════════════════ */
   vp.addEventListener('touchstart', e => {
-    // Prevent capturing touches inside input/buttons
     if (e.target.closest('button') || e.target.closest('input') || document.querySelector('.login-modal.show')) return;
     
+    clearTimeout(autoSlideTimer); 
+
     startX = e.touches[0].clientX;
     isDragging = true;
     
-    // Snap immediately to finger position
     track.style.transition = 'none'; 
   }, { passive: true });
 
@@ -812,7 +824,6 @@
     const currentX = e.touches[0].clientX;
     const diff = currentX - startX;
     
-    // Apply rubber band resistance if dragging past ends
     if ((page === 1 && diff > 0) || (page === 3 && diff < 0)) {
       currentTranslate = prevTranslate + (diff * 0.2); 
     } else {
@@ -827,7 +838,7 @@
     isDragging = false;
     
     const movedBy = currentTranslate - prevTranslate;
-    const threshold = vp.clientWidth * 0.2; // 20% swipe triggers page turn
+    const threshold = vp.clientWidth * 0.2; 
 
     if (movedBy < -threshold && page < 3) {
       page += 1;
@@ -835,8 +846,7 @@
       page -= 1;
     }
     
-    // Snap to the closest or next screen
-    goTo(page);
+    goTo(page); 
   });
 
   /* ══════════════════════════════════
