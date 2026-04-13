@@ -88,6 +88,16 @@
     color: var(--ink);
     -webkit-tap-highlight-color: transparent;
     transition: background-color 0.3s ease, color 0.3s ease;
+    
+    /* Prevent text selection globally */
+    -webkit-user-select: none; 
+    user-select: none;
+  }
+
+  /* Ensure inputs are still selectable/typable */
+  input, textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
   }
 
   /* ══ SIGN-IN OVERLAY ══ */
@@ -770,12 +780,12 @@
     if (n === 3) fill.classList.add('p3');
   }
 
-  function resetAutoSlide() {
+  function resetAutoSlide(delay = 4000) {
     clearTimeout(autoSlideTimer);
     if (page < 3) {
       autoSlideTimer = setTimeout(() => {
         goTo(page + 1);
-      }, 4000);
+      }, delay);
     }
   }
 
@@ -798,7 +808,8 @@
     }
   }
 
-  resetAutoSlide(); 
+  // Initialize with a 6-second delay to account for the native splash screen
+  resetAutoSlide(6000); 
 
   gsBtn.addEventListener('click', () => {
     clearTimeout(autoSlideTimer); 
