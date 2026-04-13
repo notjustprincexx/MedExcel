@@ -42,6 +42,10 @@
     --accent:       #a78bfa;
     --accent-glow:  rgba(167, 139, 250, 0.15);
     
+    /* Button Colors (Dark Mode) */
+    --btn-bg:       #ffffff;
+    --btn-text:     #000000;
+    
     /* Vibrant Card Palette */
     --card-1:       #10b981; /* Emerald */
     --card-2:       #ec4899; /* Pink */
@@ -63,6 +67,10 @@
     --border:       rgba(0, 0, 0, 0.1);
     --accent:       #8b5cf6;
     --accent-glow:  rgba(139, 92, 246, 0.15);
+    
+    /* Button Colors (Light Mode) */
+    --btn-bg:       #000000;
+    --btn-text:     #ffffff;
   }
 
   /* NATIVE SYSTEM THEME DETECTION */
@@ -76,6 +84,10 @@
       --border:       rgba(0, 0, 0, 0.1);
       --accent:       #8b5cf6;
       --accent-glow:  rgba(139, 92, 246, 0.15);
+      
+      /* Button Colors (Light Mode) */
+      --btn-bg:       #000000;
+      --btn-text:     #ffffff;
     }
   }
 
@@ -283,7 +295,7 @@
   .get-started {
     position: fixed; bottom: max(3vh, 24px); left: 30px; right: 24px;
     max-width: calc(430px - 78px); margin: 0 auto; padding: 16px;
-    background: #000000; color: #ffffff; 
+    background: var(--btn-bg); color: var(--btn-text); 
     border: none; border-radius: 100px;
     font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800;
     cursor: pointer; opacity: 0; animation: fadeIn 0.4s ease 0.92s forwards;
