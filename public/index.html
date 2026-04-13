@@ -30,20 +30,20 @@
     --slate:   #101015;
     --indigo:  #160D42;
     --ivory:   #F2EDE4;
-    --ease:    cubic-bezier(0.76, 0, 0.24, 1);
-    --dur:     480ms;
+    --ease:    cubic-bezier(0.25, 1, 0.2, 1);
+    --dur:     600ms;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
-    height: 100%; overflow: hidden;
+    height: 100%; overflow: hidden; /* Strict 100% to avoid bottom clipping */
     font-family: 'Plus Jakarta Sans', sans-serif;
     background: var(--bg);
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* ══ SIGN-IN OVERLAY (only shown during active auth) ══ */
+  /* ══ SIGN-IN OVERLAY ══ */
   .signin-overlay {
     position: fixed; inset: 0; z-index: 9000;
     background: rgba(242,237,228,0.88);
@@ -110,32 +110,37 @@
 
   /* ══ PROGRESS BAR ══ */
   .top-loader {
-    position: fixed; top: 0; left: 0; right: 0;
-    height: 3px; background: rgba(14,11,7,0.08);
-    z-index: 8000; overflow: hidden;
+    position: fixed; top: 12px; left: 24px; right: 24px;
+    height: 4px; background: rgba(14,11,7,0.08);
+    z-index: 8000; overflow: hidden; border-radius: 4px;
   }
   .top-loader-fill {
     height: 100%; width: 33.333%;
     background: #8B5CF6;
-    border-radius: 0 2px 2px 0;
+    border-radius: 4px;
     transition: width var(--dur) var(--ease);
   }
   .top-loader-fill.p2 { width: 66.666%; }
   .top-loader-fill.p3 { width: 100%; }
 
-  /* ══ VIEWPORT ══ */
+  /* ══ VIEWPORT & SLIDER TRACK ══ */
   .viewport {
-    width: 100%; height: 100dvh;
+    width: 100%; height: 100%; /* Changed from 100dvh to fix cutoff */
     overflow: hidden; position: relative;
     background: var(--bg);
   }
+  .slider-track {
+    display: flex;
+    width: 100%; height: 100%;
+    will-change: transform;
+  }
 
-  /* ══ SLIDES — absolutely stacked, JS drives transforms ══ */
+  /* ══ SLIDES ══ */
   .slide {
-    position: absolute; top: 0; left: 0;
+    position: relative;
+    flex: 0 0 100%;
     width: 100%; height: 100%;
     background: var(--bg);
-    will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
@@ -150,20 +155,21 @@
   ════════════════════════ */
   .headline-wrap {
     position: absolute; top: 0; left: 0; right: 0;
-    padding: 68px 30px 0;
+    padding: 50px 30px 0; /* Slightly pushed up */
     opacity: 0; transform: translateY(-10px);
     animation: fadeDown 0.5s ease 0.08s forwards;
     z-index: 10;
   }
   .headline {
-    font-size: clamp(34px, 9.5vw, 44px); font-weight: 900;
+    font-size: clamp(28px, 8vw, 42px); /* Scaled down slightly to fit smaller devices */
+    font-weight: 900;
     line-height: 1.0; letter-spacing: -0.01em; text-transform: uppercase;
     color: var(--ink); font-family: 'Barlow Condensed', sans-serif;
   }
   @keyframes fadeDown { to { opacity:1; transform:translateY(0); } }
   @keyframes fadeIn   { to { opacity:1; } }
 
-  .card-stack { position: absolute; bottom:0; left:0; right:0; top:36%; }
+  .card-stack { position: absolute; bottom:0; left:0; right:0; top:25%; } /* Lifted from 30% to 25% */
   .card {
     position: absolute; bottom: 0;
     border-radius: 28px 28px 0 0;
@@ -186,55 +192,59 @@
 
   .card-inner {
     position:absolute; top:0; bottom:0; left:56px; right:22px;
-    display:flex; flex-direction:column; padding-top:20px;
+    display:flex; flex-direction:column; padding-top:16px;
   }
-  .card-indigo .card-inner { bottom:100px; }
+  /* Clears the fixed get started button without squishing content */
+  .card-indigo .card-inner { bottom:85px; } 
 
   .flashcard-preview {
     background:rgba(255,255,255,0.07); border-radius:16px;
-    padding:18px 18px 16px; margin-top:60px;
+    padding:14px; 
+    margin-top:60px; /* FIXED: Pushed safely below the 48px high arrow button */
     border:1px solid rgba(255,255,255,0.1);
   }
-  .fc-subject { font-size:9.5px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:10px; }
-  .fc-question { font-size:14.5px; font-weight:700; color:#fff; line-height:1.5; margin-bottom:15px; }
-  .fc-divider  { height:1px; background:rgba(255,255,255,0.1); margin-bottom:12px; }
-  .fc-answer-label { font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:6px; }
-  .fc-answer   { font-size:13px; font-weight:600; color:rgba(255,255,255,0.85); line-height:1.55; }
-  .fc-footer   { display:flex; align-items:center; justify-content:space-between; margin-top:14px; }
-  .fc-tap      { font-size:10.5px; color:rgba(255,255,255,0.28); font-style:italic; }
+  .fc-subject { font-size:9.5px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:8px; }
+  .fc-question { font-size:13px; font-weight:700; color:#fff; line-height:1.4; margin-bottom:10px; }
+  .fc-divider  { height:1px; background:rgba(255,255,255,0.1); margin-bottom:10px; }
+  .fc-answer-label { font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:4px; }
+  .fc-answer   { font-size:12px; font-weight:600; color:rgba(255,255,255,0.85); line-height:1.5; }
+  .fc-footer   { display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+  .fc-tap      { font-size:10px; color:rgba(255,255,255,0.28); font-style:italic; }
   .fc-dots     { display:flex; gap:5px; }
   .fc-dot      { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.2); }
   .fc-dot.on   { background:rgba(255,255,255,0.75); }
 
-  .stats-wrap   { margin-top:62px; display:flex; flex-direction:column; gap:13px; }
-  .stat-label   { font-size:9.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:6px; }
-  .stat-row     { display:flex; gap:10px; }
-  .stat-pill    { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:11px 13px; display:flex; flex-direction:column; gap:3px; flex:1; }
-  .stat-val     { font-size:20px; font-weight:800; color:#fff; line-height:1; }
-  .stat-name    { font-size:10px; color:rgba(255,255,255,0.38); font-weight:500; }
+  .stats-wrap   { margin-top:55px; display:flex; flex-direction:column; gap:10px; } /* FIXED: Clears arrow */
+  .stat-label   { font-size:9.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:4px; }
+  .stat-row     { display:flex; gap:6px; } /* FIXED: Reduced gap to prevent spill out */
+  .stat-pill    { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:2px; flex:1; } /* Compacted */
+  .stat-val     { font-size:16px; font-weight:800; color:#fff; line-height:1; }
+  .stat-name    { font-size:9px; color:rgba(255,255,255,0.38); font-weight:500; }
   .streak-pill  { background:rgba(230,160,60,0.1); border-color:rgba(230,160,60,0.18); }
   .streak-val   { color:#E6A03C; }
   .prog-bar-track { height:4px; background:rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; }
   .prog-bar-fill  { height:100%; width:68%; background:rgba(255,255,255,0.5); border-radius:10px; }
   .prog-bar-label { display:flex; justify-content:space-between; margin-top:5px; font-size:10px; color:rgba(255,255,255,0.32); }
 
-  .tags-wrap    { margin-top:62px; display:flex; flex-wrap:wrap; gap:7px; max-width:270px; }
+  .tags-wrap    { margin-top:55px; display:flex; flex-wrap:wrap; gap:7px; max-width:270px; } /* FIXED: Clears arrow */
   .subject-tag  { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12); border-radius:100px; padding:6px 13px; font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.65); white-space:nowrap; }
   .subject-tag.hi { background:rgba(255,255,255,0.9); color:var(--wine); border-color:transparent; }
 
+  /* ══ FIXED GET STARTED BUTTON ══ */
   .get-started {
     position: fixed;
-    bottom: 36px;
+    bottom: max(3vh, 24px); /* Scales well regardless of safe areas/nav bars */
     left: 54px;
     right: 24px;
     max-width: calc(430px - 78px);
     margin: 0 auto;
-    padding: 19px; background: #fff; border: none; border-radius: 100px;
-    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 800;
-    color: var(--indigo); cursor: pointer;
+    padding: 16px;
+    background: var(--ink); border: none; border-radius: 100px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800;
+    color: #fff; cursor: pointer;
     opacity: 0; animation: fadeIn 0.4s ease 0.92s forwards;
     transition: transform 0.15s ease, opacity 0.3s ease;
-    box-shadow: 0 4px 20px rgba(14,11,7,0.12);
+    box-shadow: 0 4px 20px rgba(14,11,7,0.18);
     z-index: 100;
   }
   .get-started.hidden {
@@ -250,30 +260,17 @@
     display: flex; flex-direction: column;
   }
 
-  .s2-back-btn {
-    position: absolute; top: 54px; left: 24px;
-    width: 38px; height: 38px;
-    background: rgba(14,11,7,0.07); border: none; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--ink); z-index: 10;
-    transition: background 0.15s;
-  }
-  .s2-back-btn:active { background: rgba(14,11,7,0.13); }
-  .s2-back-btn svg { width: 17px; height: 17px; }
-
   .s2-headline-wrap {
-    padding: 68px 30px 0; flex-shrink: 0;
-    opacity: 0; transform: translateY(-10px);
+    padding: 40px 30px 0; 
+    flex-shrink: 0;
   }
-  .s2-headline-wrap.visible { animation: fadeDown 0.45s ease forwards; }
-
   .s2-eyebrow {
     font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
     text-transform: uppercase; color: rgba(14,11,7,0.32);
-    margin-bottom: 10px; font-family: 'Plus Jakarta Sans', sans-serif;
+    margin-bottom: 8px; font-family: 'Plus Jakarta Sans', sans-serif;
   }
   .s2-headline {
-    font-size: clamp(34px, 9.5vw, 44px); font-weight: 900; line-height: 1.0;
+    font-size: clamp(30px, 8vw, 42px); font-weight: 900; line-height: 1.0;
     letter-spacing: -0.01em; text-transform: uppercase; color: var(--ink);
     font-family: 'Barlow Condensed', sans-serif;
   }
@@ -281,96 +278,79 @@
 
   .s2-card-area {
     flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 16px 22px 8px;
+    padding: 10px 22px 85px; /* Safely clears the fixed bottom button */
   }
   .scene { position: relative; width: 100%; max-width: 340px; }
   .ghost-card {
-    position: absolute; width: 100%; border-radius: 22px; background: #fff;
+    position: absolute; width: 100%; border-radius: 20px; background: #fff;
     box-shadow: 0 6px 24px rgba(14,11,7,0.1); top: 0; left: 0;
   }
   .ghost-card-a { height: 100%; transform: rotate(-4deg) translate(-6px,-10px); opacity: 0.25; }
   .ghost-card-b { height: 100%; transform: rotate(-2deg) translate(-3px,-5px);  opacity: 0.55; }
 
   .quiz-card {
-    position: relative; z-index: 2; background: #FAFAF7; border-radius: 22px;
-    padding: 22px 20px 20px;
+    position: relative; z-index: 2; background: #FAFAF7; border-radius: 20px;
+    padding: 14px; /* Compacted to ensure it fits narrow screens */
     box-shadow: 0 18px 52px rgba(14,11,7,0.12), 0 4px 14px rgba(14,11,7,0.07);
-    opacity: 0; transform: translateY(18px) scale(0.97);
   }
-  .quiz-card.visible { animation: cardUp 0.52s cubic-bezier(.16,1,.3,1) 0.18s forwards; }
-  @keyframes cardUp { to { opacity:1; transform:translateY(0) scale(1); } }
 
-  .c-segs  { display:flex; gap:5px; margin-bottom:18px; }
+  .c-segs  { display:flex; gap:5px; margin-bottom:12px; }
   .cseg    { height:3px; flex:1; border-radius:2px; background:#E8E3DA; }
   .cseg.cdone   { background:var(--wine); }
   .cseg.cactive { background:linear-gradient(90deg,var(--wine) 55%,#E8E3DA 55%); }
 
-  /* Demo card content */
+  /* Demo card content - compacted */
   .demo-label {
     display: flex; align-items: center; gap: 6px;
-    font-size: 9px; font-weight: 800; letter-spacing: 0.2em;
-    text-transform: uppercase; color: #B5ADA2; margin-bottom: 8px;
+    font-size: 8.5px; font-weight: 800; letter-spacing: 0.2em;
+    text-transform: uppercase; color: #B5ADA2; margin-bottom: 6px;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
   .demo-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  
   .demo-notes-block {
-    background: rgba(14,11,7,0.04); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 12px;
+    background: rgba(14,11,7,0.04); border-radius: 10px;
+    padding: 8px 10px; margin-bottom: 8px;
     border: 1px solid rgba(14,11,7,0.06);
   }
   .demo-notes-text {
-    font-size: 12.5px; font-weight: 500; color: #5A5248;
-    line-height: 1.6; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px; font-weight: 500; color: #5A5248;
+    line-height: 1.5; font-family: 'Plus Jakarta Sans', sans-serif;
     font-style: italic;
   }
   .demo-transform-row {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
   }
   .demo-tline { flex: 1; height: 1px; background: #E4DDD5; }
   .demo-chip {
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; gap: 4px;
     background: #FFF5F8; border: 1px solid rgba(122,31,68,0.15);
-    border-radius: 100px; padding: 5px 12px;
-    font-size: 11px; font-weight: 700; color: var(--wine);
+    border-radius: 100px; padding: 4px 10px;
+    font-size: 10px; font-weight: 700; color: var(--wine);
     font-family: 'Plus Jakarta Sans', sans-serif; white-space: nowrap;
   }
-  .demo-chip svg { width: 11px; height: 11px; }
+  .demo-chip svg { width: 10px; height: 10px; }
+  
   .demo-quiz-block {
-    background: rgba(122,31,68,0.05); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 14px;
+    background: rgba(122,31,68,0.05); border-radius: 10px;
+    padding: 8px 10px; margin-bottom: 10px;
     border: 1px solid rgba(122,31,68,0.1);
   }
   .demo-quiz-text {
-    font-size: 13.5px; font-weight: 700; color: var(--ink);
-    line-height: 1.5; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px; font-weight: 700; color: var(--ink);
+    line-height: 1.4; font-family: 'Plus Jakarta Sans', sans-serif;
   }
-  .demo-features { display: flex; flex-direction: column; gap: 7px; }
+  .demo-features { display: flex; flex-direction: column; gap: 6px; }
   .demo-feature {
-    display: flex; align-items: center; gap: 9px;
-    font-size: 12px; font-weight: 500; color: #7A746E;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 500; color: #7A746E;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
   .demo-feat-icon {
-    width: 22px; height: 22px; background: #EDEBE7; border-radius: 7px;
+    width: 18px; height: 18px; background: #EDEBE7; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; flex-shrink: 0;
+    font-size: 10px; flex-shrink: 0;
   }
-
-  /* CTA below card */
-  .s2-cta-wrap {
-    padding: 0 22px 36px; flex-shrink: 0;
-    opacity: 0;
-  }
-  .s2-cta-wrap.visible { animation: fadeIn 0.4s ease 0.32s forwards; }
-  .s2-cta-btn {
-    width: 100%; padding: 19px; background: var(--ink);
-    color: #fff; border: none; border-radius: 100px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 16px; font-weight: 800; cursor: pointer;
-    transition: transform 0.15s ease;
-    box-shadow: 0 4px 20px rgba(14,11,7,0.18);
-  }
-  .s2-cta-btn:active { transform: scale(0.97); }
 
   /* ════════════════════════
      SLIDE 3
@@ -378,12 +358,10 @@
   #slide3 .slide-inner {
     display: flex; flex-direction: column;
     justify-content: flex-end;
-    padding: 0 28px 44px;
+    padding: 0 28px 60px; 
   }
 
-  .s3-text { margin-bottom: 40px; opacity: 0; }
-  .s3-text.visible { animation: fadeUp 0.55s cubic-bezier(.16,1,.3,1) 0.28s forwards; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .s3-text { margin-bottom: 45px; }
 
   .s3-rule {
     width: 28px; height: 3px;
@@ -396,27 +374,25 @@
     margin-bottom: 14px; font-family: 'Plus Jakarta Sans', sans-serif;
   }
   .s3-headline {
-    font-size: clamp(46px, 13vw, 62px); font-weight: 900;
+    font-size: clamp(40px, 12vw, 62px); font-weight: 900;
     line-height: 0.92; letter-spacing: -0.01em; text-transform: uppercase;
     color: var(--ink); font-family: 'Barlow Condensed', sans-serif;
     margin-bottom: 20px;
   }
   .s3-headline span { color: var(--wine); }
   .s3-body {
-    font-size: 15px; font-weight: 400;
+    font-size: 14px; font-weight: 400;
     color: rgba(14,11,7,0.48); line-height: 1.7;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
-  /* Slide 3 buttons — light theme */
-  .s3-buttons { opacity: 0; }
-  .s3-buttons.visible { animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) 0.44s forwards; }
-
+  /* Slide 3 buttons */
+  .s3-buttons { }
   .btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
   .btn-login, .btn-register {
-    flex: 1; padding: 18px 0; border-radius: 100px;
+    flex: 1; padding: 16px 0; border-radius: 100px;
     cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 15px; font-weight: 700;
+    font-size: 14px; font-weight: 700;
     transition: transform 0.14s ease;
   }
   .btn-login:active, .btn-register:active { transform: scale(0.97); }
@@ -430,17 +406,17 @@
     border: 1.5px solid rgba(14,11,7,0.18);
   }
   .btn-google {
-    width: 100%; padding: 17px 0;
+    width: 100%; padding: 15px 0;
     background: #fff; color: var(--ink);
     border: 1.5px solid rgba(14,11,7,0.1); border-radius: 100px;
     display: flex; align-items: center; justify-content: center; gap: 10px;
     cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 15px; font-weight: 600;
+    font-size: 14px; font-weight: 600;
     box-shadow: 0 2px 10px rgba(14,11,7,0.06);
     transition: transform 0.14s ease;
   }
   .btn-google:active { transform: scale(0.97); }
-  .g-icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .g-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
   /* ════════════════════════
      LOGIN MODAL
@@ -559,13 +535,11 @@
 </head>
 <body>
 
-<!-- ══ SIGN-IN OVERLAY ══ -->
 <div id="signinOverlay" class="signin-overlay">
   <div class="so-spinner"></div>
   <div id="signinText" class="so-text">Signing in…</div>
 </div>
 
-<!-- ══ DIALOG ══ -->
 <div id="okBackdrop" class="ok-backdrop">
   <div class="ok-dialog">
     <h3 id="okTitle" class="ok-title">Notice</h3>
@@ -577,195 +551,174 @@
   </div>
 </div>
 
-<!-- ══ PROGRESS BAR ══ -->
 <div class="top-loader">
   <div class="top-loader-fill" id="loaderFill"></div>
 </div>
 
-<!-- ══ FIXED GET STARTED BUTTON ══ -->
-<button class="get-started" id="btnTo2">Get Started</button>
+<button class="get-started" id="btnMainCta">Get Started</button>
 
-<!-- ══ VIEWPORT ══ -->
 <div class="viewport" id="vp">
+  
+  <div class="slider-track" id="track">
 
-  <!-- ─────── SLIDE 1 ─────── -->
-  <div class="slide" id="slide1">
-    <div class="slide-inner">
-      <div class="headline-wrap">
-        <h1 class="headline">Convert your<br>study materials<br>to flashcards</h1>
-      </div>
-
-      <div class="card-stack">
-        <div class="card card-emerald">
-          <div class="arrow-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-          </div>
+    <div class="slide" id="slide1">
+      <div class="slide-inner">
+        <div class="headline-wrap">
+          <h1 class="headline">Convert your<br>study materials<br>to flashcards</h1>
         </div>
 
-        <div class="card card-wine">
-          <div class="arrow-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-          </div>
-          <div class="card-inner">
-            <div class="tags-wrap">
-              <span class="subject-tag hi">Pharmacology</span>
-              <span class="subject-tag">Anatomy</span>
-              <span class="subject-tag">Pathology</span>
-              <span class="subject-tag">Physiology</span>
-              <span class="subject-tag">Biochemistry</span>
-              <span class="subject-tag">Microbiology</span>
-              <span class="subject-tag">Surgery</span>
+        <div class="card-stack">
+          <div class="card card-emerald">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
             </div>
           </div>
-        </div>
 
-        <div class="card card-slate">
-          <div class="arrow-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          <div class="card card-wine">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="tags-wrap">
+                <span class="subject-tag hi">Pharmacology</span>
+                <span class="subject-tag">Anatomy</span>
+                <span class="subject-tag">Pathology</span>
+                <span class="subject-tag">Physiology</span>
+                <span class="subject-tag">Biochemistry</span>
+                <span class="subject-tag">Microbiology</span>
+                <span class="subject-tag">Surgery</span>
+              </div>
+            </div>
           </div>
-          <div class="card-inner">
-            <div class="stats-wrap">
-              <div>
-                <div class="stat-label">Today's Progress</div>
-                <div class="stat-row">
-                  <div class="stat-pill streak-pill"><span class="stat-val streak-val">🔥 14</span><span class="stat-name">Day streak</span></div>
-                  <div class="stat-pill"><span class="stat-val">87%</span><span class="stat-name">Accuracy</span></div>
-                  <div class="stat-pill"><span class="stat-val">124</span><span class="stat-name">Cards done</span></div>
+
+          <div class="card card-slate">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="stats-wrap">
+                <div>
+                  <div class="stat-label">Today's Progress</div>
+                  <div class="stat-row">
+                    <div class="stat-pill streak-pill"><span class="stat-val streak-val">🔥 14</span><span class="stat-name">Day streak</span></div>
+                    <div class="stat-pill"><span class="stat-val">87%</span><span class="stat-name">Accuracy</span></div>
+                    <div class="stat-pill"><span class="stat-val">124</span><span class="stat-name">Cards done</span></div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div class="stat-label">Daily Goal</div>
-                <div class="prog-bar-track"><div class="prog-bar-fill"></div></div>
-                <div class="prog-bar-label"><span>124 / 180 cards</span><span>68%</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card card-indigo">
-          <div class="arrow-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-          </div>
-          <div class="card-inner">
-            <div class="flashcard-preview">
-              <div class="fc-subject">Pharmacology · Card 3 of 24</div>
-              <div class="fc-question">What is the primary mechanism of action of β-blockers in hypertension?</div>
-              <div class="fc-divider"></div>
-              <div class="fc-answer-label">Answer</div>
-              <div class="fc-answer">Block β₁-adrenergic receptors → ↓ heart rate &amp; cardiac output → ↓ BP</div>
-              <div class="fc-footer">
-                <span class="fc-tap">Tap card to flip</span>
-                <div class="fc-dots">
-                  <div class="fc-dot on"></div><div class="fc-dot on"></div>
-                  <div class="fc-dot"></div><div class="fc-dot"></div>
+                <div>
+                  <div class="stat-label">Daily Goal</div>
+                  <div class="prog-bar-track"><div class="prog-bar-fill"></div></div>
+                  <div class="prog-bar-label"><span>124 / 180 cards</span><span>68%</span></div>
                 </div>
               </div>
             </div>
           </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div><!-- /slide1 -->
 
-
-  <!-- ─────── SLIDE 2 ─────── -->
-  <div class="slide" id="slide2">
-    <div class="slide-inner">
-
-      <div class="s2-headline-wrap" id="s2Head">
-        <h2 class="s2-headline">Turn your<br>notes into<br>a <em>quiz</em></h2>
-      </div>
-
-      <div class="s2-card-area">
-        <div class="scene">
-          <div class="ghost-card ghost-card-a"></div>
-          <div class="ghost-card ghost-card-b"></div>
-
-          <div class="quiz-card" id="quizCard">
-            <div class="c-segs">
-              <div class="cseg cdone"></div>
-              <div class="cseg cactive"></div>
-              <div class="cseg"></div>
+          <div class="card card-indigo">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
             </div>
-
-            <div class="demo-label">
-              <span class="demo-dot" style="background:#E6A03C;"></span>
-              Your notes
-            </div>
-            <div class="demo-notes-block">
-              <p class="demo-notes-text">"Beta-blockers competitively block β₁-adrenergic receptors, reducing heart rate and cardiac output to lower blood pressure…"</p>
-            </div>
-
-            <div class="demo-transform-row">
-              <div class="demo-tline"></div>
-              <div class="demo-chip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                AI Quiz
+            <div class="card-inner">
+              <div class="flashcard-preview">
+                <div class="fc-subject">Pharmacology · Card 3 of 24</div>
+                <div class="fc-question">What is the primary mechanism of action of β-blockers in hypertension?</div>
+                <div class="fc-divider"></div>
+                <div class="fc-answer-label">Answer</div>
+                <div class="fc-answer">Block β₁-adrenergic receptors → ↓ heart rate &amp; cardiac output → ↓ BP</div>
+                <div class="fc-footer">
+                  <span class="fc-tap">Tap card to flip</span>
+                  <div class="fc-dots">
+                    <div class="fc-dot on"></div><div class="fc-dot on"></div>
+                    <div class="fc-dot"></div><div class="fc-dot"></div>
+                  </div>
+                </div>
               </div>
-              <div class="demo-tline"></div>
-            </div>
-
-            <div class="demo-label">
-              <span class="demo-dot" style="background:#9B6DD5;"></span>
-              Generated question
-            </div>
-            <div class="demo-quiz-block">
-              <p class="demo-quiz-text">What is the primary mechanism of action of β-blockers in treating hypertension?</p>
-            </div>
-
-            <div class="demo-features">
-              <div class="demo-feature"><span class="demo-feat-icon">📄</span>Paste any notes, textbook or lecture</div>
-              <div class="demo-feature"><span class="demo-feat-icon">⚡</span>AI generates practice questions instantly</div>
-              <div class="demo-feature"><span class="demo-feat-icon">🎯</span>Test yourself and track your score</div>
             </div>
           </div>
         </div>
       </div>
+    </div><div class="slide" id="slide2">
+      <div class="slide-inner">
 
-      <div class="s2-cta-wrap" id="s2Cta">
-        <button class="s2-cta-btn" id="btnTo3">Get Started</button>
-      </div>
-
-    </div>
-  </div><!-- /slide2 -->
-
-
-  <!-- ─────── SLIDE 3 ─────── -->
-  <div class="slide" id="slide3">
-    <div class="slide-inner">
-
-      <div class="s3-text" id="s3Text">
-        <div class="s3-rule"></div>
-        <div class="s3-kicker">MedExcel · Built for Nigerian med students</div>
-        <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
-        <p class="s3-body">Study smarter with AI-generated flashcards and quizzes built from your own notes. Track your streaks, measure your accuracy, and walk into every exam fully prepared.</p>
-      </div>
-
-      <div class="s3-buttons" id="s3Btns">
-        <div class="btn-row">
-          <button class="btn-login"    id="btnLogin">Log in</button>
-          <button class="btn-register" id="btnRegister">Register</button>
+        <div class="s2-headline-wrap">
+          <h2 class="s2-headline">Turn your<br>notes into<br>a <em>quiz</em></h2>
         </div>
-        <button class="btn-google" id="btnGoogle">
-          <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Sign in with Google
-        </button>
+
+        <div class="s2-card-area">
+          <div class="scene">
+            <div class="ghost-card ghost-card-a"></div>
+            <div class="ghost-card ghost-card-b"></div>
+
+            <div class="quiz-card">
+              <div class="c-segs">
+                <div class="cseg cdone"></div>
+                <div class="cseg cactive"></div>
+                <div class="cseg"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#E6A03C;"></span>
+                Your notes
+              </div>
+              <div class="demo-notes-block">
+                <p class="demo-notes-text">"Beta-blockers competitively block β₁-adrenergic receptors, reducing heart rate and cardiac output to lower blood pressure…"</p>
+              </div>
+
+              <div class="demo-transform-row">
+                <div class="demo-tline"></div>
+                <div class="demo-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  AI Quiz
+                </div>
+                <div class="demo-tline"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#9B6DD5;"></span>
+                Generated question
+              </div>
+              <div class="demo-quiz-block">
+                <p class="demo-quiz-text">What is the primary mechanism of action of β-blockers in treating hypertension?</p>
+              </div>
+
+              <div class="demo-features">
+                <div class="demo-feature"><span class="demo-feat-icon">📄</span>Paste any notes, textbook or lecture</div>
+                <div class="demo-feature"><span class="demo-feat-icon">⚡</span>AI generates practice questions instantly</div>
+                <div class="demo-feature"><span class="demo-feat-icon">🎯</span>Test yourself and track your score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
+    </div><div class="slide" id="slide3">
+      <div class="slide-inner">
 
-    </div>
-  </div><!-- /slide3 -->
+        <div class="s3-text">
+          <div class="s3-rule"></div>
+          <div class="s3-kicker">MedExcel · Built for medical students</div>
+          <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
+          <p class="s3-body">Study smarter with AI-generated flashcards and quizzes built from your own notes. Track your streaks, measure your accuracy, and walk into every exam fully prepared.</p>
+        </div>
 
-</div><!-- /viewport -->
+        <div class="s3-buttons">
+          <div class="btn-row">
+            <button class="btn-login"    id="btnLogin">Log in</button>
+            <button class="btn-register" id="btnRegister">Register</button>
+          </div>
+          <button class="btn-google" id="btnGoogle">
+            <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+        </div>
 
-
-<!-- ══ LOGIN MODAL ══ -->
-<div id="loginModal" class="login-modal">
+      </div>
+    </div></div></div><div id="loginModal" class="login-modal">
   <div class="lm-header">
     <button class="lm-close" id="lmClose">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -809,32 +762,16 @@
 
 <script>
   /* ══════════════════════════════════
-     SLIDE ENGINE — swipe + push
+     SLIDE ENGINE — Flex Track Swipe Native
   ══════════════════════════════════ */
-  const DURATION = 420;
-  const EASE     = 'cubic-bezier(0.32, 0.72, 0, 1)';
-
-  const slideEls = {
-    1: document.getElementById('slide1'),
-    2: document.getElementById('slide2'),
-    3: document.getElementById('slide3')
-  };
-  const fill       = document.getElementById('loaderFill');
-  const gsBtn      = document.getElementById('btnTo2');
-
-  // Content elements for entrance animations
-  const s2Head  = document.getElementById('s2Head');
-  const quizCard= document.getElementById('quizCard');
-  const s2Cta   = document.getElementById('s2Cta');
-  const s3Text  = document.getElementById('s3Text');
-  const s3Btns  = document.getElementById('s3Btns');
-
-  // Set initial positions — slide 1 visible, others waiting off right
-  slideEls[2].style.transform = 'translateX(100%)';
-  slideEls[3].style.transform = 'translateX(100%)';
+  const EASE_SMOOTH = 'transform 0.6s cubic-bezier(0.25, 1, 0.2, 1)';
+  const track = document.getElementById('track');
+  const vp    = document.getElementById('vp');
+  const fill  = document.getElementById('loaderFill');
+  const gsBtn = document.getElementById('btnMainCta');
 
   let page = 1;
-  let busy = false;
+  let startX = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false;
 
   function updateLoader(n) {
     fill.classList.remove('p2', 'p3');
@@ -842,168 +779,75 @@
     if (n === 3) fill.classList.add('p3');
   }
 
-  function triggerEntrance(n) {
-    if (n === 2) {
-      s2Head.classList.add('visible');
-      quizCard.classList.add('visible');
-      s2Cta.classList.add('visible');
-    }
-    if (n === 3) {
-      s3Text.classList.add('visible');
-      s3Btns.classList.add('visible');
-    }
-  }
-
-  function clearEntrance(n) {
-    if (n === 2) {
-      s2Head.classList.remove('visible');
-      quizCard.classList.remove('visible');
-      s2Cta.classList.remove('visible');
-    }
-    if (n === 3) {
-      s3Text.classList.remove('visible');
-      s3Btns.classList.remove('visible');
-    }
-  }
-
-  function goTo(n, fromDrag = false) {
-    if (n === page || busy || n < 1 || n > 3) return;
-    busy = true;
-
-    const dir  = n > page ? 1 : -1;
-    const from = slideEls[page];
-    const to   = slideEls[n];
-    const prev = page;
+  function goTo(n) {
+    if (n < 1 || n > 3) return;
     page = n;
-
-    // Hide/show fixed get-started button
-    if (n !== 1) {
-      gsBtn.classList.add('hidden');
-    }
-
-    if (!fromDrag) {
-      /* Position incoming slide off-screen */
-      to.style.transition = 'none';
-      to.style.transform  = `translateX(${dir * 100}%)`;
-      to.style.zIndex     = '2';
-      from.style.zIndex   = '1';
-      void to.getBoundingClientRect();
-    } else {
-      to.style.zIndex   = '2';
-      from.style.zIndex = '1';
-    }
-
-    /* Fire transitions on both simultaneously */
-    const T = `transform ${DURATION}ms ${EASE}`;
-    from.style.transition = T;
-    to.style.transition   = T;
-    from.style.transform  = `translateX(${-dir * 100}%)`;
-    to.style.transform    = 'translateX(0)';
-
+    
+    // Animate the track
+    track.style.transition = EASE_SMOOTH;
+    prevTranslate = -(page - 1) * vp.clientWidth;
+    track.style.transform = `translateX(${prevTranslate}px)`;
+    
     updateLoader(n);
 
-    /* Trigger content entrance at ~50% of travel */
-    setTimeout(() => triggerEntrance(n), DURATION * 0.5);
-
-    /* Cleanup after transition */
-    setTimeout(() => {
-      from.style.zIndex = '';
-      to.style.zIndex   = '';
-      busy = false;
-
-      // Show get-started if we landed back on slide1
-      if (n === 1) {
-        gsBtn.classList.remove('hidden');
-      }
-
-      clearEntrance(prev);
-    }, DURATION + 20);
+    // Persist fixed button until Auth screen
+    if (page === 3) {
+      gsBtn.classList.add('hidden');
+    } else {
+      gsBtn.classList.remove('hidden');
+    }
   }
 
-  gsBtn.addEventListener('click', () => goTo(2));
-  document.getElementById('btnTo3').addEventListener('click', () => goTo(3));
-
-  // Keep btnTo1 wired in case it still exists somewhere
-  const oldBack = document.getElementById('btnTo1');
-  if (oldBack) oldBack.addEventListener('click', () => goTo(1));
-
+  // Bind Fixed Button -> Move Forward
+  gsBtn.addEventListener('click', () => {
+    if (page < 3) goTo(page + 1);
+  });
 
   /* ══════════════════════════════════
      SWIPE / DRAG GESTURE
   ══════════════════════════════════ */
-  const vp = document.getElementById('vp');
-  let tx0 = 0, ty0 = 0, dragging = false, dx = 0, vertLocked = false;
-  const W = () => window.innerWidth;
-
   vp.addEventListener('touchstart', e => {
-    if (busy) return;
-    tx0 = e.touches[0].clientX;
-    ty0 = e.touches[0].clientY;
-    dragging  = true;
-    vertLocked = false;
-    dx = 0;
-
-    // Freeze transitions on relevant slides
-    [1,2,3].forEach(i => slideEls[i].style.transition = 'none');
+    // Prevent capturing touches inside input/buttons
+    if (e.target.closest('button') || e.target.closest('input') || document.querySelector('.login-modal.show')) return;
+    
+    startX = e.touches[0].clientX;
+    isDragging = true;
+    
+    // Snap immediately to finger position
+    track.style.transition = 'none'; 
   }, { passive: true });
 
   vp.addEventListener('touchmove', e => {
-    if (!dragging || busy) return;
-    dx = e.touches[0].clientX - tx0;
-    const dy = e.touches[0].clientY - ty0;
-
-    // If clearly a vertical scroll, bail out
-    if (!vertLocked && Math.abs(dy) > Math.abs(dx) + 6) {
-      dragging = false;
-      snapBack();
-      return;
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    
+    // Apply rubber band resistance if dragging past ends
+    if ((page === 1 && diff > 0) || (page === 3 && diff < 0)) {
+      currentTranslate = prevTranslate + (diff * 0.2); 
+    } else {
+      currentTranslate = prevTranslate + diff;
     }
-    vertLocked = true;
-
-    const w = W();
-    // Clamp: can't drag past first/last slide
-    if ((page === 1 && dx > 0) || (page === 3 && dx < 0)) {
-      dx = dx * 0.18; // rubber band
-    }
-
-    slideEls[page].style.transform = `translateX(${dx}px)`;
-
-    if (dx > 0 && page > 1) {
-      slideEls[page - 1].style.transform = `translateX(${dx - w}px)`;
-    } else if (dx < 0 && page < 3) {
-      slideEls[page + 1].style.transform = `translateX(${dx + w}px)`;
-    }
+    
+    track.style.transform = `translateX(${currentTranslate}px)`;
   }, { passive: true });
 
-  vp.addEventListener('touchend', () => {
-    if (!dragging) return;
-    dragging = false;
+  vp.addEventListener('touchend', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    const movedBy = currentTranslate - prevTranslate;
+    const threshold = vp.clientWidth * 0.2; // 20% swipe triggers page turn
 
-    const threshold = W() * 0.28;
-
-    if (dx < -threshold && page < 3) {
-      goTo(page + 1, true);
-    } else if (dx > threshold && page > 1) {
-      goTo(page - 1, true);
-    } else {
-      snapBack();
+    if (movedBy < -threshold && page < 3) {
+      page += 1;
+    } else if (movedBy > threshold && page > 1) {
+      page -= 1;
     }
+    
+    // Snap to the closest or next screen
+    goTo(page);
   });
-
-  function snapBack() {
-    const T = `transform 300ms cubic-bezier(0.32, 0.72, 0, 1)`;
-    const w = W();
-    slideEls[page].style.transition = T;
-    slideEls[page].style.transform  = 'translateX(0)';
-    if (page > 1) {
-      slideEls[page - 1].style.transition = T;
-      slideEls[page - 1].style.transform  = `translateX(-${w}px)`;
-    }
-    if (page < 3) {
-      slideEls[page + 1].style.transition = T;
-      slideEls[page + 1].style.transform  = `translateX(${w}px)`;
-    }
-  }
 
 
   /* ══════════════════════════════════
