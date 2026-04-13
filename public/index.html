@@ -15,21 +15,33 @@
     } catch(e) {}
   })();
 
+  // Theme Sync Logic — defaults to light mode on first visit
   (function() {
-    const t = localStorage.getItem('medexcel_theme');
-    if (t === 'light') document.documentElement.classList.add('light-mode');
-    else if (t === 'dark') document.documentElement.classList.add('dark-mode');
-    else {
-      const l = window.matchMedia('(prefers-color-scheme: light)').matches;
-      localStorage.setItem('medexcel_theme', l ? 'light' : 'dark');
-      if (l) document.documentElement.classList.add('light-mode');
-    }
+      const savedTheme = localStorage.getItem('medexcel_theme');
+      // Light mode is the default; only go dark if user explicitly chose dark
+      const isLight = savedTheme !== 'dark';
+      if (isLight) document.documentElement.classList.add('light-mode');
+      else document.documentElement.classList.add('dark-mode');
+
+      // Inject dynamic meta theme-color (replaces static media-query versions below)
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = isLight ? '#f1f5f9' : '#09090b';
+      document.head.appendChild(meta);
+
+      // Sync native status bar: DARK style = dark/black icons (for light bg)
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+          try {
+              const { StatusBar } = window.Capacitor.Plugins;
+              StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+              StatusBar.setStyle({ style: isLight ? 'DARK' : 'LIGHT' });
+          } catch(e) {}
+      }
   })();
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1f5f9">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b">
+
 <title>MedExcel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

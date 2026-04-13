@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1f5f9">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b">
+    <meta name="theme-color" content="#09090b">
     <title>MedExcel - SPA</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,19 +16,23 @@
 
     
     <script>
+        // Reusable Capacitor status bar sync helper
         window.syncStatusBar = function(isLight) {
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-                try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); } catch(e) {}
+                try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'DARK' : 'LIGHT' }); } catch(e) {}
             }
         };
+        // Check for saved theme preference to prevent flickering
         (function() {
-            const t = localStorage.getItem('medexcel_theme');
-            let l;
-            if (t === 'light') { document.documentElement.classList.add('light-mode'); l = true; }
-            else if (t === 'dark') { l = false; }
-            else { l = window.matchMedia('(prefers-color-scheme: light)').matches; localStorage.setItem('medexcel_theme', l ? 'light' : 'dark'); if (l) document.documentElement.classList.add('light-mode'); }
-            window.syncStatusBar(l);
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
+            window.syncStatusBar(savedTheme === 'light');
+            // Update the static meta theme-color to match actual theme
+            const themeMeta = document.querySelector('meta[name="theme-color"]');
+            if (themeMeta) themeMeta.content = (savedTheme === 'light') ? '#f1f5f9' : '#09090b';
         })();
+
+        // Tailwind Config
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -1283,7 +1286,9 @@
                     try { await deleteDoc(doc(db, "users", window.currentUser.uid)); } catch(e) {}
                 }
                 try { await signOut(auth); } catch(e) {}
+                const _delTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();
+                if (_delTheme) localStorage.setItem('medexcel_theme', _delTheme);
                 window.location.replace("index.html");
             } catch(e) {
                 if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1'; }
@@ -1517,18 +1522,22 @@
             if (e.target === this) window.closeUpgradeModal();
         });
 
+        // Theme Setup
         window.updateThemeUI = function() {
-            const l = document.documentElement.classList.contains('light-mode');
-            const txt = document.getElementById('themeText');
-            const ico = document.getElementById('themeIcon');
-            const bg = document.getElementById('themeSwitchBg');
-            const knob = document.getElementById('themeSwitchKnob');
-            if(txt) txt.innerText = l ? 'Light Mode' : 'Dark Mode';
-            if(ico) { ico.className = l ? 'fas fa-sun' : 'fas fa-moon'; ico.style.color = l ? '#f59e0b' : '#818cf8'; }
-            if(bg) bg.style.background = l ? '#6d28d9' : '#475569';
-            if(knob) knob.style.transform = l ? 'translateX(20px)' : 'translateX(0)';
+            const isLight = document.documentElement.classList.contains('light-mode');
+            const themeText = document.getElementById('themeText');
+            const themeIcon = document.getElementById('themeIcon');
+            const switchBg = document.getElementById('themeSwitchBg');
+            const switchKnob = document.getElementById('themeSwitchKnob');
+            
+            if(themeText) themeText.innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            if(themeIcon) themeIcon.className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
+            
+            if(switchBg && switchKnob) {
+                if (isLight) { switchBg.classList.replace('bg-slate-600', 'bg-blue-500'); switchKnob.style.transform = 'translateX(20px)'; } 
+                else { switchBg.classList.replace('bg-blue-500', 'bg-slate-600'); switchKnob.style.transform = 'translateX(0)'; }
+            }
         };
-        window.updateThemeUI();
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         if(themeToggleBtn) {
@@ -2346,8 +2355,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         
         // Expose critical Firebase functions
         window.logoutUser = async function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
             try { await signOut(auth); } catch (e) {}
-            localStorage.clear(); window.location.replace("index.html");
+            localStorage.clear();
+            if (savedTheme) localStorage.setItem('medexcel_theme', savedTheme);
+            window.location.replace("index.html");
         };
 
         window.sendPasswordReset = async function() {
@@ -3141,7 +3153,9 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 if (window.initPush) window.initPush(firebaseUser.uid);
             } else {
                 window.currentUser = null;
+                const _authTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();
+                if (_authTheme) localStorage.setItem('medexcel_theme', _authTheme);
                 window.location.replace("index.html");
             }
         });
@@ -3239,6 +3253,9 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 return;
             }
 
+            // ── Step 3: register with FCM ───────────────────────────────────
+            // This triggers the native FCM registration. Token arrives via the
+            // 'registration' listener above (which is already attached).
             await PushNotifications.register();
             console.log("[Push] register() called — awaiting token event...");
         };
