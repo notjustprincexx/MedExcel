@@ -116,7 +116,7 @@
   }
   .top-loader-fill {
     height: 100%; width: 33.333%;
-    background: var(--wine);
+    background: #8B5CF6;
     border-radius: 0 2px 2px 0;
     transition: width var(--dur) var(--ease);
   }
@@ -223,15 +223,25 @@
   .subject-tag.hi { background:rgba(255,255,255,0.9); color:var(--wine); border-color:transparent; }
 
   .get-started {
-    position:absolute; bottom:36px; left:54px; right:24px;
-    padding:19px; background:#fff; border:none; border-radius:100px;
-    font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:800;
-    color:var(--indigo); cursor:pointer;
-    opacity:0; animation: fadeIn 0.4s ease 0.92s forwards;
-    transition:transform 0.15s ease;
+    position: fixed;
+    bottom: 36px;
+    left: 54px;
+    right: 24px;
+    max-width: calc(430px - 78px);
+    margin: 0 auto;
+    padding: 19px; background: #fff; border: none; border-radius: 100px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 800;
+    color: var(--indigo); cursor: pointer;
+    opacity: 0; animation: fadeIn 0.4s ease 0.92s forwards;
+    transition: transform 0.15s ease, opacity 0.3s ease;
     box-shadow: 0 4px 20px rgba(14,11,7,0.12);
+    z-index: 100;
   }
-  .get-started:active { transform:scale(0.97); }
+  .get-started.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+  .get-started:active { transform: scale(0.97); }
 
   /* ════════════════════════
      SLIDE 2
@@ -572,6 +582,9 @@
   <div class="top-loader-fill" id="loaderFill"></div>
 </div>
 
+<!-- ══ FIXED GET STARTED BUTTON ══ -->
+<button class="get-started" id="btnTo2">Get Started</button>
+
 <!-- ══ VIEWPORT ══ -->
 <div class="viewport" id="vp">
 
@@ -649,7 +662,7 @@
               </div>
             </div>
           </div>
-          <button class="get-started" id="btnTo2">Get Started</button>
+          </div>
         </div>
       </div>
     </div>
@@ -660,12 +673,7 @@
   <div class="slide" id="slide2">
     <div class="slide-inner">
 
-      <button class="s2-back-btn" id="btnTo1">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-
       <div class="s2-headline-wrap" id="s2Head">
-        <div class="s2-eyebrow">AI-Powered</div>
         <h2 class="s2-headline">Turn your<br>notes into<br>a <em>quiz</em></h2>
       </div>
 
@@ -801,17 +809,18 @@
 
 <script>
   /* ══════════════════════════════════
-     SLIDE ENGINE — simultaneous push
+     SLIDE ENGINE — swipe + push
   ══════════════════════════════════ */
-  const DURATION = 480;
-  const EASE     = 'cubic-bezier(0.76, 0, 0.24, 1)';
+  const DURATION = 420;
+  const EASE     = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
   const slideEls = {
     1: document.getElementById('slide1'),
     2: document.getElementById('slide2'),
     3: document.getElementById('slide3')
   };
-  const fill = document.getElementById('loaderFill');
+  const fill       = document.getElementById('loaderFill');
+  const gsBtn      = document.getElementById('btnTo2');
 
   // Content elements for entrance animations
   const s2Head  = document.getElementById('s2Head');
@@ -827,8 +836,38 @@
   let page = 1;
   let busy = false;
 
-  function goTo(n) {
-    if (n === page || busy) return;
+  function updateLoader(n) {
+    fill.classList.remove('p2', 'p3');
+    if (n === 2) fill.classList.add('p2');
+    if (n === 3) fill.classList.add('p3');
+  }
+
+  function triggerEntrance(n) {
+    if (n === 2) {
+      s2Head.classList.add('visible');
+      quizCard.classList.add('visible');
+      s2Cta.classList.add('visible');
+    }
+    if (n === 3) {
+      s3Text.classList.add('visible');
+      s3Btns.classList.add('visible');
+    }
+  }
+
+  function clearEntrance(n) {
+    if (n === 2) {
+      s2Head.classList.remove('visible');
+      quizCard.classList.remove('visible');
+      s2Cta.classList.remove('visible');
+    }
+    if (n === 3) {
+      s3Text.classList.remove('visible');
+      s3Btns.classList.remove('visible');
+    }
+  }
+
+  function goTo(n, fromDrag = false) {
+    if (n === page || busy || n < 1 || n > 3) return;
     busy = true;
 
     const dir  = n > page ? 1 : -1;
@@ -837,62 +876,134 @@
     const prev = page;
     page = n;
 
-    /* — Position incoming slide off-screen — */
-    to.style.transition = 'none';
-    to.style.transform  = `translateX(${dir * 100}%)`;
-    to.style.zIndex     = '2';
-    from.style.zIndex   = '1';
+    // Hide/show fixed get-started button
+    if (n !== 1) {
+      gsBtn.classList.add('hidden');
+    }
 
-    /* — Force layout recalc so the above takes effect instantly — */
-    void to.getBoundingClientRect();
+    if (!fromDrag) {
+      /* Position incoming slide off-screen */
+      to.style.transition = 'none';
+      to.style.transform  = `translateX(${dir * 100}%)`;
+      to.style.zIndex     = '2';
+      from.style.zIndex   = '1';
+      void to.getBoundingClientRect();
+    } else {
+      to.style.zIndex   = '2';
+      from.style.zIndex = '1';
+    }
 
-    /* — Fire transitions on both simultaneously — */
+    /* Fire transitions on both simultaneously */
     const T = `transform ${DURATION}ms ${EASE}`;
     from.style.transition = T;
     to.style.transition   = T;
     from.style.transform  = `translateX(${-dir * 100}%)`;
     to.style.transform    = 'translateX(0)';
 
-    /* — Progress bar — */
-    fill.classList.remove('p2', 'p3');
-    if (n === 2) fill.classList.add('p2');
-    if (n === 3) fill.classList.add('p3');
+    updateLoader(n);
 
-    /* — Trigger content entrance at ~55% of travel — */
-    setTimeout(() => {
-      if (n === 2) {
-        s2Head.classList.add('visible');
-        quizCard.classList.add('visible');
-        s2Cta.classList.add('visible');
-      }
-      if (n === 3) {
-        s3Text.classList.add('visible');
-        s3Btns.classList.add('visible');
-      }
-    }, DURATION * 0.55);
+    /* Trigger content entrance at ~50% of travel */
+    setTimeout(() => triggerEntrance(n), DURATION * 0.5);
 
-    /* — Cleanup after transition completes — */
+    /* Cleanup after transition */
     setTimeout(() => {
       from.style.zIndex = '';
       to.style.zIndex   = '';
       busy = false;
 
-      // Reset content-entrance states for departed slide
-      if (prev === 2) {
-        s2Head.classList.remove('visible');
-        quizCard.classList.remove('visible');
-        s2Cta.classList.remove('visible');
+      // Show get-started if we landed back on slide1
+      if (n === 1) {
+        gsBtn.classList.remove('hidden');
       }
-      if (prev === 3) {
-        s3Text.classList.remove('visible');
-        s3Btns.classList.remove('visible');
-      }
-    }, DURATION + 30);
+
+      clearEntrance(prev);
+    }, DURATION + 20);
   }
 
-  document.getElementById('btnTo2').addEventListener('click', () => goTo(2));
-  document.getElementById('btnTo1').addEventListener('click', () => goTo(1));
+  gsBtn.addEventListener('click', () => goTo(2));
   document.getElementById('btnTo3').addEventListener('click', () => goTo(3));
+
+  // Keep btnTo1 wired in case it still exists somewhere
+  const oldBack = document.getElementById('btnTo1');
+  if (oldBack) oldBack.addEventListener('click', () => goTo(1));
+
+
+  /* ══════════════════════════════════
+     SWIPE / DRAG GESTURE
+  ══════════════════════════════════ */
+  const vp = document.getElementById('vp');
+  let tx0 = 0, ty0 = 0, dragging = false, dx = 0, vertLocked = false;
+  const W = () => window.innerWidth;
+
+  vp.addEventListener('touchstart', e => {
+    if (busy) return;
+    tx0 = e.touches[0].clientX;
+    ty0 = e.touches[0].clientY;
+    dragging  = true;
+    vertLocked = false;
+    dx = 0;
+
+    // Freeze transitions on relevant slides
+    [1,2,3].forEach(i => slideEls[i].style.transition = 'none');
+  }, { passive: true });
+
+  vp.addEventListener('touchmove', e => {
+    if (!dragging || busy) return;
+    dx = e.touches[0].clientX - tx0;
+    const dy = e.touches[0].clientY - ty0;
+
+    // If clearly a vertical scroll, bail out
+    if (!vertLocked && Math.abs(dy) > Math.abs(dx) + 6) {
+      dragging = false;
+      snapBack();
+      return;
+    }
+    vertLocked = true;
+
+    const w = W();
+    // Clamp: can't drag past first/last slide
+    if ((page === 1 && dx > 0) || (page === 3 && dx < 0)) {
+      dx = dx * 0.18; // rubber band
+    }
+
+    slideEls[page].style.transform = `translateX(${dx}px)`;
+
+    if (dx > 0 && page > 1) {
+      slideEls[page - 1].style.transform = `translateX(${dx - w}px)`;
+    } else if (dx < 0 && page < 3) {
+      slideEls[page + 1].style.transform = `translateX(${dx + w}px)`;
+    }
+  }, { passive: true });
+
+  vp.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+
+    const threshold = W() * 0.28;
+
+    if (dx < -threshold && page < 3) {
+      goTo(page + 1, true);
+    } else if (dx > threshold && page > 1) {
+      goTo(page - 1, true);
+    } else {
+      snapBack();
+    }
+  });
+
+  function snapBack() {
+    const T = `transform 300ms cubic-bezier(0.32, 0.72, 0, 1)`;
+    const w = W();
+    slideEls[page].style.transition = T;
+    slideEls[page].style.transform  = 'translateX(0)';
+    if (page > 1) {
+      slideEls[page - 1].style.transition = T;
+      slideEls[page - 1].style.transform  = `translateX(-${w}px)`;
+    }
+    if (page < 3) {
+      slideEls[page + 1].style.transition = T;
+      slideEls[page + 1].style.transform  = `translateX(${w}px)`;
+    }
+  }
 
 
   /* ══════════════════════════════════
