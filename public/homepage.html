@@ -19,17 +19,18 @@
         // Reusable Capacitor status bar sync helper
         window.syncStatusBar = function(isLight) {
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-                try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'DARK' : 'LIGHT' }); } catch(e) {}
+                try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); } catch(e) {}
             }
         };
-        // Check for saved theme preference to prevent flickering
+        // Check for saved theme — defaults to light mode on first visit
         (function() {
             const savedTheme = localStorage.getItem('medexcel_theme');
-            if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
-            window.syncStatusBar(savedTheme === 'light');
-            // Update the static meta theme-color to match actual theme
+            const isLight = savedTheme !== 'dark'; // light unless user explicitly chose dark
+            if (isLight) document.documentElement.classList.add('light-mode');
+            window.syncStatusBar(isLight);
+            // Update meta theme-color to match actual theme
             const themeMeta = document.querySelector('meta[name="theme-color"]');
-            if (themeMeta) themeMeta.content = (savedTheme === 'light') ? '#f1f5f9' : '#09090b';
+            if (themeMeta) themeMeta.content = isLight ? '#f1f5f9' : '#09090b';
         })();
 
         // Tailwind Config
