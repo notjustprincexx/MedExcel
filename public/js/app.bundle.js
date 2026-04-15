@@ -938,6 +938,125 @@ if (nextBtn) {
             document.getElementById('createBackBtn').style.display = 'flex';
         };
 
+        // Source tab switching
+        window.switchSourceTab = function(tab) {
+            const dropZone    = document.getElementById('dropZone');
+            const pasteZone   = document.getElementById('pasteZone');
+            const youtubeZone = document.getElementById('youtubeZone');
+            const tabs = ['tabUpload','tabPaste','tabYoutube'];
+
+            // Tab style configs
+            const tabStyles = {
+                upload:  { border: 'var(--accent-btn)', color: 'var(--accent-btn)' },
+                paste:   { border: '#64748b',           color: '#64748b'           },
+                youtube: { border: '#ef4444',           color: '#ef4444'           },
+            };
+
+            // Reset all tabs to inactive
+            tabs.forEach(id => {
+                const b = document.getElementById(id);
+                if (b) { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
+            });
+
+            // Activate selected tab with its own accent colour
+            const activeTab = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            const style = tabStyles[tab] || tabStyles.upload;
+            if (activeTab) { activeTab.style.borderColor = style.border; activeTab.style.color = style.color; }
+
+            // Show/hide zones
+            if (dropZone)    dropZone.style.display    = tab === 'upload'  ? 'flex'  : 'none';
+            if (pasteZone)   pasteZone.style.display   = tab === 'paste'   ? 'block' : 'none';
+            if (youtubeZone) youtubeZone.style.display = tab === 'youtube' ? 'block' : 'none';
+
+            // Clear source if switching away
+            if (tab !== 'upload' && !window._sourceIsPaste && !window._sourceIsYoutube) {
+                window.selectedFile = null;
+            }
+            if (tab === 'upload') {
+                window._sourceIsPaste = false; window._sourceIsYoutube = false;
+                if (!window.selectedFile) window._resetGenerateBtn();
+            } else if (tab === 'paste') {
+                window._sourceIsYoutube = false;
+                const ta = document.getElementById('pasteTextarea');
+                if (ta && ta.value.trim().length > 20) window.handlePasteInput(ta);
+                else { window.selectedFile = null; window._sourceIsPaste = false; window._resetGenerateBtn(); }
+            } else if (tab === 'youtube') {
+                window._sourceIsPaste = false;
+                const inp = document.getElementById('youtubeInput');
+                if (inp && window._youtubeVideoId) window.handleYoutubeInput(inp);
+                else { window.selectedFile = null; window._sourceIsYoutube = false; window._resetGenerateBtn(); }
+            }
+        };
+
+        // YouTube URL handler
+        window._youtubeVideoId = null;
+        window.handleYoutubeInput = function(inp) {
+            const url = inp.value.trim();
+            const feedback = document.getElementById('youtubeFeedback');
+            const wrap = document.getElementById('youtubeInputWrap');
+
+            // Extract video ID from various YouTube URL formats
+            const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            if (match) {
+                window._youtubeVideoId = match[1];
+                window._sourceIsYoutube = true;
+                inp.style.borderColor = 'var(--border-active)';
+                if (wrap) wrap.style.borderColor = 'var(--border-active)';
+                if (feedback) feedback.innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:4px;"></i>Valid YouTube URL — transcript will be extracted on generate';
+                // Create placeholder file so the rest of the flow knows something is ready
+                const blob = new Blob([`youtube:${window._youtubeVideoId}`], { type: 'text/plain' });
+                window.selectedFile = new File([blob], `youtube-${window._youtubeVideoId}.txt`, { type: 'text/plain' });
+                // Enable generate
+                document.getElementById('configSection').style.opacity = '1';
+                document.getElementById('configSection').style.pointerEvents = 'auto';
+                const btn = document.getElementById('generateBtn');
+                if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
+            } else {
+                window._youtubeVideoId = null;
+                window._sourceIsYoutube = false;
+                window.selectedFile = null;
+                inp.style.borderColor = url.length > 5 ? '#f87171' : 'var(--border-glass)';
+                if (wrap) wrap.style.borderColor = url.length > 5 ? '#f87171' : 'var(--border-glass)';
+                if (feedback) feedback.innerHTML = url.length > 5 ? '<i class="fas fa-times-circle" style="color:#f87171;margin-right:4px;"></i>Not a valid YouTube URL' : '';
+                window._resetGenerateBtn();
+            }
+        };
+
+        // Handle paste textarea input
+        window.handlePasteInput = function(ta) {
+            const text = ta.value;
+            const count = text.length;
+            const charCount = document.getElementById('pasteCharCount');
+            if (charCount) charCount.textContent = count.toLocaleString();
+
+            // Update textarea border color
+            ta.style.borderColor = count > 20 ? 'var(--border-active)' : 'var(--border-glass)';
+
+            if (count > 20) {
+                // Convert pasted text to a File object so firebase.js works unchanged
+                const blob = new Blob([text], { type: 'text/plain' });
+                window.selectedFile = new File([blob], 'pasted-text.txt', { type: 'text/plain' });
+                window._sourceIsPaste = true;
+
+                // Enable config + generate button
+                document.getElementById('configSection').style.opacity = '1';
+                document.getElementById('configSection').style.pointerEvents = 'auto';
+                const btn = document.getElementById('generateBtn');
+                if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
+            } else {
+                window.selectedFile = null;
+                window._sourceIsPaste = false;
+                window._resetGenerateBtn();
+            }
+        };
+
+        window._resetGenerateBtn = function() {
+            document.getElementById('configSection').style.opacity = '0.5';
+            document.getElementById('configSection').style.pointerEvents = 'none';
+            const btn = document.getElementById('generateBtn');
+            if (btn) { btn.disabled = true; btn.style.background = 'var(--bg-surface)'; btn.style.color = 'var(--text-muted)'; btn.style.cursor = 'not-allowed'; }
+        };
+
         // Question style selector — use event delegation on container to avoid child element issues
         document.addEventListener('DOMContentLoaded', function() {
             const selector = document.getElementById('styleSelector');
@@ -1018,6 +1137,30 @@ if (nextBtn) {
             document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
             document.getElementById('uploadTitle').textContent = "Tap to Upload File";
             document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
+            document.getElementById('dropZone').style.display = 'flex';
+            // Reset all source zones
+            const pasteZone = document.getElementById('pasteZone');
+            if (pasteZone) pasteZone.style.display = 'none';
+            const pasteTA = document.getElementById('pasteTextarea');
+            if (pasteTA) { pasteTA.value = ''; pasteTA.style.borderColor = 'var(--border-glass)'; }
+            const charCount = document.getElementById('pasteCharCount');
+            if (charCount) charCount.textContent = '0';
+            const youtubeZone = document.getElementById('youtubeZone');
+            if (youtubeZone) youtubeZone.style.display = 'none';
+            const youtubeInp = document.getElementById('youtubeInput');
+            if (youtubeInp) { youtubeInp.value = ''; youtubeInp.style.borderColor = 'var(--border-glass)'; }
+            const youtubeFB = document.getElementById('youtubeFeedback');
+            if (youtubeFB) youtubeFB.innerHTML = '';
+            const youtubeWrap = document.getElementById('youtubeInputWrap');
+            if (youtubeWrap) youtubeWrap.style.borderColor = 'var(--border-glass)';
+            window._sourceIsPaste = false; window._sourceIsYoutube = false; window._youtubeVideoId = null;
+            // Reset all tabs to default (Upload active)
+            ['tabUpload','tabPaste','tabYoutube'].forEach((id, i) => {
+                const b = document.getElementById(id);
+                if (!b) return;
+                if (i === 0) { b.style.borderColor = 'var(--accent-btn)'; b.style.background = 'rgba(167,139,250,0.1)'; b.style.color = 'var(--accent-btn)'; }
+                else { b.style.borderColor = 'var(--border-glass)'; b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+            });
             
             // Reset style selector to default (Direct & Factual)
             const topicInput = document.getElementById('topicFocus');
