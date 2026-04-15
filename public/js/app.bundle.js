@@ -1,0 +1,1402 @@
+/* ── js/app.js ── */
+// State · Router · Utils · Modals · Profile Helpers
+// --- GLOBAL VARIABLES & STATE ---
+        window.userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { xp: 0, level: 1, streak: 0, count: 0, lastDate: null };
+        window.quizzes = [];
+        window.userPlan = "free";
+        window.allowedMaxItems = 15;
+        
+        // Study & Create State
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let isExamMode = false;
+        let examScore = 0;
+        window.quizToDelete = null;
+
+        window.globalQuizType = "Flashcards";
+        window.selectedFile = null;
+        let generatedCards = [];
+        let currentCardIndex = 0;
+        let isMCQMode = false;
+        let sessionScore = 0;
+        window.updateHomeContinueCard = function() {
+            const cTitle = document.getElementById('continueTitle');
+            const cMeta = document.getElementById('continueMeta');
+            const cProgress = document.getElementById('continueProgressText');
+            const cIconBox = document.getElementById('continueIconBox');
+
+            if(!cTitle) return;
+
+            cTitle.classList.remove('skeleton'); cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
+            cMeta.classList.remove('skeleton'); cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
+            cProgress.classList.remove('skeleton'); cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
+            cIconBox.classList.remove('skeleton');
+            
+            if (window.quizzes && window.quizzes.length > 0) {
+                const lastQuiz = window.quizzes[window.quizzes.length - 1]; 
+                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
+                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
+                
+                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cProgress.textContent = `+${progress}%`; 
+                cMeta.innerHTML = `<span>${totalQs}</span> items • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
+            } else {
+                cTitle.textContent = "No recent activity";
+                cProgress.textContent = "0%";
+                cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
+                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
+            }
+        };
+
+        // --- BULLETPROOF ROUTER LOGIC ---
+        function navigateTo(targetViewId) {
+            // 1. Hide all views securely
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.classList.remove('active');
+                view.style.display = 'none';
+            });
+            
+            // 2. Show the requested view
+            const target = document.getElementById(targetViewId);
+            if (target) { 
+                target.classList.add('active'); 
+                target.style.display = 'flex'; 
+            } else {
+                console.error("View not found: " + targetViewId);
+            }
+
+            // 3. Update bottom navigation icons
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) {
+                if (targetViewId === 'view-payment') {
+                    nav.classList.add('hidden');
+                } else { 
+                    nav.classList.remove('hidden'); 
+                    updateNavIcons(targetViewId); 
+                }
+            }
+            
+            // 4. Safe Initializations (wrapped in try/catch so they don't break routing)
+            try {
+                if (targetViewId === 'view-study' && typeof window.renderLibrary === 'function') window.renderLibrary();
+                if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
+                if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
+            } catch(e) { console.warn("View init skipped:", e); }
+            
+            // 5. Update URL
+            window.scrollTo(0, 0);
+            try { history.pushState(null, null, '#' + targetViewId.replace('view-', '')); } 
+            catch(e) { window.location.hash = targetViewId.replace('view-', ''); }
+        }
+
+        // Expose function globally so inline HTML clicks can reach it
+        window.navigateTo = navigateTo;
+
+        function updateNavIcons(activeViewId) {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+                const svg = el.querySelector('svg');
+                if(svg) svg.setAttribute('fill', 'none');
+            });
+            
+            const mapping = { 'view-home': 'nav-home', 'view-study': 'nav-study', 'view-create': 'nav-create', 'view-leaderboard': 'nav-leaderboard', 'view-profile': 'nav-profile' };
+            const activeNav = document.getElementById(mapping[activeViewId]);
+            if (activeNav) {
+                activeNav.classList.add('active');
+                if(activeViewId !== 'view-create' && activeViewId !== 'view-leaderboard') {
+                    const activeSvg = activeNav.querySelector('svg');
+                    if(activeSvg) activeSvg.setAttribute('fill', 'currentColor');
+                }
+            }
+        }
+
+        function initRouter() {
+            let hash = window.location.hash.replace('#', '');
+            if (!hash) hash = 'home';
+            const viewId = 'view-' + hash;
+            
+            const validViews = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile', 'view-payment'];
+            if (validViews.includes(viewId)) {
+                navigateTo(viewId); 
+            } else { 
+                navigateTo('view-home'); 
+            }
+        }
+
+        // Initialize Router on load
+        window.addEventListener('DOMContentLoaded', initRouter);
+        window.addEventListener('popstate', initRouter);
+
+
+        // --- UTILS & MODALS ---
+        window.closeGlobalModal = function(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            if (id === 'logoutModalBackdrop') {
+                const sheet = document.getElementById('logoutSheetInner');
+                if(sheet) { sheet.style.transform='translateY(100%)'; sheet.style.opacity='0'; }
+                modal.style.opacity = '0';
+                setTimeout(() => { modal.style.display='none'; }, 400);
+            } else {
+                modal.classList.remove('show');
+            }
+        };
+        window.showLoginModal = function() { document.getElementById('loginModalBackdrop').classList.add('show'); };
+        window.showLogoutModal = function() {
+            const backdrop = document.getElementById('logoutModalBackdrop');
+            const sheet = document.getElementById('logoutSheetInner');
+            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
+            requestAnimationFrame(() => { if(sheet) { sheet.style.transform='translateY(0)'; sheet.style.opacity='1'; } });
+        };
+
+        // Level calculation — exponential growth
+        window.getProfileLevel = function(xp) {
+            const thresholds = [0, 500, 1200, 2200, 3700, 6000, 9500, 14500, 21500, 31500, 50000];
+            let level = 1;
+            for (let i = 0; i < thresholds.length; i++) { if (xp >= thresholds[i]) level = i + 1; else break; }
+            const cur = xp - thresholds[level - 1];
+            const needed = (thresholds[level] || thresholds[level - 1] + 20000) - thresholds[level - 1];
+            return { level, cur, needed };
+        };
+
+        window.updateProfileXP = function(xp) {
+            const { level, cur, needed } = window.getProfileLevel(xp || 0);
+            const badge = document.getElementById('profileLevelBadge'); if (badge) badge.textContent = 'LVL ' + level;
+            const bar = document.getElementById('profileXpBar'); if (bar) bar.style.width = Math.min(100, (cur / needed) * 100) + '%';
+            const label = document.getElementById('profileXpLabel'); if (label) label.textContent = cur.toLocaleString() + ' / ' + needed.toLocaleString();
+            const xpEl = document.getElementById('studyXpDisplay'); if (xpEl) xpEl.textContent = (xp || 0).toLocaleString() + ' XP';
+        };
+
+        // Plan icon — Free or Premium only
+        window.updatePlanIcon = function(plan) {
+            const iconEl  = document.getElementById('planIcon');
+            const textEl  = document.getElementById('planBadgeText');
+            const barEl   = document.getElementById('usageProgressBar');
+            const plans = {
+                premium: { icon: 'fas fa-gem',  color: '#3b82f6', label: 'Premium', bar: '#3b82f6' },
+                free:    { icon: 'fas fa-lock', color: '#64748b', label: 'Free',    bar: '#94a3b8' },
+            };
+            const p = plans[plan] || plans.free;
+            if (iconEl) { iconEl.className = p.icon; iconEl.style.color = p.color; }
+            if (textEl) { textEl.textContent = p.label; textEl.style.color = p.color; }
+            if (barEl)  barEl.style.background = p.bar;
+        };
+
+        // Delete account modal
+        window.showDeleteAccountModal = function() {
+            const backdrop = document.getElementById('accountDeleteBackdrop');
+            const sheet    = document.getElementById('accountDeleteSheet');
+            const input    = document.getElementById('deleteAccountInput');
+            if (input) input.value = '';
+            window.checkDeleteInput();
+            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
+            requestAnimationFrame(() => { if (sheet) { sheet.style.transform = 'translateY(0)'; sheet.style.opacity = '1'; } });
+        };
+        window.closeDeleteAccountModal = function() {
+            const backdrop = document.getElementById('accountDeleteBackdrop');
+            const sheet    = document.getElementById('accountDeleteSheet');
+            if (sheet) { sheet.style.transform = 'translateY(100%)'; sheet.style.opacity = '0'; }
+            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => backdrop.style.display = 'none', 400); }
+        };
+        window.checkDeleteInput = function() {
+            const input = document.getElementById('deleteAccountInput');
+            const btn   = document.getElementById('confirmAccountDeleteBtn');
+            if (!input || !btn) return;
+            const match = input.value.trim().toLowerCase() === 'delete account';
+            btn.disabled = !match;
+            btn.style.opacity  = match ? '1'        : '0.35';
+            btn.style.cursor   = match ? 'pointer'  : 'not-allowed';
+            input.style.borderColor = input.value.length > 0 ? (match ? '#34d399' : '#f87171') : 'var(--border-color)';
+        };
+        window.executeDeleteAccount = async function() {
+            const btn = document.getElementById('confirmAccountDeleteBtn');
+            if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
+            try {
+                if (window.currentUser?.uid && window._deleteDoc && window._doc) {
+                    try { await window._deleteDoc(window._doc(window.db, "users", window.currentUser.uid)); } catch(e) {}
+                }
+                try { if (window._signOut && window.auth) await window._signOut(window.auth); } catch(e) {}
+                const _delTheme = localStorage.getItem('medexcel_theme');
+                localStorage.clear();
+                if (_delTheme) localStorage.setItem('medexcel_theme', _delTheme);
+                window.location.replace("index.html");
+            } catch(e) {
+                if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1'; }
+                alert("Failed to delete account. Please try again.");
+            }
+        };
+
+        // logout handled by window.showLogoutModal defined above
+        
+        window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
+        window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
+        window.escapeHTML = function(str) { return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+        window.getTimeEmoji = function() { const hour = new Date().getHours(); if (hour < 12) return '⛅'; if (hour < 18) return '☀️'; return '🌙'; }
+
+        // =========================================================
+
+/* ── js/referral.js ── */
+// Referral System
+// REFERRAL SYSTEM — global scope so initUserUI can call it
+        // =========================================================
+
+        const REFERRAL_TIERS = [
+            { refs: 1,  label: "+500 XP bonus",                icon: "fa-bolt",        color: "#fbbf24", type: "xp"            },
+            { refs: 3,  label: "2× daily limit for 7 days",    icon: "fa-layer-group", color: "#3b82f6", type: "limit_2x"      },
+            { refs: 5,  label: "1 week Premium access",        icon: "fa-gem",         color: "#a78bfa", type: "week_premium"  },
+            { refs: 10, label: "1 month Premium access",       icon: "fa-crown",       color: "#f97316", type: "month_premium" },
+            { refs: 20, label: "Ambassador — permanent boost", icon: "fa-star",        color: "#34d399", type: "ambassador"    },
+        ];
+
+        window.renderReferralTiers = function(containerId, referralCount) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            REFERRAL_TIERS.forEach(tier => {
+                const done = referralCount >= tier.refs;
+                const next = !done && (REFERRAL_TIERS.find(t => !referralCount || referralCount < t.refs)?.refs === tier.refs);
+                const pct  = done ? 100 : Math.min(100, Math.round((referralCount / tier.refs) * 100));
+                container.innerHTML += `
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <div style="width:28px;height:28px;border-radius:8px;background:${done ? tier.color + '20' : 'var(--bg-surface)'};border:1px solid ${done ? tier.color + '40' : 'var(--border-color)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas ${tier.icon}" style="font-size:0.6875rem;color:${done ? tier.color : 'var(--text-muted)'};"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                                <span style="font-size:0.75rem;font-weight:${done ? '700' : '600'};color:${done ? 'var(--text-main)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tier.refs} referral${tier.refs>1?'s':''} — ${tier.label}</span>
+                                <span style="font-size:0.7rem;font-weight:700;color:${done ? tier.color : 'var(--text-muted)'};margin-left:0.5rem;flex-shrink:0;">${done ? '✓' : referralCount + '/' + tier.refs}</span>
+                            </div>
+                            <div style="width:100%;height:4px;background:var(--bg-surface);border-radius:100px;overflow:hidden;border:1px solid var(--border-color);">
+                                <div style="height:100%;width:${pct}%;background:${done ? tier.color : 'var(--text-muted)'};border-radius:100px;transition:width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        };
+
+        const REFERRAL_SHARE_MESSAGE = (link) =>
+            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nJoin me and we both get rewards! Sign up here:\n${link}`;
+
+        window.shareReferralLink = async function(source) {
+            const code = window._userReferralCode || '';
+            if (!code) return;
+            const link = `https://medxcel.web.app?ref=${code}`;
+            const message = REFERRAL_SHARE_MESSAGE(link);
+
+            // Capacitor native share (Android / iOS)
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { Share } = window.Capacitor.Plugins;
+                    await Share.share({
+                        title: 'Join me on MedExcel',
+                        text: message,
+                        url: link,
+                        dialogTitle: 'Share your referral link'
+                    });
+                } catch(e) {
+                    // User cancelled — do nothing
+                    if (e.message && !e.message.includes('cancel')) {
+                        window.copyReferralLink(source);
+                    }
+                }
+                return;
+            }
+
+            // Web Share API (modern browsers)
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Join me on MedExcel', text: message, url: link });
+                } catch(e) {
+                    if (e.name !== 'AbortError') window.copyReferralLink(source);
+                }
+                return;
+            }
+
+            // Final fallback — just copy
+            window.copyReferralLink(source);
+        };
+
+        window.copyReferralLink = function(source) {
+            const code = window._userReferralCode || '';
+            if (!code) return;
+            const link = `https://medxcel.web.app?ref=${code}`;
+            const btnId = source === 'upg' ? 'upgCopyBtn' : 'profileCopyBtn';
+            const btn = document.getElementById(btnId);
+
+            const showFeedback = (success) => {
+                if (!btn) return;
+                const orig = btn.innerHTML;
+                btn.innerHTML = success ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                btn.style.color = success ? 'var(--accent-green)' : 'var(--accent-red)';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.color = 'var(--text-muted)'; }, 2000);
+            };
+
+            try {
+                navigator.clipboard.writeText(link).then(() => showFeedback(true)).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = link; document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); showFeedback(true); } catch(e) { showFeedback(false); }
+                    document.body.removeChild(ta);
+                });
+            } catch(e) {
+                const ta = document.createElement('textarea');
+                ta.value = link; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); showFeedback(true); } catch(e2) { showFeedback(false); }
+                document.body.removeChild(ta);
+            }
+        };
+
+        window.loadReferralData = function(userData) {
+            const code    = userData.referralCode || '';
+            const count   = userData.referralCount || 0;
+            const link    = `https://medxcel.web.app?ref=${code}`;
+            window._userReferralCode = code;
+
+            // Profile card
+            const pCount = document.getElementById('profileReferralCount');
+            if (pCount) pCount.textContent = count + ' referred';
+            const pLink = document.getElementById('profileReferralLink');
+            if (pLink) pLink.textContent = link || 'No code yet';
+            window.renderReferralTiers('profileReferralTiers', count);
+
+            // Active reward indicator
+            const boostExpiry = userData.referralBoostExpiry;
+            const boostType   = userData.referralBoostType;
+            const rewardEl    = document.getElementById('profileActiveReward');
+            const rewardTxt   = document.getElementById('profileActiveRewardText');
+            if (rewardEl && boostExpiry && new Date(boostExpiry) > new Date()) {
+                const expiryDate = new Date(boostExpiry).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                const labels = {
+                    limit_2x:      `2× daily limit active — expires ${expiryDate}`,
+                    week_premium:  `Premium access active — expires ${expiryDate}`,
+                    month_premium: `Premium access active — expires ${expiryDate}`,
+                };
+                if (rewardTxt) rewardTxt.textContent = labels[boostType] || `Referral reward active — expires ${expiryDate}`;
+                rewardEl.style.display = 'block';
+            } else if (rewardEl) {
+                rewardEl.style.display = 'none';
+            }
+        };
+
+        // Apply referral boost to limits if active
+        window.applyReferralBoost = function(userData) {
+            const boostExpiry = userData.referralBoostExpiry;
+            const boostType   = userData.referralBoostType;
+            if (!boostExpiry || new Date(boostExpiry) <= new Date()) return; // expired or none
+
+            if (boostType === 'limit_2x' && window.userPlan === 'free') {
+                window.allowedMaxItems = 30; // 2× of 15
+                const maxText = document.getElementById('maxLimitText');
+                if (maxText) maxText.textContent = '(Max: 30 — Referral Boost)';
+            } else if (boostType === 'week_premium' || boostType === 'month_premium') {
+                // treat as premium for limit purposes only (Groq still used — server enforces AI model)
+                window.allowedMaxItems = 30;
+                const maxText = document.getElementById('maxLimitText');
+                if (maxText) maxText.textContent = '(Max: 30 — Referral Reward)';
+            }
+        };
+
+        // =========================================================
+
+/* ── js/upgrade-modal.js ── */
+// Upgrade Modal · Theme Toggle
+// UPGRADE MODAL — open / close
+        // =========================================================
+
+        window.showCustomUpgradeModal = function(maxAllowed) {
+            return new Promise(resolve => {
+                const backdrop = document.getElementById('upgradeModalBackdrop');
+                const sheet    = document.getElementById('upgradeModalSheet');
+                if (!backdrop || !sheet) { resolve(true); return; }
+
+                // Populate usage bar
+                const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
+                const cap  = window.userPlan === 'premium' ? 30 : maxAllowed || 5;
+                document.getElementById('upgUsageLabel').textContent = `${used} / ${cap}`;
+                document.getElementById('upgUsageBar').style.width = '100%';
+                document.getElementById('upgModalSubtitle').textContent =
+                    `You've used all ${cap} free generations today.`;
+
+                // Referral tiers
+                const count = parseInt(document.getElementById('profileReferralCount')?.textContent || '0');
+                window.renderReferralTiers('upgModalTiers', count);
+                const code  = window._userReferralCode || '';
+                const upgLink = document.getElementById('upgReferralLinkDisplay');
+                if (upgLink) upgLink.textContent = code ? `medxcel.web.app?ref=${code}` : 'Loading...';
+
+                // Show sheet
+                backdrop.style.display = 'flex';
+                backdrop.style.opacity = '1';
+                requestAnimationFrame(() => {
+                    sheet.style.transform = 'translateY(0)';
+                    sheet.style.opacity   = '1';
+                });
+
+                // Override buttons
+                const upgBtn = backdrop.querySelector('button[onclick*="view-payment"]');
+                if (upgBtn) {
+                    upgBtn.onclick = () => { window.closeUpgradeModal(); resolve(true); };
+                }
+                const laterBtn = backdrop.querySelector('button[onclick*="closeUpgradeModal"]');
+                if (laterBtn) {
+                    laterBtn.onclick = () => { window.closeUpgradeModal(); resolve(false); };
+                }
+            });
+        };
+
+        window.closeUpgradeModal = function() {
+            const backdrop = document.getElementById('upgradeModalBackdrop');
+            const sheet    = document.getElementById('upgradeModalSheet');
+            if (!sheet || !backdrop) return;
+            sheet.style.transform = 'translateY(100%)';
+            sheet.style.opacity   = '0';
+            setTimeout(() => { backdrop.style.display = 'none'; backdrop.style.opacity = '0'; }, 400);
+        };
+
+        // Close on backdrop tap
+        document.getElementById('upgradeModalBackdrop')?.addEventListener('click', function(e) {
+            if (e.target === this) window.closeUpgradeModal();
+        });
+
+        // Theme Setup
+        window.updateThemeUI = function() {
+            const isLight = document.documentElement.classList.contains('light-mode');
+            const themeText = document.getElementById('themeText');
+            const themeIcon = document.getElementById('themeIcon');
+            const switchBg = document.getElementById('themeSwitchBg');
+            const switchKnob = document.getElementById('themeSwitchKnob');
+            
+            if(themeText) themeText.innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            if(themeIcon) themeIcon.className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
+            
+            if(switchBg && switchKnob) {
+                if (isLight) { switchBg.classList.replace('bg-slate-600', 'bg-blue-500'); switchKnob.style.transform = 'translateX(20px)'; } 
+                else { switchBg.classList.replace('bg-blue-500', 'bg-slate-600'); switchKnob.style.transform = 'translateX(0)'; }
+            }
+        };
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                const isLight = document.documentElement.classList.toggle('light-mode');
+                localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
+                window.updateThemeUI();
+                window.syncStatusBar(isLight);
+            });
+        }
+
+/* ── js/views/home.js ── */
+// Home View
+// --- HOME UI LOGIC ---
+        // Carousel Sync
+        const carousel = document.getElementById('promoCarousel');
+        const indicators = document.querySelectorAll('.promo-dot');
+        if(carousel && indicators.length > 0) {
+            carousel.addEventListener('scroll', () => {
+                const scrollPosition = carousel.scrollLeft;
+                const cardWidth = carousel.offsetWidth;
+                const activeIndex = Math.round(scrollPosition / cardWidth);
+                indicators.forEach((dot, index) => {
+                    if (index === activeIndex) dot.classList.add('active'); else dot.classList.remove('active');
+                });
+            });
+        }
+
+        // Weekly Target Rotator
+        const targetMessages = [
+            { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
+            { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." },
+            { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
+        ];
+        let currentTargetIdx = 0;
+        setInterval(() => {
+            currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
+            const titleEl = document.getElementById('targetTitle');
+            const descEl = document.getElementById('targetDesc');
+            if(titleEl && descEl) {
+                titleEl.style.opacity = '0'; descEl.style.opacity = '0';
+                setTimeout(() => {
+                    titleEl.textContent = targetMessages[currentTargetIdx].title;
+                    descEl.textContent = targetMessages[currentTargetIdx].desc;
+                    titleEl.style.opacity = '1'; descEl.style.opacity = '1';
+                }, 300);
+            }
+        }, 5000);
+
+        // Streak Calendar UI
+        let currentStreakCount = 0;
+        let hasCheckedInToday = false;
+
+        function buildCalendarRow() {
+            const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            const dates = [];
+            const today = new Date();
+            const currentDayIndex = (today.getDay() + 6) % 7; 
+            
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today); d.setDate(today.getDate() - currentDayIndex + i); dates.push(d.getDate());
+            }
+
+            let html = '';
+            for(let i=0; i<7; i++) {
+                let circleClass = "day-circle";
+                let content = dates[i];
+                if (i < currentDayIndex) { circleClass += " done"; content = '<i class="fas fa-check"></i>'; } 
+                else if (i === currentDayIndex) { circleClass += " active"; if (hasCheckedInToday) content = '<i class="fas fa-check"></i>'; }
+                html += `<div class="day-col"><span class="day-label text-xs font-bold text-[var(--text-muted)]">${labels[i]}</span><div class="${circleClass}">${content}</div></div>`;
+            }
+            return html;
+        }
+
+        // Variable to hold the animation so it doesn't duplicate
+        var fireLottieAnim = null;
+
+        const streakDailyMessages = [
+            { title: "Rest day recharged?", sub: "Sunday reset — show up today<br>and keep that streak burning! 🔥" },
+            { title: "New week, new goals!", sub: "Monday energy — check in now<br>and set the tone for the week! 💪" },
+            { title: "Two days strong!", sub: "You showed up yesterday.<br>Do it again today — it adds up! ⚡" },
+            { title: "Midweek momentum!", sub: "Wednesday warriors don't quit.<br>Stay consistent, stay ahead! 🏆" },
+            { title: "Almost at the weekend!", sub: "Thursday push — one more day<br>before you can brag about it! 😅" },
+            { title: "Friday fire!", sub: "End the week strong.<br>Check in and protect that streak! 🎯" },
+            { title: "Weekend warrior mode!", sub: "Saturday hustle — the best students<br>don't take days off. Let's go! 🚀" }
+        ];
+        
+        window.openStreakModal = function() {
+            document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+            const btn = document.getElementById('closeStreakModal');
+            document.getElementById('modalDayCount').textContent = currentStreakCount;
+            btn.textContent = hasCheckedInToday ? "Awesome! 🎉" : "Check in today!";
+            
+            const todayMsg = streakDailyMessages[new Date().getDay()];
+            const titleEl = document.getElementById('streakDialogTitle');
+            if (titleEl) {
+                if (hasCheckedInToday) {
+                    titleEl.innerHTML = `You're on fire! 🔥<br>Keep this streak going tomorrow!`;
+                } else {
+                    titleEl.innerHTML = `${todayMsg.sub}`;
+                }
+            }
+            
+            if (!fireLottieAnim) {
+                fireLottieAnim = lottie.loadAnimation({
+                    container: document.getElementById('modalStreakLottie'),
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: 'fire.json'
+                });
+            } else {
+                fireLottieAnim.play();
+            }
+            
+            document.getElementById('streakModalBackdrop').classList.add('show');
+        };
+
+        document.getElementById('closeStreakModal').onclick = () => {
+            if (!hasCheckedInToday && window.currentUser) {
+                window.userStats.count = currentStreakCount;
+                window.userStats.lastDate = new Date().toDateString();
+                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+                hasCheckedInToday = true;
+                if (window.syncUserStreak) window.syncUserStreak(window.currentUser.uid, currentStreakCount, window.userStats.lastDate);
+            }
+            window.closeGlobalModal('streakModalBackdrop');
+            const hDisplay = document.getElementById('headerStreakDisplay');
+            if(hDisplay) hDisplay.textContent = currentStreakCount;
+            const hIcon = document.getElementById('headerFireIcon');
+            if(hIcon) hIcon.style.opacity = '1';
+        };
+
+/* ── js/views/study.js ── */
+// Study / Library View
+// --- STUDY UI LOGIC ---
+        window.openPracticeMobile = function() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.add('hidden');
+                document.getElementById('studyPracticePanel').classList.add('active');
+            }
+        }
+
+        window.closePracticeMobile = function() {
+            window.exitStudyQuizMode();
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.remove('hidden');
+                document.getElementById('studyPracticePanel').classList.remove('active');
+            }
+            document.getElementById('studyPracticeArea').innerHTML = `
+                <div class="text-center text-[var(--text-muted)] flex flex-col items-center fade-in">
+                    <div class="w-20 h-20 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-6 text-3xl text-[var(--accent-btn)]"><i class="fas fa-layer-group"></i></div>
+                    <h3 class="text-xl font-bold text-[var(--text-main)] mb-2">Ready to Study?</h3>
+                    <p class="text-[15px] font-medium">Select a deck from your library to begin.</p>
+                </div>
+            `;
+            currentQuiz = null;
+        }
+
+        window.promptDelete = function(e, id) { e.stopPropagation(); window.quizToDelete = id; document.getElementById('deleteModalBackdrop').classList.add('show'); };
+
+        window.enterStudyQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = 'translateY(100%)';
+            Object.assign(document.getElementById('studyPracticePanel').style, { position:'fixed', inset:'0', zIndex:'200', background:'var(--bg-body)' });
+            const header = document.getElementById('studyPracticeHeader');
+            if (header) header.style.display = 'none';
+            Object.assign(document.getElementById('studyPracticeArea').style, { padding:'0', alignItems:'stretch', justifyContent:'flex-start' });
+        };
+        window.exitStudyQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = '';
+            Object.assign(document.getElementById('studyPracticePanel').style, { position:'', inset:'', zIndex:'', background:'' });
+            const header = document.getElementById('studyPracticeHeader');
+            if (header) header.style.display = '';
+            Object.assign(document.getElementById('studyPracticeArea').style, { padding:'', alignItems:'', justifyContent:'' });
+        };
+
+        window.startPractice = function(exam) {
+            isExamMode = exam;
+            currentQuestionIndex = 0;
+            examScore = 0;
+            // Reset answered state for all questions
+            if (currentQuiz && currentQuiz.questions) {
+                currentQuiz.questions.forEach(q => { q.answered = false; });
+            }
+            window.enterStudyQuizMode();
+            window.renderStudyQuestion();
+        }
+
+        window.renderStudyQuestion = function() {
+            if (!currentQuiz || !currentQuiz.questions) return;
+            if (currentQuestionIndex >= currentQuiz.questions.length) { window.finishStudyQuiz(); return; }
+
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const area = document.getElementById('studyPracticeArea');
+            const progressPercent = ((currentQuestionIndex + 1) / currentQuiz.questions.length) * 100;
+            const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
+
+            const safeQuestion = window.escapeHTML(q.text || q.front || q.question || "No question");
+            const safeAnswer   = window.escapeHTML(q.back  || q.answer || "");
+
+            let contentHTML = '';
+
+            if (isMCQSession) {
+                let optionsHTML = '<div style="display:flex;flex-direction:column;gap:0.5rem;flex-shrink:0;width:100%;">';
+                q.options.forEach((opt, idx) => {
+                    const key = String.fromCharCode(65 + idx);
+                    optionsHTML += `<button class="study-mcq-opt" data-idx="${idx}" style="width:100%;text-align:left;padding:0.75rem 0.875rem;border-radius:var(--radius-md);background:var(--bg-body);border:1px solid var(--border-glass);display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;color:var(--text-main);transition:border-color 0.15s;"><span style="font-weight:600;color:var(--text-muted);background:var(--bg-surface);border:1px solid var(--border-glass);width:1.625rem;height:1.625rem;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:0.75rem;flex-shrink:0;margin-top:0.125rem;">${key}</span><span style="flex:1;font-size:0.9rem;line-height:1.4;padding-top:0.125rem;font-weight:500;">${window.escapeHTML(opt)}</span></button>`;
+                });
+                optionsHTML += '</div>';
+                contentHTML = `
+                    <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-card);padding:1rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+                        <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;padding-right:0.25rem;" class="hide-scroll">
+                            <h3 style="font-weight:700;color:var(--text-main);font-size:0.9375rem;line-height:1.6;margin-bottom:1rem;flex-shrink:0;">${safeQuestion}</h3>
+                            ${optionsHTML}
+                            <div id="studyExplanationArea" style="display:none;flex-direction:column;gap:0.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-glass);flex-shrink:0;"></div>
+                        </div>
+                    </div>`;
+            } else {
+                contentHTML = `
+                    <div id="studyFlashcardEl" style="flex:1;position:relative;perspective:1000px;cursor:pointer;min-height:0;width:100%;">
+                        <div id="studyFlipInner" style="position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 0.5s var(--ease-snap);border-radius:var(--radius-card);">
+                            <div style="position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--radius-card);padding:1.5rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow-y:auto;background:var(--bg-surface);z-index:2;transform:rotateY(0deg);">
+                                <span style="position:absolute;top:1.5rem;font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Question</span>
+                                <h3 style="font-weight:600;font-size:1.125rem;line-height:1.5;margin-top:1rem;color:var(--text-main);">${safeQuestion}</h3>
+                                <p style="position:absolute;bottom:1.25rem;font-size:0.8125rem;font-weight:500;display:flex;align-items:center;gap:0.375rem;color:var(--text-muted);"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                            <div style="position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--radius-card);padding:1.5rem;border:1px solid var(--border-glass);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow-y:auto;background:var(--accent-btn);transform:rotateY(180deg);box-shadow:0 10px 25px -5px rgba(0,0,0,0.2);z-index:1;">
+                                <span style="position:absolute;top:1.5rem;font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--btn-text);opacity:0.7;">Answer</span>
+                                <p style="font-weight:600;font-size:1.125rem;line-height:1.5;margin-top:1rem;color:var(--btn-text);">${safeAnswer}</p>
+                                <p style="position:absolute;bottom:1.25rem;font-size:0.8125rem;font-weight:500;display:flex;align-items:center;gap:0.375rem;color:var(--btn-text);opacity:0.8;"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            const isLast = currentQuestionIndex === currentQuiz.questions.length - 1;
+            const nextDisabled = isMCQSession && !q.answered;
+
+            area.innerHTML = `
+                <div style="display:flex;flex-direction:column;height:100%;width:100%;padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:680px;margin:0 auto;" class="fade-in">
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-shrink:0;">
+                        <button onclick="window.closePracticeMobile()" style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;flex-shrink:0;transition:0.2s;" ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform=''"><i class="fas fa-arrow-left"></i></button>
+                        <h2 style="font-size:0.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;flex:1;">${isMCQSession ? 'MCQ Session' : 'Flashcard Session'}</h2>
+                        <span style="font-size:0.8125rem;font-weight:600;color:var(--text-main);">${currentQuestionIndex + 1} / ${currentQuiz.questions.length}</span>
+                    </div>
+                    <div style="width:100%;height:6px;background:var(--bg-body);border-radius:100px;overflow:hidden;margin-bottom:1rem;border:1px solid var(--border-glass);flex-shrink:0;">
+                        <div style="height:100%;background:var(--accent-btn);border-radius:100px;transition:width 0.4s var(--ease-snap);width:${progressPercent}%;"></div>
+                    </div>
+                    ${contentHTML}
+                    <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-shrink:0;">
+                        <button id="studyPrevBtn" style="flex:1;padding:1rem;border-radius:var(--radius-btn);font-size:0.9375rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);${currentQuestionIndex === 0 ? 'opacity:0.4;cursor:not-allowed;' : ''}">Previous</button>
+                        <button id="studyNextBtn" ${nextDisabled ? 'disabled' : ''} style="flex:1;padding:1rem;border-radius:var(--radius-btn);font-size:0.9375rem;font-weight:700;border:none;background:var(--accent-btn);color:var(--btn-text);${nextDisabled ? 'opacity:0.4;cursor:not-allowed;' : 'cursor:pointer;'}">${isLast ? 'Finish' : 'Next'}</button>
+                    </div>
+                </div>
+            `;
+
+            // Attach event listeners
+            if (isMCQSession) {
+                const btns = area.querySelectorAll('.study-mcq-opt');
+                btns.forEach(btn => btn.addEventListener('click', () => window.handleStudyMCQSelection(btn, q, btns)));
+            } else {
+                const fc = document.getElementById('studyFlashcardEl');
+                fc.addEventListener('click', () => {
+                    const inner = document.getElementById('studyFlipInner');
+                    inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)';
+                });
+            }
+
+            const prevBtn = document.getElementById('studyPrevBtn');
+            const nextBtn = document.getElementById('studyNextBtn');
+
+            prevBtn.addEventListener('click', () => {
+                if (currentQuestionIndex > 0) { currentQuestionIndex--; window.renderStudyQuestion(); }
+            });
+            nextBtn.addEventListener('click', () => {
+    if (currentQuestionIndex < currentQuiz.questions.length - 1) {
+        currentQuestionIndex++;
+        window.renderStudyQuestion();
+    } else {
+        window.finishStudyQuiz();
+    }
+});
+        }
+
+        window.handleStudyMCQSelection = function(selectedBtn, q, allBtns) {
+            if (q.answered) return;
+            q.answered = true;
+
+            const selectedIdx = parseInt(selectedBtn.dataset.idx);
+            const isCorrect = selectedIdx === q.correct;
+            if (isCorrect) examScore++;
+
+            allBtns.forEach(btn => {
+                const idx = parseInt(btn.dataset.idx);
+                btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+                if (idx === q.correct) {
+                    btn.style.background = 'rgba(16,185,129,0.1)';
+                    btn.style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.style.color = 'var(--accent-green)';
+                    btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.querySelector('span').style.color = 'var(--accent-green)';
+                } else if (idx === selectedIdx) {
+                    btn.style.background = 'rgba(239,68,68,0.1)';
+                    btn.style.borderColor = 'rgba(239,68,68,0.3)';
+                    btn.style.color = 'var(--accent-red)';
+                    btn.querySelector('span').style.borderColor = 'rgba(239,68,68,0.3)';
+                    btn.querySelector('span').style.color = 'var(--accent-red)';
+                } else {
+                    btn.style.opacity = '0.4';
+                }
+            });
+
+            const expl = document.getElementById('studyExplanationArea');
+            expl.innerHTML = `
+                <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
+                    ${isCorrect ? '<span style="color:var(--accent-green)"><i class="fas fa-check-circle"></i> Correct!</span>' : '<span style="color:var(--accent-red)"><i class="fas fa-times-circle"></i> Incorrect</span>'}
+                </div>
+                ${q.explanation ? `<div style="background:var(--bg-body);padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--text-main);font-size:0.875rem;line-height:1.5;"><span style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem;font-size:0.7rem;text-transform:uppercase;">Explanation</span>${window.escapeHTML(q.explanation)}</div>` : ''}
+            `;
+            expl.style.display = 'flex';
+
+            // Unlock Next button
+const nextBtn = document.getElementById('studyNextBtn');
+if (nextBtn) {
+    nextBtn.disabled = false;
+    nextBtn.style.opacity = '1';
+    nextBtn.style.cursor = 'pointer';
+} 
+
+            setTimeout(() => { expl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+        }
+
+        window.finishStudyQuiz = async function() {
+            const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
+            const totalXP = isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20);
+            window.addXP(totalXP);
+
+            if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
+            currentQuiz.stats.attempts++;
+            currentQuiz.stats.lastScore = examScore;
+            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+
+            if (window.currentUser) {
+                try {
+                    const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                    await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
+                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                } catch(e) { console.error("Cloud stats sync failed", e); }
+            }
+
+            const area = document.getElementById('studyPracticeArea');
+            const total = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const percentage = total > 0 ? Math.round((examScore / total) * 100) : 100;
+            let stars = 1; if (percentage >= 80) stars = 3; else if (percentage >= 50) stars = 2;
+            const starsHTML = [1,2,3].map(s => `<i class="fas fa-star" style="font-size:1.75rem;color:${s <= stars ? 'var(--accent-yellow)' : 'var(--border-color)'};filter:${s <= stars ? 'drop-shadow(0 0 6px rgba(251,191,36,0.5))' : 'none'};"></i>`).join('');
+
+            area.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:500px;margin:0 auto;" class="fade-in">
+                    <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">${starsHTML}</div>
+                    <h2 style="font-size:1.75rem;font-weight:800;color:var(--text-main);margin-bottom:0.5rem;text-align:center;">${isMCQSession ? 'Quiz Complete!' : 'Review Complete!'}</h2>
+                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:2rem;">${currentQuiz.title}</p>
+                    <div style="display:flex;gap:0.75rem;width:100%;margin-bottom:2.5rem;">
+                        ${isMCQSession ? `
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Score</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${examScore}<span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;"> / ${total}</span></div>
+                        </div>
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Accuracy</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:${percentage >= 80 ? 'var(--accent-green)' : percentage >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)'};">${percentage}%</div>
+                        </div>` : `
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Cards Reviewed</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${total}</div>
+                        </div>`}
+                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">XP Earned</div>
+                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);"><i class="fas fa-bolt" style="color:var(--accent-yellow);font-size:1.25rem;"></i> ${totalXP}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;margin-top:auto;">
+                        <button onclick="window.startPractice(false)" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);">Try Again</button>
+                        <button onclick="window.closePracticeMobile()" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);">Back to Library</button>
+                    </div>
+                </div>
+            `;
+        }
+
+/* ── js/views/create.js ── */
+// Create View
+// --- CREATE UI LOGIC ---
+
+        window.openCreateView = function(type) {
+            window.globalQuizType = type;
+            document.getElementById('selectionView').style.display = 'none';
+            document.getElementById('setupView').style.display = 'flex';
+            document.getElementById('createHeaderTitle').textContent = `Create ${type}`;
+            document.getElementById('createBackBtn').style.display = 'flex';
+        };
+
+        window.enterQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = 'translateY(100%)';
+            const header = document.querySelector('#view-create .top-header');
+            if (header) header.style.display = 'none';
+            Object.assign(document.getElementById('interactiveView').style, { position:'fixed', inset:'0', zIndex:'200', background:'var(--bg-body)', padding:'0', overflowY:'auto' });
+        };
+        window.exitQuizMode = function() {
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = '';
+            const header = document.querySelector('#view-create .top-header');
+            if (header) header.style.display = '';
+            Object.assign(document.getElementById('interactiveView').style, { position:'', inset:'', zIndex:'', background:'', padding:'', overflowY:'' });
+        };
+
+        window.goBackToSelection = function() {
+            window.exitQuizMode();
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('selectionView').style.display = 'flex';
+            document.getElementById('createHeaderTitle').textContent = "What to create?";
+            document.getElementById('createBackBtn').style.display = 'none';
+            
+            // Reset state
+            window.selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
+            document.getElementById('uploadTitle').textContent = "Tap to Upload File";
+            document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
+            
+            document.getElementById('configSection').style.opacity = '0.5';
+            document.getElementById('configSection').style.pointerEvents = 'none';
+            
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.style.background = 'var(--bg-surface)';
+            btn.style.color = 'var(--text-muted)';
+            btn.style.cursor = 'not-allowed';
+            
+            document.getElementById('interactiveView').style.display = 'none';
+        };
+
+        // --- LIBRARY FILTER TABS & SEARCH ---
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const searchVal = document.getElementById('librarySearchInput') ? document.getElementById('librarySearchInput').value : '';
+                window.renderLibrary(btn.dataset.filter, searchVal);
+            });
+        });
+        const librarySearchInput = document.getElementById('librarySearchInput');
+        if (librarySearchInput) {
+            librarySearchInput.addEventListener('input', (e) => {
+                const activeTabEl = document.querySelector('.tab-btn.active');
+                const filter = activeTabEl ? activeTabEl.dataset.filter : 'all';
+                window.renderLibrary(filter, e.target.value);
+            });
+        }
+
+        // --- LOTTIE LOADER INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const loaderContainer = document.getElementById('lottieLoaderContainer');
+            if (loaderContainer && typeof lottie !== 'undefined') {
+                try {
+                    window.lottieAnimation = lottie.loadAnimation({
+                        container: loaderContainer,
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: false,
+                        path: 'scan.json'
+                    });
+                } catch(e) { window.lottieAnimation = null; }
+            }
+        });
+        const sliderValue = document.getElementById('sliderValue');
+        if(itemSlider && sliderValue) {
+            itemSlider.addEventListener('input', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (val > window.allowedMaxItems) {
+                    sliderValue.innerHTML = `${val} <i class="fas fa-lock" style="font-size: 10px;"></i>`;
+                    sliderValue.style.color = 'var(--accent-yellow)';
+                    sliderValue.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+                } else {
+                    sliderValue.textContent = val;
+                    sliderValue.style.color = 'var(--text-main)';
+                    sliderValue.style.borderColor = 'var(--border-glass)';
+                }
+            });
+            itemSlider.addEventListener('change', async (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (val > window.allowedMaxItems) {
+                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
+                    if (wantToUpgrade) window.navigateTo('view-payment');
+                    else { 
+                        e.target.value = window.allowedMaxItems; 
+                        sliderValue.textContent = window.allowedMaxItems; 
+                        sliderValue.style.color = 'var(--text-main)';
+                        sliderValue.style.borderColor = 'var(--border-glass)';
+                    }
+                }
+            });
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        if(fileInput) {
+            fileInput.addEventListener('click', (e) => { if (!window.currentUser) { e.preventDefault(); window.showLoginModal(); } });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (file.size > 10 * 1024 * 1024) { alert("File is too large. Maximum size is 10MB."); fileInput.value = ''; return; }
+                    window.selectedFile = file;
+                    document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-file-check" style="color: var(--accent-btn);"></i>`;
+                    document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
+                    
+                    document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
+                    document.getElementById('configSection').style.opacity = '1';
+                    document.getElementById('configSection').style.pointerEvents = 'auto';
+                    
+                    const btn = document.getElementById('generateBtn');
+                    btn.disabled = false;
+                    btn.style.background = 'var(--accent-btn)';
+                    btn.style.color = 'var(--btn-text)';
+                    btn.style.cursor = 'pointer';
+                }
+            });
+        }
+//// --- NEW INTERACTIVE RENDERER LOGIC (CREATE VIEW) ---
+
+window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
+    if (!correctAnswer) return false;
+    const ans = String(correctAnswer).trim().toLowerCase();
+    const k = String(selectedKey).trim().toLowerCase();
+    const v = String(selectedValue).trim().toLowerCase();
+    return ans === k || ans === v || ans === `${k}. ${v}` || ans.startsWith(k + '.') || ans.startsWith(k + ')');
+};
+
+window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
+            if (cardData.answered) return; cardData.answered = true;
+            const selectedKey = selectedBtn.dataset.key; let selectedIsCorrect = false;
+            const answer = cardData.back || cardData.answer || "No answer provided";
+
+            allButtons.forEach(btn => {
+                const key = btn.dataset.key; const value = btn.dataset.value; 
+                const isThisCorrect = (String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase()));
+                btn.disabled = true; btn.style.opacity = '0.5';
+                if (isThisCorrect) { 
+                    btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1'; 
+                    if (key === selectedKey) { selectedIsCorrect = true; sessionScore++; } 
+                } 
+                else if (key === selectedKey) { 
+                    btn.style.background = 'rgba(239, 68, 68, 0.1)'; btn.style.borderColor = 'rgba(239, 68, 68, 0.3)'; btn.style.color = 'var(--accent-red)'; btn.style.opacity = '1'; 
+                }
+            });
+
+            const explArea = document.getElementById('createExplanationArea');
+            explArea.innerHTML = `<div style="margin-bottom: 0.5rem; font-size: 0.8125rem;">${selectedIsCorrect ? '<span style="color: var(--accent-green); font-weight: 700;"><i class="fas fa-check-circle"></i> Correct</span>' : `<span style="color: var(--accent-red); font-weight: 700;"><i class="fas fa-times-circle"></i> Incorrect</span> <span style="margin-left: 0.5rem; color: var(--text-muted); font-size: 0.75rem;">Answer: <b style="color: var(--text-main);">${window.escapeHTML(answer)}</b></span>`}</div>${cardData.explanation ? `<div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); color: var(--text-main); font-size: 0.875rem; line-height: 1.5;"><span style="font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.375rem; font-size: 0.75rem; text-transform: uppercase;">Explanation</span> ${window.escapeHTML(cardData.explanation)}</div>` : ''}`;
+            explArea.style.display = 'flex'; explArea.classList.add('fade-in');
+            setTimeout(() => { explArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+            document.getElementById('createNextBtn').disabled = false; document.getElementById('createNextBtn').style.opacity = '1'; document.getElementById('createNextBtn').style.cursor = 'pointer';
+        }
+
+        window.renderCreateCurrentCard = function() {
+            const card = generatedCards[currentCardIndex];
+            const safeQuestion = window.escapeHTML(card.front || card.question || "No question provided");
+            const safeAnswer = window.escapeHTML(card.back || card.answer || "No answer provided");
+            const progressPercent = ((currentCardIndex + 1) / generatedCards.length) * 100;
+            const viewContainer = document.getElementById('interactiveView');
+
+            let html = `
+                <div style="display: flex; flex-direction: column; height: 100%; min-height: 100vh; padding: 1.25rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.5rem); box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-shrink: 0;">
+                    <button onclick="window.goBackToSelection()" style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--bg-surface); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; color: var(--text-main); font-size: 0.875rem; cursor: pointer; flex-shrink: 0; transition: 0.2s;" ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform=''"><i class="fas fa-arrow-left"></i></button>
+                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; flex: 1;">${isMCQMode ? 'Quiz Mode' : 'Flashcards'}</h2>
+                    <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-main);">${currentCardIndex + 1} / ${generatedCards.length}</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: var(--bg-body); border-radius: 100px; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--border-glass); flex-shrink: 0;"><div style="height: 100%; background: var(--accent-btn); border-radius: 100px; transition: width 0.4s var(--ease-snap); width: ${progressPercent}%;"></div></div>
+            `;
+
+            if (isMCQMode) {
+                let optionsHTML = '<div style="display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; width: 100%;">';
+                if (card.options && typeof card.options === 'object') {
+                    for (const [key, value] of Object.entries(card.options)) {
+                        optionsHTML += `<button class="create-mcq-option" data-key="${window.escapeHTML(key)}" data-value="${window.escapeHTML(value)}" style="width: 100%; text-align: left; padding: 0.75rem 0.875rem; border-radius: var(--radius-md); background: var(--bg-body); border: 1px solid var(--border-glass); display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; color: var(--text-main);"><span style="font-weight: 600; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border-glass); width: 1.625rem; height: 1.625rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.75rem; flex-shrink: 0; margin-top: 0.125rem;">${window.escapeHTML(key)}</span><span style="flex: 1; font-size: 0.875rem; line-height: 1.4; padding-top: 0.125rem; font-weight: 500;">${window.escapeHTML(value)}</span></button>`;
+                    }
+                }
+                optionsHTML += '</div>';
+
+                html += `<div style="flex: 1; background: var(--bg-surface); border-radius: var(--radius-card); padding: 1rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;"><div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; padding-right: 0.25rem;" class="hide-scroll"><h3 style="font-weight: 700; color: var(--text-main); font-size: 0.9375rem; line-height: 1.5; margin-bottom: 0.875rem; flex-shrink: 0;">${safeQuestion}</h3>${optionsHTML}<div id="createExplanationArea" style="display: none; flex-direction: column; flex-shrink: 0; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-glass);"></div></div></div>`;
+            } else {
+                html += `
+                    <div id="flashcardElement" style="flex: 1; position: relative; perspective: 1000px; cursor: pointer; min-height: 0; width: 100%;">
+                        <div id="flipInner" style="position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s var(--ease-snap); border-radius: var(--radius-card);">
+                            <div style="position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: var(--radius-card); padding: 1.5rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; background: var(--bg-surface); z-index: 2; transform: rotateY(0deg);">
+                                <span style="position: absolute; top: 1.5rem; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Question</span>
+                                <h3 style="font-weight: 600; font-size: 1.125rem; line-height: 1.5; margin-top: 1rem; color: var(--text-main);">${safeQuestion}</h3>
+                                <p style="position: absolute; bottom: 1.25rem; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 0.375rem; color: var(--text-muted);"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                            <div style="position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: var(--radius-card); padding: 1.5rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; background: var(--accent-btn); transform: rotateY(180deg); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); z-index: 1;">
+                                <span style="position: absolute; top: 1.5rem; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--btn-text); opacity: 0.7;">Answer</span>
+                                <p style="font-weight: 600; font-size: 1.125rem; line-height: 1.5; margin-top: 1rem; color: var(--btn-text);">${safeAnswer}</p>
+                                <p style="position: absolute; bottom: 1.25rem; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 0.375rem; color: var(--btn-text); opacity: 0.8;"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            html += `
+                <div style="display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; flex-shrink: 0;">
+                    <button id="createPrevBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: ${currentCardIndex === 0 ? 'not-allowed' : 'pointer'}; border: 1px solid var(--border-glass); background: var(--bg-surface); color: var(--text-main); opacity: ${currentCardIndex === 0 ? '0.4' : '1'};" ${currentCardIndex === 0 ? 'disabled' : ''}>Previous</button>
+                    <button id="createNextBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: ${(isMCQMode && !card.answered) ? 'not-allowed' : 'pointer'}; border: none; background: var(--accent-btn); color: var(--btn-text); opacity: ${(isMCQMode && !card.answered) ? '0.4' : '1'};" ${(isMCQMode && !card.answered) ? 'disabled' : ''}>${currentCardIndex === generatedCards.length - 1 ? 'Finish' : 'Next'}</button>
+                </div>
+                </div>
+            `;
+            viewContainer.innerHTML = html;
+
+            if (isMCQMode) {
+                const buttons = viewContainer.querySelectorAll('.create-mcq-option');
+                buttons.forEach(btn => btn.addEventListener('click', () => window.handleCreateMCQSelection(btn, card, buttons)));
+            } else {
+                const fc = document.getElementById('flashcardElement');
+                fc.addEventListener('click', () => { const inner = document.getElementById('flipInner'); inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)'; });
+            }
+            document.getElementById('createPrevBtn').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; window.renderCreateCurrentCard(); } });
+            document.getElementById('createNextBtn').addEventListener('click', () => { if (currentCardIndex < generatedCards.length - 1) { currentCardIndex++; window.renderCreateCurrentCard(); } else { window.showCreateResults(); } });
+        }
+
+        window.showCreateResults = function() {
+            const percentage = generatedCards.length > 0 ? Math.round((sessionScore / generatedCards.length) * 100) : 100;
+            const viewContainer = document.getElementById('interactiveView');
+            let html = '';
+
+            if (isMCQMode) {
+                window.finalEarnedXP = sessionScore * 10;
+                let earnedStars = 1; if (percentage >= 80) earnedStars = 3; else if (percentage >= 50) earnedStars = 2;
+                html = `
+                    <div class="fade-in" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; padding: 2rem 1rem 1rem;">
+                        <div style="display: flex; gap: 0.5rem; font-size: 3.5rem; margin-bottom: 1rem;">
+                            <i class="fas fa-star" style="color: ${earnedStars >= 1 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                            <i class="fas fa-star" style="transform: translateY(-10px); color: ${earnedStars >= 2 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                            <i class="fas fa-star" style="color: ${earnedStars >= 3 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                        </div>
+                        <h2 style="color: var(--accent-yellow); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-align: center;">Quiz Complete!</h2>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem;">
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">TOTAL XP</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bolt" style="color: var(--accent-yellow);"></i> <span id="animatedXP">0</span></div>
+                            </div>
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">AMAZING</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bullseye" style="color: var(--accent-green);"></i> <span id="animatedAcc">0</span>%</div>
+                            </div>
+                        </div>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                    </div>`;
+            } else {
+                window.finalEarnedXP = generatedCards.length * 5;
+                html = `
+                    <div class="fade-in" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; padding: 2rem 1rem 1rem;">
+                        <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 4px solid var(--accent-green); color: var(--accent-green); font-size: 3.5rem;"><i class="fas fa-check"></i></div>
+                        <h2 style="color: var(--accent-green); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-align: center;">Review Complete!</h2>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem;">
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">TOTAL XP</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bolt" style="color: var(--accent-yellow);"></i> <span id="animatedXP">0</span></div>
+                            </div>
+                        </div>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                    </div>`;
+            }
+            viewContainer.innerHTML = html;
+            window.animateValue("animatedXP", 0, window.finalEarnedXP, 1500);
+            if (isMCQMode) window.animateValue("animatedAcc", 0, percentage, 1500);
+        }
+        
+        window.claimAndContinue = async function() {
+            const btn = document.querySelector('.btn-claim-xp');
+            btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7';
+            try { await window.addXP(window.finalEarnedXP); } catch(e) {}
+            window.goBackToSelection();
+            window.navigateTo('view-home');
+            window.updateHomeContinueCard();
+        }
+
+        window.animateValue = function(id, start, end, duration) {
+            if (start === end) { document.getElementById(id).textContent = end; return; }
+            let current = start; let increment = end > start ? 1 : -1;
+            let stepTime = Math.abs(Math.floor(duration / Math.max(end - start, 1)));
+            if (stepTime < 10) { stepTime = 10; increment = Math.ceil((end - start) / (duration / stepTime)); }
+            let obj = document.getElementById(id);
+            let timer = setInterval(function() {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) { current = end; clearInterval(timer); }
+                obj.textContent = current;
+            }, stepTime);
+        }
+
+/* ── js/views/payment.js ── */
+// Payment View
+// ---- PAYMENT PAGE LOGIC ----
+        // Defined at top level — NOT inside an IIFE — so a crash elsewhere can't prevent registration
+        var _payCurrentPlan = 'monthly';
+        var _payCdInterval = null;
+
+        function _payGetCountdownEnd() {
+            var end = sessionStorage.getItem('payCountdownEnd');
+            if (!end) { end = Date.now() + (23 * 3600000 + 59 * 60000 + 59000); sessionStorage.setItem('payCountdownEnd', end); }
+            return parseInt(end);
+        }
+
+        function _payTick() {
+            try {
+                var diff = Math.max(0, _payGetCountdownEnd() - Date.now());
+                var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+                var pad = function(n) { return String(n).padStart(2, '0'); };
+                var hEl = document.getElementById('payH'), mEl = document.getElementById('payM'), sEl = document.getElementById('payS');
+                if (hEl) hEl.textContent = pad(h);
+                if (mEl) mEl.textContent = pad(m);
+                if (sEl) sEl.textContent = pad(s);
+            } catch(e) {}
+        }
+
+        window.switchPayPlan = function(plan) {
+            try {
+                _payCurrentPlan = plan;
+                var cM = document.getElementById('pCardMonthly'), cY = document.getElementById('pCardYearly');
+                var dealBox = document.getElementById('payDealBox'), ctaEl = document.getElementById('payCTABtn');
+                if (!cM || !cY) return;
+                if (plan === 'monthly') {
+                    cM.classList.add('active'); cY.classList.remove('active');
+                    if (dealBox) dealBox.style.display = 'none';
+                    clearInterval(_payCdInterval);
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Monthly — ₦1,999';
+                } else {
+                    cM.classList.remove('active'); cY.classList.add('active');
+                    if (dealBox) { dealBox.style.display = 'flex'; clearInterval(_payCdInterval); _payTick(); _payCdInterval = setInterval(_payTick, 1000); }
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Yearly — ₦17,999';
+                }
+            } catch(e) { console.warn('switchPayPlan error:', e); }
+        };
+
+        window.handlePayCTA = function() {
+            try {
+                if (_payCurrentPlan === 'monthly') window.startPayment('premium');
+                else window.startPayment('premium_yearly');
+            } catch(e) { console.warn('handlePayCTA error:', e); }
+        };
+
+        // --- PAYMENT UI LOGIC ---
+        window.openPaymentModal = function(url) {
+            const modal = document.getElementById('paymentModalOverlay');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+            iframe.src = url;
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; sheet.style.transform = 'translateY(0)'; }, 10);
+        };
+
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModalOverlay');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+            modal.style.opacity = '0';
+            sheet.style.transform = 'translateY(100%)';
+            setTimeout(() => { modal.style.display = 'none'; iframe.src = ''; }, 300);
+        };
+
+        window.startPayment = function(plan) {
+            if (!window.currentUser) { window.showLoginModal(); return; }
+            if (plan === "free") { navigateTo("view-home"); return; }
+
+            var displayName = window.currentUser.displayName || window.currentUser.email.split("@")[0] || "";
+            var nameParts = displayName.trim().split(" ");
+            var firstName = nameParts[0] || "User";
+            var lastName  = nameParts.slice(1).join(" ") || ".";
+            var email     = window.currentUser.email || "";
+
+            var amounts = {
+                premium:         199900,
+                premium_monthly: 199900,
+                premium_yearly:  1799900,
+                elite:           299900
+            };
+            var amount = amounts[plan];
+            if (!amount) return;
+
+            var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+
+            try {
+                var handler = PaystackPop.setup({
+                    key:        "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
+                    email:      email,
+                    first_name: firstName,
+                    last_name:  lastName,
+                    amount:     amount,
+                    currency:   "NGN",
+                    ref:        ref,
+                    channels:   ['card'],
+                    metadata:   { uid: window.currentUser.uid || "", plan: plan },
+                    onSuccess: function(transaction) {
+                        try {
+                            if (window.db && window.currentUser && window.currentUser.uid) {
+                                var newPlan = (plan === "premium_yearly") ? "premium" : plan.replace("_monthly", "");
+                                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js")
+                                    .then(function(m) {
+                                        m.updateDoc(m.doc(window.db, "users", window.currentUser.uid), {
+                                            plan: newPlan, planRef: transaction.reference, planUpdatedAt: new Date().toISOString()
+                                        }).catch(function(){});
+                                    }).catch(function(){});
+                                window.userPlan = newPlan;
+                                window.updatePlanIcon(window.userPlan);
+                            }
+                        } catch(e) {}
+                        var btn = document.getElementById('payCTABtn');
+                        if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "var(--accent-green)"; btn.style.color = "#000"; }
+                        setTimeout(function() { navigateTo('view-home'); }, 1800);
+                    },
+                    onCancel: function() {}
+                });
+                handler.openIframe();
+            } catch(err) {
+                console.error("Paystack error:", err);
+                window.openPaymentModal(plan === "elite" ? "https://paystack.shop/pay/lw17s2ggpj" : "https://paystack.shop/pay/5wqjry1l0a");
+            }
+        };
+
+/* ── js/push.js ── */
+/**
+         * initPush(userId)
+         * ─────────────────────────────────────────────────────────────────
+         * Initialises FCM via the Capacitor native bridge.
+         * Called automatically from onAuthStateChanged once the user is
+         * confirmed logged-in, so userId is always valid.
+         *
+         * Flow:
+         *   1. Guard — native Capacitor device only
+         *   2. Attach 'registration' + 'registrationError' listeners FIRST
+         *      (must precede register() — cached tokens fire instantly on Android)
+         *   3. Request OS permission
+         *   4. Call register() → native FCM token arrives via 'registration' event
+         *   5. Save full token to backend (POST /saveToken) + write directly to
+         *      Firestore users/{uid}.tokens[] as a belt-and-suspenders backup
+         */
+        window.initPush = async function (userId) {
+            // ── Guard ──────────────────────────────────────────────────────
+            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+                console.log("[Push] Not a native platform — skipping.");
+                return;
+            }
+
+            const { PushNotifications } = window.Capacitor.Plugins;
+            if (!PushNotifications) {
+                console.error("[Push] Plugin missing — run: npm i @capacitor/push-notifications && npx cap sync");
+                return;
+            }
+
+            // ── Step 1: attach listeners BEFORE register() ─────────────────
+            // On Android, a cached token fires the event almost immediately
+            // after register() is called. Adding the listener after register()
+            // creates a race condition where the event is missed entirely.
+            PushNotifications.addListener("registration", async (token) => {
+                // token.value is the raw FCM token string — never truncate it
+                const fcmToken = (token.value || "").trim();
+                console.log("[Push] ✅ FCM token received:", fcmToken);
+
+                const uid = userId || window.currentUser?.uid || null;
+                if (!uid) {
+                    console.error("[Push] No userId at token-save time — aborting.");
+                    return;
+                }
+
+                // ── Save via Cloud Function (primary) ─────────────────────
+                try {
+                    const res = await fetch(
+                        "https://us-central1-medxcel.cloudfunctions.net/saveToken",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ token: fcmToken, userId: uid })
+                        }
+                    );
+                    const data = await res.json();
+                    console.log("[Push] saveToken response:", res.status, data);
+                } catch (err) {
+                    console.error("[Push] saveToken fetch failed:", err);
+                }
+
+                // ── Write directly to Firestore (backup) ──────────────────
+                // Ensures token is stored even if the Cloud Function is cold.
+                // arrayUnion deduplicates — safe to call on every app start.
+                try {
+                    if (window.db) {
+                        const { doc, updateDoc, arrayUnion } =
+                            await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                        await updateDoc(doc(window.db, "users", uid), {
+                            tokens: arrayUnion(fcmToken),
+                            fcmUpdatedAt: new Date().toISOString()
+                        });
+                        console.log("[Push] ✅ Token also written directly to Firestore.");
+                    }
+                } catch (err) {
+                    console.error("[Push] Firestore direct write failed:", err);
+                }
+            });
+
+            PushNotifications.addListener("registrationError", (err) => {
+                console.error("[Push] ❌ Registration error:", JSON.stringify(err));
+            });
+
+            // ── Step 2: request OS permission ──────────────────────────────
+            const permStatus = await PushNotifications.requestPermissions();
+            console.log("[Push] Permission:", permStatus.receive);
+            if (permStatus.receive !== "granted") {
+                console.warn("[Push] Permission not granted — notifications disabled.");
+                return;
+            }
+
+            // ── Step 3: register with FCM ───────────────────────────────────
+            // This triggers the native FCM registration. Token arrives via the
+            // 'registration' listener above (which is already attached).
+            await PushNotifications.register();
+            console.log("[Push] register() called — awaiting token event...");
+        };

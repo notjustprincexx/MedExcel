@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Preconnect to external domains for speed -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://js.paystack.co">
+  <link rel="dns-prefetch" href="https://us-central1-medxcel.cloudfunctions.net">
+  <!-- Preload Firebase modules so they're ready before the module script runs -->
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#09090b">
@@ -13,8 +24,8 @@
   <!-- CDN Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js" defer></script>
+  <script src="https://js.paystack.co/v1/inline.js" defer></script>
 
   <!-- App Styles -->
   <link rel="stylesheet" href="css/app.css">
@@ -880,27 +891,10 @@
         </div>
     </div>
 
-  <!-- ═══ Scripts — loaded in dependency order ═══ -->
+    <!-- App Bundle (all views combined = 1 request) -->
+  <script src="js/app.bundle.js"></script>
 
-  <!-- 1. Core: state, router, utils, modals, profile helpers -->
-  <script src="js/app.js"></script>
-
-  <!-- 2. Referral system -->
-  <script src="js/referral.js"></script>
-
-  <!-- 3. Upgrade modal + theme toggle -->
-  <script src="js/upgrade-modal.js"></script>
-
-  <!-- 4. View files (each handles one screen) -->
-  <script src="js/views/home.js"></script>
-  <script src="js/views/study.js"></script>
-  <script src="js/views/create.js"></script>
-  <script src="js/views/payment.js"></script>
-
-  <!-- 5. Push notifications (Capacitor FCM) -->
-  <script src="js/push.js"></script>
-
-  <!-- 6. Firebase (single module — auth, Firestore, Storage, Functions, XP, leaderboard, avatar, user init) -->
+  <!-- Firebase (module) -->
   <script type="module" src="js/firebase.js"></script>
 
 </body>
