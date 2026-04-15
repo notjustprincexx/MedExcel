@@ -46,6 +46,60 @@
                 cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
                 cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
             }
+
+            // Always refresh recent decks at the same time (quizzes are guaranteed loaded here)
+            window.renderRecentDecks();
+        };
+
+        // Recent Decks — last 3 generated, empty state if none
+        window.renderRecentDecks = function() {
+            const container = document.getElementById('recentDecksContainer');
+            if (!container) return;
+
+            const quizzes = window.quizzes || [];
+            if (quizzes.length === 0) {
+                container.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;padding:1.5rem 0;text-align:center;">
+                        <div style="width:48px;height:48px;border-radius:16px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;font-size:1.25rem;color:var(--accent-btn);"><i class="fas fa-layer-group"></i></div>
+                        <p style="font-size:0.875rem;font-weight:600;color:var(--text-muted);margin:0;">No decks yet</p>
+                        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;opacity:0.7;">Generate your first quiz to see it here</p>
+                    </div>`;
+                return;
+            }
+
+            const iconColors = [
+                { bg: 'rgba(139,92,246,0.1)', color: '#a78bfa' },
+                { bg: 'rgba(236,72,153,0.1)', color: '#f472b6' },
+                { bg: 'rgba(59,130,246,0.1)', color: '#60a5fa' }
+            ];
+
+            const recent = quizzes.slice().reverse().slice(0, 3);
+            container.innerHTML = recent.map((quiz, i) => {
+                const isMCQ = quiz.type && quiz.type.includes('Multiple');
+                const count = quiz.questions ? quiz.questions.length : 0;
+                const best = quiz.stats ? quiz.stats.bestScore : 0;
+                const pct = count > 0 ? Math.round((best / count) * 100) : 0;
+                const pctColor = pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--text-muted)';
+                const icon = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
+                const { bg, color } = iconColors[i % iconColors.length];
+                const label = isMCQ ? 'Questions' : 'Cards';
+                const title = window.escapeHTML ? window.escapeHTML(quiz.title || 'Untitled') : (quiz.title || 'Untitled');
+                const subject = window.escapeHTML ? window.escapeHTML(quiz.subject || 'General') : (quiz.subject || 'General');
+
+                return `<a href="javascript:void(0)" onclick="navigateTo('view-study')"
+                    style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);text-decoration:none;">
+                    <div style="display:flex;align-items:center;min-width:0;flex:1;">
+                        <div style="width:48px;height:48px;border-radius:50%;background:${bg};color:${color};display:flex;align-items:center;justify-content:center;font-size:1.125rem;margin-right:1rem;flex-shrink:0;">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div style="display:flex;flex-direction:column;min-width:0;">
+                            <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted);">${count} ${label} • ${subject}</span>
+                        </div>
+                    </div>
+                    <span style="font-size:0.875rem;font-weight:700;color:${pctColor};flex-shrink:0;margin-left:0.75rem;">+${pct}%</span>
+                </a>`;
+            }).join('');
         };
 
         // --- BULLETPROOF ROUTER LOGIC ---

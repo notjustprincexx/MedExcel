@@ -27,9 +27,22 @@
         window.goBackToSelection = function() {
             window.exitQuizMode();
             document.getElementById('setupView').style.display = 'none';
-            document.getElementById('selectionView').style.display = 'flex';
+            document.getElementById('interactiveView').style.display = 'none';
             document.getElementById('createHeaderTitle').textContent = "What to create?";
             document.getElementById('createBackBtn').style.display = 'none';
+
+            // If coming from home page MCQ/Flashcard tap, skip selection entirely
+            if (window._pendingCreateType) {
+                const type = window._pendingCreateType;
+                window._pendingCreateType = null;
+                // Hide selection so it never shows, then open the setup view directly
+                document.getElementById('selectionView').style.display = 'none';
+                window.openCreateView(type);
+                return;
+            }
+
+            // Normal back — show selection screen
+            document.getElementById('selectionView').style.display = 'flex';
             
             // Reset state
             window.selectedFile = null;

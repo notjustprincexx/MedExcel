@@ -1,3 +1,4 @@
+/* ── app.js ── */
 /* ── js/app.js ── */
 // State · Router · Utils · Modals · Profile Helpers
 // --- GLOBAL VARIABLES & STATE ---
@@ -19,6 +20,58 @@
         let currentCardIndex = 0;
         let isMCQMode = false;
         let sessionScore = 0;
+        window.renderRecentDecks = function() {
+            const container = document.getElementById('recentDecksContainer');
+            if (!container) return;
+
+            const quizzes = window.quizzes || [];
+            if (quizzes.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center py-6 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-3 text-xl text-[var(--accent-btn)]">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <p class="text-sm font-medium text-[var(--text-muted)]">No decks yet</p>
+                        <p class="text-xs text-[var(--text-muted)] mt-1 opacity-70">Generate your first quiz to see it here</p>
+                    </div>`;
+                return;
+            }
+
+            // Last 3, most recent first
+            const recent = quizzes.slice().reverse().slice(0, 3);
+            const iconColors = ['bg-purple-500/10 text-purple-400', 'bg-pink-500/10 text-pink-400', 'bg-blue-500/10 text-blue-400'];
+            const icons = ['fas fa-layer-group', 'fas fa-cards-blank', 'fas fa-brain'];
+
+            container.innerHTML = recent.map((quiz, i) => {
+                const isMCQ = quiz.type && quiz.type.includes('Multiple');
+                const count = quiz.questions ? quiz.questions.length : 0;
+                const best = quiz.stats ? quiz.stats.bestScore : 0;
+                const attempts = quiz.stats ? quiz.stats.attempts : 0;
+                const pct = count > 0 && attempts > 0 ? Math.round((best / count) * 100) : null;
+                const pctLabel = pct === null ? 'New' : `+${pct}%`;
+                const pctColor = pct === null ? 'var(--accent-btn)' : pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--text-muted)';
+                const icon = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
+                const color = iconColors[i % iconColors.length];
+                const label = isMCQ ? 'Questions' : 'Cards';
+
+                return `<a href="javascript:void(0)" onclick="navigateTo('view-study')" 
+                    class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
+                    <div class="flex items-center min-w-0">
+                        <div class="w-12 h-12 rounded-full ${color} flex items-center justify-center text-xl mr-4 shrink-0">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-[15px] font-bold text-[var(--text-main)] mb-0.5 truncate">${window.escapeHTML(quiz.title || 'Untitled')}</span>
+                            <span class="text-[12px] text-[var(--text-muted)]">${count} ${label} • ${window.escapeHTML(quiz.subject || 'General')}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end shrink-0 ml-3">
+                        <span style="font-size:0.875rem;font-weight:700;color:${pctColor};flex-shrink:0;margin-left:0.75rem;">${pctLabel}</span>
+                    </div>
+                </a>`;
+            }).join('');
+        };
+
         window.updateHomeContinueCard = function() {
             const cTitle = document.getElementById('continueTitle');
             const cMeta = document.getElementById('continueMeta');
@@ -47,6 +100,8 @@
                 cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
                 cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
             }
+            // Update recent decks in sync
+            window.renderRecentDecks();
         };
 
         // --- BULLETPROOF ROUTER LOGIC ---
@@ -237,6 +292,8 @@
         // =========================================================
 
 /* ── js/referral.js ── */
+
+/* ── referral.js ── */
 // Referral System
 // REFERRAL SYSTEM — global scope so initUserUI can call it
         // =========================================================
@@ -399,7 +456,7 @@
 
         // =========================================================
 
-/* ── js/upgrade-modal.js ── */
+/* ── upgrade-modal.js ── */
 // Upgrade Modal · Theme Toggle
 // UPGRADE MODAL — open / close
         // =========================================================
@@ -486,9 +543,12 @@
             });
         }
 
-/* ── js/views/home.js ── */
+/* ── home.js ── */
 // Home View
 // --- HOME UI LOGIC ---
+
+        // Render last 3 decks dynamically — empty state if none
+        
         // Carousel Sync
         const carousel = document.getElementById('promoCarousel');
         const indicators = document.querySelectorAll('.promo-dot');
@@ -608,7 +668,7 @@
             if(hIcon) hIcon.style.opacity = '1';
         };
 
-/* ── js/views/study.js ── */
+/* ── study.js ── */
 // Study / Library View
 // --- STUDY UI LOGIC ---
         window.openPracticeMobile = function() {
@@ -866,7 +926,7 @@ if (nextBtn) {
             `;
         }
 
-/* ── js/views/create.js ── */
+/* ── create.js ── */
 // Create View
 // --- CREATE UI LOGIC ---
 
@@ -896,9 +956,22 @@ if (nextBtn) {
         window.goBackToSelection = function() {
             window.exitQuizMode();
             document.getElementById('setupView').style.display = 'none';
-            document.getElementById('selectionView').style.display = 'flex';
+            document.getElementById('interactiveView').style.display = 'none';
             document.getElementById('createHeaderTitle').textContent = "What to create?";
             document.getElementById('createBackBtn').style.display = 'none';
+
+            // If coming from home page MCQ/Flashcard tap, skip selection entirely
+            if (window._pendingCreateType) {
+                const type = window._pendingCreateType;
+                window._pendingCreateType = null;
+                // Hide selection so it never shows, then open the setup view directly
+                document.getElementById('selectionView').style.display = 'none';
+                window.openCreateView(type);
+                return;
+            }
+
+            // Normal back — show selection screen
+            document.getElementById('selectionView').style.display = 'flex';
             
             // Reset state
             window.selectedFile = null;
@@ -1174,7 +1247,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             }, stepTime);
         }
 
-/* ── js/views/payment.js ── */
+/* ── payment.js ── */
 // Payment View
 // ---- PAYMENT PAGE LOGIC ----
         // Defined at top level — NOT inside an IIFE — so a crash elsewhere can't prevent registration
@@ -1303,7 +1376,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             }
         };
 
-/* ── js/push.js ── */
+/* ── push.js ── */
 /**
          * initPush(userId)
          * ─────────────────────────────────────────────────────────────────

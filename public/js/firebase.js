@@ -722,25 +722,50 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.initUserUI = async function(user) {
             try {
                 let savedName = user.displayName || (user.email ? user.email.split("@")[0] : "User");
-                
-                // Set Profile texts
+
+                // ── STEP 1: Paint UI instantly from localStorage cache ──────────
+                const cachedStats   = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {};
+                const cachedStreak  = JSON.parse(localStorage.getItem('medexcel_streak_' + user.uid)) || { count: 0, lastDate: null };
+                const cachedQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid)) || [];
+
+                // Name instantly
+                const greetingTitleEl = document.getElementById('greetingTitle');
+                if(greetingTitleEl) { greetingTitleEl.classList.remove('skeleton'); greetingTitleEl.style.width='auto'; greetingTitleEl.style.height='auto'; greetingTitleEl.innerHTML = `Hi, ${savedName} ${window.getTimeEmoji()}`; }
                 const uNameEl = document.getElementById("userName"); if(uNameEl) uNameEl.textContent = savedName;
                 const uEmailEl = document.getElementById("userEmail"); if(uEmailEl) uEmailEl.textContent = user.email || "";
                 const uInitEl = document.getElementById("userInitial"); if(uInitEl) uInitEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
                 const uHomeInit = document.getElementById("homeAvatarInitial"); if(uHomeInit) uHomeInit.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
                 window.applyAvatar();
 
-                // Fetch Quizzes securely
-                try {
-                    const qSnap = await getDocs(collection(db, "users", user.uid, "quizzes"));
-                    let loadedQuizzes = []; qSnap.forEach(d => loadedQuizzes.push(d.data()));
+                // Streak instantly from cache
+                const headerDisplay = document.getElementById('headerStreakDisplay');
+                if(headerDisplay) { headerDisplay.classList.remove('skeleton'); headerDisplay.style.width='auto'; headerDisplay.style.height='auto'; headerDisplay.textContent = cachedStreak.count || 0; }
+
+                // Library + home cards instantly from cache
+                if(cachedQuizzes.length > 0) {
+                    window.quizzes = cachedQuizzes;
+                    window.updateHomeContinueCard();
+                    window.renderLibrary('all', '');
+                }
+
+                // XP instantly from cache
+                if(cachedStats.xp) window.updateProfileXP(cachedStats.xp);
+
+                // ── STEP 2: Fetch quizzes + user doc in parallel ───────────────
+                const userRef = doc(db, "users", user.uid);
+                const [qSnapResult, userDocResult] = await Promise.all([
+                    getDocs(collection(db, "users", user.uid, "quizzes")).catch(() => null),
+                    getDoc(userRef).catch(() => null)
+                ]);
+
+                // Update quizzes from Firestore
+                if(qSnapResult) {
+                    let loadedQuizzes = []; qSnapResult.forEach(d => loadedQuizzes.push(d.data()));
                     loadedQuizzes.sort((a,b) => a.id - b.id); window.quizzes = loadedQuizzes;
                     localStorage.setItem('medexcel_quizzes_' + user.uid, JSON.stringify(window.quizzes));
-                } catch(e) { window.quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid)) || []; }
+                } else { window.quizzes = cachedQuizzes; }
 
-                // Fetch Main Doc — create it immediately if this is a new user (e.g. first Google sign-in)
-                const userRef = doc(db, "users", user.uid);
-                let userDoc = await getDoc(userRef);
+                let userDoc = userDocResult;
                 let data;
 
                 if (userDoc.exists()) {
@@ -771,9 +796,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // ---- UI updates — always run for both new and existing users ----
 
-                // Home Greeting
+                // Home Greeting — already painted from cache above, just refresh name if Firestore has better displayName
                 const greetingTitle = document.getElementById('greetingTitle');
-                if(greetingTitle) { greetingTitle.classList.remove('skeleton'); greetingTitle.style.width='auto'; greetingTitle.style.height='auto'; greetingTitle.innerHTML = `Hi, ${savedName} ${window.getTimeEmoji()}`; }
+                if(greetingTitle) greetingTitle.innerHTML = `Hi, ${savedName} ${window.getTimeEmoji()}`;
 
                 // Streak logic
                 const storageKey = 'medexcel_streak_' + user.uid;
@@ -800,8 +825,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 else if (localStreak.lastDate === yesterdayStr) { hasCheckedInToday = false; currentStreakCount = localStreak.count + 1; }
                 else { hasCheckedInToday = false; currentStreakCount = 1; }
 
-                const headerDisplay = document.getElementById('headerStreakDisplay'); const headerFireIcon = document.getElementById('headerFireIcon');
-                if(headerDisplay) { headerDisplay.classList.remove('skeleton'); headerDisplay.style.width='auto'; headerDisplay.style.height='auto'; }
+                const headerFireIcon = document.getElementById('headerFireIcon');
                 if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => window.openStreakModal(), 500); }
                 else { if(headerDisplay) headerDisplay.textContent = currentStreakCount; if(headerFireIcon) headerFireIcon.style.opacity = '1'; }
 
@@ -809,7 +833,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const pStreak = document.getElementById("profileStreakCount"); if(pStreak) pStreak.textContent = currentStreakCount;
                 const studyStreak = document.getElementById("studyStreakDisplay"); if(studyStreak) studyStreak.textContent = `${currentStreakCount} Day`;
                 const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(data.xp || 0);
-                if (data.createdAt && data.createdAt.toDate) { const dateObj = data.createdAt.toDate(); const memberSince = document.getElementById("memberSince"); if(memberSince) memberSince.textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); }
+                if (data.createdAt) {
+                    let memberDate = null;
+                    // Handle Firestore Timestamp
+                    if (data.createdAt.toDate) memberDate = data.createdAt.toDate();
+                    // Handle ISO string (e.g. stored as new Date().toISOString())
+                    else if (typeof data.createdAt === 'string') memberDate = new Date(data.createdAt);
+                    // Handle plain JS Date stored as millis
+                    else if (typeof data.createdAt === 'number') memberDate = new Date(data.createdAt);
+                    
+                    const memberSince = document.getElementById("memberSince");
+                    if (memberSince && memberDate && !isNaN(memberDate)) {
+                        memberSince.textContent = memberDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                    }
+                }
 
                 window.userPlan = data.plan || "free";
                 const isToday = data.lastDailyReset === new Date().toISOString().split("T")[0];

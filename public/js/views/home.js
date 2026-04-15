@@ -1,5 +1,56 @@
 // Home View
 // --- HOME UI LOGIC ---
+
+        // Render last 3 decks dynamically — empty state if none
+        window.renderRecentDecks = function() {
+            const container = document.getElementById('recentDecksContainer');
+            if (!container) return;
+
+            const quizzes = window.quizzes || [];
+            if (quizzes.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center py-6 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-3 text-xl text-[var(--accent-btn)]">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <p class="text-sm font-medium text-[var(--text-muted)]">No decks yet</p>
+                        <p class="text-xs text-[var(--text-muted)] mt-1 opacity-70">Generate your first quiz to see it here</p>
+                    </div>`;
+                return;
+            }
+
+            // Last 3, most recent first
+            const recent = quizzes.slice().reverse().slice(0, 3);
+            const iconColors = ['bg-purple-500/10 text-purple-400', 'bg-pink-500/10 text-pink-400', 'bg-blue-500/10 text-blue-400'];
+            const icons = ['fas fa-layer-group', 'fas fa-cards-blank', 'fas fa-brain'];
+
+            container.innerHTML = recent.map((quiz, i) => {
+                const isMCQ = quiz.type && quiz.type.includes('Multiple');
+                const count = quiz.questions ? quiz.questions.length : 0;
+                const best = quiz.stats ? quiz.stats.bestScore : 0;
+                const pct = count > 0 ? Math.round((best / count) * 100) : 0;
+                const pctColor = pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--text-muted)';
+                const icon = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
+                const color = iconColors[i % iconColors.length];
+                const label = isMCQ ? 'Questions' : 'Cards';
+
+                return `<a href="javascript:void(0)" onclick="navigateTo('view-study')" 
+                    class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
+                    <div class="flex items-center min-w-0">
+                        <div class="w-12 h-12 rounded-full ${color} flex items-center justify-center text-xl mr-4 shrink-0">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-[15px] font-bold text-[var(--text-main)] mb-0.5 truncate">${window.escapeHTML(quiz.title || 'Untitled')}</span>
+                            <span class="text-[12px] text-[var(--text-muted)]">${count} ${label} • ${window.escapeHTML(quiz.subject || 'General')}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end shrink-0 ml-3">
+                        <span class="text-[14px] font-bold" style="color:${pctColor}">+${pct}%</span>
+                    </div>
+                </a>`;
+            }).join('');
+        };
         // Carousel Sync
         const carousel = document.getElementById('promoCarousel');
         const indicators = document.querySelectorAll('.promo-dot');
