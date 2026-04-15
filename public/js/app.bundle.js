@@ -938,19 +938,41 @@ if (nextBtn) {
             document.getElementById('createBackBtn').style.display = 'flex';
         };
 
-        // Question style selector
+        // Question style selector — use event delegation on container to avoid child element issues
+        document.addEventListener('DOMContentLoaded', function() {
+            const selector = document.getElementById('styleSelector');
+            if (selector) {
+                selector.addEventListener('click', function(e) {
+                    const btn = e.target.closest('.style-btn');
+                    if (!btn) return;
+                    // Deactivate all
+                    selector.querySelectorAll('.style-btn').forEach(b => {
+                        b.style.borderColor = 'var(--border-glass)';
+                        b.style.background = 'transparent';
+                        b.style.color = 'var(--text-muted)';
+                    });
+                    // Activate selected
+                    btn.style.borderColor = 'var(--accent-btn)';
+                    btn.style.background = 'rgba(167,139,250,0.1)';
+                    btn.style.color = 'var(--accent-btn)';
+                    // Update hidden input
+                    const input = document.getElementById('topicFocus');
+                    if (input) input.value = btn.dataset.style;
+                });
+            }
+        });
+        // Keep function available for resets
         window.selectQuestionStyle = function(btn) {
-            // Deactivate all
-            document.querySelectorAll('.style-btn').forEach(b => {
+            const selector = document.getElementById('styleSelector');
+            if (!selector) return;
+            selector.querySelectorAll('.style-btn').forEach(b => {
                 b.style.borderColor = 'var(--border-glass)';
                 b.style.background = 'transparent';
                 b.style.color = 'var(--text-muted)';
             });
-            // Activate selected
             btn.style.borderColor = 'var(--accent-btn)';
             btn.style.background = 'rgba(167,139,250,0.1)';
             btn.style.color = 'var(--accent-btn)';
-            // Update hidden input so firebase.js picks it up
             const input = document.getElementById('topicFocus');
             if (input) input.value = btn.dataset.style;
         };

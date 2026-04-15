@@ -158,7 +158,7 @@
         <div class="modal-content">
             <div class="modal-icon bg-blue-500/10 text-blue-500"><i class="fas fa-user-lock"></i></div>
             <h3 class="modal-title">Login Required</h3>
-            <p class="modal-text">You need to log in or create an account to upload files and generate materials.</p>
+            <p class="modal-text">You need to log in or create an account to upload files and generate AI materials.</p>
             <button onclick="window.location.href='index.html#login'" class="modal-btn-primary bg-blue-500 text-white">Log In / Sign Up</button>
             <button onclick="closeGlobalModal('loginModalBackdrop')" class="modal-btn-secondary">Close</button>
         </div>
@@ -447,21 +447,21 @@
                     <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
                         <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: block;">Question Style</label>
                         <div id="styleSelector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                            <button type="button" class="style-btn active" data-style="direct" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--accent-btn); background: rgba(167,139,250,0.1); color: var(--accent-btn); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
-                                <i class="fas fa-bullseye" style="font-size: 1rem; pointer-events: none;"></i>
-                                <span style="pointer-events: none;">Direct &amp; Factual</span>
+                            <button type="button" class="style-btn active" data-style="direct" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--accent-btn); background: rgba(167,139,250,0.1); color: var(--accent-btn); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
+                                <i class="fas fa-bullseye" style="font-size: 1rem;"></i>
+                                <span>Direct &amp; Factual</span>
                             </button>
-                            <button type="button" class="style-btn" data-style="vignette" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
-                                <i class="fas fa-stethoscope" style="font-size: 1rem; pointer-events: none;"></i>
-                                <span style="pointer-events: none;">Clinical Vignette</span>
+                            <button type="button" class="style-btn" data-style="vignette" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
+                                <i class="fas fa-stethoscope" style="font-size: 1rem;"></i>
+                                <span>Clinical Vignette</span>
                             </button>
-                            <button type="button" class="style-btn" data-style="mechanism" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
-                                <i class="fas fa-atom" style="font-size: 1rem; pointer-events: none;"></i>
-                                <span style="pointer-events: none;">Mechanism Based</span>
+                            <button type="button" class="style-btn" data-style="mechanism" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
+                                <i class="fas fa-atom" style="font-size: 1rem;"></i>
+                                <span>Mechanism Based</span>
                             </button>
-                            <button type="button" class="style-btn" data-style="mixed" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
-                                <i class="fas fa-random" style="font-size: 1rem; pointer-events: none;"></i>
-                                <span style="pointer-events: none;">Mixed</span>
+                            <button type="button" class="style-btn" data-style="mixed" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
+                                <i class="fas fa-random" style="font-size: 1rem;"></i>
+                                <span>Mixed</span>
                             </button>
                         </div>
                     </div>
@@ -476,7 +476,7 @@
                 </div>
 
                 <button id="generateBtn" disabled style="width: 100%; padding: 1.125rem; border-radius: var(--radius-btn); font-size: 1.0625rem; font-weight: 700; border: none; background: var(--bg-surface); color: var(--text-muted); cursor: not-allowed; transition: all 0.2s; margin-top: auto; margin-bottom: 1rem;">
-                    Generate Content
+                    Generate AI Content
                 </button>
             </div>
 
