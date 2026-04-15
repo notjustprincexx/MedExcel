@@ -938,6 +938,23 @@ if (nextBtn) {
             document.getElementById('createBackBtn').style.display = 'flex';
         };
 
+        // Question style selector
+        window.selectQuestionStyle = function(btn) {
+            // Deactivate all
+            document.querySelectorAll('.style-btn').forEach(b => {
+                b.style.borderColor = 'var(--border-glass)';
+                b.style.background = 'transparent';
+                b.style.color = 'var(--text-muted)';
+            });
+            // Activate selected
+            btn.style.borderColor = 'var(--accent-btn)';
+            btn.style.background = 'rgba(167,139,250,0.1)';
+            btn.style.color = 'var(--accent-btn)';
+            // Update hidden input so firebase.js picks it up
+            const input = document.getElementById('topicFocus');
+            if (input) input.value = btn.dataset.style;
+        };
+
         window.enterQuizMode = function() {
             const nav = document.getElementById('globalBottomNav');
             if (nav) nav.style.transform = 'translateY(100%)';
@@ -979,6 +996,14 @@ if (nextBtn) {
             document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
             document.getElementById('uploadTitle').textContent = "Tap to Upload File";
             document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
+            
+            // Reset style selector to default (Direct & Factual)
+            const topicInput = document.getElementById('topicFocus');
+            if (topicInput) topicInput.value = 'direct';
+            document.querySelectorAll('.style-btn').forEach((b, i) => {
+                if (i === 0) { b.style.borderColor = 'var(--accent-btn)'; b.style.background = 'rgba(167,139,250,0.1)'; b.style.color = 'var(--accent-btn)'; }
+                else { b.style.borderColor = 'var(--border-glass)'; b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+            });
             
             document.getElementById('configSection').style.opacity = '0.5';
             document.getElementById('configSection').style.pointerEvents = 'none';

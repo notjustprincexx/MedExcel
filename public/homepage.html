@@ -441,9 +441,29 @@
 
                 <div id="configSection" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; gap: 1rem;">
                     <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: -0.25rem;">2. Configuration</h2>
+                    <!-- Hidden input keeps firebase.js working without changes -->
+                    <input type="hidden" id="topicFocus" value="direct">
+
                     <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
-                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">Topic Focus (Optional)</label>
-                        <input type="text" id="topicFocus" placeholder="e.g., Mechanism of Action" style="width: 100%; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 0.9375rem; font-weight: 500;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: block;">Question Style</label>
+                        <div id="styleSelector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <button type="button" class="style-btn active" data-style="direct" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--accent-btn); background: rgba(167,139,250,0.1); color: var(--accent-btn); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
+                                <i class="fas fa-bullseye" style="font-size: 1rem; pointer-events: none;"></i>
+                                <span style="pointer-events: none;">Direct &amp; Factual</span>
+                            </button>
+                            <button type="button" class="style-btn" data-style="vignette" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
+                                <i class="fas fa-stethoscope" style="font-size: 1rem; pointer-events: none;"></i>
+                                <span style="pointer-events: none;">Clinical Vignette</span>
+                            </button>
+                            <button type="button" class="style-btn" data-style="mechanism" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
+                                <i class="fas fa-atom" style="font-size: 1rem; pointer-events: none;"></i>
+                                <span style="pointer-events: none;">Mechanism Based</span>
+                            </button>
+                            <button type="button" class="style-btn" data-style="mixed" onclick="window.selectQuestionStyle(this)" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
+                                <i class="fas fa-random" style="font-size: 1rem; pointer-events: none;"></i>
+                                <span style="pointer-events: none;">Mixed</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border-glass);">
