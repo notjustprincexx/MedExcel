@@ -735,7 +735,7 @@
             const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
 
             const safeQuestion = window.escapeHTML(q.text || q.front || q.question || "No question");
-            const safeAnswer   = window.escapeHTML(q.back  || q.answer || "");
+            const safeAnswer   = window.escapeHTML(q.back || q.answer || (q.options && q.correct !== undefined ? q.options[q.correct] : "") || "No answer");
 
             let contentHTML = '';
 
@@ -1084,7 +1084,9 @@ window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
     const ans = String(correctAnswer).trim().toLowerCase();
     const k = String(selectedKey).trim().toLowerCase();
     const v = String(selectedValue).trim().toLowerCase();
-    return ans === k || ans === v || ans === `${k}. ${v}` || ans.startsWith(k + '.') || ans.startsWith(k + ')');
+    const isShortAnswer = ans.length <= 3;
+    return ans === k || ans === k + '.' || ans === v ||
+        (isShortAnswer && (ans.startsWith(k + '.') || ans.startsWith(k + ')')));
 };
 
 window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
@@ -1093,8 +1095,16 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const answer = cardData.back || cardData.answer || "No answer provided";
 
             allButtons.forEach(btn => {
-                const key = btn.dataset.key; const value = btn.dataset.value; 
-                const isThisCorrect = (String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase()));
+                const key = btn.dataset.key; const value = btn.dataset.value;
+                const ansLower = String(answer).trim().toLowerCase();
+                const keyLower = String(key).trim().toLowerCase();
+                const valLower = String(value).trim().toLowerCase();
+                // Only use startsWith for short answers (A, B, C, D) — never match full text against a single letter
+                const isShortAnswer = ansLower.length <= 3;
+                const isThisCorrect = ansLower === keyLower ||
+                    ansLower === keyLower + '.' ||
+                    ansLower === valLower ||
+                    (isShortAnswer && ansLower.startsWith(keyLower));
                 btn.disabled = true; btn.style.opacity = '0.5';
                 if (isThisCorrect) { 
                     btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1'; 
@@ -1115,7 +1125,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         window.renderCreateCurrentCard = function() {
             const card = generatedCards[currentCardIndex];
             const safeQuestion = window.escapeHTML(card.front || card.question || "No question provided");
-            const safeAnswer = window.escapeHTML(card.back || card.answer || "No answer provided");
+            const safeAnswer = window.escapeHTML(card.back || card.answer || (card.options && card.correct !== undefined ? (Array.isArray(card.options) ? card.options[card.correct] : Object.values(card.options)[card.correct]) : "") || "No answer provided");
             const progressPercent = ((currentCardIndex + 1) / generatedCards.length) * 100;
             const viewContainer = document.getElementById('interactiveView');
 
