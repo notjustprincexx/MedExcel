@@ -938,40 +938,34 @@ if (nextBtn) {
             document.getElementById('createBackBtn').style.display = 'flex';
         };
 
-        // Source tab switching
+        // Source tab switching — only touch borderColor and color, never background
         window.switchSourceTab = function(tab) {
             const dropZone    = document.getElementById('dropZone');
             const pasteZone   = document.getElementById('pasteZone');
             const youtubeZone = document.getElementById('youtubeZone');
-            const tabs = ['tabUpload','tabPaste','tabYoutube'];
 
-            // Tab style configs
-            const tabStyles = {
-                upload:  { border: 'var(--accent-btn)', color: 'var(--accent-btn)' },
-                paste:   { border: '#64748b',           color: '#64748b'           },
-                youtube: { border: '#ef4444',           color: '#ef4444'           },
-            };
-
-            // Reset all tabs to inactive
-            tabs.forEach(id => {
+            // Reset all 3 tabs to inactive
+            ['tabUpload','tabPaste','tabYoutube'].forEach(id => {
                 const b = document.getElementById(id);
-                if (b) { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
+                if (!b) return;
+                b.style.borderColor = 'var(--border-glass)';
+                b.style.color = 'var(--text-muted)';
             });
 
-            // Activate selected tab with its own accent colour
-            const activeTab = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
-            const style = tabStyles[tab] || tabStyles.upload;
-            if (activeTab) { activeTab.style.borderColor = style.border; activeTab.style.color = style.color; }
+            // Activate selected tab with its accent colour — NO background change
+            const accentColors = { upload: '#8b5cf6', paste: '#64748b', youtube: '#ef4444' };
+            const activeBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            if (activeBtn) {
+                activeBtn.style.borderColor = accentColors[tab] || 'var(--accent-btn)';
+                activeBtn.style.color = accentColors[tab] || 'var(--accent-btn)';
+            }
 
             // Show/hide zones
             if (dropZone)    dropZone.style.display    = tab === 'upload'  ? 'flex'  : 'none';
             if (pasteZone)   pasteZone.style.display   = tab === 'paste'   ? 'block' : 'none';
             if (youtubeZone) youtubeZone.style.display = tab === 'youtube' ? 'block' : 'none';
 
-            // Clear source if switching away
-            if (tab !== 'upload' && !window._sourceIsPaste && !window._sourceIsYoutube) {
-                window.selectedFile = null;
-            }
+            // Clear stale source state when switching
             if (tab === 'upload') {
                 window._sourceIsPaste = false; window._sourceIsYoutube = false;
                 if (!window.selectedFile) window._resetGenerateBtn();
@@ -994,27 +988,21 @@ if (nextBtn) {
             const url = inp.value.trim();
             const feedback = document.getElementById('youtubeFeedback');
             const wrap = document.getElementById('youtubeInputWrap');
-
-            // Extract video ID from various YouTube URL formats
             const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
             if (match) {
                 window._youtubeVideoId = match[1];
                 window._sourceIsYoutube = true;
                 inp.style.borderColor = 'var(--border-active)';
                 if (wrap) wrap.style.borderColor = 'var(--border-active)';
-                if (feedback) feedback.innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:4px;"></i>Valid YouTube URL — transcript will be extracted on generate';
-                // Create placeholder file so the rest of the flow knows something is ready
-                const blob = new Blob([`youtube:${window._youtubeVideoId}`], { type: 'text/plain' });
-                window.selectedFile = new File([blob], `youtube-${window._youtubeVideoId}.txt`, { type: 'text/plain' });
-                // Enable generate
+                if (feedback) feedback.innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:4px;"></i>Valid URL — transcript will be extracted on generate';
+                const blob = new Blob(['youtube:' + window._youtubeVideoId], { type: 'text/plain' });
+                window.selectedFile = new File([blob], 'youtube-' + window._youtubeVideoId + '.txt', { type: 'text/plain' });
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
                 const btn = document.getElementById('generateBtn');
                 if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
             } else {
-                window._youtubeVideoId = null;
-                window._sourceIsYoutube = false;
-                window.selectedFile = null;
+                window._youtubeVideoId = null; window._sourceIsYoutube = false; window.selectedFile = null;
                 inp.style.borderColor = url.length > 5 ? '#f87171' : 'var(--border-glass)';
                 if (wrap) wrap.style.borderColor = url.length > 5 ? '#f87171' : 'var(--border-glass)';
                 if (feedback) feedback.innerHTML = url.length > 5 ? '<i class="fas fa-times-circle" style="color:#f87171;margin-right:4px;"></i>Not a valid YouTube URL' : '';
@@ -1137,29 +1125,23 @@ if (nextBtn) {
             document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
             document.getElementById('uploadTitle').textContent = "Tap to Upload File";
             document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
+            document.getElementById('dropZone').classList.remove('file-selected');
             document.getElementById('dropZone').style.display = 'flex';
-            // Reset all source zones
+            // Reset paste zone
             const pasteZone = document.getElementById('pasteZone');
             if (pasteZone) pasteZone.style.display = 'none';
             const pasteTA = document.getElementById('pasteTextarea');
             if (pasteTA) { pasteTA.value = ''; pasteTA.style.borderColor = 'var(--border-glass)'; }
             const charCount = document.getElementById('pasteCharCount');
             if (charCount) charCount.textContent = '0';
-            const youtubeZone = document.getElementById('youtubeZone');
-            if (youtubeZone) youtubeZone.style.display = 'none';
-            const youtubeInp = document.getElementById('youtubeInput');
-            if (youtubeInp) { youtubeInp.value = ''; youtubeInp.style.borderColor = 'var(--border-glass)'; }
-            const youtubeFB = document.getElementById('youtubeFeedback');
-            if (youtubeFB) youtubeFB.innerHTML = '';
-            const youtubeWrap = document.getElementById('youtubeInputWrap');
-            if (youtubeWrap) youtubeWrap.style.borderColor = 'var(--border-glass)';
-            window._sourceIsPaste = false; window._sourceIsYoutube = false; window._youtubeVideoId = null;
-            // Reset all tabs to default (Upload active)
+            window._sourceIsPaste = false;
+            // Reset tabs
+            // Reset all tabs — only border/color, no background
             ['tabUpload','tabPaste','tabYoutube'].forEach((id, i) => {
                 const b = document.getElementById(id);
                 if (!b) return;
-                if (i === 0) { b.style.borderColor = 'var(--accent-btn)'; b.style.background = 'rgba(167,139,250,0.1)'; b.style.color = 'var(--accent-btn)'; }
-                else { b.style.borderColor = 'var(--border-glass)'; b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+                if (i === 0) { b.style.borderColor = '#8b5cf6'; b.style.color = '#8b5cf6'; }
+                else { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
             });
             
             // Reset style selector to default (Direct & Factual)
@@ -1256,6 +1238,7 @@ if (nextBtn) {
                     document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
                     
                     document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
+                    document.getElementById('dropZone').classList.add('file-selected');
                     document.getElementById('configSection').style.opacity = '1';
                     document.getElementById('configSection').style.pointerEvents = 'auto';
                     

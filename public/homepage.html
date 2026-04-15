@@ -17,7 +17,7 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#09090b">
   <title>MedExcel</title>
 
@@ -469,10 +469,25 @@
                     </div>
 
                     <!-- Upload Zone -->
+                    <style>
+                        @keyframes uploadBounce {
+                            0%, 100% { transform: translateY(0); }
+                            40% { transform: translateY(-7px); }
+                            60% { transform: translateY(-3px); }
+                        }
+                        @keyframes uploadPulse {
+                            0%, 100% { border-color: var(--border-glass); }
+                            50% { border-color: var(--accent-btn); }
+                        }
+                        #dropZone { animation: uploadPulse 2s ease-in-out infinite; }
+                        #uploadIconInner { animation: uploadBounce 2s ease-in-out infinite; display: inline-block; }
+                        #dropZone.file-selected { animation: none !important; }
+                        #dropZone.file-selected #uploadIconInner { animation: none !important; }
+                    </style>
                     <div id="dropZone" style="border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
                         <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
                         <div id="uploadIcon" style="width: 4rem; height: 4rem; border-radius: 50%; background: var(--bg-glass); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: var(--text-muted); font-size: 1.5rem;">
-                            <i class="fas fa-cloud-upload-alt"></i>
+                            <i class="fas fa-cloud-upload-alt" id="uploadIconInner"></i>
                         </div>
                         <h3 id="uploadTitle" style="font-weight: 700; font-size: 1.0625rem; margin-bottom: 0.375rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Tap to Upload File</h3>
                         <p id="uploadSubtitle" style="color: var(--text-muted); font-size: 0.8125rem;">PDF, PPTX, DOCX, TXT, or Images (Max 10MB)</p>
@@ -936,7 +951,30 @@
 
     </section>
 
-    <nav id="globalBottomNav" class="bottom-nav">
+    <script>
+    // Keep nav pinned to physical bottom when Android keyboard opens
+    document.addEventListener('DOMContentLoaded', function() {
+        const nav = document.getElementById('globalBottomNav');
+        if (!nav || !window.visualViewport) return;
+
+        function pinNav() {
+            if (nav.classList.contains('hidden')) return;
+            const vv = window.visualViewport;
+            // Distance keyboard has pushed viewport up
+            const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+            if (keyboardHeight > 50) {
+                // Keyboard is open — pin nav to visual bottom
+                nav.style.transform = 'translateY(' + keyboardHeight + 'px)';
+            } else {
+                nav.style.transform = '';
+            }
+        }
+
+        window.visualViewport.addEventListener('resize', pinNav);
+        window.visualViewport.addEventListener('scroll', pinNav);
+    });
+</script>
+<nav id="globalBottomNav" class="bottom-nav">
         <a href="javascript:void(0)" onclick="navigateTo('view-home')" id="nav-home" class="nav-item active">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path></svg>
             <span class="nav-label">Home</span>

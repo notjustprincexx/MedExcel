@@ -77,8 +77,11 @@
             padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
             display: flex; justify-content: space-between; align-items: center; z-index: 50; 
             transition: background-color 0.3s ease, transform 0.4s var(--ease-snap);
+            /* Stay pinned to bottom — don't move when Android keyboard opens */
+            bottom: 0 !important;
+            transform: translateZ(0);
         }
-        .bottom-nav.hidden { transform: translateY(100%); }
+        .bottom-nav.hidden { transform: translateY(100%) !important; }
         .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem; color: var(--nav-icon); transition: color 0.2s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; flex: 1; text-decoration: none; }
         .nav-item.active { color: var(--nav-active); }
         .nav-item:active { transform: scale(0.9); }

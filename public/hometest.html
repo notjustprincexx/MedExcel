@@ -429,21 +429,65 @@
             <div id="setupView" style="display: none; flex-direction: column; flex: 1; gap: 1.75rem; margin-top:1rem;">
                 <div>
                     <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem;">1. Source Material</h2>
-                    <!-- Source Input Tabs -->
-                    <div style="display:flex;background:var(--bg-surface);border-radius:0.875rem;padding:0.25rem;border:1px solid var(--border-color);margin-bottom:0.75rem;">
-                        <button id="tabUpload" onclick="window.switchSourceTab('upload')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:var(--accent-btn);color:var(--btn-text);cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(139,92,246,0.3);">
-                            <i class="fas fa-cloud-upload-alt" style="margin-right:0.375rem;"></i>Upload File
+                    <!-- Source Input — Illustrated Icon Buttons -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:0.875rem;">
+
+                        <!-- Upload -->
+                        <button id="tabUpload" onclick="window.switchSourceTab('upload')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--accent-btn);background:var(--bg-surface);color:var(--accent-btn);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
+                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
+                                <rect width="40" height="40" rx="12" fill="#8b5cf6" fill-opacity="0.15"/>
+                                <path d="M20 26V18" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round"/>
+                                <path d="M16 21l4-4 4 4" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="13" y="27" width="14" height="2.5" rx="1.25" fill="#8b5cf6" fill-opacity="0.5"/>
+                            </svg>
+                            <span style="pointer-events:none;">Upload</span>
                         </button>
-                        <button id="tabPaste" onclick="window.switchSourceTab('paste')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;">
-                            <i class="fas fa-paste" style="margin-right:0.375rem;"></i>Paste Text
+
+                        <!-- Paste Text -->
+                        <button id="tabPaste" onclick="window.switchSourceTab('paste')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--border-glass);background:var(--bg-surface);color:var(--text-muted);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
+                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
+                                <rect width="40" height="40" rx="12" fill="#64748b" fill-opacity="0.12"/>
+                                <rect x="12" y="13" width="16" height="2" rx="1" fill="#64748b"/>
+                                <rect x="12" y="18" width="16" height="2" rx="1" fill="#64748b"/>
+                                <rect x="12" y="23" width="10" height="2" rx="1" fill="#64748b"/>
+                                <rect x="24" y="21" width="5" height="8" rx="1.5" fill="#64748b" fill-opacity="0.4"/>
+                                <path d="M24 23l2.5-2.5L29 23" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="pointer-events:none;">Paste Text</span>
                         </button>
+
+                        <!-- YouTube -->
+                        <button id="tabYoutube" onclick="window.switchSourceTab('youtube')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--border-glass);background:var(--bg-surface);color:var(--text-muted);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
+                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
+                                <rect width="40" height="40" rx="12" fill="#64748b" fill-opacity="0.12"/>
+                                <rect x="9" y="14" width="22" height="13" rx="4" stroke="#64748b" stroke-width="2" fill="none"/>
+                                <path d="M17.5 18l6 3-6 3V18z" fill="#64748b"/>
+                            </svg>
+                            <span style="pointer-events:none;">YouTube</span>
+                        </button>
+
                     </div>
 
                     <!-- Upload Zone -->
+                    <style>
+                        @keyframes uploadBounce {
+                            0%, 100% { transform: translateY(0); }
+                            40% { transform: translateY(-7px); }
+                            60% { transform: translateY(-3px); }
+                        }
+                        @keyframes uploadPulse {
+                            0%, 100% { border-color: var(--border-glass); }
+                            50% { border-color: var(--accent-btn); }
+                        }
+                        #dropZone { animation: uploadPulse 2s ease-in-out infinite; }
+                        #uploadIconInner { animation: uploadBounce 2s ease-in-out infinite; display: inline-block; }
+                        #dropZone.file-selected { animation: none !important; }
+                        #dropZone.file-selected #uploadIconInner { animation: none !important; }
+                    </style>
                     <div id="dropZone" style="border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
                         <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
                         <div id="uploadIcon" style="width: 4rem; height: 4rem; border-radius: 50%; background: var(--bg-glass); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: var(--text-muted); font-size: 1.5rem;">
-                            <i class="fas fa-cloud-upload-alt"></i>
+                            <i class="fas fa-cloud-upload-alt" id="uploadIconInner"></i>
                         </div>
                         <h3 id="uploadTitle" style="font-weight: 700; font-size: 1.0625rem; margin-bottom: 0.375rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Tap to Upload File</h3>
                         <p id="uploadSubtitle" style="color: var(--text-muted); font-size: 0.8125rem;">PDF, PPTX, DOCX, TXT, or Images (Max 10MB)</p>
@@ -453,6 +497,23 @@
                     <div id="pasteZone" style="display:none;">
                         <textarea id="pasteTextarea" placeholder="Paste your notes, textbook excerpt, or any study material here..." style="width:100%;min-height:180px;background:var(--bg-surface);border:2px dashed var(--border-glass);border-radius:var(--radius-card);padding:1rem;color:var(--text-main);font-size:0.9375rem;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;line-height:1.6;transition:border-color 0.2s;" oninput="window.handlePasteInput(this)"></textarea>
                         <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;text-align:center;"><span id="pasteCharCount">0</span> characters</p>
+                    </div>
+
+                    <!-- YouTube Zone -->
+                    <div id="youtubeZone" style="display:none;">
+                        <div style="background:var(--bg-surface);border:2px dashed var(--border-glass);border-radius:var(--radius-card);padding:1.25rem;transition:border-color 0.2s;" id="youtubeInputWrap">
+                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+                                <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fab fa-youtube" style="color:#ef4444;font-size:1.125rem;"></i>
+                                </div>
+                                <div>
+                                    <p style="font-size:0.875rem;font-weight:700;color:var(--text-main);margin:0;">Paste YouTube URL</p>
+                                    <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">We'll extract the transcript automatically</p>
+                                </div>
+                            </div>
+                            <input type="url" id="youtubeInput" placeholder="https://youtube.com/watch?v=..." style="width:100%;background:var(--bg-body);border:1px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" oninput="window.handleYoutubeInput(this)">
+                            <div id="youtubeFeedback" style="margin-top:0.625rem;font-size:0.75rem;color:var(--text-muted);min-height:1rem;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -466,7 +527,7 @@
                         <div id="styleSelector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <button type="button" class="style-btn active" data-style="direct" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--accent-btn); background: rgba(167,139,250,0.1); color: var(--accent-btn); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
                                 <i class="fas fa-bullseye" style="font-size: 1rem;"></i>
-                                <span>Direct &amp; Factual</span>
+                                <span>Direct &amp; key-points </span>
                             </button>
                             <button type="button" class="style-btn" data-style="vignette" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
                                 <i class="fas fa-stethoscope" style="font-size: 1rem;"></i>
