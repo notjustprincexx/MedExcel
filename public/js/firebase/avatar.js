@@ -1,4 +1,4 @@
-AVATAR PICKER
+/*AVATAR PICKER
            =========================================
            HOW TO USE:
            Set AVATAR_IMAGE_PATH to the relative or absolute path of your
