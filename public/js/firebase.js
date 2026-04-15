@@ -1,0 +1,908 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const functions = getFunctions(app, "us-central1");
+
+        window.db   = db;
+        window.auth = auth;
+
+        // Expose Firestore helpers so non-module scripts can call them
+        window._doc       = doc;
+        window._updateDoc = updateDoc;
+        window._deleteDoc = deleteDoc;
+        window._setDoc    = setDoc;
+        window._signOut   = signOut;
+
+        // Expose critical Firebase functions
+        window.logoutUser = async function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            try { await signOut(auth); } catch (e) {}
+            localStorage.clear();
+            if (savedTheme) localStorage.setItem('medexcel_theme', savedTheme);
+            window.location.replace("index.html");
+        };
+
+        window.sendPasswordReset = async function() {
+            if (!window.currentUser || !window.currentUser.email) {
+                alert("No email associated with this account.");
+                return;
+            }
+
+            const email = window.currentUser.email;
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                alert("Invalid email address on this account.");
+                return;
+            }
+
+            // Loading state
+            const row      = document.getElementById('changePasswordRow');
+            const label    = document.getElementById('changePasswordLabel');
+            const chevron  = document.getElementById('changePasswordChevron');
+            if (row)     row.style.pointerEvents = 'none';
+            if (label)   { label.textContent = 'Sending…'; label.style.color = 'var(--text-muted)'; }
+            if (chevron) chevron.className = 'fas fa-spinner fa-spin';
+
+            try {
+                const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/sendResetEmail", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body.error || `Server error (${res.status})`);
+                }
+
+                if (label)   { label.textContent = 'Email sent!'; label.style.color = 'var(--accent-green)'; }
+                if (chevron) chevron.className = 'fas fa-check';
+                setTimeout(() => {
+                    if (label)   { label.textContent = 'Change Password'; label.style.color = 'var(--text-main)'; }
+                    if (chevron) chevron.className = 'fas fa-chevron-right';
+                    if (row)     row.style.pointerEvents = '';
+                }, 3000);
+
+            } catch(e) {
+                if (label)   { label.textContent = 'Change Password'; label.style.color = 'var(--text-main)'; }
+                if (chevron) chevron.className = 'fas fa-chevron-right';
+                if (row)     row.style.pointerEvents = '';
+                alert("Failed to send reset email: " + e.message);
+            }
+        };
+
+        window.confirmDeleteAccount = window.showDeleteAccountModal;
+
+        document.getElementById('confirmLogoutBtn').onclick = window.logoutUser;
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (window.quizToDelete !== null && window.currentUser) {
+                try {
+                    await deleteDoc(doc(db, "users", window.currentUser.uid, "quizzes", window.quizToDelete.toString()));
+                    window.quizzes = window.quizzes.filter(q => q.id !== window.quizToDelete);
+                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                    const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                    window.renderLibrary(activeTab, document.getElementById('librarySearchInput').value);
+                    window.closeGlobalModal('deleteModalBackdrop');
+                    if (window.currentQuiz && window.currentQuiz.id === window.quizToDelete) { window.closePracticeMobile(); }
+                    window.quizToDelete = null;
+                } catch(e) { console.error("Could not delete from cloud", e); }
+            }
+        });
+
+        // Returns the ISO date string of the current week's Monday (used as reset key)
+        function _getWeekKey() {
+            const now = new Date();
+            const day = now.getDay(); // 0=Sun
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(now.getFullYear(), now.getMonth(), diff);
+            return monday.toISOString().split('T')[0];
+        }
+
+        window.addXP = async function(amount) {
+            if (amount <= 0) return;
+            window.userStats.xp += amount;
+
+            // Weekly XP — reset each Monday
+            const uid = window.currentUser?.uid || 'guest';
+            const weekKey = _getWeekKey();
+            const storedWeekKey = localStorage.getItem('medexcel_weekkey_' + uid);
+            if (storedWeekKey !== weekKey) {
+                window.userStats.weeklyXp = 0;
+                localStorage.setItem('medexcel_weekkey_' + uid, weekKey);
+            }
+            window.userStats.weeklyXp = (window.userStats.weeklyXp || 0) + amount;
+
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+            if (window.currentUser) {
+                try {
+                    let dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : "User");
+                    await setDoc(doc(db, "users", window.currentUser.uid), { 
+                        uid: window.currentUser.uid, 
+                        xp: window.userStats.xp, 
+                        weeklyXp: window.userStats.weeklyXp,
+                        displayName: dName 
+                    }, { merge: true });
+                } catch (e) { console.error("Failed to sync XP", e); }
+            }
+            // Update UI elements
+            const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
+            const uiXP2 = document.getElementById('currentUserXp'); if(uiXP2) uiXP2.textContent = window.formatXP(window.userStats.xp);
+
+            // Keep cached leaderboard data in sync so This Week tab reflects latest XP immediately
+            if (window.currentUser && Array.isArray(window._lbUsers)) {
+                const meIdx = window._lbUsers.findIndex(u => u.uid === window.currentUser.uid);
+                const dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : 'User');
+                if (meIdx >= 0) {
+                    window._lbUsers[meIdx].xp       = window.userStats.xp;
+                    window._lbUsers[meIdx].weeklyXp  = window.userStats.weeklyXp;
+                } else {
+                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, avatarIndex: null });
+                }
+            }
+        };
+
+        window.syncUserStreak = async function(uid, streakCount, lastDate) {
+            try { await updateDoc(doc(window.db, "users", uid), { streak: streakCount, lastCheckIn: lastDate }); } 
+            catch(e) { console.error("Failed to sync streak to cloud", e); }
+        };
+
+        // Render Achievements Logic
+        const MASTER_ACHIEVEMENTS = [
+            { id: "first_quiz", title: "First Steps", desc: "First set", icon: "fa-seedling" }, { id: "streak_3", title: "On Fire", desc: "3 day streak", icon: "fa-fire" },
+            { id: "accuracy_80", title: "Sharpshooter", desc: "80%+ accuracy", icon: "fa-bullseye" }, { id: "mcq_100", title: "Century", desc: "100 MCQs", icon: "fa-check-double" },
+            { id: "elite_member", title: "Elite", desc: "Subscribed", icon: "fa-crown" }, { id: "night_owl", title: "Night Owl", desc: "Late study", icon: "fa-moon" }
+        ];
+
+        window.renderAchievements = function(unlockedIds) {
+            const grid = document.getElementById('achievementsGrid'); if(!grid) return;
+            grid.innerHTML = "";
+            MASTER_ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = unlockedIds.includes(ach.id);
+                const stateClass = isUnlocked ? "border-[var(--accent-btn)] bg-[var(--bg-body)] shadow-[0_0_15px_rgba(167,139,250,0.1)]" : "border-[var(--border-color)] bg-[var(--bg-body)] opacity-50 grayscale";
+                const iconColor = isUnlocked ? "text-[var(--accent-btn)]" : "text-[var(--text-muted)]";
+                grid.innerHTML += `<div class="${stateClass} border rounded-2xl p-3 flex flex-col items-center text-center transition-all relative overflow-hidden">${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-surface)]/50"><i class="fas fa-lock text-[var(--text-muted)]"></i></div>` : ''}<div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center mb-1.5 ${iconColor}"><i class="fas ${ach.icon} text-sm"></i></div><h4 class="text-[10px] font-bold text-[var(--text-main)] mb-0.5">${ach.title}</h4><p class="text-[8px] text-[var(--text-muted)] leading-tight">${ach.desc}</p></div>`;
+            });
+        };
+
+        // Render Library Logic
+        window.renderLibrary = function(filter = 'all', searchQuery = '') {
+            const container = document.getElementById('quizContainer'); if(!container) return;
+            container.innerHTML = ''; 
+            let filtered = window.quizzes.filter(q => q.title && q.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
+            else if (filter === 'mcqs') filtered = filtered.filter(q => q.type && q.type.includes("Multiple"));
+            else if (filter === 'flashcards') filtered = filtered.filter(q => !q.type || !q.type.includes("Multiple"));
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 fade-in"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center"><i class="fas fa-box-open text-2xl text-[var(--text-muted)]"></i></div><p class="text-sm font-medium text-[var(--text-muted)]">No sets found.</p></div>`;
+                return;
+            }
+
+            filtered.slice().reverse().forEach(quiz => {
+                const qLength = quiz.questions ? quiz.questions.length : 0;
+                const isMCQ = quiz.type && quiz.type.includes("Multiple");
+                const itemLabel = isMCQ ? "Questions" : "Cards";
+                const iconSvg = isMCQ
+                    ? `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>`
+                    : `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>`;
+                
+                container.innerHTML += `
+                    <div class="quiz-item fade-in group" onclick="window.loadQuizOverview(${quiz.id})">
+                        <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0 overflow-hidden">
+                            ${iconSvg}
+                            ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
+                        </div>
+                        <div class="flex-1 min-w-0 py-1">
+                            <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${quiz.title}</h3>
+                            <div class="flex items-center gap-2 text-[var(--text-muted)] text-[12px] font-semibold">
+                                <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${quiz.subject || 'General'}</span>
+                                <span class="shrink-0">${qLength} ${itemLabel}</span>
+                            </div>
+                        </div>
+                        <button onclick="window.promptDelete(event, ${quiz.id})" class="p-2.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 lg:opacity-60"><i class="fas fa-trash-alt"></i></button>
+                    </div>`;
+            });
+        };
+
+        window.loadQuizOverview = function(id) {
+            currentQuiz = window.currentQuiz = window.quizzes.find(q => q.id === id); window.openPracticeMobile();
+            const area = document.getElementById('studyPracticeArea');
+            const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
+            const attempts = currentQuiz.stats ? currentQuiz.stats.attempts : 0;
+            const isMCQ = currentQuiz.type && currentQuiz.type.includes("Multiple");
+            const itemLabel = isMCQ ? "Questions" : "Cards";
+
+            area.innerHTML = `
+                <div class="card-panel fade-in w-full max-w-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-[var(--bg-glass)] text-[var(--accent-btn)] text-xs font-extrabold px-3 py-1.5 rounded-md uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
+                        <button onclick="window.toggleFavoriteCurrent()" class="text-xl p-2 -m-2 transition-colors ${currentQuiz.favorite ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)] hover:text-[var(--accent-yellow)]'}"><i class="fas fa-star"></i></button>
+                    </div>
+                    <h2 class="text-3xl font-bold text-[var(--text-main)] mb-2 tracking-tight">${currentQuiz.title}</h2>
+                    <p class="text-[15px] font-medium text-[var(--text-muted)] mb-8"><i class="fas fa-layer-group mr-1.5"></i>${qLength} ${itemLabel}</p>
+                    <div class="grid grid-cols-2 gap-3 mb-8">
+                        <div class="bg-[var(--bg-body)] p-5 rounded-2xl border border-[var(--border-color)]">
+                            <p class="text-[11px] text-[var(--text-muted)] uppercase font-extrabold tracking-widest mb-1">Previous Best</p>
+                            <p class="text-2xl font-bold text-[var(--text-main)]">${bScore} <span class="text-sm text-[var(--text-muted)] font-medium">/ ${qLength}</span></p>
+                        </div>
+                        <div class="bg-[var(--bg-body)] p-5 rounded-2xl border border-[var(--border-color)]">
+                            <p class="text-[11px] text-[var(--text-muted)] uppercase font-extrabold tracking-widest mb-1">Total Attempts</p>
+                            <p class="text-2xl font-bold text-[var(--text-main)]">${attempts}</p>
+                        </div>
+                    </div>
+                    <button onclick="window.startPractice(false)" class="w-full bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 rounded-full border-none cursor-pointer transition-transform active:scale-95 text-[17px] flex items-center justify-center gap-2"><i class="fas fa-play text-sm"></i> Begin Session</button>
+                </div>`;
+        };
+
+        window.toggleFavoriteCurrent = async function() {
+            if (window.currentQuiz && window.currentUser) {
+                window.currentQuiz.favorite = !window.currentQuiz.favorite;
+                try { 
+                    if (window._updateDoc && window._doc) {
+                        await window._updateDoc(window._doc(window.db, "users", window.currentUser.uid, "quizzes", window.currentQuiz.id.toString()), { favorite: window.currentQuiz.favorite }); 
+                    }
+                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes)); 
+                } catch(e) {}
+                window.loadQuizOverview(window.currentQuiz.id);
+                const activeTabEl = document.querySelector('.tab-btn.active');
+                if (activeTabEl) window.renderLibrary(activeTabEl.dataset.filter, document.getElementById('librarySearchInput').value);
+            }
+        };
+
+        // Leaderboard Logic
+        // Leaderboard colour palette for user initials
+        const LB_COLORS = [
+            ['#7c3aed','#ede9fe'],['#0369a1','#e0f2fe'],['#065f46','#d1fae5'],
+            ['#9a3412','#ffedd5'],['#be185d','#fce7f3'],['#1e40af','#dbeafe'],
+            ['#854d0e','#fef9c3'],['#4d7c0f','#ecfccb'],['#155e75','#cffafe'],
+        ];
+        function lbColorFor(name) {
+            let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+            return LB_COLORS[Math.abs(h) % LB_COLORS.length];
+        }
+
+        // Build an avatar element for a leaderboard user
+        function lbAvatarHTML(user, size, currentUserId) {
+            const isMe = user.uid === currentUserId;
+            // Use Firestore avatarIndex for all users; fall back to localStorage for current user
+            let avatarIndex = user.avatarIndex ?? null;
+            if (isMe && avatarIndex === null) {
+                const saved = localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest'));
+                if (saved !== null) avatarIndex = parseInt(saved);
+            }
+            if (avatarIndex !== null && AVATAR_GRID) {
+                const a = AVATAR_GRID[parseInt(avatarIndex)];
+                if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
+            }
+            const [bg, fg] = lbColorFor(user.displayName || '?');
+            const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
+            return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*0.35)}px;color:${fg};flex-shrink:0;">${initial}</div>`;
+        }
+
+        // Tab state
+        window._lbTab = 'alltime';
+        window._lbUsers = [];
+        window._lbUserId = null;
+
+        window.switchLbTab = function(tab) {
+            window._lbTab = tab;
+            const allBtn = document.getElementById('lbTabAllTime');
+            const wkBtn  = document.getElementById('lbTabWeek');
+            if (allBtn) {
+                const on = tab === 'alltime';
+                allBtn.style.background  = on ? 'var(--accent-btn)' : 'transparent';
+                allBtn.style.color       = on ? 'var(--btn-text)'   : 'var(--text-muted)';
+                allBtn.style.boxShadow   = on ? '0 2px 8px rgba(139,92,246,0.3)' : 'none';
+            }
+            if (wkBtn) {
+                const on = tab === 'week';
+                wkBtn.style.background   = on ? 'var(--accent-btn)' : 'transparent';
+                wkBtn.style.color        = on ? 'var(--btn-text)'   : 'var(--text-muted)';
+                wkBtn.style.boxShadow    = on ? '0 2px 8px rgba(139,92,246,0.3)' : 'none';
+            }
+            // Re-fetch fresh data when switching to This Week so weeklyXp is current
+            if (tab === 'week' && window._lbUserId) {
+                window.loadLeaderboard(window._lbUserId);
+            } else if (window._lbUsers.length) {
+                window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
+            }
+        };
+
+        window.loadLeaderboard = async function(currentUserId) {
+            window._lbUserId = currentUserId;
+            try {
+                const uiXP = document.getElementById('currentUserXp');
+                if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
+                const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
+                const snap = await getDocs(q);
+                let fetched = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.xp && data.xp > 0) fetched.push({
+                        uid: d.id,
+                        displayName: data.displayName || data.email?.split('@')[0] || "User",
+                        xp: data.xp,
+                        weeklyXp: data.weeklyXp || 0,
+                        avatarIndex: data.avatarIndex ?? null,
+                    });
+                });
+                window._lbUsers = fetched;
+                window.renderLeaderboardDOM(fetched, currentUserId);
+            } catch(e) {
+                const lc = document.getElementById('leaderboardList');
+                if (lc) {
+                    lc.innerHTML = e.message?.includes("index")
+                        ? `<div style="text-align:center;color:#f59e0b;padding:1.5rem;font-size:0.875rem;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Firebase index required.</div>`
+                        : `<div style="text-align:center;color:var(--text-muted);padding:1.5rem;font-size:0.875rem;">Failed to load leaderboard.</div>`;
+                }
+            }
+        };
+
+        window.renderLeaderboardDOM = function(allUsers, currentUserId) {
+            const useWeekly = window._lbTab === 'week';
+            // Sort by the right XP field
+            let users = [...allUsers].sort((a,b) => (useWeekly ? b.weeklyXp - a.weeklyXp : b.xp - a.xp));
+            // Filter out zero weekly XP if in weekly mode
+            if (useWeekly) users = users.filter(u => u.weeklyXp > 0);
+
+            const listContainer = document.getElementById('leaderboardList');
+            const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
+            skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
+
+            // Empty state
+            if (users.length === 0) {
+                ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='---'; });
+                ['xp1','xp2','xp3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">${useWeekly ? 'No activity this week yet — go study!' : 'No users have earned XP yet!'}</div>`;
+                document.getElementById('yourRankBar').style.display = 'none';
+                return;
+            }
+
+            const xpField = useWeekly ? 'weeklyXp' : 'xp';
+
+            // --- Podium top 3 ---
+            const podiumSlots = [
+                { nameId:'name1', xpId:'xp1', boxId:'avatarBox1', avatarId:'avatar1' },
+                { nameId:'name2', xpId:'xp2', boxId:'avatarBox2', avatarId:'avatar2' },
+                { nameId:'name3', xpId:'xp3', boxId:'avatarBox3', avatarId:'avatar3' },
+            ];
+            const podiumOrder = [users[0], users[1], users[2]]; // 1st, 2nd, 3rd
+            podiumSlots.forEach((slot, i) => {
+                const u = podiumOrder[i];
+                const nameEl = document.getElementById(slot.nameId);
+                const xpEl   = document.getElementById(slot.xpId);
+                const boxEl  = document.getElementById(slot.boxId);
+                if (!u) { if(nameEl) nameEl.textContent='—'; if(xpEl) xpEl.textContent=''; return; }
+                if (nameEl) nameEl.textContent = u.displayName;
+                if (xpEl)   xpEl.textContent   = window.formatXP(u[xpField]);
+                if (boxEl) {
+                    const size = i === 0 ? 76 : 56;
+                    boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId);
+                }
+            });
+
+            // --- Ranked list (ranks 4–10) ---
+            listContainer.innerHTML = '';
+            if (users.length <= 3) {
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} so far. Be the one to break in!</div>`;
+            }
+
+            let currentUserRank = -1;
+            users.forEach((user, index) => {
+                const rank = index + 1;
+                if (user.uid === currentUserId) currentUserRank = rank;
+                if (rank <= 3 || rank > 10) return; // podium already shown, cap at 10
+
+                const isMe = user.uid === currentUserId;
+                const avatarHTML = lbAvatarHTML(user, 40, currentUserId);
+                const [bg] = lbColorFor(user.displayName);
+                const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
+                const nameCls = isMe ? 'color:var(--accent-btn);' : 'color:var(--text-main);';
+
+                listContainer.innerHTML += `
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
+                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
+                            ${avatarHTML}
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    ${user.displayName}
+                                    ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:var(--btn-text);border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex-shrink:0;margin-left:0.75rem;text-align:right;">
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user[xpField])}</span>
+                        </div>
+                    </div>`;
+            });
+
+            // --- Pinned Your Rank Bar ---
+            const bar = document.getElementById('yourRankBar');
+            if (currentUserRank > 0 && bar) {
+                const me = users[currentUserRank - 1];
+                const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
+                const avatarWrap = document.getElementById('yourRankAvatarWrap');
+                if (avatarWrap) {
+                    if (saved !== null && AVATAR_GRID) {
+                        const a = AVATAR_GRID[parseInt(saved)];
+                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
+                    } else {
+                        avatarWrap.textContent = window.getInitial ? window.getInitial(me.displayName) : me.displayName.charAt(0).toUpperCase();
+                    }
+                }
+                const rankNameEl = document.getElementById('yourRankName');
+                const rankXpEl   = document.getElementById('yourRankXp');
+                const rankNumEl  = document.getElementById('yourRankNum');
+                if (rankNameEl) rankNameEl.textContent = me.displayName;
+                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me[xpField]) + ' XP';
+                if (rankNumEl)  rankNumEl.textContent   = `#${currentUserRank}`;
+                bar.style.display = 'block';
+            } else if (bar) {
+                bar.style.display = 'none';
+            }
+        };
+        
+        // Create Generation API Logic
+        const generateBtn = document.getElementById('generateBtn');
+        const aiLoader = document.getElementById('aiLoader');
+        const loadingText = document.getElementById('loadingText');
+        const loadingMessages = ["Analyzing document structure...", "Extracting key concepts...", "Formulating questions...", "Reviewing accuracy...", "Almost there..."];
+        let messageInterval = null;
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', async () => {
+                if (!window.selectedFile) return;
+                if (!window.currentUser) { window.showLoginModal(); return; }
+                
+                const requestedItems = parseInt(document.getElementById('itemSlider').value, 10);
+                if (requestedItems > window.allowedMaxItems) {
+                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
+                    if (wantToUpgrade) window.navigateTo('view-payment'); return;
+                }
+
+                generateBtn.disabled = true; 
+                generateBtn.style.background = 'var(--bg-surface)'; generateBtn.style.color = 'var(--text-muted)';
+                aiLoader.classList.add('show');
+                document.getElementById('createBackBtn').style.display = 'none';
+                if (window.lottieAnimation) window.lottieAnimation.play();
+                
+                // NEW PROGRESS BAR LOGIC
+                const ESTIMATED_SECS = 30;
+                let scanElapsed = 0;
+                const scanProgressBar = document.getElementById('scanProgressBar');
+                const scanElapsedLabel = document.getElementById('scanElapsedLabel');
+                const scanEstLabel = document.getElementById('scanEstLabel');
+                if(scanProgressBar) {
+                    scanProgressBar.style.transition = 'none';
+                    scanProgressBar.style.width = '0%';
+                }
+                if(scanElapsedLabel) scanElapsedLabel.textContent = '0s elapsed';
+                if(scanEstLabel) scanEstLabel.textContent = `~${ESTIMATED_SECS}s remaining`;
+                setTimeout(() => { if(scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
+                
+                window.scanProgressInterval = setInterval(() => {
+                    scanElapsed++;
+                    const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
+                    if(scanProgressBar) scanProgressBar.style.width = progress + '%';
+                    if(scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s elapsed`;
+                    const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
+                    if(scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s remaining` : 'Almost done...';
+                }, 1000);
+                
+                let msgIndex = 0; if(loadingText) loadingText.style.opacity = 0;
+                setTimeout(() => { if(loadingText) { loadingText.textContent = loadingMessages[0]; loadingText.style.opacity = 1; } }, 300);
+                messageInterval = setInterval(() => { if(loadingText) { loadingText.style.opacity = 0; setTimeout(() => { msgIndex = (msgIndex + 1) % loadingMessages.length; loadingText.textContent = loadingMessages[msgIndex]; loadingText.style.opacity = 1; }, 300); } }, 3500); 
+
+                try {
+                    const uniqueFileName = Date.now() + '_' + window.selectedFile.name;
+                    const securePath = `uploads/${window.currentUser.email || window.currentUser.uid}/${uniqueFileName}`;
+                    const storageReference = ref(storage, securePath);
+                    await uploadBytes(storageReference, window.selectedFile);
+                    
+                    const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
+                    const response = await generateQuizFunction({ filePath: securePath, fileName: window.selectedFile.name, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems });
+                    
+                    const payload = response.data;
+                    const cards = payload.cards || payload.flashcards || payload.items || payload.questions;
+                    if (!cards || !Array.isArray(cards) || cards.length === 0) throw new Error("Generation returned empty data.");
+
+                    // ADDED SAFETY FILTER HERE to ignore blank/undefined cards from the AI
+                    generatedCards = cards.filter(card => card != null && typeof card === 'object').map(card => {
+                        let frontText = card.front || card.question || ""; let backText = card.back || card.answer || "No answer provided";
+                        if (card.options) {
+                            const cleanBack = String(backText).trim().toUpperCase();
+                            if (Array.isArray(card.options)) { if (cleanBack.length === 1 && /^[A-E]$/.test(cleanBack)) { const idx = cleanBack.charCodeAt(0) - 65; if (card.options[idx]) backText = card.options[idx]; } }
+                            else if (typeof card.options === 'object') { if (cleanBack.length <= 2 && card.options[cleanBack]) backText = card.options[cleanBack]; else { for (const [key, value] of Object.entries(card.options)) { if (String(key).trim().toUpperCase() === cleanBack || String(key).trim() === cleanBack) { backText = value; break; } } } }
+                        }
+                        return { ...card, front: frontText, back: backText, answer: backText, answered: false };
+                    });
+                    window.generatedCards = generatedCards;
+
+                    if (generatedCards.length === 0) throw new Error("AI returned invalid card formats.");
+
+                    currentCardIndex = 0; window.currentCardIndex = 0; sessionScore = 0; isMCQMode = window.globalQuizType === "Multiple Choice"; window.isMCQMode = isMCQMode;
+                    const subjectName = document.getElementById('topicFocus').value || "General Subject";
+                    const newQuiz = {
+                        id: Date.now(), title: window.selectedFile.name.split('.')[0] + " Quiz", subject: subjectName, favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 },
+                        questions: generatedCards.map(card => {
+                            let optionsArr = [], correctIdx = 0; const question = card.front || card.question || ""; const answer = card.back || card.answer || "No answer provided";
+                            if (card.options && typeof card.options === 'object') { const keys = Object.keys(card.options); optionsArr = Object.values(card.options); for (let i = 0; i < keys.length; i++) { if (window.checkAnswerMatch(keys[i], optionsArr[i], answer)) { correctIdx = i; break; } } } 
+                            else { optionsArr = [answer !== "No answer provided" ? answer : "True", "False"]; }
+                            return { text: question, options: optionsArr, correct: correctIdx, explanation: card.explanation || "" };
+                        }), type: window.globalQuizType
+                    };
+
+                    try { await setDoc(doc(db, "users", window.currentUser.uid, "quizzes", newQuiz.id.toString()), newQuiz); } catch(e) {}
+                    let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + window.currentUser.uid)) || [];
+                    existingQuizzes.push(newQuiz); localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(existingQuizzes));
+                    window.quizzes = existingQuizzes;
+
+                    if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
+                    aiLoader.classList.remove('show');
+                    document.getElementById('setupView').style.display = 'none';
+                    document.getElementById('interactiveView').style.display = 'flex';
+                    window.enterQuizMode();
+                    window.renderCreateCurrentCard();
+                    
+                } catch (error) {
+                    console.error("Error generating quiz:", error);
+                    if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
+                    alert("Generation Error: " + error.message);
+                    aiLoader.classList.remove('show');
+                    generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';
+                    document.getElementById('createBackBtn').style.display = 'flex';
+                }
+            });
+        }
+
+        
+
+        /* =========================================
+           AVATAR PICKER
+           =========================================
+           HOW TO USE:
+           Set AVATAR_IMAGE_PATH to the relative or absolute path of your
+           avatar grid image (the 3×3 character sheet).
+           e.g. "assets/avatars.jpg" or "https://yourcdn.com/avatars.jpg"
+        ========================================= */
+        const AVATAR_IMAGE_PATH = "avatar.svg";
+
+        // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
+        const AVATAR_GRID = [
+            { col: 0, row: 0, label: "Intern" },
+            { col: 1, row: 0, label: "Scholar" },
+            { col: 2, row: 0, label: "Clinician" },
+            { col: 0, row: 1, label: "Resident" },
+            { col: 1, row: 1, label: "Surgeon" },
+            { col: 2, row: 1, label: "Focus" },
+            { col: 0, row: 2, label: "Consultant" },
+            { col: 1, row: 2, label: "Medic" },
+            { col: 2, row: 2, label: "Classic" },
+        ];
+
+        window.openAvatarPicker = function() {
+            let backdrop = document.getElementById('avatarPickerBackdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'avatarPickerBackdrop';
+                backdrop.className = 'modal-backdrop';
+                backdrop.style.cssText = 'align-items: flex-end;';
+                backdrop.innerHTML = `
+                    <div style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:var(--radius-card) var(--radius-card) 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);" id="avatarPickerSheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                            <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-main);">Choose Your Avatar</h3>
+                            <button onclick="window.closeAvatarPicker()" style="background:var(--bg-hover);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:var(--text-muted);font-size:1rem;">✕</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;" id="avatarGrid">
+                        ${AVATAR_GRID.map((a, i) => `
+                            <button onclick="window.selectAvatar(${i})" id="avatarOption${i}" style="
+                                background:var(--bg-body);
+                                border:2px solid var(--border-color);
+                                border-radius:1rem;
+                                padding:0.5rem;
+                                cursor:pointer;
+                                display:flex;
+                                flex-direction:column;
+                                align-items:center;
+                                gap:0.5rem;
+                                transition:border-color 0.2s,transform 0.15s;
+                                -webkit-tap-highlight-color:transparent;
+                            " onmousedown="this.style.transform='scale(0.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.94)'" ontouchend="this.style.transform=''">
+                                <div style="
+                                    width:64px;height:64px;border-radius:50%;overflow:hidden;
+                                    background-image:url('${AVATAR_IMAGE_PATH}');
+                                    background-size:300% 300%;
+                                    background-position:${a.col * 50}% ${a.row * 50}%;
+                                    flex-shrink:0;
+                                "></div>
+                                <span style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);">${a.label}</span>
+                            </button>
+                        `).join('')}
+                        </div>
+                    </div>
+                `;
+                backdrop.addEventListener('click', (e) => { if (e.target === backdrop) window.closeAvatarPicker(); });
+                document.body.appendChild(backdrop);
+            }
+
+            // Highlight currently selected
+            const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
+            AVATAR_GRID.forEach((_, i) => {
+                const btn = document.getElementById(`avatarOption${i}`);
+                if (btn) btn.style.borderColor = (String(i) === saved) ? 'var(--accent-btn)' : 'var(--border-color)';
+            });
+
+            backdrop.style.display = 'flex';
+            requestAnimationFrame(() => {
+                backdrop.style.opacity = '1';
+                const sheet = document.getElementById('avatarPickerSheet');
+                if (sheet) { sheet.style.transform = 'translateY(0)'; sheet.style.opacity = '1'; }
+            });
+        };
+
+        window.closeAvatarPicker = function() {
+            const backdrop = document.getElementById('avatarPickerBackdrop');
+            const sheet = document.getElementById('avatarPickerSheet');
+            if (sheet) { sheet.style.transform = 'translateY(100%)'; sheet.style.opacity = '0'; }
+            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => { backdrop.style.display = 'none'; }, 400); }
+        };
+
+        window.selectAvatar = function(index) {
+            localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
+            // Save to Firestore so other users can see it in the leaderboard
+            if (window.currentUser?.uid) {
+                try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index }).catch(() => {}); } catch(e) {}
+            }
+            window.applyAvatar();
+            // Highlight in picker
+            AVATAR_GRID.forEach((_, i) => {
+                const btn = document.getElementById(`avatarOption${i}`);
+                if (btn) btn.style.borderColor = (i === index) ? 'var(--accent-btn)' : 'var(--border-color)';
+            });
+            setTimeout(() => window.closeAvatarPicker(), 350);
+        };
+
+        window.applyAvatar = function() {
+            const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
+            const wrap = document.getElementById('profileAvatarWrap');
+            const homeBtn = document.getElementById('homeAvatarBtn');
+            const initial = document.getElementById('userInitial');
+            const storedInitial = initial ? initial.textContent : (document.getElementById('homeAvatarInitial') ? document.getElementById('homeAvatarInitial').textContent : '?');
+
+            if (saved !== null) {
+                const a = AVATAR_GRID[parseInt(saved)];
+                if (a) {
+                    const bgStyle = `background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;`;
+                    // Profile page avatar
+                    if (wrap) {
+                        wrap.style.background = 'var(--bg-surface)';
+                        wrap.style.border = '2px solid var(--accent-btn)';
+                        wrap.innerHTML = `<div style="${bgStyle}"></div>`;
+                    }
+                    // Home header avatar
+                    if (homeBtn) {
+                        homeBtn.style.borderColor = 'var(--accent-btn)';
+                        homeBtn.innerHTML = `<div style="${bgStyle}"></div>`;
+                    }
+                    return;
+                }
+            }
+            // Fallback: show initial
+            if (wrap) {
+                wrap.style.background = '';
+                wrap.style.border = '';
+                wrap.innerHTML = `<span id="userInitial">${storedInitial}</span>`;
+            }
+            if (homeBtn) {
+                homeBtn.style.borderColor = 'var(--border-color)';
+                homeBtn.innerHTML = `<span id="homeAvatarInitial">${storedInitial}</span>`;
+            }
+        };
+
+        // Apply on load
+        document.addEventListener('DOMContentLoaded', window.applyAvatar);
+
+        // Initialize User Data (Master Hub)
+        window.initUserUI = async function(user) {
+            try {
+                let savedName = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+                
+                // Set Profile texts
+                const uNameEl = document.getElementById("userName"); if(uNameEl) uNameEl.textContent = savedName;
+                const uEmailEl = document.getElementById("userEmail"); if(uEmailEl) uEmailEl.textContent = user.email || "";
+                const uInitEl = document.getElementById("userInitial"); if(uInitEl) uInitEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
+                const uHomeInit = document.getElementById("homeAvatarInitial"); if(uHomeInit) uHomeInit.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
+                window.applyAvatar();
+
+                // Fetch Quizzes securely
+                try {
+                    const qSnap = await getDocs(collection(db, "users", user.uid, "quizzes"));
+                    let loadedQuizzes = []; qSnap.forEach(d => loadedQuizzes.push(d.data()));
+                    loadedQuizzes.sort((a,b) => a.id - b.id); window.quizzes = loadedQuizzes;
+                    localStorage.setItem('medexcel_quizzes_' + user.uid, JSON.stringify(window.quizzes));
+                } catch(e) { window.quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid)) || []; }
+
+                // Fetch Main Doc — create it immediately if this is a new user (e.g. first Google sign-in)
+                const userRef = doc(db, "users", user.uid);
+                let userDoc = await getDoc(userRef);
+                let data;
+
+                if (userDoc.exists()) {
+                    data = userDoc.data();
+                    // Sync Firestore avatar → localStorage so it shows correctly on any device or after account switch
+                    if (data.avatarIndex !== undefined && data.avatarIndex !== null) {
+                        localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
+                        window.applyAvatar();
+                    }
+                } else {
+                    // New user — provision their Firestore document now with safe defaults
+                    data = {
+                        uid: user.uid,
+                        email: user.email || "",
+                        displayName: savedName,
+                        xp: 0,
+                        streak: 0,
+                        lastCheckIn: null,
+                        plan: "free",
+                        planUsed: 0,
+                        dailyUsage: 0,
+                        lastDailyReset: "",
+                        achievements: [],
+                        createdAt: serverTimestamp()
+                    };
+                    try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
+                }
+
+                // ---- UI updates — always run for both new and existing users ----
+
+                // Home Greeting
+                const greetingTitle = document.getElementById('greetingTitle');
+                if(greetingTitle) { greetingTitle.classList.remove('skeleton'); greetingTitle.style.width='auto'; greetingTitle.style.height='auto'; greetingTitle.innerHTML = `Hi, ${savedName} ${window.getTimeEmoji()}`; }
+
+                // Streak logic
+                const storageKey = 'medexcel_streak_' + user.uid;
+                let localStreak = JSON.parse(localStorage.getItem(storageKey));
+                if (data.lastCheckIn) { localStreak = { count: data.streak || 0, lastDate: data.lastCheckIn }; localStorage.setItem(storageKey, JSON.stringify(localStreak)); }
+                if (!localStreak) localStreak = { count: 0, lastDate: null };
+
+                window.userStats = { xp: data.xp || 0, weeklyXp: data.weeklyXp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
+
+                // Seed week key so addXP doesn't wipe weeklyXp on first call this session
+                const _wkKey = (function() {
+                    const now = new Date(); const day = now.getDay();
+                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                    const mon = new Date(now.getFullYear(), now.getMonth(), diff);
+                    return mon.toISOString().split('T')[0];
+                })();
+                if (!localStorage.getItem('medexcel_weekkey_' + user.uid)) {
+                    localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
+                }
+                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+
+                const todayStr = new Date().toDateString(); const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); const yesterdayStr = yesterday.toDateString();
+                if (localStreak.lastDate === todayStr) { hasCheckedInToday = true; currentStreakCount = localStreak.count; }
+                else if (localStreak.lastDate === yesterdayStr) { hasCheckedInToday = false; currentStreakCount = localStreak.count + 1; }
+                else { hasCheckedInToday = false; currentStreakCount = 1; }
+
+                const headerDisplay = document.getElementById('headerStreakDisplay'); const headerFireIcon = document.getElementById('headerFireIcon');
+                if(headerDisplay) { headerDisplay.classList.remove('skeleton'); headerDisplay.style.width='auto'; headerDisplay.style.height='auto'; }
+                if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => window.openStreakModal(), 500); }
+                else { if(headerDisplay) headerDisplay.textContent = currentStreakCount; if(headerFireIcon) headerFireIcon.style.opacity = '1'; }
+
+                // Profile & limits UI
+                const pStreak = document.getElementById("profileStreakCount"); if(pStreak) pStreak.textContent = currentStreakCount;
+                const studyStreak = document.getElementById("studyStreakDisplay"); if(studyStreak) studyStreak.textContent = `${currentStreakCount} Day`;
+                const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(data.xp || 0);
+                if (data.createdAt && data.createdAt.toDate) { const dateObj = data.createdAt.toDate(); const memberSince = document.getElementById("memberSince"); if(memberSince) memberSince.textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); }
+
+                window.userPlan = data.plan || "free";
+                const isToday = data.lastDailyReset === new Date().toISOString().split("T")[0];
+                const dailyUsage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
+                const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
+                if(usageCountEl) usageCountEl.textContent = dailyUsage;
+
+                const planConfig = {
+                    premium: { max: 30, cap: 30, bar: "#3b82f6" },
+                    free:    { max: 15, cap:  5, bar: "#94a3b8" }
+                };
+                const pc = planConfig[window.userPlan] || planConfig.free;
+                window.allowedMaxItems = pc.max;
+                if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / pc.cap) * 100)}%`; barEl.style.background = pc.bar; }
+                const maxText = document.getElementById('maxLimitText'); if(maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+
+                // Plan icon, XP level, achievements, library
+                window.updatePlanIcon(window.userPlan);
+                window.updateProfileXP(data.xp || 0);
+                window.renderAchievements(data.achievements || []);
+                window.updateHomeContinueCard();
+                window.renderLibrary('all', '');
+
+                // ---- REFERRAL SYSTEM INIT ----
+                // 1. Ensure user has a referral code (backfill for existing users)
+                if (!data.referralCode && user.uid) {
+                    const myCode = user.uid.substring(0, 8).toUpperCase();
+                    try { await updateDoc(userRef, { referralCode: myCode, referralCount: data.referralCount || 0 }); data.referralCode = myCode; } catch(e) {}
+                }
+
+                // 2. Load referral data into UI
+                if (typeof window.loadReferralData === 'function') window.loadReferralData(data);
+
+                // 3. Apply any active referral boost to limits
+                if (typeof window.applyReferralBoost === 'function') window.applyReferralBoost(data);
+
+                // 4. Process pending referral attribution (runs once for users who were referred)
+                if (data.referredBy && !data.referralProcessed && data.referredBy !== data.referralCode) {
+                    try {
+                        // Find referrer by their referralCode field
+                        const { query: fsQuery, where, collection: fsCollection, increment: fsIncrement } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                        const refQuery = fsQuery(fsCollection(db, "users"), where("referralCode", "==", data.referredBy));
+                        const { getDocs: gds } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                        const refSnap = await gds(refQuery);
+                        if (!refSnap.empty) {
+                            const referrerDoc = refSnap.docs[0];
+                            const referrerData = referrerDoc.data();
+                            const newCount = (referrerData.referralCount || 0) + 1;
+                            // Determine reward to apply
+                            const rewards = [
+                                { at: 20, type: 'ambassador',   xp: 0,    days: 0    },
+                                { at: 10, type: 'month_premium', xp: 0,    days: 30   },
+                                { at: 5,  type: 'week_premium',  xp: 0,    days: 7    },
+                                { at: 3,  type: 'limit_2x',      xp: 0,    days: 7    },
+                                { at: 1,  type: 'xp',            xp: 500,  days: 0    },
+                            ];
+                            const rewardToApply = rewards.find(r => newCount === r.at);
+                            let referrerUpdate = { referralCount: newCount };
+                            if (rewardToApply) {
+                                if (rewardToApply.xp > 0) {
+                                    referrerUpdate.xp = (referrerData.xp || 0) + rewardToApply.xp;
+                                }
+                                if (rewardToApply.days > 0) {
+                                    const expiry = new Date();
+                                    expiry.setDate(expiry.getDate() + rewardToApply.days);
+                                    referrerUpdate.referralBoostExpiry = expiry.toISOString();
+                                    referrerUpdate.referralBoostType   = rewardToApply.type;
+                                }
+                                if (rewardToApply.type === 'ambassador') {
+                                    referrerUpdate.referralBoostType = 'ambassador';
+                                }
+                            }
+                            await updateDoc(doc(db, "users", referrerDoc.id), referrerUpdate);
+                        }
+                        // Mark as processed so we don't double-count
+                        await updateDoc(userRef, { referralProcessed: true });
+                    } catch(e) { console.warn("Referral attribution failed (will retry):", e); }
+                }
+            } catch(e) { console.warn("Init Error:", e); }
+        };
+
+        // Top level Firebase Auth listener
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                window.currentUser = firebaseUser;
+                await window.initUserUI(firebaseUser);
+                window.loadLeaderboard(firebaseUser.uid);
+                if (window.initPush) window.initPush(firebaseUser.uid);
+            } else {
+                window.currentUser = null;
+                const _authTheme = localStorage.getItem('medexcel_theme');
+                localStorage.clear();
+                if (_authTheme) localStorage.setItem('medexcel_theme', _authTheme);
+                window.location.replace("index.html");
+            }
+        });

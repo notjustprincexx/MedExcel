@@ -119,6 +119,11 @@
         .modal-btn-secondary { width: 100%; padding: 0.875rem; background: transparent; color: var(--text-muted); border: none; border-radius: var(--radius-btn); font-weight: 600; cursor: pointer; transition: 0.2s; }
         .modal-btn-secondary:active { background: var(--bg-hover); }
 
+        /* AI Engine */
+        @keyframes aiPulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);} }
+        @keyframes aiSpin { to { transform: rotate(360deg); } }
+        .ai-refresh-spinning { animation: aiSpin 0.7s linear infinite; }
+
         /* Global Bottom Nav */
         .bottom-nav { 
             position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); 
@@ -193,107 +198,6 @@
         .option-btn.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
         .option-btn.wrong { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .option-btn.disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* ── ANSWER FEEDBACK PANEL ─────────────────────────── */
-        #answerFeedbackPanel {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
-            transform: translateY(105%);
-            transition: transform 0.42s cubic-bezier(0.19, 1, 0.22, 1);
-            will-change: transform;
-        }
-        #answerFeedbackPanel.afp-visible { transform: translateY(0); }
-
-        .afp-inner {
-            padding: 1.375rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.375rem);
-            display: flex; flex-direction: column; gap: 1rem;
-            border-radius: 24px 24px 0 0;
-        }
-        #answerFeedbackPanel.afp-correct .afp-inner {
-            background: #0b1e14;
-            border-top: 1px solid rgba(52, 211, 153, 0.12);
-        }
-        #answerFeedbackPanel.afp-wrong .afp-inner {
-            background: #1e0b0b;
-            border-top: 1px solid rgba(248, 113, 113, 0.12);
-        }
-        .light-mode #answerFeedbackPanel.afp-correct .afp-inner {
-            background: #effdf5;
-            border-top: 1px solid rgba(16, 185, 129, 0.18);
-        }
-        .light-mode #answerFeedbackPanel.afp-wrong .afp-inner {
-            background: #fff5f5;
-            border-top: 1px solid rgba(239, 68, 68, 0.15);
-        }
-
-        .afp-header { display: flex; align-items: center; gap: 0.625rem; }
-        .afp-icon {
-            width: 1.875rem; height: 1.875rem; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.8125rem; flex-shrink: 0;
-        }
-        .afp-correct .afp-icon { background: rgba(52,211,153,0.15); color: var(--accent-green); }
-        .afp-wrong   .afp-icon { background: rgba(248,113,113,0.15); color: var(--accent-red); }
-        .afp-label {
-            font-size: 1rem; font-weight: 800; letter-spacing: -0.01em;
-        }
-        .afp-correct .afp-label { color: var(--accent-green); }
-        .afp-wrong   .afp-label { color: var(--accent-red); }
-
-        .afp-body {
-            background: rgba(255,255,255,0.03);
-            border-radius: 14px;
-            padding: 0.875rem 1rem;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .light-mode .afp-body {
-            background: rgba(0,0,0,0.03);
-            border-color: rgba(0,0,0,0.06);
-        }
-        .afp-body-eyebrow {
-            font-size: 0.625rem; font-weight: 700; letter-spacing: 0.08em;
-            text-transform: uppercase; color: var(--text-muted);
-            margin-bottom: 0.375rem;
-        }
-        .afp-correct-badge {
-            display: inline-flex; align-items: center; gap: 0.375rem;
-            background: rgba(52,211,153,0.1); color: var(--accent-green);
-            border: 1px solid rgba(52,211,153,0.2);
-            border-radius: 9999px; padding: 0.2rem 0.75rem;
-            font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.625rem;
-        }
-        .light-mode .afp-correct-badge { background: rgba(16,185,129,0.08); }
-        .afp-explanation-text {
-            font-size: 0.875rem; line-height: 1.6;
-            color: var(--text-light); font-weight: 400;
-        }
-        .light-mode .afp-explanation-text { color: var(--text-light); }
-
-        .afp-cta {
-            width: 100%; padding: 1rem; border: none;
-            border-radius: var(--radius-btn);
-            font-size: 0.9375rem; font-weight: 800; letter-spacing: 0.01em;
-            cursor: pointer; transition: transform 0.15s, opacity 0.15s;
-        }
-        .afp-cta:active { transform: scale(0.97); opacity: 0.9; }
-        .afp-correct .afp-cta { background: var(--accent-green); color: #05150d; }
-        .afp-wrong   .afp-cta { background: var(--accent-red);   color: #150505; }
-
-        @keyframes afpIconPop {
-            0%   { transform: scale(0.6); opacity: 0; }
-            65%  { transform: scale(1.15); }
-            100% { transform: scale(1);   opacity: 1; }
-        }
-        .afp-visible .afp-icon { animation: afpIconPop 0.35s cubic-bezier(0.19,1,0.22,1) both; }
-
-        @keyframes afpShake {
-            0%,100% { transform: translateX(0); }
-            18%     { transform: translateX(-7px); }
-            36%     { transform: translateX(7px); }
-            54%     { transform: translateX(-5px); }
-            72%     { transform: translateX(5px); }
-            90%     { transform: translateX(-2px); }
-        }
-        .afp-shake { animation: afpShake 0.5s ease both; }
 
         /* --- CREATE --- */
         .top-header { padding: 1.5rem 1.25rem 1rem; flex-shrink: 0; z-index: 40; width: 100%; display: flex; align-items: center; justify-content: space-between; background: var(--header-bg); backdrop-filter: blur(16px); position: sticky; top: 0; }
@@ -541,6 +445,57 @@
                 <div class="promo-dots-container" id="carouselIndicators">
                     <div class="promo-dot active"></div><div class="promo-dot"></div><div class="promo-dot"></div>
                 </div>
+            </div>
+
+            <!-- AI Learning Engine Card -->
+            <div id="aiEngineCard" style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-card);padding:1.25rem;display:flex;flex-direction:column;gap:0.875rem;position:relative;overflow:hidden;">
+                <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent-btn),#60a5fa,var(--accent-green));border-radius:var(--radius-card) var(--radius-card) 0 0;"></div>
+                <!-- Header row -->
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,rgba(167,139,250,0.2),rgba(96,165,250,0.2));border:1px solid rgba(167,139,250,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-btn)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        </div>
+                        <div>
+                            <div style="font-size:0.8125rem;font-weight:700;color:var(--text-main);line-height:1.2;">AI Study Engine</div>
+                            <div style="font-size:0.6875rem;color:var(--text-muted);font-weight:500;">Spaced repetition · Active recall</div>
+                        </div>
+                    </div>
+                    <button id="aiEngineRefreshBtn" onclick="window.runAIEngine()" style="width:28px;height:28px;border-radius:50%;background:var(--bg-glass);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:0.2s;" title="Refresh">
+                        <svg id="aiRefreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                    </button>
+                </div>
+
+                <!-- Nudge / Loading state -->
+                <div id="aiNudgeRow" style="background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(96,165,250,0.06));border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:0.875rem 1rem;min-height:44px;display:flex;align-items:center;gap:0.625rem;">
+                    <div id="aiNudgeIcon" style="width:8px;height:8px;border-radius:50%;background:var(--accent-btn);flex-shrink:0;animation:aiPulse 2s infinite;"></div>
+                    <span id="aiNudgeText" style="font-size:0.8125rem;font-weight:600;color:var(--text-main);line-height:1.4;flex:1;">Loading your study plan...</span>
+                </div>
+
+                <!-- Stats row -->
+                <div id="aiStatsRow" style="display:flex;gap:0.625rem;">
+                    <div style="flex:1;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:10px;padding:0.625rem 0.75rem;text-align:center;">
+                        <div id="aiRetentionScore" style="font-size:1.125rem;font-weight:800;color:var(--accent-btn);">--</div>
+                        <div style="font-size:0.625rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px;">Retention</div>
+                    </div>
+                    <div style="flex:1;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:10px;padding:0.625rem 0.75rem;text-align:center;">
+                        <div id="aiDueReviews" style="font-size:1.125rem;font-weight:800;color:var(--accent-orange);">--</div>
+                        <div style="font-size:0.625rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px;">Due</div>
+                    </div>
+                    <div style="flex:1;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:10px;padding:0.625rem 0.75rem;text-align:center;">
+                        <div id="aiStatusBadge" style="font-size:0.6875rem;font-weight:800;color:var(--accent-green);text-transform:uppercase;letter-spacing:0.04em;">--</div>
+                        <div style="font-size:0.625rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px;">Status</div>
+                    </div>
+                </div>
+
+                <!-- Weak topics pills (hidden until data loads) -->
+                <div id="aiWeakRow" style="display:none;flex-wrap:wrap;gap:0.5rem;"></div>
+
+                <!-- CTA Button -->
+                <button id="aiCtaBtn" onclick="navigateTo('view-study')" style="width:100%;padding:0.8125rem;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:var(--radius-btn);font-size:0.875rem;font-weight:700;cursor:pointer;transition:transform 0.15s,opacity 0.15s;letter-spacing:0.01em;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Start Recommended Session</button>
+
+                <!-- Insight -->
+                <p id="aiInsightText" style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;text-align:center;display:none;"></p>
             </div>
 
             <div class="flex flex-col gap-4">
@@ -1808,7 +1763,6 @@
             Object.assign(document.getElementById('studyPracticeArea').style, { padding:'0', alignItems:'stretch', justifyContent:'flex-start' });
         };
         window.exitStudyQuizMode = function() {
-            window.hideAnswerFeedback && window.hideAnswerFeedback();
             const nav = document.getElementById('globalBottomNav');
             if (nav) nav.style.transform = '';
             Object.assign(document.getElementById('studyPracticePanel').style, { position:'', inset:'', zIndex:'', background:'' });
@@ -1855,7 +1809,7 @@
                         <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;padding-right:0.25rem;" class="hide-scroll">
                             <h3 style="font-weight:700;color:var(--text-main);font-size:0.9375rem;line-height:1.6;margin-bottom:1rem;flex-shrink:0;">${safeQuestion}</h3>
                             ${optionsHTML}
-                            <div id="studyExplanationArea" style="display:none;"></div>
+                            <div id="studyExplanationArea" style="display:none;flex-direction:column;gap:0.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-glass);flex-shrink:0;"></div>
                         </div>
                     </div>`;
             } else {
@@ -1933,7 +1887,6 @@
             const isCorrect = selectedIdx === q.correct;
             if (isCorrect) examScore++;
 
-            // Style options
             allBtns.forEach(btn => {
                 const idx = parseInt(btn.dataset.idx);
                 btn.disabled = true;
@@ -1955,84 +1908,25 @@
                 }
             });
 
-            // Show the sleek feedback panel
-            const correctAnswerText = q.options ? q.options[q.correct] : '';
-            window.showAnswerFeedback(isCorrect, q.explanation, correctAnswerText);
-        };
+            const expl = document.getElementById('studyExplanationArea');
+            expl.innerHTML = `
+                <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
+                    ${isCorrect ? '<span style="color:var(--accent-green)"><i class="fas fa-check-circle"></i> Correct!</span>' : '<span style="color:var(--accent-red)"><i class="fas fa-times-circle"></i> Incorrect</span>'}
+                </div>
+                ${q.explanation ? `<div style="background:var(--bg-body);padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--text-main);font-size:0.875rem;line-height:1.5;"><span style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem;font-size:0.7rem;text-transform:uppercase;">Explanation</span>${window.escapeHTML(q.explanation)}</div>` : ''}
+            `;
+            expl.style.display = 'flex';
 
-        // ── Answer Feedback Panel ────────────────────────────────────────
-        window.showAnswerFeedback = function(isCorrect, explanation, correctAnswerText) {
-            const panel  = document.getElementById('answerFeedbackPanel');
-            const icon   = document.getElementById('afpIcon');
-            const label  = document.getElementById('afpLabel');
-            const body   = document.getElementById('afpBody');
-            const cta    = document.getElementById('afpCta');
+            // Unlock Next button
+const nextBtn = document.getElementById('studyNextBtn');
+if (nextBtn) {
+    nextBtn.disabled = false;
+    nextBtn.style.opacity = '1';
+    nextBtn.style.cursor = 'pointer';
+} 
 
-            // State classes
-            panel.classList.remove('afp-correct', 'afp-wrong', 'afp-visible');
-
-            requestAnimationFrame(() => {
-                if (isCorrect) {
-                    panel.classList.add('afp-correct');
-                    icon.innerHTML  = '<i class="fas fa-check"></i>';
-                    label.textContent = 'Correct!';
-                    body.innerHTML  = explanation
-                        ? `<div class="afp-body-eyebrow">Explanation</div>
-                           <p class="afp-explanation-text">${window.escapeHTML(explanation)}</p>`
-                        : `<p class="afp-explanation-text">Great work — keep it up!</p>`;
-                    cta.textContent = 'CONTINUE';
-                } else {
-                    panel.classList.add('afp-wrong');
-                    icon.innerHTML  = '<i class="fas fa-times"></i>';
-                    label.textContent = 'Incorrect';
-                    body.innerHTML  =
-                        `<div class="afp-body-eyebrow">Correct Answer</div>
-                         ${correctAnswerText ? `<div class="afp-correct-badge"><i class="fas fa-check"></i>${window.escapeHTML(correctAnswerText)}</div>` : ''}
-                         ${explanation ? `<p class="afp-explanation-text">${window.escapeHTML(explanation)}</p>` : ''}`;
-                    cta.textContent = 'GOT IT';
-
-                    // Haptic feedback for wrong answer
-                    if (navigator.vibrate) {
-                        navigator.vibrate([55, 30, 55]);
-                    } else if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-                        try {
-                            const { Haptics } = window.Capacitor.Plugins;
-                            if (Haptics) Haptics.impact({ style: 'MEDIUM' });
-                        } catch(e) {}
-                    }
-                    // Shake the quiz area
-                    const area = document.getElementById('studyPracticeArea');
-                    if (area) {
-                        area.classList.remove('afp-shake');
-                        void area.offsetWidth;
-                        area.classList.add('afp-shake');
-                    }
-                }
-
-                // Slide up
-                requestAnimationFrame(() => panel.classList.add('afp-visible'));
-            });
-        };
-
-        window.hideAnswerFeedback = function() {
-            const panel = document.getElementById('answerFeedbackPanel');
-            panel.classList.remove('afp-visible');
-        };
-
-        // Wire up the panel's CTA button (once, on load)
-        document.addEventListener('DOMContentLoaded', function() {
-            const cta = document.getElementById('afpCta');
-            if (cta) {
-                cta.addEventListener('click', function() {
-                    window.hideAnswerFeedback();
-                    // Advance to next question after panel slides out
-                    setTimeout(() => {
-                        const nextBtn = document.getElementById('studyNextBtn');
-                        if (nextBtn && !nextBtn.disabled) nextBtn.click();
-                    }, 280);
-                });
-            }
-        });
+            setTimeout(() => { expl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+        }
 
         window.finishStudyQuiz = async function() {
             const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
@@ -3535,18 +3429,168 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             await PushNotifications.register();
             console.log("[Push] register() called — awaiting token event...");
         };
-    </script>
-    <!-- ══ ANSWER FEEDBACK PANEL ══ -->
-    <div id="answerFeedbackPanel">
-        <div class="afp-inner">
-            <div class="afp-header">
-                <div class="afp-icon" id="afpIcon"></div>
-                <span class="afp-label" id="afpLabel"></span>
-            </div>
-            <div class="afp-body" id="afpBody"></div>
-            <button class="afp-cta" id="afpCta"></button>
-        </div>
-    </div>
+        /**
+         * AI Learning Engine
+         * Calls Claude API with user performance data to generate adaptive study plan.
+         */
+        window.runAIEngine = async function() {
+            const refreshIcon = document.getElementById('aiRefreshIcon');
+            const nudgeText = document.getElementById('aiNudgeText');
+            const nudgeIcon = document.getElementById('aiNudgeIcon');
+            if (refreshIcon) refreshIcon.classList.add('ai-refresh-spinning');
+            if (nudgeText) nudgeText.textContent = 'Analyzing your performance...';
 
+            // Build payload from real user data where available
+            const stats = window.userStats || {};
+            const quizzes = window.quizzes || [];
+            const now = Date.now();
+
+            // Derive topics from quizzes
+            const topicMap = {};
+            quizzes.forEach(q => {
+                const topic = q.topic || q.category || 'General';
+                if (!topicMap[topic]) topicMap[topic] = { correct: 0, total: 0 };
+                const correct = q.correctCount || Math.round((q.score || 0) / 100 * (q.totalQuestions || 10));
+                const total = q.totalQuestions || 10;
+                topicMap[topic].correct += correct;
+                topicMap[topic].total += total;
+            });
+            const topics = Object.entries(topicMap).map(([name, v]) => ({
+                name,
+                accuracy: v.total > 0 ? Math.round((v.correct / v.total) * 100) : 50,
+                totalQuestions: v.total
+            }));
+            if (topics.length === 0) {
+                topics.push(
+                    { name: 'Cardiology', accuracy: 45, totalQuestions: 30 },
+                    { name: 'Anatomy', accuracy: 72, totalQuestions: 25 },
+                    { name: 'Pharmacology', accuracy: 88, totalQuestions: 20 },
+                    { name: 'Renal', accuracy: 38, totalQuestions: 18 }
+                );
+            }
+
+            // Build questions array from quizzes
+            const questions = quizzes.slice(0, 20).map(q => ({
+                id: String(q.id || Math.random().toString(36).slice(2)),
+                topic: q.topic || q.category || 'General',
+                correctCount: q.correctCount || 0,
+                wrongCount: q.wrongCount || 0,
+                lastSeen: q.lastSeen || (now - 86400000 * 3),
+                nextReview: q.nextReview || (now - 3600000),
+                easeFactor: q.easeFactor || 2.5
+            }));
+            if (questions.length === 0) {
+                for (let i = 1; i <= 8; i++) {
+                    questions.push({ id: `q${i}`, topic: topics[i % topics.length]?.name || 'General', correctCount: i % 3, wrongCount: (i % 3) + 1, lastSeen: now - 86400000 * i, nextReview: now - 3600000 * i, easeFactor: 2.2 });
+                }
+            }
+
+            const payload = {
+                user: { streak: stats.streak || 0, lastActive: stats.lastActive || (now - 86400000 * 2) },
+                topics,
+                questions
+            };
+
+            const systemPrompt = `You are an intelligent learning engine inside a medical study app.
+
+Your job is to analyze user performance data and actively improve long-term memory using:
+- Active recall
+- Spaced repetition
+- Weakness targeting
+
+You behave like a strict, efficient tutor.
+
+INPUT DATA:
+${JSON.stringify(payload, null, 2)}
+
+YOUR TASK:
+1. IDENTIFY WEAKNESS - Topics with accuracy < 60%, questions where wrongCount > correctCount
+2. IDENTIFY FORGOTTEN CONTENT - Questions where nextReview <= current time (now = ${now})
+3. IDENTIFY STRONG AREAS - Topics with accuracy > 80%
+4. DETECT USER RISK - Long inactivity, streak about to break, large number of overdue reviews
+5. PRIORITIZE ACTION: (1) Due reviews (2) Weak topics (3) Streak risk (4) General improvement
+6. BUILD ADAPTIVE QUIZ: 60% weak, 30% medium, 10% strong questions
+7. GENERATE SMART NUDGE: ONE short message max 12 words, actionable, urgent, no emojis, no fluff
+8. GENERATE MICRO-SESSION: Focus on weakest + due questions
+9. GENERATE INSIGHTS: Short sharp observations about user performance
+
+OUTPUT FORMAT (STRICT JSON ONLY, no markdown, no explanation):
+{
+  "summary": { "retentionScore": number, "status": "improving"|"declining"|"stable" },
+  "weakTopics": [{ "topic": string, "reason": string }],
+  "strongTopics": [{ "topic": string }],
+  "dueReviews": number,
+  "priorityAction": { "type": string, "message": string, "cta": string },
+  "smartNudge": string,
+  "recommendedSession": { "title": string, "description": string, "questionIds": [], "estimatedTime": string },
+  "adaptiveQuiz": { "selectedQuestions": [] },
+  "insights": [string, string]
+}`;
+
+            try {
+                const res = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 1000,
+                        messages: [{ role: 'user', content: systemPrompt }]
+                    })
+                });
+                const data = await res.json();
+                const raw = (data.content || []).map(b => b.text || '').join('');
+                const clean = raw.replace(/```json|```/g, '').trim();
+                const result = JSON.parse(clean);
+                window._aiEngineResult = result;
+                window.renderAIEngine(result);
+            } catch (e) {
+                console.error('[AI Engine]', e);
+                if (nudgeText) nudgeText.textContent = 'Could not load study plan. Tap refresh to retry.';
+                if (nudgeIcon) nudgeIcon.style.background = 'var(--accent-red)';
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('ai-refresh-spinning');
+            }
+        };
+
+        window.renderAIEngine = function(r) {
+            const nudgeText = document.getElementById('aiNudgeText');
+            const nudgeIcon = document.getElementById('aiNudgeIcon');
+            const retentionEl = document.getElementById('aiRetentionScore');
+            const dueEl = document.getElementById('aiDueReviews');
+            const statusEl = document.getElementById('aiStatusBadge');
+            const weakRow = document.getElementById('aiWeakRow');
+            const ctaBtn = document.getElementById('aiCtaBtn');
+            const insightEl = document.getElementById('aiInsightText');
+
+            if (nudgeText) nudgeText.textContent = r.smartNudge || r.priorityAction?.message || 'Stay consistent. Study now.';
+            const statusColors = { improving: 'var(--accent-green)', stable: 'var(--accent-yellow)', declining: 'var(--accent-red)' };
+            if (nudgeIcon) nudgeIcon.style.background = statusColors[r.summary?.status] || 'var(--accent-btn)';
+            if (retentionEl) { retentionEl.textContent = (r.summary?.retentionScore ?? '--') + '%'; }
+            if (dueEl) { dueEl.textContent = r.dueReviews ?? '--'; dueEl.style.color = (r.dueReviews > 0) ? 'var(--accent-red)' : 'var(--accent-green)'; }
+            if (statusEl) { const s = r.summary?.status || 'stable'; statusEl.textContent = s; statusEl.style.color = statusColors[s] || 'var(--accent-btn)'; }
+
+            if (weakRow && r.weakTopics?.length > 0) {
+                weakRow.style.display = 'flex';
+                weakRow.innerHTML = r.weakTopics.slice(0, 3).map(w =>
+                    `<span style="padding:0.3125rem 0.625rem;border-radius:9999px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);font-size:0.6875rem;font-weight:600;color:var(--accent-red);">${w.topic}</span>`
+                ).join('');
+            }
+
+            if (ctaBtn && r.recommendedSession) {
+                ctaBtn.textContent = r.priorityAction?.cta || `Start: ${r.recommendedSession.title}`;
+            }
+
+            if (insightEl && r.insights?.length > 0) {
+                insightEl.style.display = 'block';
+                insightEl.textContent = r.insights[0];
+            }
+        };
+
+        // Auto-run after user data loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { if (document.getElementById('view-home')?.classList.contains('active')) window.runAIEngine(); }, 1800);
+        });
+
+    </script>
 </body>
 </html>
