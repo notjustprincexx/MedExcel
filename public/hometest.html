@@ -159,7 +159,7 @@
             <div class="modal-icon bg-blue-500/10 text-blue-500"><i class="fas fa-user-lock"></i></div>
             <h3 class="modal-title">Login Required</h3>
             <p class="modal-text">You need to log in or create an account to upload files and generate AI materials.</p>
-            <button onclick="window.location.href='index.html#login'" class="modal-btn-primary bg-blue-500 text-white">Log In / Sign Up</button>
+            <button onclick="window.location.href='index.html#login'" class="modal-btn-primary tap-scale bg-blue-500 text-white">Log In / Sign Up</button>
             <button onclick="closeGlobalModal('loginModalBackdrop')" class="modal-btn-secondary">Close</button>
         </div>
     </div>
@@ -178,7 +178,7 @@
 
     <!-- Delete Account Modal -->
     <div id="accountDeleteBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
-        <div id="accountDeleteSheet" style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);">
+        <div id="accountDeleteSheet" class="bottom-sheet" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
             <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
             <div style="width:52px;height:52px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
                 <i class="fas fa-trash-alt" style="color:#ef4444;font-size:1.125rem;"></i>
@@ -203,7 +203,7 @@
     </div>
 
     <div id="logoutModalBackdrop" class="modal-backdrop" style="align-items:flex-end;">
-        <div style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s var(--ease-snap);" id="logoutSheetInner">
+        <div class="bottom-sheet" id="logoutSheetInner" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
             <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
             <div style="width:56px;height:56px;border-radius:50%;background:rgba(248,113,113,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
                 <i class="fas fa-sign-out-alt" style="color:#f87171;font-size:1.25rem;"></i>
@@ -221,7 +221,7 @@
             <div class="text-3xl font-bold text-[var(--text-main)] mb-1 tracking-tight">Day <span id="modalDayCount">1</span></div>
             <h3 class="text-base font-medium text-[var(--text-muted)] mb-8 leading-relaxed" id="streakDialogTitle">Keep the fire alive<br>check in today!</h3>
             <div class="calendar-row" id="calendarRow"></div>
-            <button id="closeStreakModal" class="modal-btn-primary">Check in today!</button>
+            <button id="closeStreakModal" class="modal-btn-primary tap-scale">Check in today!</button>
         </div>
     </div>
 
@@ -287,7 +287,7 @@
 
             <div class="flex flex-col gap-4">
                 <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Continue Studying</h2>
-                <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="continue-card">
+                <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="continue-card card-lift">
                     <div class="flex items-center gap-4 flex-1 min-w-0">
                         <div id="continueIconBox" class="w-12 h-12 rounded-full bg-[var(--bg-glass)] text-blue-400 flex items-center justify-center text-xl shrink-0 skeleton"><i class="fas fa-layer-group"></i></div>
                         <div class="flex flex-col justify-center flex-1 min-w-0">
@@ -302,7 +302,7 @@
             <div class="flex flex-col gap-4">
                 <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">What would you like to study?</h2>
                 <div class="crypto-scroll-container hide-scroll">
-                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Multiple Choice'; navigateTo('view-create');" class="crypto-card"> 
+                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Multiple Choice'; navigateTo('view-create');" class="crypto-card card-lift"> 
                         <div class="mb-4 flex items-start">
                             <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>
                         </div>
@@ -312,7 +312,7 @@
                             <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">Review</span>
                         </div>
                     </a>
-                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Flashcards'; navigateTo('view-create');" class="crypto-card"> 
+                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Flashcards'; navigateTo('view-create');" class="crypto-card card-lift"> 
                         <div class="mb-4 flex items-start">
                             <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>
                         </div>
@@ -937,7 +937,7 @@
             </div>
 
             <!-- CTA -->
-            <button class="pay-btn" id="payCTABtn" onclick="window.handlePayCTA()">Subscribe Monthly — ₦1,999</button>
+            <button class="pay-btn tap-scale" id="payCTABtn" onclick="window.handlePayCTA()">Subscribe Monthly — ₦1,999</button>
 
             <!-- Skip + footer -->
             <div style="text-align:center;margin-top:.625rem;">
@@ -1033,8 +1033,8 @@
   <script type="module" src="js/firebase.js"></script>
 
     <!-- Nickname Editor Sheet -->
-    <div id="nicknameBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;">
-        <div id="nicknameSheet" style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s cubic-bezier(0.19,1,0.22,1);">
+    <div id="nicknameBackdrop" class="sheet-backdrop" style="display:none;">
+        <div id="nicknameSheet" class="bottom-sheet" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
             <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
             <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Change Nickname</h3>
             <p id="nicknameSubtitle" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;">You can change your nickname once every 7 days.</p>

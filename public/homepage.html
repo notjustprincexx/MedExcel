@@ -17,7 +17,7 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#09090b">
   <title>MedExcel</title>
 
@@ -241,14 +241,14 @@
         <main class="home-main hide-scroll">
             <div class="promo-carousel-wrapper">
                 <div class="promo-carousel hide-scroll" id="promoCarousel">
-                    <a href="javascript:void(0)" onclick="navigateTo('view-create')" class="promo-consultation-card">
+                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
                         <div class="promo-bg-shape"></div>
                         <div class="promo-text-area">
                             <div class="flex items-center gap-1.5 mb-1">
-                                <span class="text-4xl font-bold leading-none">50%</span>
-                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>STUDY</span><span>SPEED</span></span>
+                                <span class="text-4xl font-bold leading-none" id="promoStreakNum">0</span>
+                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DAY</span><span>STREAK</span></span>
                             </div>
-                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Improve exam score <br>with active recall</p>
+                            <p class="text-sm opacity-95 mb-4 max-w-[95%]" id="promoStreakMsg">Start your streak today!</p>
                             <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Study Now</div>
                         </div>
                         <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">

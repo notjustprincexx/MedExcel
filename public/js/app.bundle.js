@@ -555,19 +555,75 @@
 
         // Render last 3 decks dynamically — empty state if none
         
-        // Carousel Sync
-        const carousel = document.getElementById('promoCarousel');
-        const indicators = document.querySelectorAll('.promo-dot');
-        if(carousel && indicators.length > 0) {
-            carousel.addEventListener('scroll', () => {
-                const scrollPosition = carousel.scrollLeft;
-                const cardWidth = carousel.offsetWidth;
-                const activeIndex = Math.round(scrollPosition / cardWidth);
-                indicators.forEach((dot, index) => {
-                    if (index === activeIndex) dot.classList.add('active'); else dot.classList.remove('active');
+        // ── Promo Carousel — auto-rotate + swipe + real data ──────────
+        (function initCarousel() {
+            const carousel   = document.getElementById('promoCarousel');
+            const indicators = document.querySelectorAll('.promo-dot');
+            if (!carousel || indicators.length === 0) return;
+
+            const TOTAL    = indicators.length;
+            let current    = 0;
+            let autoTimer  = null;
+            let isDragging = false;
+            let startX     = 0;
+
+            function goTo(idx) {
+                current = (idx + TOTAL) % TOTAL;
+                carousel.scrollTo({ left: current * carousel.offsetWidth, behavior: 'smooth' });
+                indicators.forEach((d, i) => {
+                    d.classList.toggle('active', i === current);
                 });
-            });
-        }
+            }
+
+            function startAuto() {
+                stopAuto();
+                autoTimer = setInterval(() => goTo(current + 1), 4000);
+            }
+            function stopAuto() {
+                if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+            }
+
+            // Sync dots on manual scroll
+            carousel.addEventListener('scroll', () => {
+                const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                if (idx !== current) {
+                    current = idx;
+                    indicators.forEach((d, i) => d.classList.toggle('active', i === current));
+                }
+            }, { passive: true });
+
+            // Touch swipe
+            carousel.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+                stopAuto();
+            }, { passive: true });
+
+            carousel.addEventListener('touchend', e => {
+                const diff = startX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+                startAuto();
+            }, { passive: true });
+
+            // Populate slide 1 with real streak data
+            function updatePromoSlide() {
+                const streak = window.userStats ? window.userStats.streak : 0;
+                const numEl  = document.getElementById('promoStreakNum');
+                const msgEl  = document.getElementById('promoStreakMsg');
+                if (numEl) numEl.textContent = streak || 0;
+                if (msgEl) {
+                    if (streak >= 7)      msgEl.textContent = "🔥 You're on fire! Keep it up!";
+                    else if (streak >= 3) msgEl.textContent = "Great momentum — keep going!";
+                    else if (streak >= 1) msgEl.textContent = "Building your streak — study today!";
+                    else                  msgEl.textContent = "Start your study streak today!";
+                }
+            }
+
+            updatePromoSlide();
+            // Re-update after user data loads
+            setTimeout(updatePromoSlide, 2000);
+
+            startAuto();
+        })();
 
         // Weekly Target Rotator
         const targetMessages = [
