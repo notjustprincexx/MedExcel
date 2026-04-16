@@ -55,6 +55,10 @@
             // Update meta theme-color to match actual theme
             const themeMeta = document.querySelector('meta[name="theme-color"]');
             if (themeMeta) themeMeta.content = isLight ? '#f1f5f9' : '#09090b';
+            // Sync theme to native Android so skeleton loader matches
+            if (window.Android && window.Android.saveTheme) {
+                window.Android.saveTheme(isLight ? 'light' : 'dark');
+            }
         })();
 
         // Tailwind Config
