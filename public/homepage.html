@@ -221,7 +221,18 @@
             <div class="text-3xl font-bold text-[var(--text-main)] mb-1 tracking-tight">Day <span id="modalDayCount">1</span></div>
             <h3 class="text-base font-medium text-[var(--text-muted)] mb-8 leading-relaxed" id="streakDialogTitle">Keep the fire alive<br>check in today!</h3>
             <div class="calendar-row" id="calendarRow"></div>
-            <button id="closeStreakModal" class="modal-btn-primary tap-scale">Check in today!</button>
+            <!-- Streak freeze -->
+            <div id="streakFreezeRow" style="margin-top:1rem;margin-bottom:0.5rem;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.15);border-radius:1rem;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(99,179,237,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i id="freezeIcon" class="fas fa-snowflake" style="color:#94a3b8;font-size:1rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.8125rem;font-weight:700;color:var(--text-main);" id="freezeTitle">Streak Freeze</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);" id="freezeDesc">Reach a 7-day streak to earn a freeze</div>
+                </div>
+                <button id="freezeBtn" onclick="window.useStreakFreeze()" style="display:none;background:rgba(99,179,237,0.15);border:1px solid rgba(99,179,237,0.3);color:#63b3ed;font-size:0.7rem;font-weight:700;padding:0.375rem 0.75rem;border-radius:9999px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Use Freeze</button>
+            </div>
+            <button id="closeStreakModal" class="modal-btn-primary tap-scale" style="margin-top:0.75rem;">Check in today!</button>
         </div>
     </div>
 
@@ -241,15 +252,32 @@
         <main class="home-main hide-scroll">
             <div class="promo-carousel-wrapper">
                 <div class="promo-carousel hide-scroll" id="promoCarousel">
+                    <!-- SLIDE 1: Today's progress with ring -->
                     <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
                         <div class="promo-bg-shape"></div>
-                        <div class="promo-text-area">
-                            <div class="flex items-center gap-1.5 mb-1">
-                                <span class="text-4xl font-bold leading-none" id="promoStreakNum">0</span>
-                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DAY</span><span>STREAK</span></span>
+                        <div class="promo-text-area" style="display:flex;flex-direction:column;justify-content:center;gap:0.375rem;">
+                            <!-- Daily challenge label -->
+                            <div style="font-size:0.55rem;font-weight:800;letter-spacing:0.08em;opacity:0.65;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="promoDayLabel">Daily Challenge</div>
+                            <!-- Ring + text row -->
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <!-- SVG ring — smaller to fit -->
+                                <div style="position:relative;width:48px;height:48px;flex-shrink:0;">
+                                    <svg width="48" height="48" viewBox="0 0 48 48" style="transform:rotate(-90deg);">
+                                        <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3.5"/>
+                                        <circle id="promoRingFill" cx="24" cy="24" r="19" fill="none" stroke="white" stroke-width="3.5"
+                                            stroke-dasharray="119.4" stroke-dashoffset="119.4"
+                                            stroke-linecap="round" style="transition:stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1);"/>
+                                    </svg>
+                                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                                        <span id="promoTodayNum" style="font-size:1.125rem;font-weight:900;color:white;line-height:1;">0</span>
+                                    </div>
+                                </div>
+                                <div style="flex:1;min-width:0;overflow:hidden;">
+                                    <div style="font-size:0.875rem;font-weight:800;line-height:1.25;margin-bottom:0.15rem;" id="promoTodayChallenge">15 MCQs today</div>
+                                    <div style="font-size:0.7rem;opacity:0.8;" id="promoTodayMsg">Start the week strong</div>
+                                </div>
                             </div>
-                            <p class="text-sm opacity-95 mb-4 max-w-[95%]" id="promoStreakMsg">Start your streak today!</p>
-                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Study Now</div>
+                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-4 rounded-full text-xs font-bold backdrop-blur-sm inline-block" style="align-self:flex-start;white-space:nowrap;">Study Now</div>
                         </div>
                         <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
                     </a>
@@ -1051,6 +1079,5 @@
             </button>
         </div>
     </div>
-
 </body>
 </html>

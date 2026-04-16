@@ -561,29 +561,16 @@
             const indicators = document.querySelectorAll('.promo-dot');
             if (!carousel || indicators.length === 0) return;
 
-            const TOTAL    = indicators.length;
-            let current    = 0;
-            let autoTimer  = null;
-            let isDragging = false;
-            let startX     = 0;
+            const TOTAL = indicators.length;
+            let current = 0;
+            let startX  = 0;
 
             function goTo(idx) {
                 current = (idx + TOTAL) % TOTAL;
                 carousel.scrollTo({ left: current * carousel.offsetWidth, behavior: 'smooth' });
-                indicators.forEach((d, i) => {
-                    d.classList.toggle('active', i === current);
-                });
+                indicators.forEach((d, i) => d.classList.toggle('active', i === current));
             }
 
-            function startAuto() {
-                stopAuto();
-                autoTimer = setInterval(() => goTo(current + 1), 4000);
-            }
-            function stopAuto() {
-                if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-            }
-
-            // Sync dots on manual scroll
             carousel.addEventListener('scroll', () => {
                 const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
                 if (idx !== current) {
@@ -592,37 +579,143 @@
                 }
             }, { passive: true });
 
-            // Touch swipe
-            carousel.addEventListener('touchstart', e => {
-                startX = e.touches[0].clientX;
-                stopAuto();
-            }, { passive: true });
-
+            carousel.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
             carousel.addEventListener('touchend', e => {
                 const diff = startX - e.changedTouches[0].clientX;
                 if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
-                startAuto();
             }, { passive: true });
 
-            // Populate slide 1 with real streak data
-            function updatePromoSlide() {
-                const streak = window.userStats ? window.userStats.streak : 0;
-                const numEl  = document.getElementById('promoStreakNum');
-                const msgEl  = document.getElementById('promoStreakMsg');
-                if (numEl) numEl.textContent = streak || 0;
-                if (msgEl) {
-                    if (streak >= 7)      msgEl.textContent = "🔥 You're on fire! Keep it up!";
-                    else if (streak >= 3) msgEl.textContent = "Great momentum — keep going!";
-                    else if (streak >= 1) msgEl.textContent = "Building your streak — study today!";
-                    else                  msgEl.textContent = "Start your study streak today!";
-                }
+            // One-time swipe hint — peeks right then snaps back
+            setTimeout(() => {
+                const w = carousel.offsetWidth;
+                carousel.scrollTo({ left: w * 0.09, behavior: 'smooth' });
+                setTimeout(() => carousel.scrollTo({ left: 0, behavior: 'smooth' }), 550);
+            }, 1400);
+
+            // ── Slide 1: Streak + Check In ───────────────────────────
+            // Daily challenges rotate by day of week
+            const dailyChallenges = [
+                { goal: 10, xp: 50,  challenge: '10 items today',          msg: 'Sunday reset — light and steady' },
+                { goal: 15, xp: 75,  challenge: 'Crush 15 MCQs',           msg: 'Start the week strong' },
+                { goal: 20, xp: 100, challenge: '20 flashcards today',     msg: 'Build on yesterday' },
+                { goal: 25, xp: 125, challenge: 'Answer 25 questions',     msg: 'Midweek momentum' },
+                { goal: 20, xp: 100, challenge: '20 items today',          msg: 'Almost at the finish line' },
+                { goal: 20, xp: 100, challenge: 'End the week — 20 items', msg: 'Finish the week on fire' },
+                { goal: 15, xp: 75,  challenge: 'Weekend warrior — 15',    msg: 'The best never rest' },
+            ];
+
+            // Load today's progress from localStorage (persists across sessions)
+            const _challengeKey = () => 'medexcel_challenge_' + new Date().toDateString();
+            const _savedProgress = parseInt(localStorage.getItem(_challengeKey()) || '0');
+            if (_savedProgress > 0 && !window._todayStudiedItems) {
+                window._todayStudiedItems = _savedProgress;
             }
 
-            updatePromoSlide();
-            // Re-update after user data loads
-            setTimeout(updatePromoSlide, 2000);
+            window.updatePromoTodayProgress = function() {
+                const day  = new Date().getDay();
+                const dc   = dailyChallenges[day];
+                const done = window._todayStudiedItems || 0;
+                const pct  = Math.min(100, Math.round((done / dc.goal) * 100));
+                const circumference = 119.4;
+                const offset = circumference - (circumference * pct / 100);
 
-            startAuto();
+                const numEl       = document.getElementById('promoTodayNum');
+                const msgEl       = document.getElementById('promoTodayMsg');
+                const challengeEl = document.getElementById('promoTodayChallenge');
+                const labelEl     = document.getElementById('promoDayLabel');
+                const ring        = document.getElementById('promoRingFill');
+
+                if (numEl)       numEl.textContent            = done;
+                if (challengeEl) challengeEl.textContent      = dc.challenge;
+                if (ring)        ring.style.strokeDashoffset  = offset;
+
+                if (msgEl) {
+                    if (done === 0)       msgEl.textContent = dc.msg;
+                    else if (pct < 50)   msgEl.textContent = 'Good start — keep going!';
+                    else if (pct < 100)  msgEl.textContent = 'More than halfway!';
+                    else                 msgEl.textContent = 'Challenge complete! +' + dc.xp + ' XP earned';
+                }
+                if (labelEl) {
+                    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                    labelEl.textContent = days[day] + ' Challenge  •  ' + done + '/' + dc.goal;
+                }
+
+                // Save progress to localStorage so it persists
+                localStorage.setItem(_challengeKey(), String(done));
+
+                // Award XP exactly once when goal is first hit
+                const xpKey = 'medexcel_challenge_xp_' + new Date().toDateString();
+                if (pct >= 100 && !localStorage.getItem(xpKey)) {
+                    localStorage.setItem(xpKey, '1');
+                    if (window.addXP) {
+                        window.addXP(dc.xp);
+                        // Show a brief toast
+                        const toast = document.createElement('div');
+                        toast.innerHTML = '+' + dc.xp + ' XP 🎉 Daily challenge complete!';
+                        Object.assign(toast.style, {
+                            position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
+                            background:'var(--accent-btn)', color:'white', padding:'0.625rem 1.25rem',
+                            borderRadius:'9999px', fontWeight:'700', fontSize:'0.875rem',
+                            zIndex:'9999', whiteSpace:'nowrap',
+                            animation:'fadeIn 0.3s ease, fadeOut 0.4s 2.5s ease forwards'
+                        });
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                    }
+                }
+            };
+            window.updatePromoTodayProgress();
+            setTimeout(window.updatePromoTodayProgress, 2000);
+
+            // ── Slide 2: Last deck ───────────────────────────────────
+            window.updatePromoLastDeck = function() {
+                const quizzes = window.quizzes || [];
+                const last    = quizzes.length > 0 ? quizzes[quizzes.length - 1] : null;
+                const nameEl  = document.getElementById('promoLastDeckName');
+                const metaEl  = document.getElementById('promoLastDeckMeta');
+                if (!nameEl) return;
+                if (last) {
+                    const count = last.questions ? last.questions.length : 0;
+                    const score = last.stats && last.stats.attempts > 0
+                        ? Math.round((last.stats.bestScore / count) * 100) + '% best'
+                        : 'Not studied yet';
+                    nameEl.textContent = (last.title || 'Untitled Deck').toUpperCase();
+                    if (metaEl) metaEl.textContent = count + ' items  •  ' + score;
+                } else {
+                    nameEl.textContent = 'No decks yet';
+                    if (metaEl) metaEl.textContent = 'Create your first deck below';
+                }
+            };
+            window.promoSlide2Action = function() {
+                const quizzes = window.quizzes || [];
+                if (quizzes.length > 0) { window.currentQuiz = window.quizzes = quizzes; window.openPracticeMobile(quizzes[quizzes.length - 1].id); }
+                else navigateTo('view-create');
+            };
+            window.updatePromoLastDeck();
+            setTimeout(window.updatePromoLastDeck, 2000);
+
+            // ── Slide 3: Daily usage ─────────────────────────────────
+            window.updatePromoUsage = function() {
+                const plan   = window.userPlan || 'free';
+                const cap    = plan === 'premium' ? 30 : 5;
+                // Read from the profile usageCount element — firebase.js keeps it up to date
+                const usageEl = document.getElementById('usageCount');
+                const used   = usageEl ? (parseInt(usageEl.textContent) || 0) : 0;
+                const left   = Math.max(0, cap - used);
+                const usedEl = document.getElementById('promoUsedNum');
+                const maxEl  = document.getElementById('promoMaxNum');
+                const msgEl  = document.getElementById('promoUsageMsg');
+                if (usedEl) usedEl.textContent = used;
+                if (maxEl)  maxEl.textContent  = cap;
+                if (msgEl) {
+                    if (left === 0)      msgEl.textContent = 'Limit reached — upgrade for more';
+                    else if (left === 1) msgEl.textContent = '1 generation left today';
+                    else                 msgEl.textContent = left + ' generations left today';
+                }
+            };
+            window.updatePromoUsage();
+            setTimeout(window.updatePromoUsage, 2500);
+
         })();
 
         // Weekly Target Rotator
@@ -652,21 +745,73 @@
 
         function buildCalendarRow() {
             const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-            const dates = [];
             const today = new Date();
-            const currentDayIndex = (today.getDay() + 6) % 7; 
-            
+            const currentDayIndex = (today.getDay() + 6) % 7;
+
+            // Build array of Date objects for this week (Mon–Sun)
+            const weekDates = [];
             for (let i = 0; i < 7; i++) {
-                const d = new Date(today); d.setDate(today.getDate() - currentDayIndex + i); dates.push(d.getDate());
+                const d = new Date(today);
+                d.setDate(today.getDate() - currentDayIndex + i);
+                d.setHours(0, 0, 0, 0);
+                weekDates.push(d);
             }
 
+            // Reconstruct check-in days from Firestore data (lastCheckIn + streak count)
+            // We don't store per-day history — instead we backfill streak days backwards from lastCheckIn
+            const checkedInSet = new Set();
+            const lastDate = window.userStats ? window.userStats.lastDate : null;
+            const streakCount = currentStreakCount || 0;
+
+            if (lastDate && streakCount > 0) {
+                const last = new Date(lastDate);
+                last.setHours(0, 0, 0, 0);
+                for (let i = 0; i < streakCount; i++) {
+                    const d = new Date(last);
+                    d.setDate(last.getDate() - i);
+                    checkedInSet.add(d.toDateString());
+                }
+            }
+            // Also mark today if already checked in this session
+            if (hasCheckedInToday) {
+                checkedInSet.add(new Date(today.getFullYear(), today.getMonth(), today.getDate()).toDateString());
+            }
+
+            // Determine state for each day
+            const states = weekDates.map((d, i) => {
+                const ds = d.toDateString();
+                if (i < currentDayIndex) {
+                    return checkedInSet.has(ds) ? 'done' : 'missed';
+                } else if (i === currentDayIndex) {
+                    return checkedInSet.has(ds) ? 'done' : 'active';
+                }
+                return 'future';
+            });
+
+            // Build connector map — connect consecutive 'done' days
             let html = '';
-            for(let i=0; i<7; i++) {
-                let circleClass = "day-circle";
-                let content = dates[i];
-                if (i < currentDayIndex) { circleClass += " done"; content = '<i class="fas fa-check"></i>'; } 
-                else if (i === currentDayIndex) { circleClass += " active"; if (hasCheckedInToday) content = '<i class="fas fa-check"></i>'; }
-                html += `<div class="day-col"><span class="day-label text-xs font-bold text-[var(--text-muted)]">${labels[i]}</span><div class="${circleClass}">${content}</div></div>`;
+            for (let i = 0; i < 7; i++) {
+                const prevDone = i > 0 && states[i-1] === 'done';
+                const nextDone = i < 6 && states[i+1] === 'done';
+                const thisDone = states[i] === 'done';
+
+                let colClass = 'day-col';
+                if (thisDone && nextDone) colClass += prevDone ? ' connected-both' : ' connected';
+                else if (thisDone && prevDone) colClass += ' connected-left';
+
+                let circleClass = 'day-circle';
+                let content = weekDates[i].getDate();
+
+                if (states[i] === 'done') {
+                    circleClass += ' done';
+                    content = '<i class="fas fa-check"></i>';
+                } else if (states[i] === 'active') {
+                    circleClass += ' active';
+                } else if (states[i] === 'missed') {
+                    circleClass += ' missed';
+                }
+
+                html += `<div class="${colClass}"><span class="day-label text-xs font-bold text-[var(--text-muted)]">${labels[i]}</span><div class="${circleClass}">${content}</div></div>`;
             }
             return html;
         }
@@ -689,45 +834,127 @@
             const btn = document.getElementById('closeStreakModal');
             document.getElementById('modalDayCount').textContent = currentStreakCount;
             btn.textContent = hasCheckedInToday ? "Awesome! 🎉" : "Check in today!";
-            
+
             const todayMsg = streakDailyMessages[new Date().getDay()];
             const titleEl = document.getElementById('streakDialogTitle');
             if (titleEl) {
-                if (hasCheckedInToday) {
-                    titleEl.innerHTML = `You're on fire! 🔥<br>Keep this streak going tomorrow!`;
+                titleEl.innerHTML = hasCheckedInToday
+                    ? "You're on fire! 🔥<br>Keep this streak going tomorrow!"
+                    : todayMsg.sub;
+            }
+
+            // Streak freeze — always visible, 3 states
+            const freezeRow   = document.getElementById('streakFreezeRow');
+            const freezeTitle = document.getElementById('freezeTitle');
+            const freezeDesc  = document.getElementById('freezeDesc');
+            const freezeBtn   = document.getElementById('freezeBtn');
+            const uid = window.currentUser ? window.currentUser.uid : 'guest';
+            const freezesEarned = Math.floor(currentStreakCount / 7);
+            const freezesUsed   = parseInt(localStorage.getItem('medexcel_freezes_used_' + uid) || '0');
+            const freezeAvailable = freezesEarned > freezesUsed;
+            const daysToNextFreeze = 7 - (currentStreakCount % 7);
+
+            if (freezeRow) {
+                freezeRow.style.display = 'flex';
+
+                if (freezeAvailable) {
+                    // State 1: Freeze ready to use
+                    const freezeIcon = document.getElementById('freezeIcon');
+                    if (freezeIcon) { freezeIcon.style.color = '#63b3ed'; freezeIcon.className = 'fas fa-snowflake'; }
+                    if (freezeTitle) freezeTitle.textContent = 'Streak Freeze Available!';
+                    if (freezeDesc)  freezeDesc.textContent  = 'Protects your streak for 1 missed day';
+                    if (freezeBtn)   { freezeBtn.style.display = 'block'; freezeBtn.textContent = 'Use Freeze'; freezeBtn.disabled = false; freezeBtn.style.opacity = '1'; }
+                } else if (freezesUsed > 0 && freezesUsed >= freezesEarned) {
+                    // State 2: Freeze used
+                    const freezeIcon = document.getElementById('freezeIcon');
+                    if (freezeIcon) { freezeIcon.style.color = '#94a3b8'; freezeIcon.className = 'fas fa-snowflake'; }
+                    if (freezeTitle) freezeTitle.textContent = 'Freeze Used';
+                    if (freezeDesc)  freezeDesc.textContent  = daysToNextFreeze + ' more days to earn your next freeze';
+                    if (freezeBtn)   freezeBtn.style.display = 'none';
                 } else {
-                    titleEl.innerHTML = `${todayMsg.sub}`;
+                    // State 3: Not yet earned — show progress
+                    const freezeIcon = document.getElementById('freezeIcon');
+                    if (freezeIcon) { freezeIcon.style.color = '#94a3b8'; freezeIcon.className = 'fas fa-snowflake'; }
+                    if (freezeTitle) freezeTitle.textContent = 'Streak Freeze';
+                    if (freezeDesc) {
+                        if (currentStreakCount === 0) {
+                            freezeDesc.textContent = 'Reach a 7-day streak to earn a freeze';
+                        } else {
+                            freezeDesc.innerHTML = '<span style="color:var(--accent-btn);font-weight:700;">' + daysToNextFreeze + ' day' + (daysToNextFreeze > 1 ? 's' : '') + ' away</span> — keep your streak going!';
+                        }
+                    }
+                    if (freezeBtn) freezeBtn.style.display = 'none';
                 }
             }
-            
+
             if (!fireLottieAnim) {
                 fireLottieAnim = lottie.loadAnimation({
                     container: document.getElementById('modalStreakLottie'),
-                    renderer: 'svg',
-                    loop: true,
-                    autoplay: true,
-                    path: 'fire.json'
+                    renderer: 'svg', loop: true, autoplay: true, path: 'fire.json'
                 });
             } else {
                 fireLottieAnim.play();
             }
-            
+
             document.getElementById('streakModalBackdrop').classList.add('show');
+        };
+
+        // Use streak freeze — marks yesterday as checked-in to protect streak
+        window.useStreakFreeze = function() {
+            const uid = window.currentUser ? window.currentUser.uid : 'guest';
+            const freezeBtn = document.getElementById('freezeBtn');
+            const freezeTitle = document.getElementById('freezeTitle');
+            const freezeDesc = document.getElementById('freezeDesc');
+
+            // Mark freeze as used
+            const used = parseInt(localStorage.getItem('medexcel_freezes_used_' + uid) || '0');
+            localStorage.setItem('medexcel_freezes_used_' + uid, String(used + 1));
+
+            // Add yesterday to check-in history
+            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
+            if (!history.includes(yesterday.toDateString())) {
+                history.push(yesterday.toDateString());
+                localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(history));
+            }
+
+            // Sync to Firestore
+            if (window.currentUser && window.syncUserStreak) {
+                window.syncUserStreak(window.currentUser.uid, currentStreakCount, new Date().toDateString());
+            }
+
+            // Update UI
+            if (freezeBtn) { freezeBtn.textContent = 'Used!'; freezeBtn.disabled = true; freezeBtn.style.opacity = '0.5'; }
+            if (freezeTitle) freezeTitle.textContent = 'Freeze Used';
+            if (freezeDesc) freezeDesc.textContent = 'Your streak is protected!';
+            document.getElementById('calendarRow').innerHTML = buildCalendarRow();
         };
 
         document.getElementById('closeStreakModal').onclick = () => {
             if (!hasCheckedInToday && window.currentUser) {
+                // Save check-in to history
+                const uid = window.currentUser.uid;
+                const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
+                const todayStr = new Date().toDateString();
+                if (!history.includes(todayStr)) {
+                    history.push(todayStr);
+                    // Keep only last 90 days
+                    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+                    const trimmed = history.filter(d => new Date(d) >= cutoff);
+                    localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(trimmed));
+                }
                 window.userStats.count = currentStreakCount;
-                window.userStats.lastDate = new Date().toDateString();
+                window.userStats.lastDate = todayStr;
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
                 hasCheckedInToday = true;
-                if (window.syncUserStreak) window.syncUserStreak(window.currentUser.uid, currentStreakCount, window.userStats.lastDate);
+                if (window.syncUserStreak) window.syncUserStreak(uid, currentStreakCount, todayStr);
             }
             window.closeGlobalModal('streakModalBackdrop');
             const hDisplay = document.getElementById('headerStreakDisplay');
-            if(hDisplay) hDisplay.textContent = currentStreakCount;
+            if (hDisplay) hDisplay.textContent = currentStreakCount;
             const hIcon = document.getElementById('headerFireIcon');
-            if(hIcon) hIcon.style.opacity = '1';
+            if (hIcon) hIcon.style.opacity = '1';
+            if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
         };
 
 /* ── study.js ── */
@@ -861,7 +1088,7 @@
                 btns.forEach(btn => btn.addEventListener('click', () => window.handleStudyMCQSelection(btn, q, btns)));
             } else {
                 const fc = document.getElementById('studyFlashcardEl');
-                fc.addEventListener('click', () => {
+                fc.addEventListener('click', () => { window._todayStudiedItems = (window._todayStudiedItems || 0) + 1; if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
                     const inner = document.getElementById('studyFlipInner');
                     inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)';
                 });
@@ -890,6 +1117,8 @@
             const selectedIdx = parseInt(selectedBtn.dataset.idx);
             const isCorrect = selectedIdx === q.correct;
             if (isCorrect) examScore++;
+            window._todayStudiedItems = (window._todayStudiedItems || 0) + 1;
+            if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
 
             allBtns.forEach(btn => {
                 const idx = parseInt(btn.dataset.idx);

@@ -74,6 +74,7 @@
 
         /* Backdrop fade */
         @keyframes backdropIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
         @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
 
         /* Scale pop for center modals */
@@ -223,10 +224,10 @@
         
         .promo-carousel-wrapper { margin-bottom: 0.5rem; position: relative; width: 100%; }
         .promo-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding-bottom: 0.25rem; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        .promo-consultation-card { min-width: 100%; scroll-snap-align: center; background: #4A1D96; border-radius: 1.5rem; padding: 1.5rem; display: flex; align-items: center; position: relative; overflow: hidden; min-height: 160px; text-decoration: none;}
+        .promo-consultation-card { min-width: 100%; scroll-snap-align: center; background: #4A1D96; border-radius: 1.5rem; padding: 1.5rem; display: flex; align-items: center; position: relative; overflow: hidden; min-height: 195px; text-decoration: none;}
         .promo-bg-shape { position: absolute; top: 0; right: 0; bottom: 0; left: 40%; background: #6D28D9; transform: skewX(-15deg); transform-origin: bottom; z-index: 1; }
-        .promo-text-area { position: relative; z-index: 2; width: 60%; color: #ffffff; }
-        .promo-doctor-img { position: absolute; bottom: 0; right: -5%; height: 110%; max-height: 190px; z-index: 2; object-fit: contain; pointer-events: none; }
+        .promo-text-area { position: relative; z-index: 2; width: 54%; max-width: 54%; color: #ffffff; }
+        .promo-doctor-img { position: absolute; bottom: 0; right: -5%; height: 125%; max-height: 210px; z-index: 2; object-fit: contain; pointer-events: none; }
         .promo-dots-container { display: flex; justify-content: center; gap: 6px; margin-top: 0.75rem; }
         .promo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-glass); transition: 0.3s; }
         .promo-dot.active { width: 16px; border-radius: 100px; background: var(--accent-btn); }
@@ -238,11 +239,29 @@
         /* Streak Modal Dialog */
         .streak-dialog { width: 100%; max-width: 100%; background: var(--bg-surface); border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); transform: translateY(100%); opacity: 0; transition: 0.4s var(--ease-snap); text-align: center; display: flex; flex-direction: column; align-items: center; }
         .modal-backdrop.show .streak-dialog { transform: translateY(0); opacity: 1; }
-        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
-        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--day-circle); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; }
-        .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
-        .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
+        .calendar-row { display: flex; justify-content: center; gap: 0; width: 100%; margin-bottom: 2.5rem; }
+        /* Each day col: label on top, circle below. Circle is 36px, label ~18px + 0.5rem gap */
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; flex: 1; position: relative; }
+        /* Connector line sits at vertical center of the circle.
+           Label height ≈ 18px, gap = 8px (0.5rem), circle center = 18px into circle = 18+8+18 = 44px from top */
+        .day-col.connected::before,
+        .day-col.connected-left::before,
+        .day-col.connected-both::before {
+            content: '';
+            position: absolute;
+            top: 44px;
+            height: 3px;
+            background: var(--accent-orange);
+            z-index: 0;
+        }
+        .day-col.connected::before      { left: 50%;  right: -1px;  }
+        .day-col.connected-left::before { left: -1px; right: 50%;   }
+        .day-col.connected-both::before { left: -1px; right: -1px;  }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--day-circle); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; position: relative; z-index: 1; transition: transform 0.2s; }
+        .day-circle.active { background: rgba(249, 115, 22, 0.15); color: var(--accent-orange); border: 2px solid var(--accent-orange); }
+        .day-circle.done { background: var(--accent-orange); color: white; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(249,115,22,0.4); }
+        .day-circle.frozen { background: rgba(99,179,237,0.15); color: #63b3ed; border: 2px solid rgba(99,179,237,0.4); }
+        .day-circle.missed { background: var(--day-circle); color: #ef4444; opacity: 0.5; }
 
         /* --- STUDY / LIBRARY --- */
         .layout-wrapper { flex: 1; display: flex; width: 100%; height: 100%; overflow: hidden; padding-bottom: 80px; position: relative; z-index: 10; }
