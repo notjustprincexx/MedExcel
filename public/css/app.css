@@ -58,6 +58,128 @@
         .skeleton * { visibility: hidden; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+        /* ═══════════════════════════════════════
+           MICRO-INTERACTION ANIMATION SYSTEM
+        ═══════════════════════════════════════ */
+
+        /* Bottom sheet slide up */
+        @keyframes sheetSlideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes sheetSlideDown {
+            from { transform: translateY(0);    opacity: 1; }
+            to   { transform: translateY(100%); opacity: 0; }
+        }
+
+        /* Backdrop fade */
+        @keyframes backdropIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* Scale pop for center modals */
+        @keyframes modalPop {
+            0%   { transform: scale(0.88); opacity: 0; }
+            70%  { transform: scale(1.03); opacity: 1; }
+            100% { transform: scale(1);    opacity: 1; }
+        }
+
+        /* Button tap ripple */
+        @keyframes tapPulse {
+            0%   { transform: scale(1);    }
+            40%  { transform: scale(0.95); }
+            100% { transform: scale(1);    }
+        }
+
+        /* Slide in from right (page nav) */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(18px); }
+            to   { opacity: 1; transform: translateX(0);    }
+        }
+
+        /* Bounce in for success states */
+        @keyframes bounceIn {
+            0%   { transform: scale(0.3);  opacity: 0; }
+            50%  { transform: scale(1.08); opacity: 1; }
+            70%  { transform: scale(0.96); }
+            100% { transform: scale(1);    }
+        }
+
+        /* Shake for error states */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0);    }
+            20%       { transform: translateX(-6px); }
+            40%       { transform: translateX(6px);  }
+            60%       { transform: translateX(-4px); }
+            80%       { transform: translateX(4px);  }
+        }
+
+        /* Utility classes */
+        .anim-sheet-up   { animation: sheetSlideUp  0.18s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .anim-sheet-down { animation: sheetSlideDown 0.32s cubic-bezier(0.4,0,1,1)    forwards; }
+        .anim-pop        { animation: modalPop       0.36s cubic-bezier(0.19,1,0.22,1) forwards; }
+        .anim-bounce-in  { animation: bounceIn       0.45s cubic-bezier(0.19,1,0.22,1) forwards; }
+        .anim-shake      { animation: shake          0.4s  ease                        forwards; }
+        .anim-slide-right{ animation: slideInRight   0.3s  cubic-bezier(0.19,1,0.22,1) forwards; }
+
+        /* Tap feedback on any interactive element */
+        .tap-scale:active { transform: scale(0.96); transition: transform 0.1s ease; }
+
+        /* Card hover lift */
+        .card-lift { transition: transform 0.2s var(--ease-snap), box-shadow 0.2s ease; }
+        .card-lift:active { transform: scale(0.97) translateY(1px); }
+
+        /* Smooth number count */
+        .count-up { transition: all 0.6s var(--ease-snap); }
+
+        /* Bottom sheet standard — all sheets inherit this */
+        .bottom-sheet {
+            width: 100%; max-width: 480px;
+            background: var(--bg-surface);
+            border-radius: 1.5rem 1.5rem 0 0;
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform 0.18s cubic-bezier(0.4,0,0.2,1),
+                        opacity   0.12s ease;
+            will-change: transform;
+        }
+        .bottom-sheet.open {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Backdrop standard */
+        .sheet-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .sheet-backdrop.open {
+            opacity: 1;
+        }
+
+        /* Nav item active pop */
+        .nav-item.active svg { filter: drop-shadow(0 0 6px rgba(167,139,250,0.5)); }
+
+        /* List item press */
+        .list-item:active,
+        .quiz-item:active { background: var(--bg-hover) !important; }
+
+        /* Input focus glow */
+        input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Button press */
+        button:active:not(:disabled) { opacity: 0.85; }
+
         /* Global Modals */
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; }
         .modal-backdrop.show { display: flex; opacity: 1; }

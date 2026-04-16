@@ -190,9 +190,9 @@
             if (!modal) return;
             if (id === 'logoutModalBackdrop') {
                 const sheet = document.getElementById('logoutSheetInner');
-                if(sheet) { sheet.style.transform='translateY(100%)'; sheet.style.opacity='0'; }
+                if(sheet) sheet.classList.remove('open');
                 modal.style.opacity = '0';
-                setTimeout(() => { modal.style.display='none'; }, 400);
+                setTimeout(() => { modal.style.display='none'; }, 420);
             } else {
                 modal.classList.remove('show');
             }
@@ -201,8 +201,11 @@
         window.showLogoutModal = function() {
             const backdrop = document.getElementById('logoutModalBackdrop');
             const sheet = document.getElementById('logoutSheetInner');
-            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
-            requestAnimationFrame(() => { if(sheet) { sheet.style.transform='translateY(0)'; sheet.style.opacity='1'; } });
+            backdrop.style.display = 'flex';
+            requestAnimationFrame(() => {
+                backdrop.style.opacity = '1';
+                if(sheet) sheet.classList.add('open');
+            });
         };
 
         // Level calculation — exponential growth
@@ -245,14 +248,17 @@
             const input    = document.getElementById('deleteAccountInput');
             if (input) input.value = '';
             window.checkDeleteInput();
-            backdrop.style.display = 'flex'; backdrop.style.opacity = '1';
-            requestAnimationFrame(() => { if (sheet) { sheet.style.transform = 'translateY(0)'; sheet.style.opacity = '1'; } });
+            backdrop.style.display = 'flex';
+            requestAnimationFrame(() => {
+                backdrop.style.opacity = '1';
+                if (sheet) sheet.classList.add('open');
+            });
         };
         window.closeDeleteAccountModal = function() {
             const backdrop = document.getElementById('accountDeleteBackdrop');
             const sheet    = document.getElementById('accountDeleteSheet');
-            if (sheet) { sheet.style.transform = 'translateY(100%)'; sheet.style.opacity = '0'; }
-            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => backdrop.style.display = 'none', 400); }
+            if (sheet) sheet.classList.remove('open');
+            if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => backdrop.style.display = 'none', 420); }
         };
         window.checkDeleteInput = function() {
             const input = document.getElementById('deleteAccountInput');

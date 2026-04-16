@@ -856,12 +856,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 const planConfig = {
                     premium: { max: 30, cap: 30, bar: "#3b82f6" },
-                    free:    { max: 15, cap:  5, bar: "#94a3b8" }
+                    free:    { max: 5,  cap:  5, bar: "#94a3b8" }
                 };
                 const pc = planConfig[window.userPlan] || planConfig.free;
                 window.allowedMaxItems = pc.max;
                 if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / pc.cap) * 100)}%`; barEl.style.background = pc.bar; }
+                // Update both maxLimitText (create slider) and maxLimitDisplay (profile)
                 const maxText = document.getElementById('maxLimitText'); if(maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+                const maxDisp = document.getElementById('maxLimitDisplay'); if(maxDisp) maxDisp.textContent = pc.cap;
 
                 // Plan icon, XP level, achievements, library
                 window.updatePlanIcon(window.userPlan);
@@ -927,6 +929,97 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 }
             } catch(e) { console.warn("Init Error:", e); }
         };
+
+        // ── Nickname Editor ──────────────────────────────────────────────
+        window.openNicknameEditor = async function() {
+            const backdrop = document.getElementById('nicknameBackdrop');
+            const sheet    = document.getElementById('nicknameSheet');
+            const subtitle = document.getElementById('nicknameSubtitle');
+            const input    = document.getElementById('nicknameInput');
+            const saveBtn  = document.getElementById('saveNicknameBtn');
+            if (!backdrop || !sheet) return;
+
+            // Check 7-day cooldown
+            if (window.currentUser) {
+                try {
+                    const userSnap = await getDoc(doc(db, "users", window.currentUser.uid));
+                    if (userSnap.exists()) {
+                        const lastChanged = userSnap.data().nicknameChangedAt;
+                        if (lastChanged) {
+                            const daysSince = (Date.now() - new Date(lastChanged).getTime()) / (1000 * 60 * 60 * 24);
+                            if (daysSince < 7) {
+                                const daysLeft = Math.ceil(7 - daysSince);
+                                if (subtitle) subtitle.textContent = `You can change your nickname again in ${daysLeft} day${daysLeft > 1 ? 's' : ''}.`;
+                                if (input) { input.disabled = true; input.style.opacity = '0.5'; }
+                                if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed'; }
+                            } else {
+                                if (subtitle) subtitle.textContent = 'You can change your nickname once every 7 days.';
+                                if (input) { input.disabled = false; input.style.opacity = '1'; input.value = window.currentUser.displayName || ''; }
+                                if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
+                            }
+                        } else {
+                            if (subtitle) subtitle.textContent = 'You can change your nickname once every 7 days.';
+                            if (input) { input.disabled = false; input.style.opacity = '1'; input.value = window.currentUser.displayName || ''; }
+                            if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // Show backdrop, then on next frame add .open so CSS transition fires
+            backdrop.style.display = 'flex';
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                backdrop.classList.add('open');
+                sheet.classList.add('open');
+            }));
+        };
+
+        window.closeNicknameEditor = function() {
+            const backdrop = document.getElementById('nicknameBackdrop');
+            const sheet    = document.getElementById('nicknameSheet');
+            if (sheet) sheet.classList.remove('open');
+            if (backdrop) {
+                backdrop.classList.remove('open');
+                setTimeout(() => { backdrop.style.display = 'none'; }, 200);
+            }
+        };
+
+        window.saveNickname = async function() {
+            const input   = document.getElementById('nicknameInput');
+            const saveBtn = document.getElementById('saveNicknameBtn');
+            const newName = input ? input.value.trim() : '';
+
+            if (!newName || newName.length < 2) {
+                input.style.borderColor = '#f87171';
+                return;
+            }
+            if (!window.currentUser) return;
+
+            if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+            try {
+                const { updateProfile } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                await updateProfile(window.currentUser, { displayName: newName });
+                await updateDoc(doc(db, "users", window.currentUser.uid), {
+                    displayName: newName,
+                    nicknameChangedAt: new Date().toISOString()
+                });
+
+                // Update UI everywhere
+                const uName = document.getElementById('userName'); if(uName) uName.textContent = newName;
+                const greet = document.getElementById('greetingTitle'); if(greet) greet.innerHTML = `Hi, ${newName} ${window.getTimeEmoji ? window.getTimeEmoji() : ''}`;
+
+                window.closeNicknameEditor();
+            } catch(e) {
+                if (saveBtn) { saveBtn.textContent = 'Save Nickname'; saveBtn.disabled = false; }
+                alert('Failed to save: ' + e.message);
+            }
+        };
+
+        // Close on backdrop tap
+        document.getElementById('nicknameBackdrop')?.addEventListener('click', function(e) {
+            if (e.target === this) window.closeNicknameEditor();
+        });
 
         // Top level Firebase Auth listener
         onAuthStateChanged(auth, async (firebaseUser) => {
