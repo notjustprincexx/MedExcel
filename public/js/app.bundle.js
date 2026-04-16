@@ -543,9 +543,14 @@
         if(themeToggleBtn) {
             themeToggleBtn.addEventListener('click', () => {
                 const isLight = document.documentElement.classList.toggle('light-mode');
-                localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
+                const themeName = isLight ? 'light' : 'dark';
+                localStorage.setItem('medexcel_theme', themeName);
                 window.updateThemeUI();
                 window.syncStatusBar(isLight);
+                // Tell native Android to save theme for skeleton screen
+                if (window.Android && window.Android.saveTheme) {
+                    window.Android.saveTheme(themeName);
+                }
             });
         }
 
