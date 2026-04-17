@@ -919,6 +919,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                     window.applyAvatar();
 
+                    // Send login notification email — only on fresh login, not session restore
+                    if (sessionStorage.getItem('medexcel_just_logged_in')) {
+                        sessionStorage.removeItem('medexcel_just_logged_in');
+                        const _emailToNotify = user.email || data.email
+                            || (localStorage.getItem('nativeUser') ? JSON.parse(localStorage.getItem('nativeUser')||'{}').email : null);
+                        if (_emailToNotify) {
+                            try {
+                                fetch("https://us-central1-medxcel.cloudfunctions.net/sendLoginEmail", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        email: _emailToNotify,
+                                        displayName: user.displayName || data.displayName || null,
+                                        uid: user.uid
+                                    })
+                                }).catch(() => {});
+                            } catch(e) {}
+                        }
+                    }
+
                     // Load and apply onboarding profile data
                     const profileData = data.studyProgram ? data : JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
                     window.userProfile = {

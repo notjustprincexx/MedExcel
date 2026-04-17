@@ -12,6 +12,7 @@
   let autoSlideTimer;
 
   function updateLoader(n) {
+    if (!fill) return;
     fill.classList.remove('p2', 'p3');
     if (n === 2) fill.classList.add('p2');
     if (n === 3) fill.classList.add('p3');
@@ -19,6 +20,7 @@
 
   function resetAutoSlide(delay = 4000) {
     clearTimeout(autoSlideTimer);
+    if (window._blockAutoSlide) return; // returning visitor — no auto-slide
     if (page < 3) {
       autoSlideTimer = setTimeout(() => {
         goTo(page + 1);

@@ -6,9 +6,11 @@
   const savedUser = localStorage.getItem("nativeUser");
   const onboardingDone = localStorage.getItem("medexcel_personalized_onboarding_done");
   if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
-    // Send to onboarding if not completed, otherwise homepage
     window.location.replace(onboardingDone ? "homepage.html" : "personalized-onboarding.html");
   }
+  // Returning visitor (has visited before but not logged in) — skip carousel, show login directly
+  const hasVisited = localStorage.getItem("medexcel_has_visited");
+  if (!hasVisited) localStorage.setItem("medexcel_has_visited", "1");
   (function() {
     try {
       const params = new URLSearchParams(location.search);
@@ -72,9 +74,6 @@
   </div>
 </div>
 
-<div class="top-loader">
-  <div class="top-loader-fill" id="loaderFill"></div>
-</div>
 
 <button class="get-started" id="btnMainCta">Get Started</button>
 
@@ -287,19 +286,48 @@
   <script src="js/personalized-onboarding.js"></script>
   <script type="module" src="js/onboarding-firebase.js"></script>
   <script>
-    // Secret admin access — tap the top progress bar 7 times within 3 seconds
-    (function() {
-      var taps = 0, timer;
-      document.addEventListener('DOMContentLoaded', function() {
-        var target = document.getElementById('loaderFill') || document.querySelector('.top-loader-fill') || document.body;
-        target.addEventListener('click', function() {
-          taps++;
-          clearTimeout(timer);
-          if (taps >= 7) { taps = 0; window.location.href = 'admin.html'; return; }
-          timer = setTimeout(function(){ taps = 0; }, 3000);
-        });
-      });
-    })();
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // Returning visitor — skip carousel, jump straight to login buttons on slide 3
+      var hasVisited = localStorage.getItem("medexcel_has_visited");
+      var savedUser  = localStorage.getItem("nativeUser");
+      if (hasVisited && !savedUser) {
+        var vp = document.getElementById('vp');
+        var track = document.getElementById('track');
+        var cta = document.getElementById('btnMainCta');
+        // Stop auto-slide timer immediately
+        if (typeof autoSlideTimer !== 'undefined') clearTimeout(autoSlideTimer);
+        window._blockAutoSlide = true;
+        // Jump to last slide instantly with no transition
+        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
+        if (cta) cta.style.display = 'none';
+        // Lock viewport — no swipe, no pointer events
+        if (vp) {
+          vp.style.pointerEvents = 'none';
+          vp.style.touchAction = 'none';
+          vp.style.overflow = 'hidden';
+        }
+        // Open login modal after a short delay
+        setTimeout(function() {
+          if (typeof openLogin === 'function') openLogin(false);
+        }, 300);
+      }
+
+      // Secret admin access — long press "Log in" button for 3 seconds
+      var loginBtn = document.getElementById('btnLogin');
+      if (loginBtn) {
+        var holdTimer;
+        loginBtn.addEventListener('touchstart', function(e) {
+          holdTimer = setTimeout(function() {
+            e.preventDefault();
+            window.location.href = 'admin.html';
+          }, 7000);
+        }, { passive: true });
+        loginBtn.addEventListener('touchend',   function() { clearTimeout(holdTimer); });
+        loginBtn.addEventListener('touchmove',  function() { clearTimeout(holdTimer); });
+        loginBtn.addEventListener('touchcancel',function() { clearTimeout(holdTimer); });
+      }
+    });
   </script>
 </body>
 </html>
