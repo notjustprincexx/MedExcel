@@ -749,7 +749,10 @@ async function loadBroadcastHistory() {
             </div>
           </div>`).join('')
       : '<div class="empty">No announcements sent yet.</div>';
-  } catch(e) {}
+  } catch(e) {
+    document.getElementById('bcHistory').innerHTML =
+      '<div class="empty" style="color:var(--red);">⚠ Permission denied — check Firestore rules.</div>';
+  }
 }
 
 window.setMaintenance = async function(on) {
@@ -946,6 +949,7 @@ window.switchTab = function(tab) {
   });
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-'+tab)?.classList.add('active');
+  if (tab === 'broadcast') loadBroadcastHistory();
   setTimeout(() => {
     document.querySelectorAll('.bar-fill[data-w]').forEach(el=>{ el.style.width=el.dataset.w+'%'; });
   }, 80);

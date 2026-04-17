@@ -55,6 +55,30 @@ import {
     } catch(e) { console.warn('Firestore sync skipped:', e); }
   }
 
+  // Decides where to send the user after login.
+  // Checks Firestore first so reinstalled users don't see onboarding again.
+  async function goAfterLogin(uid) {
+    sessionStorage.setItem('medexcel_just_logged_in', '1');
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists() && snap.data().onboardingDone) {
+        // Completed onboarding before — sync flag to localStorage and skip
+        localStorage.setItem('medexcel_personalized_onboarding_done', '1');
+        window.location.replace('homepage.html');
+        return;
+      }
+    } catch(e) { console.warn('Could not check onboardingDone:', e); }
+
+    // localStorage fallback (fast path when Firestore already synced flag)
+    if (localStorage.getItem('medexcel_personalized_onboarding_done')) {
+      window.location.replace('homepage.html');
+      return;
+    }
+
+    // First-time user — show personalized onboarding
+    window.location.replace('personalized-onboarding.html');
+  }
+
   /* ── Native Android Google Sign-In bridge ── */
   window.onNativeLogin = async function(email, uid, idToken, displayName) {
     const name = (displayName && displayName !== 'User')
@@ -72,7 +96,7 @@ import {
       try { await signInAnonymously(auth); } catch(e2) {}
     }
 
-    sessionStorage.setItem('medexcel_just_logged_in', '1'); localStorage.getItem('medexcel_personalized_onboarding_done') ? window.location.replace('homepage.html') : window.location.replace('personalized-onboarding.html');
+    await goAfterLogin(uid);
   };
 
   /* ── Auth state listener — silent, no loader shown ── */
@@ -85,7 +109,7 @@ import {
       displayName: user.displayName
     }));
     await syncUserDoc(user);
-    sessionStorage.setItem('medexcel_just_logged_in', '1'); localStorage.getItem('medexcel_personalized_onboarding_done') ? window.location.replace('homepage.html') : window.location.replace('personalized-onboarding.html');
+    await goAfterLogin(user.uid);
   });
 
   /* ── Email Sign In / Sign Up ── */

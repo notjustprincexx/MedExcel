@@ -30,10 +30,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // Expose critical Firebase functions
         window.logoutUser = async function() {
-            const savedTheme = localStorage.getItem('medexcel_theme');
+            const savedTheme        = localStorage.getItem('medexcel_theme');
+            const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
+            const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
+            const savedHasVisited   = localStorage.getItem('medexcel_has_visited');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
-            if (savedTheme) localStorage.setItem('medexcel_theme', savedTheme);
+            if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
+            if (savedCoachMarks) localStorage.setItem('medexcel_onboarding_v1', savedCoachMarks);
+            if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
+            if (savedHasVisited) localStorage.setItem('medexcel_has_visited', savedHasVisited);
             window.location.replace("index.html");
         };
 
@@ -972,13 +978,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
                 }
 
-                // ---- Personalized onboarding — TESTING: always show, remove line below after confirmed ----
-                if (typeof window.launchPersonalizedOnboarding === 'function') {
-                    setTimeout(function() {
-                        window.launchPersonalizedOnboarding(user.uid, data);
-                    }, 1200);
-                }
-
                 // Store profile globally for rest of app
                 window.userProfile = {
                     studyProgram:    data.studyProgram    || null,
@@ -1124,6 +1123,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         await updateDoc(userRef, { referralProcessed: true });
                     } catch(e) { console.warn("Referral attribution failed (will retry):", e); }
                 }
+
+                // ---- BROADCAST ANNOUNCEMENT CHECK ----
+                // Reads announcements/latest once per unique sentAt — shows it once then never again
+                try {
+                    const annSnap = await getDoc(doc(db, 'announcements', 'latest'));
+                    if (annSnap.exists()) {
+                        const ann = annSnap.data();
+                        if (ann.sentAt) {
+                            const shownKey = 'medexcel_ann_' + ann.sentAt;
+                            if (!localStorage.getItem(shownKey)) {
+                                localStorage.setItem(shownKey, '1');
+                                // Delay so the page finishes rendering first
+                                setTimeout(() => {
+                                    if (typeof window.showAnnouncement === 'function') {
+                                        window.showAnnouncement(ann);
+                                    }
+                                }, 2500);
+                            }
+                        }
+                    }
+                } catch(e) {}
+
             } catch(e) { console.warn("Init Error:", e); }
         };
 
@@ -1227,9 +1248,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.initPush) window.initPush(firebaseUser.uid);
             } else {
                 window.currentUser = null;
-                const _authTheme = localStorage.getItem('medexcel_theme');
+                const _authTheme      = localStorage.getItem('medexcel_theme');
+                const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
+                const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
+                const _hasVisited     = localStorage.getItem('medexcel_has_visited');
                 localStorage.clear();
-                if (_authTheme) localStorage.setItem('medexcel_theme', _authTheme);
+                if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
+                if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
+                if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
+                if (_hasVisited)     localStorage.setItem('medexcel_has_visited', _hasVisited);
                 window.location.replace("index.html");
             }
         });
