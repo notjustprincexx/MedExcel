@@ -634,7 +634,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                 <span style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);">${a.label}</span>
                             </button>
                         `).join('')}
+                        <!-- Upload photo tile -->
+                        <button onclick="window.triggerPhotoUpload()" id="avatarUploadBtn" style="
+                            background:var(--bg-body);
+                            border:2px dashed var(--border-color);
+                            border-radius:1rem;
+                            padding:0.5rem;
+                            cursor:pointer;
+                            display:flex;
+                            flex-direction:column;
+                            align-items:center;
+                            gap:0.5rem;
+                            transition:border-color 0.2s,transform 0.15s;
+                            -webkit-tap-highlight-color:transparent;
+                        " onmousedown="this.style.transform='scale(0.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.94)'" ontouchend="this.style.transform=''">
+                            <div id="avatarUploadPreview" style="width:64px;height:64px;border-radius:50%;overflow:hidden;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fas fa-camera" style="font-size:1.5rem;color:var(--text-muted);"></i>
+                            </div>
+                            <span style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);">Upload</span>
+                        </button>
                         </div>
+                        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="window.handleAvatarFileSelect(this)">
                     </div>
                 `;
                 backdrop.addEventListener('click', (e) => { if (e.target === backdrop) window.closeAvatarPicker(); });
@@ -663,6 +683,76 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => { backdrop.style.display = 'none'; }, 400); }
         };
 
+        // ── Photo upload functions ──────────────────────────────────────
+        window.triggerPhotoUpload = function() {
+            const input = document.getElementById('avatarFileInput');
+            if (input) input.click();
+        };
+
+        window.handleAvatarFileSelect = async function(input) {
+            const file = input.files[0];
+            if (!file || !window.currentUser) return;
+
+            // Validate — images only
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (JPG, PNG, etc.)');
+                input.value = ''; return;
+            }
+            if (file.size > 15 * 1024 * 1024) {
+                alert('Image is too large. Please choose a smaller photo.');
+                input.value = ''; return;
+            }
+
+            const uploadBtn = document.getElementById('avatarUploadBtn');
+            const preview   = document.getElementById('avatarUploadPreview');
+            if (uploadBtn) { uploadBtn.style.borderColor = 'var(--accent-btn)'; uploadBtn.style.opacity = '0.6'; }
+            if (preview)   { preview.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:var(--accent-btn);"></i>'; }
+
+            try {
+                // Compress to ~80x80 JPEG base64 — keeps size under 5KB
+                const base64 = await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = () => {
+                        const SIZE = 80;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = SIZE; canvas.height = SIZE;
+                        const ctx = canvas.getContext('2d');
+                        // Square crop from center
+                        const side = Math.min(img.width, img.height);
+                        const sx = (img.width  - side) / 2;
+                        const sy = (img.height - side) / 2;
+                        ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+                        URL.revokeObjectURL(url);
+                        // Quality 0.6 at 80px ≈ 3-5KB
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    img.onerror = reject;
+                    img.src = url;
+                });
+
+                const uid = window.currentUser.uid;
+
+                // Save base64 directly to Firestore — no Storage bucket needed
+                await updateDoc(doc(db, 'users', uid), { photoBase64: base64, avatarIndex: null });
+                localStorage.setItem('medexcel_photo_' + uid, base64);
+                localStorage.removeItem('medexcel_avatar_' + uid);
+
+                // Show preview
+                if (preview) preview.innerHTML = `<img src="${base64}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;">`;
+                if (uploadBtn) { uploadBtn.style.opacity = '1'; }
+
+                window.applyAvatar();
+                setTimeout(() => window.closeAvatarPicker(), 400);
+
+            } catch(e) {
+                console.error('[Avatar Upload]', e);
+                if (uploadBtn) { uploadBtn.style.borderColor = 'var(--border-color)'; uploadBtn.style.opacity = '1'; }
+                if (preview)   { preview.innerHTML = '<i class="fas fa-camera" style="font-size:1.5rem;color:var(--text-muted);"></i>'; }
+            }
+            input.value = '';
+        };
+
         window.selectAvatar = function(index) {
             localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
             // Save to Firestore so other users can see it in the leaderboard
@@ -679,11 +769,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.applyAvatar = function() {
-            const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
+            const uid = window.currentUser?.uid || 'guest';
+            const photoURL = localStorage.getItem('medexcel_photo_' + uid);
+            const saved = localStorage.getItem('medexcel_avatar_' + uid);
             const wrap = document.getElementById('profileAvatarWrap');
             const homeBtn = document.getElementById('homeAvatarBtn');
             const initial = document.getElementById('userInitial');
             const storedInitial = initial ? initial.textContent : (document.getElementById('homeAvatarInitial') ? document.getElementById('homeAvatarInitial').textContent : '?');
+
+            // Custom photo takes priority
+            if (photoURL) {
+                const imgStyle = `width:100%;height:100%;object-fit:cover;border-radius:50%;`;
+                if (wrap) {
+                    wrap.style.background = 'var(--bg-surface)';
+                    wrap.style.border = '2px solid var(--accent-btn)';
+                    wrap.innerHTML = `<img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';">`;
+                }
+                if (homeBtn) {
+                    homeBtn.style.borderColor = 'var(--accent-btn)';
+                    homeBtn.innerHTML = `<img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';">`;
+                }
+                return;
+            }
 
             if (saved !== null) {
                 const a = AVATAR_GRID[parseInt(saved)];
@@ -771,10 +878,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (userDoc.exists()) {
                     data = userDoc.data();
                     // Sync Firestore avatar → localStorage so it shows correctly on any device or after account switch
-                    if (data.avatarIndex !== undefined && data.avatarIndex !== null) {
-                        localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
-                        window.applyAvatar();
+                    if (data.photoBase64) {
+                        localStorage.setItem('medexcel_photo_' + user.uid, data.photoBase64);
                     }
+                    if (data.avatarIndex !== undefined && data.avatarIndex !== null && !data.photoBase64) {
+                        localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
+                    }
+                    window.applyAvatar();
                 } else {
                     // New user — provision their Firestore document now with safe defaults
                     data = {
