@@ -286,5 +286,20 @@
   <script src="js/onboarding.js"></script>
   <script src="js/personalized-onboarding.js"></script>
   <script type="module" src="js/onboarding-firebase.js"></script>
+  <script>
+    // Secret admin access — tap the top progress bar 7 times within 3 seconds
+    (function() {
+      var taps = 0, timer;
+      document.addEventListener('DOMContentLoaded', function() {
+        var target = document.getElementById('loaderFill') || document.querySelector('.top-loader-fill') || document.body;
+        target.addEventListener('click', function() {
+          taps++;
+          clearTimeout(timer);
+          if (taps >= 7) { taps = 0; window.location.href = 'admin.html'; return; }
+          timer = setTimeout(function(){ taps = 0; }, 3000);
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
