@@ -72,7 +72,7 @@ import {
       try { await signInAnonymously(auth); } catch(e2) {}
     }
 
-    window.location.replace('homepage.html');
+    localStorage.removeItem('medexcel_personalized_onboarding_done'); window.location.replace('personalized-onboarding.html');
   };
 
   /* ── Auth state listener — silent, no loader shown ── */
@@ -85,7 +85,7 @@ import {
       displayName: user.displayName
     }));
     await syncUserDoc(user);
-    window.location.replace('homepage.html');
+    localStorage.removeItem('medexcel_personalized_onboarding_done'); window.location.replace('personalized-onboarding.html');
   });
 
   /* ── Email Sign In / Sign Up ── */

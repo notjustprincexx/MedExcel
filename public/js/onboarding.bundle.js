@@ -1,198 +1,157 @@
-/* ══════════════════════════════════
-     SLIDE ENGINE — Flex Track Swipe Native + Auto-Slide
-  ══════════════════════════════════ */
-  const EASE_SMOOTH = 'transform 0.6s cubic-bezier(0.25, 1, 0.2, 1)';
-  const track = document.getElementById('track');
-  const vp    = document.getElementById('vp');
-  const fill  = document.getElementById('loaderFill');
-  const gsBtn = document.getElementById('btnMainCta');
+import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import {
+    getAuth, setPersistence, browserLocalPersistence,
+    signInWithEmailAndPassword, signInAnonymously,
+    onAuthStateChanged, createUserWithEmailAndPassword,
+    updateProfile, sendPasswordResetEmail,
+    GoogleAuthProvider, signInWithCredential
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  let page = 1;
-  let startX = 0, currentTranslate = 0, prevTranslate = 0, isDragging = false;
-  let autoSlideTimer;
-
-  function updateLoader(n) {
-    fill.classList.remove('p2', 'p3');
-    if (n === 2) fill.classList.add('p2');
-    if (n === 3) fill.classList.add('p3');
-  }
-
-  function resetAutoSlide(delay = 4000) {
-    clearTimeout(autoSlideTimer);
-    if (page < 3) {
-      autoSlideTimer = setTimeout(() => {
-        goTo(page + 1);
-      }, delay);
-    }
-  }
-
-  function goTo(n) {
-    if (n < 1 || n > 3) return;
-    page = n;
-    
-    track.style.transition = EASE_SMOOTH;
-    prevTranslate = -(page - 1) * vp.clientWidth;
-    track.style.transform = `translateX(${prevTranslate}px)`;
-    
-    updateLoader(n);
-
-    if (page === 3) {
-      gsBtn.classList.add('hidden');
-      clearTimeout(autoSlideTimer); 
-    } else {
-      gsBtn.classList.remove('hidden');
-      resetAutoSlide(); 
-    }
-  }
-
-  // Initialize with a 6-second delay to account for the native splash screen
-  resetAutoSlide(6000); 
-
-  gsBtn.addEventListener('click', () => {
-    clearTimeout(autoSlideTimer); 
-    if (page < 3) goTo(page + 1);
-  });
-
-  /* ══════════════════════════════════
-     SWIPE / DRAG GESTURE
-  ══════════════════════════════════ */
-  vp.addEventListener('touchstart', e => {
-    if (e.target.closest('button') || e.target.closest('input') || document.querySelector('.login-modal.show')) return;
-    
-    clearTimeout(autoSlideTimer); 
-
-    startX = e.touches[0].clientX;
-    isDragging = true;
-    
-    track.style.transition = 'none'; 
-  }, { passive: true });
-
-  vp.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    
-    if ((page === 1 && diff > 0) || (page === 3 && diff < 0)) {
-      currentTranslate = prevTranslate + (diff * 0.2); 
-    } else {
-      currentTranslate = prevTranslate + diff;
-    }
-    
-    track.style.transform = `translateX(${currentTranslate}px)`;
-  }, { passive: true });
-
-  vp.addEventListener('touchend', e => {
-    if (!isDragging) return;
-    isDragging = false;
-    
-    const movedBy = currentTranslate - prevTranslate;
-    const threshold = vp.clientWidth * 0.2; 
-
-    if (movedBy < -threshold && page < 3) {
-      page += 1;
-    } else if (movedBy > threshold && page > 1) {
-      page -= 1;
-    }
-    
-    goTo(page); 
-  });
-
-  /* ══════════════════════════════════
-     SIGN-IN OVERLAY
-  ══════════════════════════════════ */
-  function showOverlay(show, text) {
-    const el   = document.getElementById('signinOverlay');
-    const txt  = document.getElementById('signinText');
-    txt.textContent = text || 'Signing in…';
-    el.classList.toggle('show', show);
-  }
-
-  /* ══════════════════════════════════
-     DIALOG
-  ══════════════════════════════════ */
-  window.showDialog = function(message, title = 'Notice', opts = {}) {
-    return new Promise(resolve => {
-      const backdrop = document.getElementById('okBackdrop');
-      document.getElementById('okTitle').textContent   = title;
-      document.getElementById('okMessage').textContent = message;
-      const ok  = document.getElementById('okConfirm');
-      const can = document.getElementById('okCancel');
-      ok.textContent  = opts.okText     || 'OK';
-      can.textContent = opts.cancelText || 'Cancel';
-      can.style.display = opts.hideCancel ? 'none' : 'block';
-      backdrop.style.display = 'flex';
-      requestAnimationFrame(() => backdrop.classList.add('open'));
-      const done = r => {
-        backdrop.classList.remove('open');
-        setTimeout(() => { backdrop.style.display = 'none'; resolve(r); }, 240);
-      };
-      ok.onclick  = () => done(true);
-      can.onclick = () => done(false);
-    });
+  const firebaseConfig = {
+    apiKey:            "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+    authDomain:        "medxcel.firebaseapp.com",
+    projectId:         "medxcel",
+    storageBucket:     "medxcel.firebasestorage.app",
+    messagingSenderId: "649180317389",
+    appId:             "1:649180317389:web:f6b9a7053a37853ea04b84",
+    measurementId:     "G-6VQYKEBMSX"
   };
 
-  /* ══════════════════════════════════
-     LOGIN MODAL
-  ══════════════════════════════════ */
-  window.isSignupMode = false;
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-  function openLogin(signup = false) {
-    const modal  = document.getElementById('loginModal');
-    const title  = document.getElementById('lmTitle');
-    const btn    = document.getElementById('signInBtn');
-    const row    = document.getElementById('nameRow');
-    window.isSignupMode  = signup;
-    title.textContent    = signup ? 'Create account'    : 'Enter your details';
-    btn.textContent      = signup ? 'Sign Up'           : 'Sign In';
-    row.style.display    = signup ? 'block'             : 'none';
-    modal.classList.add('show');
-  }
+  setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-  function closeLogin() {
-    const modal = document.getElementById('loginModal');
-    modal.classList.remove('show');
-    setTimeout(() => {
-      window.isSignupMode = false;
-      document.getElementById('lmTitle').textContent   = 'Enter your details';
-      document.getElementById('signInBtn').textContent = 'Sign In';
-      document.getElementById('nameRow').style.display = 'none';
-      ['nameInput','emailInput','passInput'].forEach(id =>
-        document.getElementById(id).value = ''
-      );
-    }, 420);
-  }
-
-  document.getElementById('lmClose').addEventListener('click', closeLogin);
-  document.getElementById('btnLogin').addEventListener('click',    () => openLogin(false));
-  document.getElementById('btnRegister').addEventListener('click', () => openLogin(true));
-  document.getElementById('btnGoogle').addEventListener('click',   () => startGoogleLogin());
-  document.getElementById('lmGoogleBtn').addEventListener('click', () => startGoogleLogin());
-
-  /* ── Password toggle ── */
-  document.getElementById('togglePwBtn').addEventListener('click', () => {
-    const inp = document.getElementById('passInput');
-    inp.type  = inp.type === 'password' ? 'text' : 'password';
-  });
-
-  /* ── Native Google bridge ── */
-  window.startGoogleLogin = function() {
-    if (window.Android && window.Android.startGoogleSignIn) {
-      showOverlay(true, 'Signing in…');
-      window.Android.startGoogleSignIn();
-    } else {
-      showDialog(
-        'Google sign-in is only available inside the MedExcel app.',
-        'Use the App', { hideCancel: true }
-      );
-    }
-  };
-
-  /* ── URL deep-link ── */
-  (function() {
+  /* Helper: ensure Firestore doc exists for new users */
+  async function syncUserDoc(user, extra = {}) {
     try {
-      const hash   = (location.hash || '').replace('#','').toLowerCase();
-      const action = new URLSearchParams(location.search).get('action');
-      if (hash === 'login'  || action === 'login')  setTimeout(() => openLogin(false), 120);
-      if (hash === 'signup' || action === 'signup') setTimeout(() => openLogin(true),  120);
-    } catch(e) {}
-  })();
+      const ref  = doc(db, 'users', user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
+        await setDoc(ref, {
+          email:             user.email,
+          uid:               user.uid,
+          displayName:       user.displayName || user.email.split('@')[0],
+          plan:              'free',
+          dailyUsage:        0,
+          planUsed:          0,
+          lastDailyReset:    new Date().toISOString().split('T')[0],
+          createdAt:         serverTimestamp(),
+          referralCode:      user.uid.substring(0, 8).toUpperCase(),
+          referredBy:        refCode,
+          referralCount:     0,
+          referralProcessed: false,
+          ...extra
+        }, { merge: true });
+        if (refCode) sessionStorage.removeItem('medexcel_ref_code');
+      }
+    } catch(e) { console.warn('Firestore sync skipped:', e); }
+  }
+
+  /* ── Native Android Google Sign-In bridge ── */
+
+  // Safe redirect — shows onboarding for new users, homepage for returning
+  function goToHomepageOrOnboarding() {
+    if (localStorage.getItem('medexcel_personalized_onboarding_done')) {
+      window.location.replace('homepage.html');
+      return;
+    }
+    // Try to show onboarding, with retries in case script hasn't loaded yet
+    var attempts = 0;
+    function tryShow() {
+      if (typeof window.showPersonalizedOnboarding === 'function') {
+        window.showPersonalizedOnboarding();
+      } else if (attempts++ < 10) {
+        setTimeout(tryShow, 200);
+      } else {
+        // Fallback — just go to homepage if onboarding never loads
+        window.location.replace('homepage.html');
+      }
+    }
+    tryShow();
+  }
+
+  window.onNativeLogin = async function(email, uid, idToken, displayName) {
+    const name = (displayName && displayName !== 'User')
+      ? displayName : email.split('@')[0];
+
+    showOverlay(true, 'Preparing app…');
+
+    localStorage.setItem('nativeUser', JSON.stringify({ email, uid, displayName: name }));
+    await syncUserDoc({ uid, email, displayName: name }, { displayName: name });
+
+    try {
+      await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+    } catch(e) {
+      console.warn('Credential sign-in failed, using anonymous fallback:', e);
+      try { await signInAnonymously(auth); } catch(e2) {}
+    }
+
+    goToHomepageOrOnboarding();
+  };
+
+  /* ── Auth state listener — silent, no loader shown ── */
+  onAuthStateChanged(auth, async user => {
+    if (!user) return; // not signed in — stay on onboarding
+
+    localStorage.setItem('nativeUser', JSON.stringify({
+      email:       user.email,
+      uid:         user.uid,
+      displayName: user.displayName
+    }));
+    await syncUserDoc(user);
+    goToHomepageOrOnboarding();
+  });
+
+  /* ── Email Sign In / Sign Up ── */
+  document.getElementById('signInBtn').addEventListener('click', async () => {
+    const name  = document.getElementById('nameInput').value.trim();
+    const email = document.getElementById('emailInput').value.trim();
+    const pass  = document.getElementById('passInput').value;
+
+    if (window.isSignupMode && !name)
+      return showDialog('Please enter your name.', 'Missing Info', { hideCancel: true });
+    if (!email || !pass)
+      return showDialog('Please enter your email and password.', 'Missing Info', { hideCancel: true });
+
+    closeLogin();
+    showOverlay(true, window.isSignupMode ? 'Creating account…' : 'Signing in…');
+
+    try {
+      if (window.isSignupMode) {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: name });
+      } else {
+        await signInWithEmailAndPassword(auth, email, pass);
+      }
+      // onAuthStateChanged will fire → redirect
+    } catch(err) {
+      showOverlay(false);
+      await showDialog(
+        err.message,
+        window.isSignupMode ? 'Sign Up Failed' : 'Login Failed',
+        { hideCancel: true }
+      );
+      openLogin(window.isSignupMode);
+    }
+  });
+
+  /* ── Forgot Password ── */
+  document.getElementById('forgotBtn').addEventListener('click', async () => {
+    const email = document.getElementById('emailInput').value.trim();
+    if (!email)
+      return showDialog('Enter your email address in the field above first.', 'Missing Email', { hideCancel: true });
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showDialog('A reset link has been sent to your inbox.', 'Check Your Email', { hideCancel: true });
+    } catch(e) {
+      showDialog(e.message, 'Error', { hideCancel: true });
+    }
+  });

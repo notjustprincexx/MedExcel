@@ -1,4 +1,5 @@
 /* ── app.js ── */
+
 /* ── js/app.js ── */
 // State · Router · Utils · Modals · Profile Helpers
 // --- GLOBAL VARIABLES & STATE ---
@@ -977,14 +978,26 @@
             }
 
             var fired = false;
-            function fire() { if (!fired) { fired=true; setTimeout(build, 700); } }
+            function fire() {
+                if (!fired) {
+                    // Only block if the personalized onboarding overlay is actually open
+                    var obOpen = document.querySelector('[id^="ob-content"]') ||
+                                 (window._personalizedOnboardingOpen === true);
+                    if (obOpen) {
+                        setTimeout(fire, 400);
+                        return;
+                    }
+                    fired = true;
+                    setTimeout(build, 500);
+                }
+            }
             var t = setInterval(function() {
                 var gt = document.getElementById('greetingTitle');
                 if (gt && gt.textContent && gt.textContent.length > 3 && !gt.classList.contains('skeleton')) {
                     clearInterval(t); fire();
                 }
             }, 250);
-            setTimeout(function() { clearInterval(t); fire(); }, 4000);
+            setTimeout(function() { clearInterval(t); fire(); }, 3000);
         })();
 
         // Weekly Target Rotator

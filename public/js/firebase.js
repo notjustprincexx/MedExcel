@@ -794,6 +794,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
                 }
 
+                // ---- Personalized onboarding — TESTING: always show, remove line below after confirmed ----
+                if (typeof window.launchPersonalizedOnboarding === 'function') {
+                    setTimeout(function() {
+                        window.launchPersonalizedOnboarding(user.uid, data);
+                    }, 1200);
+                }
+
+                // Store profile globally for rest of app
+                window.userProfile = {
+                    studyProgram:    data.studyProgram    || null,
+                    studyLevel:      data.studyLevel      || null,
+                    studyGoal:       data.studyGoal       || null,
+                    studyTime:       data.studyTime       || null,
+                    dailyTarget:     data.dailyTarget     || 20,
+                    reminderTime:    data.reminderTime    || '20:00',
+                    reminderEnabled: data.reminderEnabled !== false,
+                    onboardingDone:  data.onboardingDone  || false
+                };
+
                 // ---- UI updates — always run for both new and existing users ----
 
                 // Home Greeting — already painted from cache above, just refresh name if Firestore has better displayName

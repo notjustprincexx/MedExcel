@@ -46,6 +46,7 @@
   <link rel="dns-prefetch" href="https://us-central1-medxcel.cloudfunctions.net">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
+  <link rel="preload" href="student.svg" as="image" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -225,7 +226,7 @@
         <div class="s3-buttons">
           <div class="btn-row">
             <button class="btn-login"    id="btnLogin">Log in</button>
-            <button class="btn-register" id="btnRegister">Register</button>
+            <button class="btn-register" id="btnRegister">Sign up</button>
           </div>
           <button class="btn-google" id="btnGoogle">
             <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -281,6 +282,6 @@
 </div>
 
   <script src="js/onboarding.bundle.js"></script>
-  <script type="module" src="js/onboarding-firebase.js"></script>
+  <script src="js/personalized-onboarding.js"></script>
 </body>
 </html>

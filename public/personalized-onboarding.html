@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MedExcel — Get Started</title>
+<meta name="theme-color" content="#7C3AED">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  * { -webkit-tap-highlight-color: transparent; outline: none; }
+  :root {
+    --purple: #7C3AED;
+    --purple-light: #EDE9FE;
+    --text-dark: #0F172A;
+    --text-mid: #475569;
+    --text-soft: #94A3B8;
+    --border: #E8E8F0;
+    --opt-bg: #F4F3FF;
+  }
+  html, body { height: 100%; background: #fff; font-family: "Sora", -apple-system, sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; background: #fff; }
+
+  /* ── Header ── */
+  .hd { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+  .hd-back { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .hd-back svg { width: 16px; height: 16px; stroke: #1e1b4b; fill: none; stroke-width: 2; stroke-linecap: round; }
+  .hd-skip { background: none; border: none; color: rgba(255,255,255,0.9); font-size: 0.8125rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* ── Scene header ── */
+  .scene {
+    flex-shrink: 0;
+    height: 220px;
+    position: relative;
+    overflow: hidden;
+  }
+  .scene-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, #a78bfa 0%, #7c3aed 60%, #4c1d95 100%);
+  }
+
+
+  /* Doctor in scene */
+  .scene-doctor {
+    position: absolute; bottom: 0; right: 16px;
+    height: 175px; object-fit: contain; z-index: 2;
+  }
+  /* Wave bottom */
+  .scene-wave {
+    position: absolute; bottom: -1px; left: 0; right: 0; z-index: 3;
+  }
+  .scene-icon { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 2; font-size: 3rem; color: rgba(255,255,255,0.95); }
+
+  /* ── Progress ── */
+  .prog-wrap { display: flex; gap: 4px; padding: 14px 20px 0; flex-shrink: 0; }
+  .prog-seg { flex: 1; height: 3px; border-radius: 9999px; background: #EBEBF5; overflow: hidden; }
+  .prog-fill { height: 100%; width: 0%; background: var(--purple); border-radius: 9999px; transition: width 0.45s cubic-bezier(0.4,0,0.2,1); }
+  .prog-count { text-align: center; font-size: 0.6875rem; font-weight: 600; color: var(--text-soft); padding-top: 6px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+
+  /* ── Body ── */
+  .body { flex: 1; overflow-y: auto; padding: 12px 20px 160px; -webkit-overflow-scrolling: touch; }
+  .body::-webkit-scrollbar { display: none; }
+  .content { animation: ob-in 0.3s cubic-bezier(0.19,1,0.22,1); }
+  @keyframes ob-in { from { opacity:0;transform:translateY(10px); } to { opacity:1;transform:translateY(0); } }
+
+  .q-title { font-size: 1.375rem; font-weight: 800; color: var(--text-dark); text-align: center; line-height: 1.25; letter-spacing: -0.02em; margin-bottom: 5px; }
+  .q-sub { font-size: 0.8rem; color: var(--text-mid); text-align: center; line-height: 1.6; margin-bottom: 20px; }
+
+  /* ── Headspace-style pill options ── */
+  .opts { display: flex; flex-direction: column; gap: 10px; }
+  .opt {
+    width: 100%; background: var(--opt-bg);
+    border: 1.5px solid transparent;
+    border-radius: 9999px;
+    padding: 15px 20px;
+    cursor: pointer; transition: all 0.18s ease;
+    font-family: inherit; text-align: left;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .opt:active { transform: scale(0.99); }
+  .opt.sel {
+    background: var(--purple-light);
+    border-color: var(--purple);
+  }
+  .opt-label { font-size: 0.9375rem; font-weight: 600; color: var(--text-dark); }
+  .opt-sub-text { font-size: 0.75rem; color: var(--text-soft); margin-top: 2px; }
+  .opt-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid #CBD5E1; background: white;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.18s;
+  }
+  .opt.sel .opt-check { background: var(--purple); border-color: var(--purple); }
+  .opt-check svg { display: none; }
+  .opt.sel .opt-check svg { display: block; }
+
+  /* ── Time ── */
+  .time-card { background: var(--purple-light); border-radius: 20px; padding: 22px 20px; text-align: center; margin-bottom: 12px; }
+  #ob-time-inp { background: none; border: none; font-size: 2.75rem; font-weight: 800; color: var(--purple); font-family: "Sora",sans-serif; text-align: center; width: 100%; outline: none; cursor: pointer; letter-spacing: -0.02em; }
+  .time-hint { font-size: 0.75rem; color: var(--purple); opacity: 0.65; margin-top: 4px; }
+  .remind-row { display: flex; align-items: center; justify-content: space-between; background: #F8F8FC; border: 1.5px solid var(--border); border-radius: 16px; padding: 14px 16px; }
+  .remind-label { font-size: 0.875rem; font-weight: 600; color: var(--text-dark); }
+  .remind-sub { font-size: 0.725rem; color: var(--text-soft); margin-top: 2px; }
+  .toggle { position: relative; width: 44px; height: 24px; background: var(--purple); border-radius: 9999px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.off { background: #CBD5E1; }
+  .toggle-knob { position: absolute; top: 2px; left: 22px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
+  .toggle.off .toggle-knob { left: 2px; }
+
+  /* ── Outro ── */
+  .outro-stat { display: flex; align-items: center; gap: 12px; background: var(--opt-bg); border-radius: 16px; padding: 13px 16px; margin-top: 10px; }
+  .outro-stat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
+  .outro-stat-label { font-size: 0.7rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .outro-stat-value { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); margin-top: 2px; }
+
+  /* ── Footer ── */
+  .footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px 40px; background: linear-gradient(to top,#fff 75%,transparent); }
+  .cta-btn { width: 100%; padding: 16px; border: none; border-radius: 9999px; background: var(--purple); color: white; font-size: 0.9375rem; font-weight: 700; font-family: "Sora",sans-serif; cursor: pointer; letter-spacing: -0.01em; transition: transform 0.14s; box-shadow: 0 4px 14px rgba(124,58,237,0.28); display: none; }
+  .cta-btn:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <!-- Header overlays the scene -->
+  <div class="hd">
+    <button class="hd-back" id="ob-back"><svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linejoin="round"/></svg></button>
+    <span></span>
+    <button class="hd-skip" id="ob-skip">Skip</button>
+  </div>
+
+  <!-- Illustrated scene -->
+  <div class="scene" id="ob-scene">
+    <div class="scene-bg"></div>
+      <div class="scene-icon"><i class="fas fa-bell"></i></div>
+    <!-- Wave SVG -->
+    <svg class="scene-wave" viewBox="0 0 390 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 40 C80 0 310 0 390 40 L390 40 L0 40Z" fill="#ffffff"/>
+    </svg>
+  </div>
+
+  <div class="prog-wrap" id="ob-prog"></div>
+  <div class="prog-count" id="ob-count"></div>
+  <div class="body" id="ob-body"></div>
+  <div class="footer"><button class="cta-btn" id="ob-btn"></button></div>
+</div>
+
+<script>
+var DONE_KEY='medexcel_personalized_onboarding_done';
+var TICK='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+var STEPS=[
+  {id:'gender',      type:'choice', icon:'fa-user',           title:'Which best describes you?',      sub:'Helps us pick your default study guide character.',         opts:[{v:'male',l:'Male',s:null},{v:'female',l:'Female',s:null},{v:'other',l:'Prefer not to say',s:null}]},
+  {id:'studyProgram',type:'choice', icon:'fa-graduation-cap', title:'What are you studying for?',     sub:"We'll tailor your content to match your programme.",         opts:[{v:'mbbs',l:'MBBS / Med School',s:null},{v:'usmle',l:'USMLE',s:null},{v:'plab',l:'PLAB',s:null},{v:'nursing',l:'Nursing',s:null},{v:'pharmacy',l:'Pharmacy',s:null},{v:'other',l:'Other',s:null}]},
+  {id:'studyLevel',  type:'choice', icon:'fa-calendar-days',  title:'What year are you in?',          sub:'So we can set the right difficulty level for you.',          opts:[{v:'1st',l:'1st Year',s:null},{v:'2nd',l:'2nd Year',s:null},{v:'3rd',l:'3rd Year',s:null},{v:'4th',l:'4th Year',s:null},{v:'final',l:'Final Year',s:null},{v:'postgrad',l:'Post-grad / Resident',s:null}]},
+  {id:'studyGoal',   type:'choice', icon:'fa-bullseye',       title:"What's your main goal?",        sub:"We'll focus your daily challenges around this.",            opts:[{v:'pass',l:'Pass my exams',s:null},{v:'understand',l:'Deepen understanding',s:null},{v:'consistency',l:'Build consistency',s:null},{v:'revise',l:'Quick revision',s:null}]},
+  {id:'studyTime',   type:'choice', icon:'fa-clock',          title:'When do you usually study?',     sub:"We'll send your reminders at the right time.",              opts:[{v:'morning',l:'Morning',s:'Before the world wakes up'},{v:'afternoon',l:'Afternoon',s:'Peak focus hours'},{v:'evening',l:'Evening',s:'After the day winds down'},{v:'night',l:'Night',s:'When it gets quiet'}]},
+  {id:'dailyTarget', type:'choice', icon:'fa-chart-bar',      title:'Daily study target?',            sub:'How many items do you want to tackle each day?',             opts:[{v:'10',l:'10 items',s:'Easy start — build the habit'},{v:'20',l:'20 items',s:'Steady pace — solid progress'},{v:'30',l:'30 items',s:'Serious mode — exam ready'},{v:'50',l:'50+ items',s:'Beast mode — full commitment'}]},
+  {id:'reminder',    type:'time',   icon:'fa-bell',           title:'Set a daily reminder',           sub:"We'll nudge you to study every day so you never break your streak.", def:'20:00'},
+  {id:'done',        type:'outro',  icon:'fa-circle-check',   title:"You're all set!",               sub:'MedExcel is now personalised just for you.'}
+];
+
+var answers={},cur=0,hist=[];
+var bodyEl=document.getElementById('ob-body'),btnEl=document.getElementById('ob-btn');
+var progEl=document.getElementById('ob-prog'),cntEl=document.getElementById('ob-count');
+var sceneEl=document.getElementById('ob-scene'),docEl=document.getElementById('ob-doc');
+document.getElementById('ob-back').onclick=goBack;
+document.getElementById('ob-skip').onclick=finish;
+btnEl.onclick=next;
+
+function buildProg(){
+  progEl.innerHTML='';
+  for(var i=0;i<STEPS.length;i++){
+    var seg=document.createElement('div');seg.className='prog-seg';
+    var fill=document.createElement('div');fill.className='prog-fill';
+    fill.style.width=i<=cur?'100%':'0%';
+    seg.appendChild(fill);progEl.appendChild(seg);
+  }
+  cntEl.textContent='Step '+(cur+1)+' of '+STEPS.length;
+  document.getElementById('ob-back').style.visibility=cur===0?'hidden':'visible';
+  document.getElementById('ob-skip').style.visibility=STEPS[cur].type==='outro'?'hidden':'visible';
+}
+
+function render(idx){
+  cur=idx; var s=STEPS[idx]; buildProg();
+
+  // Update scene icon for this step
+  var sceneIconEl = document.querySelector('.scene-icon i');
+  if (sceneIconEl && s.icon) { sceneIconEl.className = 'fas ' + s.icon; }
+
+  bodyEl.style.opacity='0'; bodyEl.style.transform='translateY(8px)';
+  bodyEl.style.transition='opacity 0.14s,transform 0.14s';
+
+  setTimeout(function(){
+    bodyEl.innerHTML=''; btnEl.style.display='none';
+    var c=document.createElement('div'); c.className='content';
+
+    if(s.type==='choice'){
+      var opts=s.opts.map(function(o){
+        var sel=answers[s.id]===o.v;
+        return '<button class="opt'+(sel?' sel':'')+'" data-v="'+o.v+'">'
+          +'<div><div class="opt-label">'+o.l+'</div>'+(o.s?'<div class="opt-sub-text">'+o.s+'</div>':'')+'</div>'
+          +'<div class="opt-check">'+TICK+'</div>'
+          +'</button>';
+      }).join('');
+      c.innerHTML='<h2 class="q-title">'+s.title+'</h2><p class="q-sub">'+s.sub+'</p><div class="opts">'+opts+'</div>';
+      bodyEl.appendChild(c);
+      if(answers[s.id]){btnEl.textContent='Continue';btnEl.style.display='block';}
+      c.querySelectorAll('.opt').forEach(function(b){
+        b.onclick=function(){
+          c.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');});
+          b.classList.add('sel'); answers[s.id]=b.getAttribute('data-v');
+          btnEl.textContent='Continue'; btnEl.style.display='block';
+        };
+      });
+
+    } else if(s.type==='time'){
+      var t=answers[s.id]||s.def; answers[s.id]=t; answers.reminderEnabled=answers.reminderEnabled!==false;
+      c.innerHTML='<h2 class="q-title">'+s.title+'</h2><p class="q-sub">'+s.sub+'</p>'
+        +'<div class="time-card"><input id="ob-time-inp" type="time" value="'+t+'"><div class="time-hint">Tap to change time</div></div>'
+        +'<div class="remind-row"><div><div class="remind-label">Daily reminder</div><div class="remind-sub">Notify me to study every day</div></div>'
+        +'<div class="toggle'+(answers.reminderEnabled?'':' off')+'" id="ob-tog"><div class="toggle-knob"></div></div></div>';
+      bodyEl.appendChild(c);
+      document.getElementById('ob-time-inp').onchange=function(){answers[s.id]=this.value;};
+      document.getElementById('ob-tog').onclick=function(){answers.reminderEnabled=!answers.reminderEnabled;this.classList.toggle('off',!answers.reminderEnabled);};
+      btnEl.textContent='Set Reminder'; btnEl.style.display='block';
+
+    } else if(s.type==='outro'){
+      var prog=({mbbs:'MBBS / Med School',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy',other:'Other'})[answers.studyProgram]||'Your programme';
+      var goal=({pass:'Pass exams',understand:'Deepen understanding',consistency:'Build consistency',revise:'Quick revision'})[answers.studyGoal]||'Reach your goals';
+      var tgt=(answers.dailyTarget||'20')+' items / day';
+      c.innerHTML='<h2 class="q-title">'+s.title+'</h2><p class="q-sub">'+s.sub+'</p>'
+        +'<div class="outro-stat"><div class="outro-stat-dot"></div><div><div class="outro-stat-label">Programme</div><div class="outro-stat-value">'+prog+'</div></div></div>'
+        +'<div class="outro-stat"><div class="outro-stat-dot"></div><div><div class="outro-stat-label">Goal</div><div class="outro-stat-value">'+goal+'</div></div></div>'
+        +'<div class="outro-stat"><div class="outro-stat-dot"></div><div><div class="outro-stat-label">Daily target</div><div class="outro-stat-value">'+tgt+'</div></div></div>';
+      bodyEl.appendChild(c);
+      btnEl.textContent="Start Studying!"; btnEl.style.display='block';
+    }
+
+    bodyEl.appendChild(c);
+    bodyEl.style.opacity='1'; bodyEl.style.transform='translateY(0)';
+    bodyEl.style.transition='opacity 0.28s,transform 0.28s';
+  },150);
+}
+
+function next(){if(cur>=STEPS.length-1){finish();return;}hist.push(cur);render(cur+1);}
+function goBack(){if(hist.length===0)return;render(hist.pop());}
+
+function finish(){
+  var gender=answers.gender||'other';
+  var profile={onboardingDone:true,gender:gender,defaultAvatar:gender==='female'?1:0,
+    studyProgram:answers.studyProgram||null,studyLevel:answers.studyLevel||null,
+    studyGoal:answers.studyGoal||null,studyTime:answers.studyTime||null,
+    dailyTarget:parseInt(answers.dailyTarget||'20'),
+    reminderTime:answers.reminder||'20:00',
+    reminderEnabled:answers.reminderEnabled!==false,
+    onboardingAt:new Date().toISOString()};
+  localStorage.setItem(DONE_KEY,'1');
+  localStorage.setItem('medexcel_user_profile',JSON.stringify(profile));
+  window.userProfile=profile;
+  function trySave(){
+    if(window.currentUser&&window._updateDoc&&window._doc&&window.db){
+      window._updateDoc(window._doc(window.db,'users',window.currentUser.uid),profile).catch(function(){});
+      localStorage.setItem('medexcel_avatar_'+window.currentUser.uid,String(profile.defaultAvatar));
+      return true;
+    } return false;
+  }
+  if(!trySave()){var t=0;var iv=setInterval(function(){if(trySave()||t++>20)clearInterval(iv);},500);}
+  window.location.replace('homepage.html');
+}
+
+render(0);
+</script>
+</body>
+</html>
