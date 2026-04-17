@@ -5,6 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MedExcel — Get Started</title>
 <meta name="theme-color" content="#7C3AED">
+<script>
+  // Force purple status bar via Capacitor
+  (function() {
+    function setPurpleBar() {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+          window.Capacitor.Plugins.StatusBar.setBackgroundColor({ color: '#7C3AED' });
+          window.Capacitor.Plugins.StatusBar.setStyle({ style: 'DARK' });
+        }
+      } catch(e) {}
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setPurpleBar);
+    } else {
+      setPurpleBar();
+    }
+    setTimeout(setPurpleBar, 500);
+  })();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -117,6 +136,7 @@
   .footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px 40px; background: linear-gradient(to top,#fff 75%,transparent); }
   .cta-btn { width: 100%; padding: 16px; border: none; border-radius: 9999px; background: var(--purple); color: white; font-size: 0.9375rem; font-weight: 700; font-family: "Sora",sans-serif; cursor: pointer; letter-spacing: -0.01em; transition: transform 0.14s; box-shadow: 0 4px 14px rgba(124,58,237,0.28); display: none; }
   .cta-btn:active { transform: scale(0.98); }
+
 </style>
 </head>
 <body>
@@ -148,6 +168,18 @@
 var DONE_KEY='medexcel_personalized_onboarding_done';
 var TICK='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Avatar grid — index matches avatar.svg spritesheet positions
+var AVATAR_GRID = [
+  {idx:0, col:0, row:0, label:'Intern',     gender:'male'},
+  {idx:1, col:1, row:0, label:'Scholar',    gender:'female'},
+  {idx:2, col:2, row:0, label:'Clinician',  gender:'female'},
+  {idx:3, col:0, row:1, label:'Resident',   gender:'male'},
+  {idx:4, col:1, row:1, label:'Surgeon',    gender:'male'},
+  {idx:5, col:2, row:1, label:'Focus',      gender:'female'},
+  {idx:6, col:0, row:2, label:'Consultant', gender:'male'},
+  {idx:7, col:1, row:2, label:'Medic',      gender:'female'},
+  {idx:8, col:2, row:2, label:'Classic',    gender:'female'},
+];
 var STEPS=[
   {id:'gender',      type:'choice', icon:'fa-user',           title:'Which best describes you?',      sub:'Helps us pick your default study guide character.',         opts:[{v:'male',l:'Male',s:null},{v:'female',l:'Female',s:null},{v:'other',l:'Prefer not to say',s:null}]},
   {id:'studyProgram',type:'choice', icon:'fa-graduation-cap', title:'What are you studying for?',     sub:"We'll tailor your content to match your programme.",         opts:[{v:'mbbs',l:'MBBS / Med School',s:null},{v:'usmle',l:'USMLE',s:null},{v:'plab',l:'PLAB',s:null},{v:'nursing',l:'Nursing',s:null},{v:'pharmacy',l:'Pharmacy',s:null},{v:'other',l:'Other',s:null}]},
@@ -247,7 +279,11 @@ function goBack(){if(hist.length===0)return;render(hist.pop());}
 
 function finish(){
   var gender=answers.gender||'other';
-  var profile={onboardingDone:true,gender:gender,defaultAvatar:gender==='female'?1:0,
+  var maleAvatars   = AVATAR_GRID.filter(function(a){return a.gender==='male';});
+  var femaleAvatars = AVATAR_GRID.filter(function(a){return a.gender==='female';});
+  var pool = gender==='male' ? maleAvatars : gender==='female' ? femaleAvatars : AVATAR_GRID;
+  var chosenAvatar = pool[Math.floor(Math.random()*pool.length)].idx;
+  var profile={onboardingDone:true,gender:gender,defaultAvatar:chosenAvatar,
     studyProgram:answers.studyProgram||null,studyLevel:answers.studyLevel||null,
     studyGoal:answers.studyGoal||null,studyTime:answers.studyTime||null,
     dailyTarget:parseInt(answers.dailyTarget||'20'),
@@ -260,7 +296,7 @@ function finish(){
   function trySave(){
     if(window.currentUser&&window._updateDoc&&window._doc&&window.db){
       window._updateDoc(window._doc(window.db,'users',window.currentUser.uid),profile).catch(function(){});
-      localStorage.setItem('medexcel_avatar_'+window.currentUser.uid,String(profile.defaultAvatar));
+      localStorage.setItem('medexcel_avatar_'+window.currentUser.uid,String(chosenAvatar));
       return true;
     } return false;
   }
