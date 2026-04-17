@@ -992,6 +992,11 @@
                 if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
                 if (typeof navigateTo==='function') navigateTo('view-home');
                 localStorage.setItem(KEY, '1');
+                // Show streak modal now if it was pending
+                if (window._pendingStreakModal) {
+                    window._pendingStreakModal = false;
+                    setTimeout(function(){ if(typeof window.openStreakModal==='function') window.openStreakModal(); }, 600);
+                }
             }
 
             var fired = false;
