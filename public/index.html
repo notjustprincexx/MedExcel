@@ -4,8 +4,10 @@
   <script>
     // Redirect if already logged in
   const savedUser = localStorage.getItem("nativeUser");
+  const onboardingDone = localStorage.getItem("medexcel_personalized_onboarding_done");
   if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
-    window.location.replace("homepage.html");
+    // Send to onboarding if not completed, otherwise homepage
+    window.location.replace(onboardingDone ? "homepage.html" : "personalized-onboarding.html");
   }
   (function() {
     try {
