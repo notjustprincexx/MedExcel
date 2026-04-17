@@ -905,6 +905,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         window.location.replace('index.html?banned=1');
                         return;
                     }
+
+                    // ── DAILY ACTIVE TRACKING ──
+                    // Fire-and-forget — records this user as active today
+                    // Uses a map {uid: true} so the same user is only counted once per day
+                    const _dauKey = new Date().toISOString().split('T')[0];
+                    setDoc(doc(db, 'dailyActive', _dauKey), { uids: { [user.uid]: true } }, { merge: true }).catch(() => {});
                     // Sync Firestore avatar → localStorage so it shows correctly on any device or after account switch
                     if (data.photoBase64) {
                         localStorage.setItem('medexcel_photo_' + user.uid, data.photoBase64);
@@ -1136,16 +1142,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 }
 
                 // ---- BROADCAST ANNOUNCEMENT CHECK ----
-                // Reads announcements/latest once per unique sentAt — shows it once then never again
+                // Reads announcements/latest — skipped if cancelled or already seen
                 try {
                     const annSnap = await getDoc(doc(db, 'announcements', 'latest'));
                     if (annSnap.exists()) {
                         const ann = annSnap.data();
-                        if (ann.sentAt) {
+                        if (ann.sentAt && !ann.cancelled) {
                             const shownKey = 'medexcel_ann_' + ann.sentAt;
                             if (!localStorage.getItem(shownKey)) {
                                 localStorage.setItem(shownKey, '1');
-                                // Delay so the page finishes rendering first
                                 setTimeout(() => {
                                     if (typeof window.showAnnouncement === 'function') {
                                         window.showAnnouncement(ann);
