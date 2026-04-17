@@ -599,8 +599,25 @@
             }, 1400);
 
             // ── Slide 1: Streak + Check In ───────────────────────────
-            // Daily challenges rotate by day of week
-            const dailyChallenges = [
+            // Daily challenges — use user's dailyTarget from onboarding if available
+            const _profile   = JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
+            const _userTarget = (window.userProfile && window.userProfile.dailyTarget) || _profile.dailyTarget || 0;
+
+            function _makeChallenge(goal, msg) {
+                const xp = goal <= 10 ? 50 : goal <= 20 ? 100 : goal <= 30 ? 125 : 150;
+                return { goal, xp, challenge: goal + ' items today', msg };
+            }
+
+            const dailyChallenges = _userTarget > 0 ? [
+                // All 7 days use the user's chosen target
+                _makeChallenge(_userTarget, 'Sunday reset — stay consistent'),
+                _makeChallenge(_userTarget, 'Start the week strong'),
+                _makeChallenge(_userTarget, 'Build on yesterday'),
+                _makeChallenge(_userTarget, 'Midweek momentum'),
+                _makeChallenge(_userTarget, 'Almost at the finish line'),
+                _makeChallenge(_userTarget, 'Finish the week on fire'),
+                _makeChallenge(_userTarget, 'The best never rest'),
+            ] : [
                 { goal: 10, xp: 50,  challenge: '10 items today',          msg: 'Sunday reset — light and steady' },
                 { goal: 15, xp: 75,  challenge: 'Crush 15 MCQs',           msg: 'Start the week strong' },
                 { goal: 20, xp: 100, challenge: '20 flashcards today',     msg: 'Build on yesterday' },
@@ -980,12 +997,14 @@
             var fired = false;
             function fire() {
                 if (!fired) {
-                    // Only block if the personalized onboarding overlay is actually open
-                    var obOpen = document.querySelector('[id^="ob-content"]') ||
-                                 (window._personalizedOnboardingOpen === true);
-                    if (obOpen) {
-                        setTimeout(fire, 400);
-                        return;
+                    // Wait if personalized onboarding is open
+                    if (window._personalizedOnboardingOpen === true) {
+                        setTimeout(fire, 400); return;
+                    }
+                    // Wait if streak modal is open
+                    var streakModal = document.getElementById('streakModalBackdrop');
+                    if (streakModal && streakModal.style.display !== 'none' && streakModal.classList.contains('open')) {
+                        setTimeout(fire, 600); return;
                     }
                     fired = true;
                     setTimeout(build, 500);

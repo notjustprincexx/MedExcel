@@ -277,29 +277,53 @@ function next(){if(cur>=STEPS.length-1){finish();return;}hist.push(cur);render(c
 function goBack(){if(hist.length===0)return;render(hist.pop());}
 
 function finish(){
-  var gender=answers.gender||'other';
+  var gender = answers.gender || 'other';
+
+  // Pick random avatar — null for "prefer not to say" (stays as initial letter)
   var maleAvatars   = AVATAR_GRID.filter(function(a){return a.gender==='male';});
   var femaleAvatars = AVATAR_GRID.filter(function(a){return a.gender==='female';});
-  var pool = gender==='male' ? maleAvatars : gender==='female' ? femaleAvatars : AVATAR_GRID;
-  var chosenAvatar = pool[Math.floor(Math.random()*pool.length)].idx;
-  var profile={onboardingDone:true,gender:gender,defaultAvatar:chosenAvatar,
-    studyProgram:answers.studyProgram||null,studyLevel:answers.studyLevel||null,
-    studyGoal:answers.studyGoal||null,studyTime:answers.studyTime||null,
-    dailyTarget:parseInt(answers.dailyTarget||'20'),
-    reminderTime:answers.reminder||'20:00',
-    reminderEnabled:answers.reminderEnabled!==false,
-    onboardingAt:new Date().toISOString()};
-  localStorage.setItem(DONE_KEY,'1');
-  localStorage.setItem('medexcel_user_profile',JSON.stringify(profile));
-  window.userProfile=profile;
-  function trySave(){
-    if(window.currentUser&&window._updateDoc&&window._doc&&window.db){
-      window._updateDoc(window._doc(window.db,'users',window.currentUser.uid),profile).catch(function(){});
-      localStorage.setItem('medexcel_avatar_'+window.currentUser.uid,String(chosenAvatar));
+  var chosenAvatar  = null;
+  if (gender === 'male')   chosenAvatar = maleAvatars[Math.floor(Math.random()*maleAvatars.length)].idx;
+  if (gender === 'female') chosenAvatar = femaleAvatars[Math.floor(Math.random()*femaleAvatars.length)].idx;
+  // gender === 'other' stays null — shows initial letter
+
+  var profile = {
+    onboardingDone:   true,
+    gender:           gender,
+    defaultAvatar:    chosenAvatar,
+    avatarIndex:      chosenAvatar,
+    studyProgram:     answers.studyProgram  || null,
+    studyLevel:       answers.studyLevel    || null,
+    studyGoal:        answers.studyGoal     || null,
+    studyTime:        answers.studyTime     || null,
+    dailyTarget:      parseInt(answers.dailyTarget || '20'),
+    reminderTime:     answers.reminder      || '20:00',
+    reminderEnabled:  answers.reminderEnabled !== false,
+    onboardingAt:     new Date().toISOString()
+  };
+
+  localStorage.setItem(DONE_KEY, '1');
+  localStorage.setItem('medexcel_user_profile', JSON.stringify(profile));
+  window.userProfile = profile;
+
+  // Save avatar to localStorage immediately using a temp key
+  // firebase.js will pick this up on login and save to Firestore
+  localStorage.setItem('medexcel_pending_avatar', chosenAvatar !== null ? String(chosenAvatar) : '');
+
+  function trySave() {
+    if (window.currentUser && window._updateDoc && window._doc && window.db) {
+      window._updateDoc(window._doc(window.db, 'users', window.currentUser.uid), profile).catch(function(){});
+      if (chosenAvatar !== null) {
+        localStorage.setItem('medexcel_avatar_' + window.currentUser.uid, String(chosenAvatar));
+      }
       return true;
-    } return false;
+    }
+    return false;
   }
-  if(!trySave()){var t=0;var iv=setInterval(function(){if(trySave()||t++>20)clearInterval(iv);},500);}
+  if (!trySave()) {
+    var t = 0;
+    var iv = setInterval(function(){ if (trySave() || t++ > 30) clearInterval(iv); }, 300);
+  }
   window.location.replace('homepage.html');
 }
 

@@ -895,7 +895,39 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     if (data.avatarIndex !== undefined && data.avatarIndex !== null && !data.photoBase64) {
                         localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
                     }
+                    // Check for pending avatar from onboarding
+                    const pendingAvatar = localStorage.getItem('medexcel_pending_avatar');
+                    const savedAvatar   = localStorage.getItem('medexcel_avatar_' + user.uid);
+                    const savedPhoto    = localStorage.getItem('medexcel_photo_' + user.uid);
+
+                    if (pendingAvatar !== null && pendingAvatar !== '') {
+                        // New user just finished onboarding — apply their randomly assigned avatar
+                        localStorage.setItem('medexcel_avatar_' + user.uid, pendingAvatar);
+                        localStorage.removeItem('medexcel_pending_avatar');
+                        try { updateDoc(doc(db, 'users', user.uid), { avatarIndex: parseInt(pendingAvatar) }).catch(()=>{}); } catch(e) {}
+                    } else if (pendingAvatar === '') {
+                        // User chose "prefer not to say" — clear any old avatar
+                        localStorage.removeItem('medexcel_pending_avatar');
+                    } else if (!savedAvatar && !savedPhoto && data.defaultAvatar !== undefined && data.defaultAvatar !== null) {
+                        // Returning user — apply from Firestore profile
+                        localStorage.setItem('medexcel_avatar_' + user.uid, String(data.defaultAvatar));
+                    }
                     window.applyAvatar();
+
+                    // Load and apply onboarding profile data
+                    const profileData = data.studyProgram ? data : JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
+                    window.userProfile = {
+                        studyProgram:    profileData.studyProgram    || null,
+                        studyLevel:      profileData.studyLevel      || null,
+                        studyGoal:       profileData.studyGoal       || null,
+                        studyTime:       profileData.studyTime       || null,
+                        dailyTarget:     profileData.dailyTarget     || 20,
+                        reminderTime:    profileData.reminderTime    || '20:00',
+                        reminderEnabled: profileData.reminderEnabled !== false,
+                        onboardingDone:  profileData.onboardingDone  || false
+                    };
+
+                    // Profile data stored in window.userProfile — used silently by the app
                 } else {
                     // New user — provision their Firestore document now with safe defaults
                     data = {
@@ -966,7 +998,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 else { hasCheckedInToday = false; currentStreakCount = 1; }
 
                 const headerFireIcon = document.getElementById('headerFireIcon');
-                if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => window.openStreakModal(), 500); }
+                if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => { if (localStorage.getItem('medexcel_onboarding_v1')) window.openStreakModal(); else setTimeout(() => window.openStreakModal(), 5000); }, 500); }
                 else { if(headerDisplay) headerDisplay.textContent = currentStreakCount; if(headerFireIcon) headerFireIcon.style.opacity = '1'; }
 
                 // Profile & limits UI
