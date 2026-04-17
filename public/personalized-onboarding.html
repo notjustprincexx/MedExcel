@@ -42,7 +42,7 @@
   #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; background: #fff; }
 
   /* ── Header ── */
-  .hd { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+  .hd { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: env(safe-area-inset-top, 28px) 20px 16px; padding-top: max(env(safe-area-inset-top, 28px), 28px); }
   .hd-back { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .hd-back svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; }
   .hd-skip { background: none; border: none; color: rgba(255,255,255,0.9); font-size: 0.8125rem; font-weight: 600; cursor: pointer; font-family: inherit; }
@@ -50,7 +50,7 @@
   /* ── Scene header ── */
   .scene {
     flex-shrink: 0;
-    height: 240px;
+    height: calc(240px + env(safe-area-inset-top, 28px));
     position: relative;
     overflow: hidden;
     margin-top: -1px;
