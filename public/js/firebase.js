@@ -895,6 +895,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     if (data.avatarIndex !== undefined && data.avatarIndex !== null && !data.photoBase64) {
                         localStorage.setItem('medexcel_avatar_' + user.uid, data.avatarIndex.toString());
                     }
+                    // Sync onboardingDone from Firestore — prevents re-showing after reinstall
+                    if (data.onboardingDone) {
+                        localStorage.setItem('medexcel_personalized_onboarding_done', '1');
+                    }
+
                     // Check for pending avatar from onboarding
                     const pendingAvatar = localStorage.getItem('medexcel_pending_avatar');
                     const savedAvatar   = localStorage.getItem('medexcel_avatar_' + user.uid);

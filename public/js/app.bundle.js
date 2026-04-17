@@ -747,7 +747,6 @@
         // ══════════════════════════════════
         (function() {
             var KEY = 'medexcel_onboarding_v1';
-            localStorage.removeItem(KEY); // TESTING
             if (localStorage.getItem(KEY)) return;
 
             var STEPS = [
