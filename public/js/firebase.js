@@ -150,7 +150,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     window._lbUsers[meIdx].xp       = window.userStats.xp;
                     window._lbUsers[meIdx].weeklyXp  = window.userStats.weeklyXp;
                 } else {
-                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, avatarIndex: null });
+                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, avatarIndex: null, photoBase64: localStorage.getItem("medexcel_photo_" + window.currentUser.uid) || null });
                 }
             }
         };
@@ -279,7 +279,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         // Build an avatar element for a leaderboard user
         function lbAvatarHTML(user, size, currentUserId) {
             const isMe = user.uid === currentUserId;
-            // Use Firestore avatarIndex for all users; fall back to localStorage for current user
+
+            // Check custom photo first (base64)
+            let photoBase64 = user.photoBase64 || null;
+            if (isMe && !photoBase64) {
+                photoBase64 = localStorage.getItem('medexcel_photo_' + (currentUserId || 'guest'));
+            }
+            if (photoBase64) {
+                return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='?';"></div>`;
+            }
+
+            // Fall back to spritesheet avatar
             let avatarIndex = user.avatarIndex ?? null;
             if (isMe && avatarIndex === null) {
                 const saved = localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest'));
@@ -339,6 +349,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         xp: data.xp,
                         weeklyXp: data.weeklyXp || 0,
                         avatarIndex: data.avatarIndex ?? null,
+                        photoBase64: data.photoBase64 || null,
                     });
                 });
                 window._lbUsers = fetched;
