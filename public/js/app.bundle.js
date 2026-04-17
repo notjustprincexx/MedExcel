@@ -584,8 +584,11 @@
                 }
             }, { passive: true });
 
-            // Native scroll-snap handles swiping — no custom touch handler needed
-            // (custom touch + scroll-snap conflict causes the glitch)
+            carousel.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+            carousel.addEventListener('touchend', e => {
+                const diff = startX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+            }, { passive: true });
 
             // One-time swipe hint — peeks right then snaps back
             setTimeout(() => {
@@ -718,6 +721,270 @@
             window.updatePromoUsage();
             setTimeout(window.updatePromoUsage, 2500);
 
+        })();
+
+
+        // ══════════════════════════════════
+        // COACH MARKS — GUIDED TOUR
+        // ══════════════════════════════════
+        (function() {
+            var KEY = 'medexcel_onboarding_v1';
+            localStorage.removeItem(KEY); // TESTING
+            if (localStorage.getItem(KEY)) return;
+
+            var STEPS = [
+                { target: null,                text: "Hi! I'm your MedExcel guide 👋  Let me quickly show you how everything works.", btn: "Let's go →" },
+                { target: 'nav-create',        text: "Tap here to generate MCQs or flashcards from your notes, PDFs or YouTube.", btn: "Got it →" },
+                { target: 'nav-study',         text: "Your Library — all your generated decks live here.", btn: "Got it →" },
+                { target: 'headerStreakBadge', text: "Your Streak 🔥  Check in every day to keep it alive and earn XP.", btn: "Got it →" },
+                { target: 'nav-leaderboard',   text: "The Leaderboard 🏆  See how you rank against other students.", btn: "Got it →" },
+                { target: null,                text: "You're all set! 🎯  Consistency beats cramming. Let's ace those exams!", btn: "Start studying!" }
+            ];
+
+            var cur = 0, ov, canvas, ctx, doc, W, H;
+
+            function build() {
+                W = window.innerWidth; H = window.innerHeight;
+
+                var style = document.createElement('style');
+                style.textContent = '@keyframes ob-pop{0%{transform:scale(0.9);opacity:0}100%{transform:scale(1);opacity:1}}';
+                document.head.appendChild(style);
+
+                ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:99999;opacity:0;transition:opacity 0.3s ease;';
+
+                canvas = document.createElement('canvas');
+                canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:1;';
+                canvas.width = W; canvas.height = H;
+                ctx = canvas.getContext('2d');
+                ov.appendChild(canvas);
+
+                var blocker = document.createElement('div');
+                blocker.style.cssText = 'position:absolute;inset:0;z-index:2;';
+                ov.appendChild(blocker);
+
+                doc = document.createElement('img');
+                doc.src = 'doctor.svg';
+                doc.style.cssText = 'position:absolute;bottom:0;right:0;z-index:6;pointer-events:none;object-fit:contain;' +
+                    'transition:height 0.4s ease,bottom 0.4s ease,transform 0.5s cubic-bezier(0.19,1,0.22,1);transform:translateX(110%);';
+                ov.appendChild(doc);
+
+                document.body.appendChild(ov);
+
+                requestAnimationFrame(function() {
+                    ov.style.opacity = '1';
+                    setTimeout(function() { doc.style.transform = 'translateX(0)'; }, 150);
+                    showStep(0);
+                });
+            }
+
+            function drawCutout(rect) {
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.fillRect(0, 0, W, H);
+                if (!rect) return;
+                // Punch hole
+                ctx.globalCompositeOperation = 'destination-out';
+                var r=12, x=rect.x, y=rect.y, w=rect.w, h=rect.h;
+                ctx.beginPath();
+                ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+                ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+                ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+                ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+                ctx.closePath(); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+                // Glow
+                ctx.strokeStyle = 'rgba(139,92,246,0.9)'; ctx.lineWidth = 2;
+                ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+                ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+                ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+                ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+                ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+            }
+
+            function makeTail(dir, leftPx) {
+                // Container flush against the box edge — no gap
+                var wrap = document.createElement('div');
+                wrap.style.cssText = 'position:absolute;left:' + leftPx + 'px;width:22px;height:12px;' +
+                    (dir === 'down' ? 'bottom:-12px;' : 'top:-12px;');
+
+                if (dir === 'down') {
+                    // Outer: border-color triangle pointing down
+                    var outer = document.createElement('div');
+                    outer.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;' +
+                        'border-left:11px solid transparent;border-right:11px solid transparent;' +
+                        'border-top:12px solid rgba(139,92,246,0.55);';
+                    // Inner: bg-color triangle, 1px smaller, shifted down 1px to sit inside border
+                    var inner = document.createElement('div');
+                    inner.style.cssText = 'position:absolute;top:0;left:1.5px;width:0;height:0;' +
+                        'border-left:9.5px solid transparent;border-right:9.5px solid transparent;' +
+                        'border-top:11px solid #18181b;';
+                    wrap.appendChild(outer);
+                    wrap.appendChild(inner);
+                } else {
+                    // Pointing up
+                    var outer = document.createElement('div');
+                    outer.style.cssText = 'position:absolute;bottom:0;left:0;width:0;height:0;' +
+                        'border-left:11px solid transparent;border-right:11px solid transparent;' +
+                        'border-bottom:12px solid rgba(139,92,246,0.55);';
+                    var inner = document.createElement('div');
+                    inner.style.cssText = 'position:absolute;bottom:0;left:1.5px;width:0;height:0;' +
+                        'border-left:9.5px solid transparent;border-right:9.5px solid transparent;' +
+                        'border-bottom:11px solid #18181b;';
+                    wrap.appendChild(outer);
+                    wrap.appendChild(inner);
+                }
+                return wrap;
+            }
+
+            function makeTooltip(step, rect) {
+                // Remove old tooltip
+                var old = ov.querySelector('.ob-tt');
+                if (old) old.remove();
+
+                var tt = document.createElement('div');
+                tt.className = 'ob-tt';
+
+                // Build inner HTML — no tail yet
+                tt.innerHTML =
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                        '<span style="font-size:0.6rem;font-weight:800;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.07em;">MedExcel Guide</span>' +
+                        '<button class="ob-skip-btn" style="background:none;border:none;color:#64748b;font-size:0.7rem;cursor:pointer;padding:2px 8px;">Skip</button>' +
+                    '</div>' +
+                    '<p style="font-size:0.875rem;font-weight:600;color:#f1f5f9;line-height:1.5;margin:0 0 10px;">' + step.text + '</p>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div class="ob-dots-wrap" style="display:flex;gap:4px;align-items:center;"></div>' +
+                        '<button class="ob-next-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;' +
+                            'padding:8px 16px;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;' +
+                            'box-shadow:0 4px 12px rgba(139,92,246,0.4);">' + step.btn + '</button>' +
+                    '</div>';
+
+                tt.style.cssText = 'position:absolute;z-index:8;background:#18181b;' +
+                    'border:1.5px solid rgba(139,92,246,0.55);border-radius:14px;padding:14px;' +
+                    'box-shadow:0 12px 36px rgba(0,0,0,0.7);animation:ob-pop 0.25s ease;';
+
+                // Dots
+                var dotsWrap = tt.querySelector('.ob-dots-wrap');
+                STEPS.forEach(function(_, i) {
+                    var d = document.createElement('div');
+                    d.style.cssText = 'height:5px;border-radius:9999px;' +
+                        'background:' + (i===cur ? '#8b5cf6' : 'rgba(139,92,246,0.2)') +
+                        ';width:' + (i===cur ? '14px' : '5px') + ';';
+                    dotsWrap.appendChild(d);
+                });
+
+                ov.appendChild(tt);
+
+                // Wire buttons
+                tt.querySelector('.ob-skip-btn').onclick = done;
+                tt.querySelector('.ob-next-btn').onclick = advance;
+
+                // Position tooltip snug next to highlighted element
+                if (!rect) {
+                    // Intro/outro — upper center, leave bottom half for doctor
+                    tt.style.width = (W - 48) + 'px';
+                    tt.style.left  = '24px';
+                    tt.style.top   = Math.round(H * 0.14) + 'px';
+                    return;
+                }
+
+                // Tooltip width — leave right 35% for doctor
+                var ttW = Math.round(W * 0.62);
+                tt.style.width = ttW + 'px';
+
+                var pad = 12;
+                var cx = rect.x + rect.w / 2;
+                var ttH = tt.offsetHeight || 130;
+                var spaceAbove = rect.y - pad;
+
+                // Horizontal position
+                var isNavTarget = rect.y > H * 0.75;
+                var left;
+                if (isNavTarget) {
+                    left = pad; // left-anchored so doctor stays on right
+                } else {
+                    left = Math.max(pad, Math.min(W - ttW - pad, cx - ttW / 2));
+                }
+
+                // Tail offset = element center relative to tooltip left edge, clamped
+                var tailLeft = Math.max(14, Math.min(ttW - 26, cx - left - 11));
+
+                // Vertical: tooltip above or below target
+                if (spaceAbove >= ttH + 14) {
+                    // Tooltip ABOVE target — tail points DOWN toward element
+                    tt.style.top = (rect.y - ttH - 12) + 'px';
+                    tt.appendChild(makeTail('down', tailLeft));
+                } else {
+                    // Tooltip BELOW target — tail points UP toward element
+                    tt.style.top = (rect.y + rect.h + 12) + 'px';
+                    tt.appendChild(makeTail('up', tailLeft));
+                }
+                tt.style.left = left + 'px';
+            }
+
+            function showStep(idx) {
+                cur = idx;
+                var s = STEPS[idx];
+
+                // Doctor size
+                if (!s.target) {
+                    doc.style.height = '44%'; doc.style.bottom = '0'; doc.style.maxHeight = '290px';
+                } else {
+                    doc.style.height = '20%'; doc.style.bottom = '65px'; doc.style.maxHeight = '150px';
+                }
+
+                if (s.target) {
+                    var el = document.getElementById(s.target);
+                    if (el) {
+                        var r = el.getBoundingClientRect(), p = 10;
+                        var rect = { x:r.left-p, y:r.top-p, w:r.width+p*2, h:r.height+p*2 };
+                        drawCutout(rect);
+                        makeTooltip(s, rect);
+
+                        // Remove old tap zone
+                        var oldZone = ov.querySelector('.ob-tapzone');
+                        if (oldZone) oldZone.remove();
+
+                        // Transparent tap zone over the highlighted element
+                        var zone = document.createElement('div');
+                        zone.className = 'ob-tapzone';
+                        zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
+                            'left:' + rect.x + 'px;top:' + rect.y + 'px;' +
+                            'width:' + rect.w + 'px;height:' + rect.h + 'px;';
+                        zone.onclick = advance;
+                        ov.appendChild(zone);
+                    }
+                } else {
+                    // Remove tap zone on non-target steps
+                    var oldZone = ov.querySelector('.ob-tapzone');
+                    if (oldZone) oldZone.remove();
+                    drawCutout(null);
+                    makeTooltip(s, null);
+                }
+            }
+
+            function advance() {
+                if (cur >= STEPS.length-1) { done(); return; }
+                showStep(cur+1);
+            }
+
+            function done() {
+                if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
+                if (typeof navigateTo==='function') navigateTo('view-home');
+                localStorage.setItem(KEY, '1');
+            }
+
+            var fired = false;
+            function fire() { if (!fired) { fired=true; setTimeout(build, 700); } }
+            var t = setInterval(function() {
+                var gt = document.getElementById('greetingTitle');
+                if (gt && gt.textContent && gt.textContent.length > 3 && !gt.classList.contains('skeleton')) {
+                    clearInterval(t); fire();
+                }
+            }, 250);
+            setTimeout(function() { clearInterval(t); fire(); }, 4000);
         })();
 
         // Weekly Target Rotator

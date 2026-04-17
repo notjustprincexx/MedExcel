@@ -1083,5 +1083,56 @@
             </button>
         </div>
     </div>
+    <!-- ═══════════════════════════════════════
+         ONBOARDING WALKTHROUGH
+    ═══════════════════════════════════════ -->
+    <div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:99998;">
+
+        <!-- Dark backdrop with cutout via SVG clip or box-shadow trick -->
+        <div id="onboardingBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.82);transition:opacity 0.4s ease;"></div>
+
+        <!-- Spotlight cutout (invisible box that punches through backdrop) -->
+        <div id="onboardingSpotlight" style="position:absolute;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,0.82);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);pointer-events:none;z-index:1;"></div>
+
+        <!-- Doctor image -->
+        <img id="onboardingDoctor" src="doctor.svg" alt="Doctor"
+            style="position:absolute;bottom:0;right:0;height:55%;max-height:340px;object-fit:contain;
+                   z-index:3;transform:translateX(100%);transition:transform 0.5s cubic-bezier(0.19,1,0.22,1);pointer-events:none;">
+
+        <!-- Speech bubble / card -->
+        <div id="onboardingCard" style="position:absolute;z-index:4;width:calc(100% - 2.5rem);max-width:380px;
+            background:var(--bg-surface,#1a1a1e);border:1px solid rgba(139,92,246,0.3);
+            border-radius:1.25rem;padding:1.25rem 1.25rem 1rem;
+            box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            transition:all 0.4s cubic-bezier(0.19,1,0.22,1);">
+            <!-- Bubble tail -->
+            <div id="onboardingTail" style="position:absolute;width:16px;height:16px;background:var(--bg-surface,#1a1a1e);
+                border-right:1px solid rgba(139,92,246,0.3);border-bottom:1px solid rgba(139,92,246,0.3);
+                transform:rotate(45deg);bottom:-9px;left:2rem;transition:all 0.3s ease;"></div>
+
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.625rem;">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,0.15);
+                        border:1.5px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-user-md" style="font-size:0.7rem;color:var(--accent-btn,#8b5cf6);"></i>
+                    </div>
+                    <span style="font-size:0.7rem;font-weight:700;color:var(--accent-btn,#8b5cf6);text-transform:uppercase;letter-spacing:0.05em;">MedExcel Guide</span>
+                </div>
+                <button onclick="window.skipOnboarding()" style="background:none;border:none;color:var(--text-muted,#64748b);font-size:0.7rem;cursor:pointer;padding:2px 6px;border-radius:6px;">Skip</button>
+            </div>
+
+            <p id="onboardingText" style="font-size:0.9375rem;font-weight:600;color:var(--text-main,#f8fafc);line-height:1.5;margin-bottom:1rem;min-height:3.5rem;"></p>
+
+            <!-- Step dots -->
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;gap:5px;" id="onboardingDots"></div>
+                <button id="onboardingNextBtn" onclick="window.nextOnboardingStep()"
+                    style="background:var(--accent-btn,#8b5cf6);color:white;border:none;
+                    padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;cursor:pointer;
+                    transition:transform 0.15s ease;">Next →</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
