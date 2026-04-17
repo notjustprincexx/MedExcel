@@ -998,7 +998,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 else { hasCheckedInToday = false; currentStreakCount = 1; }
 
                 const headerFireIcon = document.getElementById('headerFireIcon');
-                if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => { if (localStorage.getItem('medexcel_onboarding_v1')) window.openStreakModal(); else setTimeout(() => window.openStreakModal(), 5000); }, 500); }
+                if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => { if (localStorage.getItem('medexcel_onboarding_v1')) { window.openStreakModal(); } else { setTimeout(() => window.openStreakModal(), 12000); } }, 500); }
                 else { if(headerDisplay) headerDisplay.textContent = currentStreakCount; if(headerFireIcon) headerFireIcon.style.opacity = '1'; }
 
                 // Profile & limits UI

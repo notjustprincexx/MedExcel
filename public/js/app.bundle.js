@@ -1001,10 +1001,10 @@
                     if (window._personalizedOnboardingOpen === true) {
                         setTimeout(fire, 400); return;
                     }
-                    // Wait if streak modal is open
+                    // Wait if streak modal is open (check both 'show' and 'open' class)
                     var streakModal = document.getElementById('streakModalBackdrop');
-                    if (streakModal && streakModal.style.display !== 'none' && streakModal.classList.contains('open')) {
-                        setTimeout(fire, 600); return;
+                    if (streakModal && (streakModal.classList.contains('show') || streakModal.classList.contains('open'))) {
+                        setTimeout(fire, 800); return;
                     }
                     fired = true;
                     setTimeout(build, 500);
