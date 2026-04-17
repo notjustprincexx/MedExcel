@@ -301,10 +301,8 @@
         // Jump to last slide instantly with no transition
         if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
         if (cta) cta.style.display = 'none';
-        // Lock viewport — no swipe, no pointer events
+        // Just lock overflow — swipe is blocked by JS handlers in onboarding.js
         if (vp) {
-          vp.style.pointerEvents = 'none';
-          vp.style.touchAction = 'none';
           vp.style.overflow = 'hidden';
         }
         // Open login modal after a short delay
@@ -313,19 +311,20 @@
         }, 300);
       }
 
-      // Secret admin access — long press "Log in" button for 3 seconds
-      var loginBtn = document.getElementById('btnLogin');
-      if (loginBtn) {
+      // Secret admin access — long press the modal title for 7 seconds
+      var secretTrigger = document.getElementById('lmTitle');
+      if (secretTrigger) {
         var holdTimer;
-        loginBtn.addEventListener('touchstart', function(e) {
+        secretTrigger.style.userSelect = 'none';
+        secretTrigger.style.webkitUserSelect = 'none';
+        secretTrigger.addEventListener('touchstart', function(e) {
           holdTimer = setTimeout(function() {
-            e.preventDefault();
             window.location.href = 'admin.html';
           }, 7000);
         }, { passive: true });
-        loginBtn.addEventListener('touchend',   function() { clearTimeout(holdTimer); });
-        loginBtn.addEventListener('touchmove',  function() { clearTimeout(holdTimer); });
-        loginBtn.addEventListener('touchcancel',function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchend',    function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchmove',   function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchcancel', function() { clearTimeout(holdTimer); });
       }
     });
   </script>

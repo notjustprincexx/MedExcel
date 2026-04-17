@@ -59,6 +59,7 @@
      SWIPE / DRAG GESTURE
   ══════════════════════════════════ */
   vp.addEventListener('touchstart', e => {
+    if (window._blockAutoSlide) return; // returning visitor — lock carousel
     if (e.target.closest('button') || e.target.closest('input') || document.querySelector('.login-modal.show')) return;
     
     clearTimeout(autoSlideTimer); 
@@ -70,7 +71,7 @@
   }, { passive: true });
 
   vp.addEventListener('touchmove', e => {
-    if (!isDragging) return;
+    if (window._blockAutoSlide || !isDragging) return;
     const currentX = e.touches[0].clientX;
     const diff = currentX - startX;
     
@@ -84,7 +85,7 @@
   }, { passive: true });
 
   vp.addEventListener('touchend', e => {
-    if (!isDragging) return;
+    if (window._blockAutoSlide || !isDragging) return;
     isDragging = false;
     
     const movedBy = currentTranslate - prevTranslate;

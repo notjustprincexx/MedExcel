@@ -4,9 +4,13 @@
   <script>
     // Redirect if already logged in
   const savedUser = localStorage.getItem("nativeUser");
+  const onboardingDone = localStorage.getItem("medexcel_personalized_onboarding_done");
   if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
-    window.location.replace("homepage.html");
+    window.location.replace(onboardingDone ? "homepage.html" : "personalized-onboarding.html");
   }
+  // Returning visitor (has visited before but not logged in) — skip carousel, show login directly
+  const hasVisited = localStorage.getItem("medexcel_has_visited");
+  if (!hasVisited) localStorage.setItem("medexcel_has_visited", "1");
   (function() {
     try {
       const params = new URLSearchParams(location.search);
@@ -70,9 +74,6 @@
   </div>
 </div>
 
-<div class="top-loader">
-  <div class="top-loader-fill" id="loaderFill"></div>
-</div>
 
 <button class="get-started" id="btnMainCta">Get Started</button>
 
@@ -281,7 +282,51 @@
   </div>
 </div>
 
-  <script src="js/onboarding.bundle.js"></script>
+  <script src="js/onboarding.js"></script>
   <script src="js/personalized-onboarding.js"></script>
+  <script type="module" src="js/onboarding-firebase.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // Returning visitor — skip carousel, jump straight to login buttons on slide 3
+      var hasVisited = localStorage.getItem("medexcel_has_visited");
+      var savedUser  = localStorage.getItem("nativeUser");
+      if (hasVisited && !savedUser) {
+        var vp = document.getElementById('vp');
+        var track = document.getElementById('track');
+        var cta = document.getElementById('btnMainCta');
+        // Stop auto-slide timer immediately
+        if (typeof autoSlideTimer !== 'undefined') clearTimeout(autoSlideTimer);
+        window._blockAutoSlide = true;
+        // Jump to last slide instantly with no transition
+        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
+        if (cta) cta.style.display = 'none';
+        // Just lock overflow — swipe is blocked by JS handlers in onboarding.js
+        if (vp) {
+          vp.style.overflow = 'hidden';
+        }
+        // Open login modal after a short delay
+        setTimeout(function() {
+          if (typeof openLogin === 'function') openLogin(false);
+        }, 300);
+      }
+
+      // Secret admin access — long press the modal title for 7 seconds
+      var secretTrigger = document.getElementById('lmTitle');
+      if (secretTrigger) {
+        var holdTimer;
+        secretTrigger.style.userSelect = 'none';
+        secretTrigger.style.webkitUserSelect = 'none';
+        secretTrigger.addEventListener('touchstart', function(e) {
+          holdTimer = setTimeout(function() {
+            window.location.href = 'admin.html';
+          }, 7000);
+        }, { passive: true });
+        secretTrigger.addEventListener('touchend',    function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchmove',   function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchcancel', function() { clearTimeout(holdTimer); });
+      }
+    });
+  </script>
 </body>
 </html>
