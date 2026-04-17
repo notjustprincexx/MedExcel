@@ -6,22 +6,20 @@
 <title>MedExcel — Get Started</title>
 <meta name="theme-color" content="#7C3AED">
 <script>
-  // Force purple status bar via Capacitor
+  // Force purple status bar — call multiple times to ensure it sticks
   (function() {
     function setPurpleBar() {
       try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
-          window.Capacitor.Plugins.StatusBar.setBackgroundColor({ color: '#a78bfa' });
+          window.Capacitor.Plugins.StatusBar.setOverlaysWebView({ overlay: false });
+          window.Capacitor.Plugins.StatusBar.setBackgroundColor({ color: '#7C3AED' });
           window.Capacitor.Plugins.StatusBar.setStyle({ style: 'DARK' });
         }
       } catch(e) {}
     }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setPurpleBar);
-    } else {
-      setPurpleBar();
-    }
-    setTimeout(setPurpleBar, 500);
+    setPurpleBar();
+    document.addEventListener('DOMContentLoaded', setPurpleBar);
+    [200, 500, 1000].forEach(function(d){ setTimeout(setPurpleBar, d); });
   })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
