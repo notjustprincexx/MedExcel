@@ -169,15 +169,15 @@ var TICK='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 
 
 // Avatar grid — index matches avatar.svg spritesheet positions
 var AVATAR_GRID = [
-  {idx:0, col:0, row:0, label:'Intern',     gender:'male'},
-  {idx:1, col:1, row:0, label:'Scholar',    gender:'female'},
-  {idx:2, col:2, row:0, label:'Clinician',  gender:'female'},
-  {idx:3, col:0, row:1, label:'Resident',   gender:'male'},
-  {idx:4, col:1, row:1, label:'Surgeon',    gender:'male'},
-  {idx:5, col:2, row:1, label:'Focus',      gender:'female'},
-  {idx:6, col:0, row:2, label:'Consultant', gender:'male'},
-  {idx:7, col:1, row:2, label:'Medic',      gender:'female'},
-  {idx:8, col:2, row:2, label:'Classic',    gender:'female'},
+  {idx:0, col:0, row:0, label:'Intern',     gender:'male',   random:true},
+  {idx:1, col:1, row:0, label:'Scholar',    gender:'female', random:false},
+  {idx:2, col:2, row:0, label:'Clinician',  gender:'female', random:true},
+  {idx:3, col:0, row:1, label:'Resident',   gender:'male',   random:false},
+  {idx:4, col:1, row:1, label:'Surgeon',    gender:'male',   random:true},
+  {idx:5, col:2, row:1, label:'Focus',      gender:'female', random:true},
+  {idx:6, col:0, row:2, label:'Consultant', gender:'male',   random:true},
+  {idx:7, col:1, row:2, label:'Medic',      gender:'female', random:true},
+  {idx:8, col:2, row:2, label:'Classic',    gender:'female', random:true},
 ];
 var STEPS=[
   {id:'gender',      type:'choice', icon:'fa-user',           title:'Which best describes you?',      sub:'Helps us pick your default study guide character.',         opts:[{v:'male',l:'Male',s:null},{v:'female',l:'Female',s:null},{v:'other',l:'Prefer not to say',s:null}]},
@@ -280,8 +280,8 @@ function finish(){
   var gender = answers.gender || 'other';
 
   // Pick random avatar — null for "prefer not to say" (stays as initial letter)
-  var maleAvatars   = AVATAR_GRID.filter(function(a){return a.gender==='male';});
-  var femaleAvatars = AVATAR_GRID.filter(function(a){return a.gender==='female';});
+  var maleAvatars   = AVATAR_GRID.filter(function(a){return a.gender==='male'   && a.random;});
+  var femaleAvatars = AVATAR_GRID.filter(function(a){return a.gender==='female' && a.random;});
   var chosenAvatar  = null;
   if (gender === 'male')   chosenAvatar = maleAvatars[Math.floor(Math.random()*maleAvatars.length)].idx;
   if (gender === 'female') chosenAvatar = femaleAvatars[Math.floor(Math.random()*femaleAvatars.length)].idx;
