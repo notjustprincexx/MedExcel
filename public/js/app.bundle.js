@@ -584,11 +584,8 @@
                 }
             }, { passive: true });
 
-            carousel.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
-            carousel.addEventListener('touchend', e => {
-                const diff = startX - e.changedTouches[0].clientX;
-                if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
-            }, { passive: true });
+            // Native scroll-snap handles swiping — no custom touch handler needed
+            // (custom touch + scroll-snap conflict causes the glitch)
 
             // One-time swipe hint — peeks right then snaps back
             setTimeout(() => {
