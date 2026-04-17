@@ -20,6 +20,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         window.db   = db;
         window.auth = auth;
+        window._firestoreGetDoc = getDoc;
 
         // Expose Firestore helpers so non-module scripts can call them
         window._doc       = doc;
@@ -894,6 +895,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 if (userDoc.exists()) {
                     data = userDoc.data();
+
+                    // ── BAN CHECK — must run before anything else ──
+                    if (data.banned === true) {
+                        try { await signOut(auth); } catch(e) {}
+                        const _t = localStorage.getItem('medexcel_theme');
+                        localStorage.clear();
+                        if (_t) localStorage.setItem('medexcel_theme', _t);
+                        window.location.replace('index.html?banned=1');
+                        return;
+                    }
                     // Sync Firestore avatar → localStorage so it shows correctly on any device or after account switch
                     if (data.photoBase64) {
                         localStorage.setItem('medexcel_photo_' + user.uid, data.photoBase64);
@@ -1141,6 +1152,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                     }
                                 }, 2500);
                             }
+                        }
+                    }
+                } catch(e) {}
+
+                // ---- MAINTENANCE MODE CHECK ----
+                // Admins always bypass — everyone else sees the overlay
+                try {
+                    const configSnap = await getDoc(doc(db, 'config', 'app'));
+                    if (configSnap.exists() && configSnap.data().maintenance === true) {
+                        if ((data.role || '') !== 'admin') {
+                            setTimeout(() => {
+                                if (typeof window.showMaintenanceBanner === 'function') {
+                                    window.showMaintenanceBanner();
+                                }
+                            }, 500);
                         }
                     }
                 } catch(e) {}

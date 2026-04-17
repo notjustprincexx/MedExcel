@@ -782,8 +782,9 @@ window.giveXP = async function() {
   try {
     const snap = await getDoc(doc(db,'users',uid));
     if (!snap.exists()) { toast('User not found'); return; }
-    const cur = snap.data().xp||0;
-    await updateDoc(doc(db,'users',uid), { xp: cur+amount });
+    const cur       = snap.data().xp       || 0;
+    const curWeekly = snap.data().weeklyXp || 0;
+    await updateDoc(doc(db,'users',uid), { xp: cur + amount, weeklyXp: curWeekly + amount });
     toast(`✓ +${amount} XP given`);
     document.getElementById('xpUid').value='';
     document.getElementById('xpAmount').value='';

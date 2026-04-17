@@ -1134,6 +1134,20 @@
         </div>
     </div>
     <!-- ═══════════════════════════════════════
+         MAINTENANCE MODE OVERLAY
+    ═══════════════════════════════════════ -->
+    <div id="maintenanceOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:999999;flex-direction:column;align-items:center;justify-content:center;padding:2rem;">
+        <div style="max-width:300px;text-align:center;">
+            <div style="width:80px;height:80px;border-radius:24px;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:2rem;">🔧</div>
+            <h2 style="font-size:1.375rem;font-weight:800;color:#f8fafc;margin:0 0 0.75rem;letter-spacing:-0.02em;">Under Maintenance</h2>
+            <p style="font-size:0.9rem;color:#94a3b8;line-height:1.65;margin:0 0 2rem;">We're making improvements to MedExcel. Everything will be back up shortly — thanks for your patience.</p>
+            <button id="maintenanceRetryBtn" onclick="window.checkMaintenanceStatus()" style="width:100%;padding:0.9375rem;background:rgba(251,146,60,0.12);color:#fb923c;border:1px solid rgba(251,146,60,0.3);border-radius:9999px;font-size:0.9375rem;font-weight:700;cursor:pointer;transition:opacity 0.2s;">
+                Check Again
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
          BROADCAST ANNOUNCEMENT SHEET
     ═══════════════════════════════════════ -->
     <div id="announcementBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99990;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;" onclick="if(event.target===this)window.closeAnnouncement()">
@@ -1152,6 +1166,29 @@
     </div>
 
     <script>
+        window.showMaintenanceBanner = function() {
+            const el = document.getElementById('maintenanceOverlay');
+            if (el) el.style.display = 'flex';
+        };
+
+        window.checkMaintenanceStatus = async function() {
+            const btn = document.getElementById('maintenanceRetryBtn');
+            if (btn) { btn.textContent = 'Checking…'; btn.style.opacity = '0.6'; btn.disabled = true; }
+            try {
+                // Re-read config/app from Firestore
+                const snap = await window._firestoreGetDoc(doc(window.db, 'config', 'app'));
+                if (!snap.exists() || snap.data().maintenance !== true) {
+                    // Maintenance lifted — hide overlay
+                    const el = document.getElementById('maintenanceOverlay');
+                    if (el) el.style.display = 'none';
+                    return;
+                }
+            } catch(e) {}
+            // Still under maintenance
+            if (btn) { btn.textContent = 'Still under maintenance — try again soon'; btn.style.opacity = '1'; btn.disabled = false; }
+            setTimeout(() => { if (btn) btn.textContent = 'Check Again'; }, 3000);
+        };
+
         const _annTypeConfig = {
             info:        { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  icon: 'fa-info-circle', label: 'Info' },
             update:      { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', icon: 'fa-rocket',      label: 'Update' },

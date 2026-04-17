@@ -288,6 +288,18 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
 
+      // Banned user redirect — show message then clear param from URL
+      if (new URLSearchParams(location.search).get('banned') === '1') {
+        setTimeout(function() {
+          showDialog(
+            'Your account has been suspended. Please contact support if you believe this is a mistake.',
+            'Account Suspended',
+            { hideCancel: true, okText: 'OK' }
+          );
+          history.replaceState(null, '', location.pathname);
+        }, 400);
+      }
+
       // Returning visitor — skip carousel, jump straight to login buttons on slide 3
       var hasVisited = localStorage.getItem("medexcel_has_visited");
       var savedUser  = localStorage.getItem("nativeUser");
