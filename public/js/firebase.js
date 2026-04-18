@@ -1590,9 +1590,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 document.getElementById('groupDetailName').textContent = g.name;
                 document.getElementById('groupDetailMeta').innerHTML = `${memberCount} member${memberCount !== 1 ? 's' : ''} \u00b7 Code: <span onclick="window.showShareGroupCode()" style="background:rgba(139,92,246,0.15);color:var(--accent-btn);padding:0.15rem 0.5rem;border-radius:0.375rem;font-weight:800;letter-spacing:0.1em;cursor:pointer;">${g.inviteCode}</span>`;
 
-                // Show delete button only for group creator
+                // Show delete for creator, leave for everyone else
                 const deleteBtn = document.getElementById('deleteGroupBtn');
+                const leaveBtn  = document.getElementById('leaveGroupBtn');
                 if (deleteBtn) deleteBtn.style.display = g.createdBy === currentUid ? 'flex' : 'none';
+                if (leaveBtn)  leaveBtn.style.display  = g.createdBy !== currentUid ? 'flex' : 'none';
 
                 // Fetch live user docs for streak + weeklyXp
                 const userDocs = await Promise.all(memberUids.map(uid => getDoc(doc(db, 'users', uid)).catch(() => null)));
@@ -1693,7 +1695,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
 
-        window.closeGroupDetail = function() {
+        window.leaveGroup = async function() {
+            const groupId = window._currentGroupId;
+            const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';
+            if (!groupId) return;
+            if (!confirm(`Leave "${groupName}"? You can rejoin with the invite code.`)) return;
+            try {
+                const uid = window.currentUser.uid;
+                const groupRef = doc(db, 'groups', groupId);
+                // Remove user from members map and memberUids array
+                const snap = await getDoc(groupRef);
+                if (!snap.exists()) return;
+                const members = snap.data().members || {};
+                delete members[uid];
+                await updateDoc(groupRef, {
+                    members,
+                    memberUids: Object.keys(members)
+                });
+                window.closeGroupDetail();
+                window.loadMyGroups();
+            } catch(e) {
+                alert('Failed to leave group: ' + e.message);
+            }
+        };
             document.getElementById('groupDetailBackdrop').style.display = 'none';
             window._currentGroupId = null;
         };
