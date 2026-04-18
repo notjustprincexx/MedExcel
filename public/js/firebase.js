@@ -31,6 +31,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // Expose critical Firebase functions
         let _isLoggingOut = false;
+        let _hadAuthUser  = false; // true once Firebase confirms a logged-in user this session
 
         window.logoutUser = async function() {
             if (_isLoggingOut) return;
@@ -1187,8 +1188,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             const cachedVersion = localStorage.getItem('medexcel_app_version');
                             const serverVersion = String(cfg.forceUpdateVersion);
                             if (cachedVersion !== serverVersion) {
+                                // Write version first, wait for it to persist, then reload
+                                // The 300ms delay ensures localStorage write completes on Android WebView
                                 localStorage.setItem('medexcel_app_version', serverVersion);
-                                window.location.reload(true);
+                                sessionStorage.setItem('medexcel_update_reload', '1');
+                                setTimeout(() => { window.location.reload(true); }, 300);
                                 return;
                             }
                         }
@@ -1292,6 +1296,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         // Top level Firebase Auth listener
         onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
+                _hadAuthUser = true;
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
@@ -1299,6 +1304,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             } else {
                 // logoutUser already handles cleanup — don't double-fire
                 if (_isLoggingOut) return;
+
+                // Firebase can fire null briefly before restoring session from localStorage.
+                // If we haven't seen a confirmed user yet this session but nativeUser exists,
+                // Firebase is still initialising — ignore this null and wait.
+                if (!_hadAuthUser && localStorage.getItem('nativeUser')) return;
+
                 window.currentUser = null;
                 const _authTheme      = localStorage.getItem('medexcel_theme');
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
