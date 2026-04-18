@@ -204,29 +204,54 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 return;
             }
 
-            filtered.slice().reverse().forEach(quiz => {
-                const qLength = quiz.questions ? quiz.questions.length : 0;
-                const isMCQ = quiz.type && quiz.type.includes("Multiple");
-                const itemLabel = isMCQ ? "Questions" : "Cards";
-                const iconSvg = isMCQ
-                    ? `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>`
-                    : `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>`;
-                
-                container.innerHTML += `
-                    <div class="quiz-item fade-in group" onclick="window.loadQuizOverview(${quiz.id})">
-                        <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0 overflow-hidden">
-                            ${iconSvg}
-                            ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
-                        </div>
-                        <div class="flex-1 min-w-0 py-1">
-                            <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${quiz.title}</h3>
-                            <div class="flex items-center gap-2 text-[var(--text-muted)] text-[12px] font-semibold">
-                                <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${quiz.subject || 'General'}</span>
-                                <span class="shrink-0">${qLength} ${itemLabel}</span>
+            // Sort newest first
+            const sorted = filtered.slice().reverse();
+
+            // quiz.id is Date.now() at creation — use it as the timestamp
+            function getDateLabel(id) {
+                const d = new Date(typeof id === 'number' ? id : parseInt(id));
+                if (isNaN(d.getTime())) return 'Earlier';
+                const today = new Date(); today.setHours(0,0,0,0);
+                const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                const dDay = new Date(d); dDay.setHours(0,0,0,0);
+                if (dDay.getTime() === today.getTime()) return 'Today';
+                if (dDay.getTime() === yesterday.getTime()) return 'Yesterday';
+                return d.toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' });
+            }
+
+            const groups = [];
+            const seenLabels = {};
+            sorted.forEach(quiz => {
+                const label = getDateLabel(quiz.id);
+                if (!seenLabels[label]) { seenLabels[label] = true; groups.push({ label, items: [] }); }
+                groups[groups.length - 1].items.push(quiz);
+            });
+
+            groups.forEach(group => {
+                container.innerHTML += `<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0.875rem 0 0.375rem;margin-bottom:0.25rem;">${group.label}</div>`;
+                group.items.forEach(quiz => {
+                    const qLength = quiz.questions ? quiz.questions.length : 0;
+                    const isMCQ = quiz.type && quiz.type.includes("Multiple");
+                    const itemLabel = isMCQ ? "Questions" : "Cards";
+                    const iconSvg = isMCQ
+                        ? `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>`
+                        : `<svg viewBox="0 0 64 64" fill="none" style="width:38px;height:38px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>`;
+                    container.innerHTML += `
+                        <div class="quiz-item fade-in group" onclick="window.loadQuizOverview(${quiz.id})">
+                            <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0 overflow-hidden">
+                                ${iconSvg}
+                                ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
                             </div>
-                        </div>
-                        <button onclick="window.promptDelete(event, ${quiz.id})" class="p-2.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 lg:opacity-60"><i class="fas fa-trash-alt"></i></button>
-                    </div>`;
+                            <div class="flex-1 min-w-0 py-1">
+                                <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${quiz.title}</h3>
+                                <div class="flex items-center gap-2 text-[var(--text-muted)] text-[12px] font-semibold">
+                                    <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${quiz.subject || 'General'}</span>
+                                    <span class="shrink-0">${qLength} ${itemLabel}</span>
+                                </div>
+                            </div>
+                            <button onclick="window.promptDelete(event, ${quiz.id})" class="p-2.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 lg:opacity-60"><i class="fas fa-trash-alt"></i></button>
+                        </div>`;
+                });
             });
         };
 
@@ -515,17 +540,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     scanProgressBar.style.transition = 'none';
                     scanProgressBar.style.width = '0%';
                 }
-                if(scanElapsedLabel) scanElapsedLabel.textContent = '0s elapsed';
-                if(scanEstLabel) scanEstLabel.textContent = `~${ESTIMATED_SECS}s remaining`;
+                if(scanElapsedLabel) scanElapsedLabel.textContent = '0s';
+                if(scanEstLabel) scanEstLabel.textContent = `~${ESTIMATED_SECS}s left`;
                 setTimeout(() => { if(scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
                 
                 window.scanProgressInterval = setInterval(() => {
                     scanElapsed++;
                     const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
                     if(scanProgressBar) scanProgressBar.style.width = progress + '%';
-                    if(scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s elapsed`;
+                    if(scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s`;
                     const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
-                    if(scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s remaining` : 'Almost done...';
+                    if(scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s left` : 'Almost done...';
                 }, 1000);
                 
                 let msgIndex = 0; if(loadingText) loadingText.style.opacity = 0;
@@ -561,8 +586,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                     currentCardIndex = 0; window.currentCardIndex = 0; sessionScore = 0; isMCQMode = window.globalQuizType === "Multiple Choice"; window.isMCQMode = isMCQMode;
                     const subjectName = document.getElementById('topicFocus').value || "General Subject";
+                    const deckNameEl = document.getElementById('deckNameInput');
+                    const deckName = deckNameEl && deckNameEl.value.trim()
+                        ? deckNameEl.value.trim()
+                        : window.selectedFile.name.split('.')[0].replace(/[-_]/g, ' ');
                     const newQuiz = {
-                        id: Date.now(), title: window.selectedFile.name.split('.')[0] + " Quiz", subject: subjectName, favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 },
+                        id: Date.now(), title: deckName, subject: subjectName, favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 },
                         questions: generatedCards.map(card => {
                             let optionsArr = [], correctIdx = 0; const question = card.front || card.question || ""; const answer = card.back || card.answer || "No answer provided";
                             if (card.options && typeof card.options === 'object') { const keys = Object.keys(card.options); optionsArr = Object.values(card.options); for (let i = 0; i < keys.length; i++) { if (window.checkAnswerMatch(keys[i], optionsArr[i], answer)) { correctIdx = i; break; } } } 
@@ -580,6 +609,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     aiLoader.classList.remove('show');
                     document.getElementById('setupView').style.display = 'none';
                     document.getElementById('interactiveView').style.display = 'flex';
+                    // Clear deck name input for next session
+                    const deckNameClear = document.getElementById('deckNameInput');
+                    if (deckNameClear) { deckNameClear.value = ''; deckNameClear.style.borderColor = 'var(--border-glass)'; }
+                    window._fromCreateFlow = true;
                     window.enterQuizMode();
                     window.renderCreateCurrentCard();
                     

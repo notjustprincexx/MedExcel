@@ -17,7 +17,7 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#09090b">
   <title>MedExcel</title>
 
@@ -80,14 +80,33 @@
         <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
         <div style="color: #ffffff; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.375rem; letter-spacing: -0.01em; margin-top: 1rem;">MedExcel is scanning...</div>
         <div style="color: #cbd5e1; font-size: 0.875rem; text-align: center; max-width: 80%; line-height: 1.4; transition: opacity 0.3s;" id="loadingText">Preparing to analyze document...</div>
-        <div style="width: 100%; margin-top: 1.5rem;">
-            <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.12); border-radius: 100px; overflow: hidden;">
-                <div id="scanProgressBar" style="height: 100%; width: 0%; background: var(--accent-btn); border-radius: 100px; transition: width 1s linear;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
-                <span id="scanElapsedLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">0s elapsed</span>
-                <span id="scanEstLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">~30s remaining</span>
-            </div>
+
+        <!-- Heartbeat line -->
+        <div style="width:100%;margin-top:1.75rem;position:relative;height:48px;">
+            <svg id="heartbeatSvg" viewBox="0 0 300 48" preserveAspectRatio="none"
+                style="width:100%;height:100%;overflow:visible;">
+                <polyline id="heartbeatLine"
+                    points="0,24 40,24 55,24 65,4 75,44 85,14 95,34 105,24 260,24 300,24"
+                    fill="none" stroke="#a78bfa" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    style="filter:drop-shadow(0 0 4px rgba(167,139,250,0.7));">
+                    <animate attributeName="stroke-dasharray" from="0,600" to="600,0" dur="1.6s" repeatCount="indefinite"/>
+                    <animate attributeName="stroke-dashoffset" from="600" to="0" dur="1.6s" repeatCount="indefinite"/>
+                </polyline>
+            </svg>
+        </div>
+
+        <!-- Timer pill -->
+        <div style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:9999px;padding:0.375rem 0.875rem;">
+            <i class="fas fa-clock" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+            <span id="scanElapsedLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.5);">0s</span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.2);">·</span>
+            <span id="scanEstLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.5);">~30s left</span>
+        </div>
+
+        <!-- Hidden bar kept for JS compatibility -->
+        <div style="display:none;">
+            <div id="scanProgressBar" style="width:0%;"></div>
         </div>
     </div>
 </div>
@@ -319,7 +338,7 @@
 
             <div class="flex flex-col gap-4">
                 <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Continue Studying</h2>
-                <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="continue-card card-lift">
+                <a href="javascript:void(0)" onclick="window.openContinueStudying()" class="continue-card card-lift">
                     <div class="flex items-center gap-4 flex-1 min-w-0">
                         <div id="continueIconBox" class="w-12 h-12 rounded-full bg-[var(--bg-glass)] text-blue-400 flex items-center justify-center text-xl shrink-0 skeleton"><i class="fas fa-layer-group"></i></div>
                         <div class="flex flex-col justify-center flex-1 min-w-0">
@@ -502,24 +521,25 @@
 
                     <!-- Upload Zone -->
                     <style>
-                        @keyframes uploadBounce {
-                            0%, 100% { transform: translateY(0); }
-                            40% { transform: translateY(-7px); }
-                            60% { transform: translateY(-3px); }
+                        @keyframes uploadFloat {
+                            0%, 100% { transform: translateY(0px); }
+                            50% { transform: translateY(-6px); }
                         }
                         @keyframes uploadPulse {
                             0%, 100% { border-color: var(--border-glass); }
                             50% { border-color: var(--accent-btn); }
                         }
                         #dropZone { animation: uploadPulse 2s ease-in-out infinite; }
-                        #uploadIconInner { animation: uploadBounce 2s ease-in-out infinite; display: inline-block; }
+                        #uploadIcon { overflow: visible; }
+                        #uploadIconInner { animation: uploadFloat 2s ease-in-out infinite; }
                         #dropZone.file-selected { animation: none !important; }
                         #dropZone.file-selected #uploadIconInner { animation: none !important; }
                     </style>
                     <div id="dropZone" style="border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
-                        <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
-                        <div id="uploadIcon" style="width: 4rem; height: 4rem; border-radius: 50%; background: var(--bg-glass); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: var(--text-muted); font-size: 1.5rem;">
-                            <i class="fas fa-cloud-upload-alt" id="uploadIconInner"></i>
+                        <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
+                        <div style="position:relative;width:4rem;height:4rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;">
+                            <div style="position:absolute;width:4rem;height:4rem;border-radius:50%;background:var(--bg-glass);"></div>
+                            <i class="fas fa-cloud-upload-alt" id="uploadIconInner" style="position:relative;z-index:1;color:var(--text-muted);font-size:1.5rem;"></i>
                         </div>
                         <h3 id="uploadTitle" style="font-weight: 700; font-size: 1.0625rem; margin-bottom: 0.375rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Tap to Upload File</h3>
                         <p id="uploadSubtitle" style="color: var(--text-muted); font-size: 0.8125rem;">PDF, PPTX, DOCX, TXT, or Images (Max 10MB)</p>
@@ -553,6 +573,15 @@
                     <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: -0.25rem;">2. Configuration</h2>
                     <!-- Hidden input keeps firebase.js working without changes -->
                     <input type="hidden" id="topicFocus" value="direct">
+
+                    <!-- Deck Name -->
+                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.625rem; display: block;">Deck Name <span style="font-weight:400;text-transform:none;opacity:0.6;">(optional)</span></label>
+                        <input type="text" id="deckNameInput" maxlength="60" placeholder="e.g. Hematology Week 3" autocomplete="off"
+                            style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.75rem 0.875rem;color:var(--text-main);font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;font-family:inherit;"
+                            oninput="this.style.borderColor='var(--accent-btn)'"
+                            onblur="this.style.borderColor='var(--border-glass)'">
+                    </div>
 
                     <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
                         <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: block;">Question Style</label>

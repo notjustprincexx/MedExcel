@@ -87,11 +87,16 @@
             cIconBox.classList.remove('skeleton');
             
             if (window.quizzes && window.quizzes.length > 0) {
-                const lastQuiz = window.quizzes[window.quizzes.length - 1]; 
+                // Show the most recently attempted quiz, fall back to last created
+                const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
+                const lastQuiz = attempted.length > 0
+                    ? attempted.reduce((a, b) => (a.id > b.id ? a : b))
+                    : window.quizzes[window.quizzes.length - 1];
                 const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
                 let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
                 
+                window._continueQuizId = lastQuiz.id;
                 const isMCQ = lastQuiz.type && lastQuiz.type.includes('Multiple');
                 cIconBox.innerHTML = isMCQ
                     ? '<i class="fas fa-clipboard-list" style="font-size:1.25rem;"></i>'
@@ -111,6 +116,19 @@
             }
             // Update recent decks in sync
             window.renderRecentDecks();
+        };
+
+        window.openContinueStudying = function() {
+            if (window._continueQuizId) {
+                navigateTo('view-study');
+                setTimeout(() => {
+                    if (typeof window.loadQuizOverview === 'function') {
+                        window.loadQuizOverview(window._continueQuizId);
+                    }
+                }, 100);
+            } else {
+                navigateTo('view-study');
+            }
         };
 
         // --- BULLETPROOF ROUTER LOGIC ---
@@ -1476,10 +1494,16 @@ if (nextBtn) {
 
         window.finishStudyQuiz = async function() {
             const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
-            const totalXP = isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20);
-            window.addXP(totalXP);
 
             if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
+            const isFirstAttempt = currentQuiz.stats.attempts === 0;
+
+            // Only award XP on first completion — replaying is practice, not reward
+            const totalXP = isFirstAttempt
+                ? (isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
+                : 0;
+            if (totalXP > 0) window.addXP(totalXP);
+
             currentQuiz.stats.attempts++;
             currentQuiz.stats.lastScore = examScore;
             if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
@@ -1495,40 +1519,107 @@ if (nextBtn) {
             const area = document.getElementById('studyPracticeArea');
             const total = currentQuiz.questions ? currentQuiz.questions.length : 0;
             const percentage = total > 0 ? Math.round((examScore / total) * 100) : 100;
-            let stars = 1; if (percentage >= 80) stars = 3; else if (percentage >= 50) stars = 2;
-            const starsHTML = [1,2,3].map(s => `<i class="fas fa-star" style="font-size:1.75rem;color:${s <= stars ? 'var(--accent-yellow)' : 'var(--border-color)'};filter:${s <= stars ? 'drop-shadow(0 0 6px rgba(251,191,36,0.5))' : 'none'};"></i>`).join('');
+            const xpLabel = totalXP > 0 ? `+${totalXP}` : `Already earned`;
 
-            area.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:500px;margin:0 auto;" class="fade-in">
-                    <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">${starsHTML}</div>
-                    <h2 style="font-size:1.75rem;font-weight:800;color:var(--text-main);margin-bottom:0.5rem;text-align:center;">${isMCQSession ? 'Quiz Complete!' : 'Review Complete!'}</h2>
-                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:2rem;">${currentQuiz.title}</p>
-                    <div style="display:flex;gap:0.75rem;width:100%;margin-bottom:2.5rem;">
-                        ${isMCQSession ? `
-                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
-                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Score</div>
-                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${examScore}<span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;"> / ${total}</span></div>
+            if (isMCQSession) {
+                let stars = 1; if (percentage >= 80) stars = 3; else if (percentage >= 50) stars = 2;
+                const perfTitle = percentage === 100 ? 'Perfect score!'   :
+                                  percentage >= 80  ? 'More, more, more!' :
+                                  percentage >= 50  ? 'Good effort!'      : 'Keep going!';
+                const perfSub   = percentage === 100 ? "You got every single one. You're unstoppable!" :
+                                  percentage >= 80  ? `${examScore} correct out of ${total}? You're on fire!` :
+                                  percentage >= 50  ? `${examScore} correct out of ${total}. Review and try again!` :
+                                                      `${examScore} correct out of ${total}. Don't give up!`;
+
+                area.innerHTML = `
+                    <div style="display:flex;flex-direction:column;height:100%;width:100%;background:var(--bg-body);overflow:hidden;">
+                        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem 1.5rem;">
+                            <div style="display:flex;gap:1.25rem;align-items:center;">
+                                <div id="star1" style="opacity:0;transform:scale(0) rotate(-20deg);transition:all 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.1s;">
+                                    <i class="fas fa-star" style="font-size:3.25rem;color:${stars >= 1 ? '#fbbf24' : 'var(--border-color)'};filter:${stars >= 1 ? 'drop-shadow(0 0 14px rgba(251,191,36,0.8))' : 'none'};"></i>
+                                </div>
+                                <div id="star2" style="opacity:0;transform:scale(0) rotate(0deg);transition:all 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.25s;">
+                                    <i class="fas fa-star" style="font-size:4rem;color:${stars >= 2 ? '#fbbf24' : 'var(--border-color)'};filter:${stars >= 2 ? 'drop-shadow(0 0 18px rgba(251,191,36,0.9))' : 'none'};"></i>
+                                </div>
+                                <div id="star3" style="opacity:0;transform:scale(0) rotate(20deg);transition:all 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.15s;">
+                                    <i class="fas fa-star" style="font-size:3.25rem;color:${stars >= 3 ? '#fbbf24' : 'var(--border-color)'};filter:${stars >= 3 ? 'drop-shadow(0 0 14px rgba(251,191,36,0.8))' : 'none'};"></i>
+                                </div>
+                            </div>
                         </div>
-                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
-                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Accuracy</div>
-                            <div style="font-size:1.75rem;font-weight:800;color:${percentage >= 80 ? 'var(--accent-green)' : percentage >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)'};">${percentage}%</div>
-                        </div>` : `
-                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
-                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Cards Reviewed</div>
-                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${total}</div>
-                        </div>`}
-                        <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
-                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">XP Earned</div>
-                            <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);"><i class="fas fa-bolt" style="color:var(--accent-yellow);font-size:1.25rem;"></i> ${totalXP}</div>
+                        <div style="background:var(--bg-surface);border-radius:1.75rem 1.75rem 0 0;padding:1.75rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);box-shadow:0 -8px 40px rgba(0,0,0,0.15);">
+                            <h2 style="font-size:1.875rem;font-weight:900;color:#fbbf24;text-align:center;margin-bottom:0.5rem;letter-spacing:-0.01em;">${perfTitle}</h2>
+                            <p style="color:var(--text-muted);font-size:0.9375rem;text-align:center;line-height:1.55;margin-bottom:1.5rem;">${perfSub}</p>
+                            <div style="display:flex;gap:0.625rem;margin-bottom:1.5rem;">
+                                <div style="flex:1;border-radius:0.875rem;border:2.5px solid #fbbf24;background:#fbbf2418;padding:0.875rem 0.25rem;text-align:center;">
+                                    <div style="font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#fbbf24;margin-bottom:0.4rem;">Total XP</div>
+                                    <div style="font-size:1.5rem;font-weight:900;color:#fbbf24;display:flex;align-items:center;justify-content:center;gap:0.2rem;"><i class="fas fa-bolt" style="font-size:1rem;"></i><span id="animXP">${totalXP > 0 ? '0' : xpLabel}</span></div>
+                                </div>
+                                <div style="flex:1;border-radius:0.875rem;border:2.5px solid #4ade80;background:#4ade8018;padding:0.875rem 0.25rem;text-align:center;">
+                                    <div style="font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#4ade80;margin-bottom:0.4rem;">${percentage >= 80 ? 'Good' : 'Accuracy'}</div>
+                                    <div style="font-size:1.5rem;font-weight:900;color:#4ade80;display:flex;align-items:center;justify-content:center;gap:0.2rem;"><i class="fas fa-bullseye" style="font-size:1rem;"></i><span id="animPct">0</span>%</div>
+                                </div>
+                                <div style="flex:1;border-radius:0.875rem;border:2.5px solid #38bdf8;background:#38bdf818;padding:0.875rem 0.25rem;text-align:center;">
+                                    <div style="font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#38bdf8;margin-bottom:0.4rem;">Score</div>
+                                    <div style="font-size:1.5rem;font-weight:900;color:#38bdf8;display:flex;align-items:center;justify-content:center;gap:0.2rem;"><i class="fas fa-check-circle" style="font-size:1rem;"></i><span id="animScore">0</span></div>
+                                </div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                                <button onclick="window.startPractice(false)" style="width:100%;padding:1.0625rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);">Try Again</button>
+                                <button onclick="window.closePracticeMobile()" style="width:100%;padding:1rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);">Back to Library</button>
+                            </div>
                         </div>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;margin-top:auto;">
-                        <button onclick="window.startPractice(false)" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);">Try Again</button>
-                        <button onclick="window.closePracticeMobile()" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);">Back to Library</button>
-                    </div>
-                </div>
-            `;
-        }
+                    </div>`;
+
+                setTimeout(() => {
+                    [1,2,3].forEach(s => {
+                        const el = document.getElementById('star' + s);
+                        if (el) { el.style.opacity = '1'; el.style.transform = 'scale(1) rotate(0deg)'; }
+                    });
+                }, 80);
+
+                function animateCount(id, target, duration) {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    let start = 0;
+                    const step = target / (duration / 16);
+                    const timer = setInterval(() => {
+                        start = Math.min(start + step, target);
+                        el.textContent = Math.round(start);
+                        if (start >= target) clearInterval(timer);
+                    }, 16);
+                }
+                setTimeout(() => {
+                    animateCount('animXP', totalXP, 900);
+                animateCount('animPct', percentage, 900);
+                animateCount('animScore', examScore, 800);
+                }, 400);
+
+            } else {
+                // Flashcards — simple clean layout, no stars
+                area.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:500px;margin:0 auto;" class="fade-in">
+                        <div style="width:80px;height:80px;border-radius:50%;background:rgba(52,211,153,0.15);border:3px solid #34d399;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
+                            <i class="fas fa-check" style="font-size:2rem;color:#34d399;"></i>
+                        </div>
+                        <h2 style="font-size:1.75rem;font-weight:900;color:var(--text-main);margin-bottom:0.5rem;text-align:center;">Review Complete!</h2>
+                        <p style="color:var(--text-muted);font-size:0.9375rem;text-align:center;margin-bottom:2rem;">${currentQuiz.title}</p>
+                        <div style="display:flex;gap:0.75rem;width:100%;margin-bottom:2.5rem;">
+                            <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">Cards</div>
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--text-main);">${total}</div>
+                            </div>
+                            <div style="flex:1;border-radius:var(--radius-card);border:1px solid var(--border-glass);background:var(--bg-surface);padding:1.25rem 0.5rem;text-align:center;">
+                                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;">XP Earned</div>
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--accent-yellow);"><i class="fas fa-bolt" style="font-size:1.25rem;"></i> ${xpLabel}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;margin-top:auto;">
+                            <button onclick="window.startPractice(false)" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-btn);color:var(--btn-text);">Review Again</button>
+                            <button onclick="window.closePracticeMobile()" style="width:100%;padding:1.125rem;border-radius:var(--radius-btn);font-size:1rem;font-weight:700;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);">Back to Library</button>
+                        </div>
+                    </div>`;
+            }
+        };
 
 /* ── create.js ── */
 // Create View
@@ -1601,6 +1692,12 @@ if (nextBtn) {
                 if (feedback) feedback.innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:4px;"></i>Valid URL — transcript will be extracted on generate';
                 const blob = new Blob(['youtube:' + window._youtubeVideoId], { type: 'text/plain' });
                 window.selectedFile = new File([blob], 'youtube-' + window._youtubeVideoId + '.txt', { type: 'text/plain' });
+                // Auto-suggest deck name for YouTube
+                const nameInputYt = document.getElementById('deckNameInput');
+                if (nameInputYt && !nameInputYt.value.trim()) {
+                    nameInputYt.value = 'YouTube — ' + window._youtubeVideoId;
+                    nameInputYt.style.borderColor = 'var(--accent-btn)';
+                }
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
                 const btn = document.getElementById('generateBtn');
@@ -1629,6 +1726,14 @@ if (nextBtn) {
                 const blob = new Blob([text], { type: 'text/plain' });
                 window.selectedFile = new File([blob], 'pasted-text.txt', { type: 'text/plain' });
                 window._sourceIsPaste = true;
+                // Auto-suggest deck name for paste if empty
+                const nameInputPaste = document.getElementById('deckNameInput');
+                if (nameInputPaste && !nameInputPaste.value.trim()) {
+                    // Use first few words of pasted text as name
+                    const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
+                    nameInputPaste.value = words.length > 3 ? words + '…' : 'Pasted Notes';
+                    nameInputPaste.style.borderColor = 'var(--accent-btn)';
+                }
 
                 // Enable config + generate button
                 document.getElementById('configSection').style.opacity = '1';
@@ -1645,6 +1750,8 @@ if (nextBtn) {
         window._resetGenerateBtn = function() {
             document.getElementById('configSection').style.opacity = '0.5';
             document.getElementById('configSection').style.pointerEvents = 'none';
+            const nameInput = document.getElementById('deckNameInput');
+            if (nameInput) { nameInput.value = ''; nameInput.style.borderColor = 'var(--border-glass)'; }
             const btn = document.getElementById('generateBtn');
             if (btn) { btn.disabled = true; btn.style.background = 'var(--bg-surface)'; btn.style.color = 'var(--text-muted)'; btn.style.cursor = 'not-allowed'; }
         };
@@ -1726,7 +1833,8 @@ if (nextBtn) {
             // Reset state
             window.selectedFile = null;
             document.getElementById('fileInput').value = '';
-            document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
+            const resetIcon = document.getElementById('uploadIconInner');
+            if (resetIcon) { resetIcon.className = 'fas fa-cloud-upload-alt'; resetIcon.style.color = ''; resetIcon.style.animation = ''; }
             document.getElementById('uploadTitle').textContent = "Tap to Upload File";
             document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
             document.getElementById('dropZone').classList.remove('file-selected');
@@ -1838,8 +1946,17 @@ if (nextBtn) {
                     const file = e.target.files[0];
                     if (file.size > 10 * 1024 * 1024) { alert("File is too large. Maximum size is 10MB."); fileInput.value = ''; return; }
                     window.selectedFile = file;
-                    document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-file-check" style="color: var(--accent-btn);"></i>`;
+                    const iconEl = document.getElementById('uploadIconInner');
+                    if (iconEl) { iconEl.className = 'fas fa-file-check'; iconEl.style.color = 'var(--accent-btn)'; iconEl.style.animation = 'none'; }
                     document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
+                    
+                    // Auto-suggest deck name from filename
+                    const nameInput = document.getElementById('deckNameInput');
+                    if (nameInput && !nameInput.value.trim()) {
+                        const suggested = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+                        nameInput.value = suggested.charAt(0).toUpperCase() + suggested.slice(1);
+                        nameInput.style.borderColor = 'var(--accent-btn)';
+                    }
                     
                     document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
                     document.getElementById('dropZone').classList.add('file-selected');
@@ -1990,7 +2107,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                                 <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bullseye" style="color: var(--accent-green);"></i> <span id="animatedAcc">0</span>%</div>
                             </div>
                         </div>
-                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 0.75rem;">CLAIM XP</button>
+                        <button onclick="window.exitQuizMode(); document.getElementById('interactiveView').style.display='none'; window.openCreateView('Multiple Choice');" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass); margin-bottom: 2rem;">Generate Another MCQ</button>
                     </div>`;
             } else {
                 window.finalEarnedXP = generatedCards.length * 5;
@@ -2004,22 +2122,22 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                                 <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bolt" style="color: var(--accent-yellow);"></i> <span id="animatedXP">0</span></div>
                             </div>
                         </div>
-                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 0.75rem;">CLAIM XP</button>
+                        <button onclick="window.exitQuizMode(); document.getElementById('interactiveView').style.display='none'; window.openCreateView('Flashcards');" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass); margin-bottom: 2rem;">Generate Another Flashcards</button>
                     </div>`;
             }
             viewContainer.innerHTML = html;
             window.animateValue("animatedXP", 0, window.finalEarnedXP, 1500);
             if (isMCQMode) window.animateValue("animatedAcc", 0, percentage, 1500);
-        }
+        };
         
         window.claimAndContinue = async function() {
             const btn = document.querySelector('.btn-claim-xp');
             btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7';
             try { await window.addXP(window.finalEarnedXP); } catch(e) {}
             window.goBackToSelection();
-            window.navigateTo('view-home');
             window.updateHomeContinueCard();
-        }
+        };
 
         window.animateValue = function(id, start, end, duration) {
             if (start === end) { document.getElementById(id).textContent = end; return; }
