@@ -299,7 +299,9 @@
 
       // Returning logged-in user — skip carousel, jump straight to login
       var savedUser  = localStorage.getItem("nativeUser");
-      if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+      var hasAccount = localStorage.getItem("medexcel_has_account");
+      if (hasAccount && !savedUser) {
+        // Has an account but not currently logged in — skip carousel, show login
         var vp = document.getElementById('vp');
         var track = document.getElementById('track');
         var cta = document.getElementById('btnMainCta');

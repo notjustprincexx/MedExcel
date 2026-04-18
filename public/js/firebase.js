@@ -38,13 +38,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const savedTheme        = localStorage.getItem('medexcel_theme');
             const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
-            const savedNativeUser   = localStorage.getItem('nativeUser');
+            const savedHasAccount   = localStorage.getItem('medexcel_has_account');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
             if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
             if (savedCoachMarks) localStorage.setItem('medexcel_onboarding_v1', savedCoachMarks);
             if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
-            if (savedNativeUser) localStorage.setItem('nativeUser', savedNativeUser);
+            if (savedHasAccount) localStorage.setItem('medexcel_has_account', savedHasAccount);
+            // nativeUser is intentionally NOT preserved — clears it so index.html won't redirect back to homepage
             window.location.replace("index.html");
         };
 
@@ -850,6 +851,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         // Initialize User Data (Master Hub)
         window.initUserUI = async function(user) {
             try {
+                // Mark that this device has a real account — persists through logout
+                // Used by index.html to skip the carousel for returning users
+                localStorage.setItem('medexcel_has_account', '1');
+
                 let savedName = user.displayName || (user.email ? user.email.split("@")[0] : "User");
 
                 // ── STEP 1: Paint UI instantly from localStorage cache ──────────
@@ -1290,12 +1295,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _authTheme      = localStorage.getItem('medexcel_theme');
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
-                const _nativeUser     = localStorage.getItem('nativeUser');
+                const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 localStorage.clear();
-                if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
-                if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
+                if (_authTheme)    localStorage.setItem('medexcel_theme', _authTheme);
+                if (_coachMarks)   localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
-                if (_nativeUser)     localStorage.setItem('nativeUser', _nativeUser);
+                if (_hasAccount)   localStorage.setItem('medexcel_has_account', _hasAccount);
                 window.location.replace("index.html");
             }
         });
