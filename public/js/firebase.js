@@ -1171,7 +1171,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 } catch(e) {}
 
                 // ---- MAINTENANCE MODE + FORCE UPDATE CHECK ----
-                // Single config read handles both — avoids two Firestore calls
                 try {
                     const configSnap = await getDoc(doc(db, 'config', 'app'));
                     if (configSnap.exists()) {
@@ -1184,6 +1183,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                     window.showMaintenanceBanner();
                                 }
                             }, 500);
+                        }
+
+                        // Force update — safe version using redirect, not reload
+                        // Admins always bypass
+                        if (cfg.forceUpdateVersion && (data.role || '') !== 'admin') {
+                            const serverVersion = String(cfg.forceUpdateVersion);
+                            const cachedVersion = localStorage.getItem('medexcel_app_version');
+                            if (cachedVersion !== serverVersion) {
+                                // Save version FIRST synchronously, then navigate
+                                // Using href with ?v= prevents the old page from being in history
+                                // and ensures the browser fetches a completely fresh page
+                                localStorage.setItem('medexcel_app_version', serverVersion);
+                                window.location.href = 'homepage.html?v=' + serverVersion;
+                                return;
+                            }
                         }
                     }
                 } catch(e) {}

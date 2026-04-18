@@ -1203,7 +1203,7 @@ window.pushForceUpdate = async function() {
       forceUpdatePushedAt: new Date().toISOString(),
       forceUpdatePushedBy: auth.currentUser?.email || 'admin'
     }, { merge: true });
-    toast('✓ Update pushed — users will reload on next open', 'success');
+    toast('✓ Update pushed — users will get fresh page on next open', 'success');
     loadUpdateStatus();
   } catch(e) {
     toast('Failed to push update', 'error');
