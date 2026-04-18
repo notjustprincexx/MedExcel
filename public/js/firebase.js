@@ -1712,23 +1712,50 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
 
-        window.showShareGroupCode = function() {
+        window.showShareGroupCode = async function() {
             const g = window._currentGroupData;
             if (!g) return;
             const code = g.inviteCode;
             const name = g.name;
             const link = `https://medxcel.web.app/join?code=${code}`;
             const message = `Join my MedExcel study group "${name}"!\n\nTap the link to join automatically:\n${link}\n\nOr enter code manually: ${code}`;
-            if (navigator.share) {
-                navigator.share({ title: `Join ${name} on MedExcel`, text: message }).catch(() => {});
-            } else {
-                navigator.clipboard?.writeText(link).catch(() => {});
-                const toast = document.createElement('div');
-                toast.textContent = `Invite link copied!`;
-                toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.75rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid rgba(139,92,246,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.4);';
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2500);
+
+            // Capacitor native share (same as referral link)
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { Share } = window.Capacitor.Plugins;
+                    await Share.share({
+                        title: `Join ${name} on MedExcel`,
+                        text: message,
+                        url: link,
+                        dialogTitle: 'Invite to study group'
+                    });
+                } catch(e) {
+                    if (e.message && !e.message.includes('cancel')) {
+                        navigator.clipboard?.writeText(link).catch(() => {});
+                        const toast = document.createElement('div');
+                        toast.textContent = 'Invite link copied!';
+                        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.75rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid rgba(139,92,246,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 2500);
+                    }
+                }
+                return;
             }
+
+            // Web fallback
+            if (navigator.share) {
+                try { await navigator.share({ title: `Join ${name} on MedExcel`, text: message, url: link }); } catch(e) {}
+                return;
+            }
+
+            // Copy fallback
+            navigator.clipboard?.writeText(link).catch(() => {});
+            const toast = document.createElement('div');
+            toast.textContent = 'Invite link copied!';
+            toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.75rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid rgba(139,92,246,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
         };
 
         window.showShareDeckToGroup = function() {
