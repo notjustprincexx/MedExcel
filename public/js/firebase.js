@@ -1590,6 +1590,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 document.getElementById('groupDetailName').textContent = g.name;
                 document.getElementById('groupDetailMeta').innerHTML = `${memberCount} member${memberCount !== 1 ? 's' : ''} \u00b7 Code: <span onclick="window.showShareGroupCode()" style="background:rgba(139,92,246,0.15);color:var(--accent-btn);padding:0.15rem 0.5rem;border-radius:0.375rem;font-weight:800;letter-spacing:0.1em;cursor:pointer;">${g.inviteCode}</span>`;
 
+                // Show delete button only for group creator
+                const deleteBtn = document.getElementById('deleteGroupBtn');
+                if (deleteBtn) deleteBtn.style.display = g.createdBy === currentUid ? 'flex' : 'none';
+
                 // Fetch live user docs for streak + weeklyXp
                 const userDocs = await Promise.all(memberUids.map(uid => getDoc(doc(db, 'users', uid)).catch(() => null)));
                 const liveData = {};
@@ -1694,6 +1698,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             window._currentGroupId = null;
         };
 
+        window.deleteGroup = async function() {
+            const groupId = window._currentGroupId;
+            const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';
+            if (!groupId) return;
+            if (!confirm(`Delete "${groupName}"? This cannot be undone and all shared decks will be lost.`)) return;
+            try {
+                await deleteDoc(doc(db, 'groups', groupId));
+                window.closeGroupDetail();
+                window.loadMyGroups();
+            } catch(e) {
+                alert('Failed to delete group: ' + e.message);
+            }
+        };
+
         window.showShareGroupCode = function() {
             const g = window._currentGroupData;
             if (!g) return;
@@ -1749,6 +1767,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     sharedAt: new Date().toISOString(),
                     scores: {}
                 });
+
+                // Notify all other group members
+                try {
+                    const sendNotif = httpsCallable(functions, 'sendToUserById');
+                    const groupSnap2 = await getDoc(doc(db, 'groups', groupId));
+                    if (groupSnap2.exists()) {
+                        const members = groupSnap2.data().members || {};
+                        const senderName = userData.displayName || window.currentUser.email?.split('@')[0] || 'Someone';
+                        const notifPromises = Object.keys(members)
+                            .filter(uid => uid !== window.currentUser.uid)
+                            .map(uid => sendNotif({ userId: uid, title: '📚 New deck shared!', body: `${senderName} shared "${quiz.title}" in your group`, data: { type: 'group_deck' } }).catch(() => {}));
+                        await Promise.all(notifPromises);
+                    }
+                } catch(e) {}
                 window.closeModal('shareDeckBackdrop');
                 window.openGroupDetail(groupId); // refresh
             } catch(e) {
