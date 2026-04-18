@@ -199,8 +199,10 @@
             position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); 
             padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
             display: flex; justify-content: space-between; align-items: center; z-index: 50; 
-            transition: background-color 0.3s ease, transform 0.4s var(--ease-snap), bottom 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.4s var(--ease-snap);
             transform: translateZ(0);
+            bottom: env(safe-area-inset-bottom, 0px);
+            bottom: 0;
         }
         .bottom-nav.hidden { transform: translateY(100%) !important; }
         /* Offline bar — sits below nav, pushes nav up */

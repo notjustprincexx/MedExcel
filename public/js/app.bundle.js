@@ -51,8 +51,8 @@
                 const pct = count > 0 && attempts > 0 ? Math.round((best / count) * 100) : null;
                 const pctLabel = pct === null ? 'New' : `+${pct}%`;
                 const pctColor = pct === null ? 'var(--accent-btn)' : pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--text-muted)';
-                const icon = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
-                const color = iconColors[i % iconColors.length];
+                const icon  = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
+                const color = isMCQ ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400';
                 const label = isMCQ ? 'Questions' : 'Cards';
 
                 return `<a href="javascript:void(0)" onclick="navigateTo('view-study')" 
@@ -92,10 +92,18 @@
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
                 let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
                 
+                const isMCQ = lastQuiz.type && lastQuiz.type.includes('Multiple');
+                cIconBox.innerHTML = isMCQ
+                    ? '<i class="fas fa-clipboard-list" style="font-size:1.25rem;"></i>'
+                    : '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
+                cIconBox.style.color = isMCQ ? '#8b5cf6' : '#60a5fa';
+
                 cTitle.textContent = lastQuiz.title || 'Untitled';
                 cProgress.textContent = `+${progress}%`; 
                 cMeta.innerHTML = `<span>${totalQs}</span> items • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
             } else {
+                cIconBox.innerHTML = '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
+                cIconBox.style.color = '#60a5fa';
                 cTitle.textContent = "No recent activity";
                 cProgress.textContent = "0%";
                 cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
