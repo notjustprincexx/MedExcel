@@ -10,6 +10,7 @@
         
         // Study & Create State
         let currentQuiz = null;
+        window.setCurrentQuiz = function(q) { currentQuiz = window.currentQuiz = q; };
         let currentQuestionIndex = 0;
         let isExamMode = false;
         let examScore = 0;
@@ -319,6 +320,14 @@
         
         window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
         window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
+        window.timeAgo = function(iso) {
+            if (!iso) return '';
+            const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+            if (diff < 60)   return 'just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            return Math.floor(diff/86400) + 'd ago';
+        };
         window.escapeHTML = function(str) { return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
         window.getTimeEmoji = function() { const hour = new Date().getHours(); if (hour < 12) return '⛅'; if (hour < 18) return '☀️'; return '🌙'; }
 
@@ -1510,10 +1519,33 @@ if (nextBtn) {
 
             if (window.currentUser) {
                 try {
-                    const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                    await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
-                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
-                } catch(e) { console.error("Cloud stats sync failed", e); }
+                    const { updateDoc, doc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                    // Save stats (only for non-group decks)
+                    if (!currentQuiz._isGroupDeck) {
+                        await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
+                        localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                    }
+                    // Write to group score feed if this is a group deck
+                    if (currentQuiz._isGroupDeck && currentQuiz._groupId) {
+                        const total2 = currentQuiz.questions ? currentQuiz.questions.length : 0;
+                        const pct = total2 > 0 ? Math.round((examScore / total2) * 100) : 0;
+                        const userData = window._cachedUserData || {};
+                        const memberName = userData.displayName || window.currentUser.email?.split('@')[0] || 'User';
+                        await addDoc(collection(window.db, 'groups', currentQuiz._groupId, 'scoreFeed'), {
+                            memberUid: window.currentUser.uid,
+                            memberName,
+                            deckTitle: currentQuiz.title,
+                            score: examScore,
+                            total: total2,
+                            percentage: pct,
+                            scoredAt: new Date().toISOString()
+                        });
+                        // Also update scores on the deck doc
+                        await updateDoc(doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id)), {
+                            [`scores.${window.currentUser.uid}`]: { score: examScore, percentage: pct, date: new Date().toISOString() }
+                        }).catch(() => {});
+                    }
+                } catch(e) { console.error("Stats sync failed", e); }
             }
 
             const area = document.getElementById('studyPracticeArea');

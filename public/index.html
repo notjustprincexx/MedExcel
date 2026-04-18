@@ -13,6 +13,9 @@
       const params = new URLSearchParams(location.search);
       const ref = params.get('ref');
       if (ref && ref.length > 0) sessionStorage.setItem('medexcel_ref_code', ref.toUpperCase());
+      // Group deep link — store pending join code
+      const joinCode = params.get('code');
+      if (joinCode && joinCode.length === 6) sessionStorage.setItem('medexcel_pending_group', joinCode.toUpperCase());
     } catch(e) {}
   })();
 

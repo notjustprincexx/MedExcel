@@ -71,6 +71,13 @@
                 }
             }
         }
+        // Group deep link — store pending join if arriving here directly
+        (function() {
+            try {
+                const code = new URLSearchParams(location.search).get('code');
+                if (code && code.length === 6) sessionStorage.setItem('medexcel_pending_group', code.toUpperCase());
+            } catch(e) {}
+        })();
   </script>
 </head>
 <body>
@@ -642,6 +649,7 @@
             <div style="display:flex;background:var(--bg-surface);border-radius:0.875rem;padding:0.25rem;border:1px solid var(--border-color);margin-bottom:1.5rem;">
                 <button id="lbTabAllTime" onclick="window.switchLbTab('alltime')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:var(--accent-btn);color:var(--btn-text);cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(139,92,246,0.3);">All Time</button>
                 <button id="lbTabWeek" onclick="window.switchLbTab('week')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;">This Week</button>
+                <button id="lbTabGroups" onclick="window.switchLbTab('groups')" style="flex:1;padding:0.625rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;">Groups</button>
             </div>
 
             <!-- Podium -->
@@ -690,7 +698,7 @@
             </section>
 
             <!-- Ranked List -->
-            <section style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1.5rem;overflow:hidden;">
+            <section id="lbRankedSection" style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1.5rem;overflow:hidden;">
                 <div style="padding:0.875rem 1rem 0.5rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;">
                     <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Top 10</span>
                     <i class="fas fa-medal" style="color:var(--accent-btn);font-size:0.875rem;"></i>
@@ -723,6 +731,27 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Groups Panel (hidden by default) -->
+            <div id="groupsPanel" style="display:none;flex-direction:column;gap:1rem;">
+                <!-- Action buttons -->
+                <div style="display:flex;gap:0.75rem;">
+                    <button onclick="window.showCreateGroupModal()" style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                        <i class="fas fa-plus"></i> Create Group
+                    </button>
+                    <button onclick="window.showJoinGroupModal()" style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:1.5px solid var(--accent-btn);background:transparent;color:var(--accent-btn);font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                        <i class="fas fa-door-open"></i> Join Group
+                    </button>
+                </div>
+                <!-- My Groups list -->
+                <div id="myGroupsList" style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+                        <i class="fas fa-users" style="font-size:2rem;margin-bottom:0.75rem;display:block;opacity:0.3;"></i>
+                        <p style="font-size:0.9rem;font-weight:600;">No groups yet</p>
+                        <p style="font-size:0.8rem;opacity:0.7;margin-top:0.25rem;">Create or join a group to study together</p>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Pinned Your Rank Bar -->
@@ -1160,6 +1189,84 @@
                     padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;cursor:pointer;
                     transition:transform 0.15s ease;">Next →</button>
             </div>
+        </div>
+    </div>
+    <!-- Create Group Modal -->
+    <div id="createGroupBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
+        <div class="bottom-sheet" id="createGroupSheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Create a Study Group</h3>
+            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Up to 10 members. Share an invite code to let friends join.</p>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.5rem;">Group Name</label>
+            <input id="createGroupNameInput" type="text" maxlength="30" placeholder="e.g. MBBS Year 3 Squad" autocomplete="off"
+                style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:0.9375rem;outline:none;box-sizing:border-box;font-family:inherit;margin-bottom:1.25rem;">
+            <button onclick="window.createGroup()" id="createGroupBtn" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">Create Group</button>
+            <button onclick="window.closeModal('createGroupBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Join Group Modal -->
+    <div id="joinGroupBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
+        <div class="bottom-sheet" id="joinGroupSheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Join a Study Group</h3>
+            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Enter the 6-digit invite code from your friend.</p>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.5rem;">Invite Code</label>
+            <input id="joinGroupCodeInput" type="text" maxlength="6" placeholder="e.g. A3X9K2" autocomplete="off"
+                style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:1.25rem;font-weight:700;letter-spacing:0.2em;text-align:center;text-transform:uppercase;outline:none;box-sizing:border-box;font-family:inherit;margin-bottom:1.25rem;">
+            <div id="joinGroupError" style="font-size:0.8rem;color:#f87171;margin-bottom:0.75rem;min-height:1rem;text-align:center;"></div>
+            <button onclick="window.joinGroup()" id="joinGroupBtn" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">Join Group</button>
+            <button onclick="window.closeModal('joinGroupBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Group Detail Modal (fullscreen) -->
+    <div id="groupDetailBackdrop" style="display:none;position:fixed;inset:0;z-index:300;background:var(--bg-body);overflow-y:auto;" class="hide-scroll">
+        <header style="padding:1rem 1.25rem;display:flex;align-items:center;gap:0.75rem;border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--bg-body);z-index:10;">
+            <button onclick="window.closeGroupDetail()" style="width:2.5rem;height:2.5rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;flex-shrink:0;">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div style="flex:1;min-width:0;">
+                <h2 id="groupDetailName" style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0;truncate;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></h2>
+                <p id="groupDetailMeta" style="font-size:0.75rem;color:var(--text-muted);margin:0;"></p>
+            </div>
+            <button onclick="window.showShareGroupCode()" style="width:2.5rem;height:2.5rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--accent-btn);cursor:pointer;flex-shrink:0;" title="Invite">
+                <i class="fas fa-user-plus"></i>
+            </button>
+        </header>
+
+        <div style="padding:1.25rem;">
+            <!-- Group Leaderboard -->
+            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">This Week</h3>
+            <div id="groupLeaderboard" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
+
+            <!-- Score Feed -->
+            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">Recent Activity</h3>
+            <div id="groupScoreFeed" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
+
+            <!-- Shared Decks -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0;">Shared Decks</h3>
+                <button onclick="window.showShareDeckToGroup()" style="font-size:0.75rem;font-weight:700;color:var(--accent-btn);background:transparent;border:none;cursor:pointer;padding:0.25rem 0.5rem;">
+                    <i class="fas fa-plus"></i> Share a Deck
+                </button>
+            </div>
+            <div id="groupDecksList" style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem;"></div>
+
+            <!-- Members -->
+            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">Members</h3>
+            <div id="groupMembersList" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
+        </div>
+    </div>
+
+    <!-- Share Deck to Group Modal -->
+    <div id="shareDeckBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
+        <div class="bottom-sheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Share a Deck</h3>
+            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Choose a deck from your library to share with the group.</p>
+            <div id="shareDeckList" class="hide-scroll" style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;"></div>
+            <button onclick="window.closeModal('shareDeckBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
         </div>
     </div>
 
