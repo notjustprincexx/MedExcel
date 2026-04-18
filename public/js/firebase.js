@@ -34,13 +34,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const savedTheme        = localStorage.getItem('medexcel_theme');
             const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
-            const savedHasVisited   = localStorage.getItem('medexcel_has_visited');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
             if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
             if (savedCoachMarks) localStorage.setItem('medexcel_onboarding_v1', savedCoachMarks);
             if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
-            if (savedHasVisited) localStorage.setItem('medexcel_has_visited', savedHasVisited);
             window.location.replace("index.html");
         };
 
@@ -1282,12 +1280,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _authTheme      = localStorage.getItem('medexcel_theme');
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
-                const _hasVisited     = localStorage.getItem('medexcel_has_visited');
                 localStorage.clear();
                 if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
                 if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
-                if (_hasVisited)     localStorage.setItem('medexcel_has_visited', _hasVisited);
                 window.location.replace("index.html");
             }
         });
