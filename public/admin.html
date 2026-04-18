@@ -667,6 +667,26 @@ code{background:var(--hover);padding:2px 6px;border-radius:4px;color:var(--purpl
         </button>
       </div>
     </div>
+
+    <div class="sec"><i class="fas fa-rotate" style="margin-right:.4rem;color:var(--purple);"></i>Force App Update</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;line-height:1.65;">
+        Forces all users to do a hard reload next time they open the app — picks up your latest deployed changes instantly. Admins are never affected.
+      </p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.875rem;font-family:var(--mono);font-size:.72rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--muted);">Last pushed</span>
+          <span id="lastUpdateTime" style="color:var(--text);">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.375rem;">
+          <span style="color:var(--muted);">Status</span>
+          <span id="lastUpdateStatus" style="color:var(--muted);">—</span>
+        </div>
+      </div>
+      <button id="pushUpdateBtn" class="mbtn mbtn-primary" style="margin-top:0;width:100%;" onclick="pushForceUpdate()">
+        <i class="fas fa-rotate" style="margin-right:.375rem;"></i>Push Update to All Users
+      </button>
+    </div>
   </div>
 
   <!-- ══ TEAM ══ -->
@@ -847,6 +867,7 @@ window.loadData = async function() {
     snap.forEach(d => allUsers.push({ uid: d.id, ...d.data() }));
     renderAll();
     loadBroadcastHistory();
+    loadUpdateStatus();
   } catch(e) { toast('Failed to load data'); }
 };
 
@@ -1167,9 +1188,46 @@ async function loadBroadcastHistory() {
 window.setMaintenance = async function(on) {
   try {
     await setDoc(doc(db,'config','app'), { maintenance: on, updatedAt: new Date().toISOString() }, { merge:true });
-    toast(on ? '🔧 Maintenance mode ON' : '✓ Maintenance mode OFF');
-  } catch(e) { toast('Failed to update config'); }
+    toast(on ? '🔧 Maintenance mode ON' : '✓ Maintenance mode OFF', on ? '' : 'success');
+  } catch(e) { toast('Failed to update config', 'error'); }
 };
+
+window.pushForceUpdate = async function() {
+  const btn = document.getElementById('pushUpdateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin" style="margin-right:.375rem;"></i>Pushing…';
+  try {
+    const version = Date.now().toString();
+    await setDoc(doc(db,'config','app'), {
+      forceUpdateVersion: version,
+      forceUpdatePushedAt: new Date().toISOString(),
+      forceUpdatePushedBy: auth.currentUser?.email || 'admin'
+    }, { merge: true });
+    toast('✓ Update pushed — users will reload on next open', 'success');
+    loadUpdateStatus();
+  } catch(e) {
+    toast('Failed to push update', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:.375rem;"></i>Push Update to All Users';
+  }
+};
+
+async function loadUpdateStatus() {
+  try {
+    const snap = await getDoc(doc(db,'config','app'));
+    const timeEl   = document.getElementById('lastUpdateTime');
+    const statusEl = document.getElementById('lastUpdateStatus');
+    if (!snap.exists() || !snap.data().forceUpdatePushedAt) {
+      if (timeEl)   timeEl.textContent   = 'Never';
+      if (statusEl) statusEl.textContent = 'No update pushed yet';
+      return;
+    }
+    const d = new Date(snap.data().forceUpdatePushedAt);
+    if (timeEl)   timeEl.textContent   = d.toLocaleString();
+    if (statusEl) { statusEl.textContent = 'Active'; statusEl.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
 
 // ── MANUAL UPGRADE ──
 window.manualUpgrade = async function(plan) {
@@ -1367,7 +1425,7 @@ window.switchTab = function(tab) {
   });
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-'+tab)?.classList.add('active');
-  if (tab === 'broadcast') loadBroadcastHistory();
+  if (tab === 'broadcast') { loadBroadcastHistory(); loadUpdateStatus(); }
   setTimeout(() => {
     document.querySelectorAll('.bar-fill[data-w]').forEach(el=>{ el.style.width=el.dataset.w+'%'; });
   }, 80);

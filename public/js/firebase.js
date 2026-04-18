@@ -30,7 +30,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window._signOut   = signOut;
 
         // Expose critical Firebase functions
+        let _isLoggingOut = false;
+
         window.logoutUser = async function() {
+            if (_isLoggingOut) return;
+            _isLoggingOut = true;
             const savedTheme        = localStorage.getItem('medexcel_theme');
             const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
@@ -1161,17 +1165,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                 } catch(e) {}
 
-                // ---- MAINTENANCE MODE CHECK ----
-                // Admins always bypass — everyone else sees the overlay
+                // ---- MAINTENANCE MODE + FORCE UPDATE CHECK ----
+                // Single config read handles both — avoids two Firestore calls
                 try {
                     const configSnap = await getDoc(doc(db, 'config', 'app'));
-                    if (configSnap.exists() && configSnap.data().maintenance === true) {
-                        if ((data.role || '') !== 'admin') {
+                    if (configSnap.exists()) {
+                        const cfg = configSnap.data();
+
+                        // Maintenance mode — admins bypass
+                        if (cfg.maintenance === true && (data.role || '') !== 'admin') {
                             setTimeout(() => {
                                 if (typeof window.showMaintenanceBanner === 'function') {
                                     window.showMaintenanceBanner();
                                 }
                             }, 500);
+                        }
+
+                        // Force update — if server version is newer than cached version, hard reload
+                        // Admins bypass so they're never stuck in a reload loop
+                        if (cfg.forceUpdateVersion && (data.role || '') !== 'admin') {
+                            const cachedVersion = localStorage.getItem('medexcel_app_version');
+                            const serverVersion = String(cfg.forceUpdateVersion);
+                            if (cachedVersion !== serverVersion) {
+                                localStorage.setItem('medexcel_app_version', serverVersion);
+                                window.location.reload(true);
+                                return;
+                            }
                         }
                     }
                 } catch(e) {}
@@ -1278,6 +1297,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.loadLeaderboard(firebaseUser.uid);
                 if (window.initPush) window.initPush(firebaseUser.uid);
             } else {
+                // logoutUser already handles cleanup — don't double-fire
+                if (_isLoggingOut) return;
                 window.currentUser = null;
                 const _authTheme      = localStorage.getItem('medexcel_theme');
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
