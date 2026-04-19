@@ -695,13 +695,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // Build an avatar element — showBadge=false for podium (overflow:hidden clips it)
         function lbAvatarHTML(user, size, currentUserId, showBadge = true) {
-            const isMe = user.uid === currentUserId;
+            const isMe      = user.uid === currentUserId;
+            const isPremium = user.plan === 'premium' || user.plan === 'elite';
             const rankBadge = showBadge ? lbRankBadge(user.monthlyRankXp || 0) : '';
+
+            // Premium ring — animated golden gradient border
+            const premiumRing = isPremium
+                ? `<div style="position:absolute;inset:-2.5px;border-radius:50%;background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);z-index:0;"></div>`
+                : '';
+            const premBadge = isPremium
+                ? `<div style="position:absolute;top:-3px;left:-3px;width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg-surface);z-index:3;"><i class="fas fa-gem" style="font-size:6px;color:white;"></i></div>`
+                : '';
 
             let photoBase64 = user.photoBase64 || null;
             if (isMe && !photoBase64) photoBase64 = localStorage.getItem('medexcel_photo_' + (currentUserId || 'guest'));
+
+            const innerSize = isPremium ? size - 5 : size;
+            const innerOffset = isPremium ? '2.5px' : '0';
+
             if (photoBase64) {
-                return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;"><img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='?';"></div>${rankBadge}</div>`;
+                return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;"><img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='?';"></div>${rankBadge}${premBadge}</div>`;
             }
 
             let avatarIndex = user.avatarIndex ?? null;
@@ -711,11 +724,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
             if (avatarIndex !== null && AVATAR_GRID) {
                 const a = AVATAR_GRID[parseInt(avatarIndex)];
-                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}</div>`;
+                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}${premBadge}</div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
             const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
-            return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*0.35)}px;color:${fg};">${initial}</div>${rankBadge}</div>`;
+            return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(innerSize*0.35)}px;color:${fg};">${initial}</div>${rankBadge}${premBadge}</div>`;
         }
 
         // Tab state
@@ -786,6 +799,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         monthlyRankXp: data.monthlyRankXp || 0,
                         avatarIndex: data.avatarIndex ?? null,
                         photoBase64: data.photoBase64 || null,
+                        plan: data.plan || 'free',
                     });
                 });
                 window._lbUsers = fetched;
@@ -862,6 +876,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const [bg] = lbColorFor(user.displayName);
                 const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
                 const nameCls = isMe ? 'color:var(--accent-btn);' : 'color:var(--text-main);';
+                const proPill = user.plan === 'premium' || user.plan === 'elite'
+                    ? `<span style="font-size:0.55rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;letter-spacing:0.03em;">PRO</span>`
+                    : '';
 
                 listContainer.innerHTML += `
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
@@ -870,7 +887,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
                                 <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                    ${user.displayName}
+                                    ${user.displayName}${proPill}
                                     ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:var(--btn-text);border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
                                 </div>
                             </div>
@@ -1241,24 +1258,52 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.applyAvatar = function() {
-            const uid = window.currentUser?.uid || 'guest';
-            const photoURL = localStorage.getItem('medexcel_photo_' + uid);
-            const saved = localStorage.getItem('medexcel_avatar_' + uid);
-            const wrap = document.getElementById('profileAvatarWrap');
-            const homeBtn = document.getElementById('homeAvatarBtn');
-            const initial = document.getElementById('userInitial');
+            const uid       = window.currentUser?.uid || 'guest';
+            const photoURL  = localStorage.getItem('medexcel_photo_' + uid);
+            const saved     = localStorage.getItem('medexcel_avatar_' + uid);
+            const wrap      = document.getElementById('profileAvatarWrap');
+            const homeBtn   = document.getElementById('homeAvatarBtn');
+            const initial   = document.getElementById('userInitial');
             const storedInitial = initial ? initial.textContent : (document.getElementById('homeAvatarInitial') ? document.getElementById('homeAvatarInitial').textContent : '?');
+            const isPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
 
-            // Custom photo takes priority
+            // Premium ring style — applied to the wrap itself
+            const premiumBorder  = isPremium ? 'background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);padding:2.5px;' : '';
+            const premiumInner   = isPremium ? 'border-radius:50%;overflow:hidden;width:100%;height:100%;' : 'width:100%;height:100%;';
+
+            // Gem badge for profile wrap parent
+            function addPremiumGemBadge(el) {
+                const parent = el?.parentElement;
+                if (!parent) return;
+                let gem = parent.querySelector('#premiumGemBadge');
+                if (isPremium) {
+                    if (!gem) {
+                        gem = document.createElement('div');
+                        gem.id = 'premiumGemBadge';
+                        gem.style.cssText = 'position:absolute;top:-3px;left:-3px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-surface);z-index:20;';
+                        gem.innerHTML = '<i class="fas fa-gem" style="font-size:7px;color:white;"></i>';
+                        parent.appendChild(gem);
+                    }
+                } else if (gem) {
+                    gem.remove();
+                }
+            }
+
             if (photoURL) {
                 const imgStyle = `width:100%;height:100%;object-fit:cover;border-radius:50%;`;
                 if (wrap) {
-                    wrap.style.background = 'var(--bg-surface)';
-                    wrap.style.border = '2px solid var(--accent-btn)';
-                    wrap.innerHTML = `<img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';">`;
+                    if (isPremium) {
+                        wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);display:flex;align-items:center;justify-content:center;overflow:visible;`;
+                        wrap.innerHTML = `<div style="width:calc(100% - 5px);height:calc(100% - 5px);border-radius:50%;overflow:hidden;"><img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';"></div>`;
+                    } else {
+                        wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:var(--bg-surface);border:2px solid var(--accent-btn);display:flex;align-items:center;justify-content:center;overflow:hidden;`;
+                        wrap.innerHTML = `<img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';">`;
+                    }
+                    addPremiumGemBadge(wrap);
                 }
                 if (homeBtn) {
-                    homeBtn.style.borderColor = 'var(--accent-btn)';
+                    homeBtn.style.borderColor = isPremium ? '#fbbf24' : 'var(--accent-btn)';
+                    homeBtn.style.boxShadow = isPremium ? '0 0 10px rgba(251,191,36,0.5)' : '';
                     homeBtn.innerHTML = `<img src="${photoURL}" style="${imgStyle}" onerror="this.style.display='none';">`;
                 }
                 return;
@@ -1267,29 +1312,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (saved !== null) {
                 const a = AVATAR_GRID[parseInt(saved)];
                 if (a) {
-                    const bgStyle = `background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;`;
-                    // Profile page avatar
+                    const bgStyle = `background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;border-radius:50%;`;
                     if (wrap) {
-                        wrap.style.background = 'var(--bg-surface)';
-                        wrap.style.border = '2px solid var(--accent-btn)';
-                        wrap.innerHTML = `<div style="${bgStyle}"></div>`;
+                        if (isPremium) {
+                            wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);display:flex;align-items:center;justify-content:center;overflow:visible;`;
+                            wrap.innerHTML = `<div style="width:calc(100% - 5px);height:calc(100% - 5px);border-radius:50%;overflow:hidden;"><div style="${bgStyle}"></div></div>`;
+                        } else {
+                            wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:var(--bg-surface);border:2px solid var(--accent-btn);display:flex;align-items:center;justify-content:center;overflow:hidden;`;
+                            wrap.innerHTML = `<div style="${bgStyle}"></div>`;
+                        }
+                        addPremiumGemBadge(wrap);
                     }
-                    // Home header avatar
                     if (homeBtn) {
-                        homeBtn.style.borderColor = 'var(--accent-btn)';
+                        homeBtn.style.borderColor = isPremium ? '#fbbf24' : 'var(--accent-btn)';
+                        homeBtn.style.boxShadow = isPremium ? '0 0 10px rgba(251,191,36,0.5)' : '';
                         homeBtn.innerHTML = `<div style="${bgStyle}"></div>`;
                     }
                     return;
                 }
             }
-            // Fallback: show initial
+
+            // Fallback: initial
             if (wrap) {
-                wrap.style.background = '';
+                wrap.style.cssText = '';
                 wrap.style.border = '';
                 wrap.innerHTML = `<span id="userInitial">${storedInitial}</span>`;
+                const gem = wrap.parentElement?.querySelector('#premiumGemBadge');
+                if (gem) gem.remove();
             }
             if (homeBtn) {
                 homeBtn.style.borderColor = 'var(--border-color)';
+                homeBtn.style.boxShadow = '';
                 homeBtn.innerHTML = `<span id="homeAvatarInitial">${storedInitial}</span>`;
             }
         };
@@ -1578,6 +1631,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.updatePlanIcon(window.userPlan);
                 window.updateProfileXP(data.xp || 0);
                 window.renderAchievements(data.achievements || []);
+                // Re-apply avatar now userPlan is known so premium ring shows
+                window.applyAvatar();
 
                 // Monthly rank reset
                 const currentMonthKey = new Date().toISOString().slice(0, 7);
