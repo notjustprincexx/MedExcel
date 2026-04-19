@@ -1741,6 +1741,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             window._currentGroupId = null;
         };
 
+        // Called by MainActivity when a deep link arrives while app is open
+        window.handlePendingGroupJoin = async function() {
+            const pendingCode = sessionStorage.getItem('medexcel_pending_group');
+            if (!pendingCode || !window.currentUser) return;
+            sessionStorage.removeItem('medexcel_pending_group');
+            try {
+                const q = query(collection(db, 'groups'), where('inviteCode', '==', pendingCode));
+                const snap = await getDocs(q);
+                if (snap.empty) return;
+                const groupDoc = snap.docs[0];
+                const groupData = groupDoc.data();
+                const user = window.currentUser;
+                const userData = window._cachedUserData || {};
+                if (groupData.members?.[user.uid]) return; // already member
+                if (Object.keys(groupData.members || {}).length >= 10) return; // full
+                await updateDoc(doc(db, 'groups', groupDoc.id), {
+                    memberUids: arrayUnion(user.uid),
+                    [`members.${user.uid}`]: {
+                        name: userData.displayName || user.email?.split('@')[0] || 'User',
+                        xp: userData.xp || 0,
+                        joinedAt: new Date().toISOString()
+                    }
+                });
+                const t = document.createElement('div');
+                t.textContent = `✅ Joined "${groupData.name}"!`;
+                t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 4000);
+            } catch(e) { console.warn('handlePendingGroupJoin failed:', e); }
+        };
+
         window.deleteGroup = async function() {
             const groupId = window._currentGroupId;
             const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';
@@ -1761,7 +1792,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const code = g.inviteCode;
             const name = g.name;
             const link = `https://medxcel.web.app/index.html?code=${code}`;
-            const message = `Join my MedExcel study group "${name}"!\n\nTap the link to join automatically:\n${link}\n\nOr enter code manually: ${code}`;
+            const appLink = `medxcel://auth?code=${code}`;
+            const message = `Join my MedExcel study group "${name}"!\n\nIf you have the app, tap this link:\n${appLink}\n\nOr join via web:\n${link}\n\nOr enter code manually: ${code}`;
 
             // Capacitor native share (same as referral link)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
