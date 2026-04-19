@@ -1718,6 +1718,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 alert('Failed to leave group: ' + e.message);
             }
         };
+
+        window.closeGroupDetail = function() {
             document.getElementById('groupDetailBackdrop').style.display = 'none';
             window._currentGroupId = null;
         };
