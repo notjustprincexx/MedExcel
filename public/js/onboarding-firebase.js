@@ -33,8 +33,10 @@ import {
     try {
       const ref  = doc(db, 'users', user.uid);
       const snap = await getDoc(ref);
+      // Use localStorage — survives app restarts unlike sessionStorage
+      const refCode = localStorage.getItem('medexcel_ref_code') || null;
+
       if (!snap.exists()) {
-        const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
         await setDoc(ref, {
           email:             user.email,
           uid:               user.uid,
@@ -50,7 +52,11 @@ import {
           referralProcessed: false,
           ...extra
         }, { merge: true });
-        if (refCode) sessionStorage.removeItem('medexcel_ref_code');
+        if (refCode) localStorage.removeItem('medexcel_ref_code');
+      } else if (refCode && !snap.data().referredBy && !snap.data().referralProcessed) {
+        // Existing user who tapped a referral link — attribute them now
+        await setDoc(ref, { referredBy: refCode, referralProcessed: false }, { merge: true });
+        localStorage.removeItem('medexcel_ref_code');
       }
     } catch(e) { console.warn('Firestore sync skipped:', e); }
   }

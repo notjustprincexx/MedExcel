@@ -1611,6 +1611,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 }
 
                 window.userPlan = data.plan || "free";
+
+                // Check subscription expiry — downgrade if expired
+                if (data.subscriptionExpiry && window.userPlan === 'premium') {
+                    const expiry = new Date(data.subscriptionExpiry);
+                    if (expiry < new Date()) {
+                        window.userPlan = 'free';
+                        updateDoc(doc(db, 'users', user.uid), {
+                            plan: 'free',
+                            subscriptionActive: false
+                        }).catch(() => {});
+                        console.log('[Plan] Subscription expired — downgraded to free');
+                    }
+                }
                 const isToday = data.lastDailyReset === new Date().toISOString().split("T")[0];
                 const dailyUsage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
                 const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
@@ -1666,54 +1679,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // 3. Apply any active referral boost to limits
                 if (typeof window.applyReferralBoost === 'function') window.applyReferralBoost(data);
-
-                // 4. Process pending referral attribution (runs once for users who were referred)
-                if (data.referredBy && !data.referralProcessed && data.referredBy !== data.referralCode) {
-                    try {
-                        const refQuery = query(collection(db, "users"), where("referralCode", "==", data.referredBy));
-                        const refSnap  = await getDocs(refQuery);
-                        if (!refSnap.empty) {
-                            const referrerDoc  = refSnap.docs[0];
-                            const referrerData = referrerDoc.data();
-                            const newCount     = (referrerData.referralCount || 0) + 1;
-                            const rewards = [
-                                { at: 20, type: 'ambassador',    xp: 0,    days: 0  },
-                                { at: 10, type: 'month_premium', xp: 0,    days: 30 },
-                                { at: 5,  type: 'week_premium',  xp: 0,    days: 7  },
-                                { at: 3,  type: 'limit_2x',      xp: 0,    days: 7  },
-                                { at: 1,  type: 'xp',            xp: 500,  days: 0  },
-                            ];
-                            const reward       = rewards.find(r => newCount === r.at);
-                            let referrerUpdate = {
-                                referralCount:       newCount,
-                                referralBoostExpiry: referrerData.referralBoostExpiry || null,
-                                referralBoostType:   referrerData.referralBoostType   || null,
-                                xp:                  referrerData.xp || 0
-                            };
-                            if (reward) {
-                                if (reward.xp > 0)   referrerUpdate.xp  = (referrerData.xp || 0) + reward.xp;
-                                if (reward.days > 0) {
-                                    const expiry = new Date();
-                                    expiry.setDate(expiry.getDate() + reward.days);
-                                    referrerUpdate.referralBoostExpiry = expiry.toISOString();
-                                    referrerUpdate.referralBoostType   = reward.type;
-                                }
-                                if (reward.type === 'ambassador') referrerUpdate.referralBoostType = 'ambassador';
-                            }
-                            await updateDoc(doc(db, "users", referrerDoc.id), referrerUpdate);
-                        }
-                        await updateDoc(userRef, { referralProcessed: true });
-
-                        // Show toast to the new user so they know they joined via a referral
-                        setTimeout(() => {
-                            const t = document.createElement('div');
-                            t.textContent = '🎉 Joined via referral link! Your friend earns a reward.';
-                            t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
-                            document.body.appendChild(t);
-                            setTimeout(() => t.remove(), 4000);
-                        }, 2000);
-                    } catch(e) { console.warn("Referral attribution failed:", e); }
-                }
 
                 // ---- BROADCAST ANNOUNCEMENT CHECK ----
                 // Reads announcements/latest — skipped if cancelled or already seen
@@ -2249,6 +2214,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             } catch(e) { console.warn('handlePendingGroupJoin failed:', e); }
         };
 
+        // Called by MainActivity or on login when a referral link was tapped by existing user
         window.deleteGroup = async function() {
             const groupId = window._currentGroupId;
             const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';

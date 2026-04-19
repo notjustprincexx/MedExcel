@@ -2394,23 +2394,53 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     ref:        ref,
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },
-                    onSuccess: function(transaction) {
+                    onSuccess: async function(transaction) {
                         try {
-                            if (window.db && window.currentUser && window.currentUser.uid) {
-                                var newPlan = (plan === "premium_yearly") ? "premium" : plan.replace("_monthly", "");
-                                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js")
-                                    .then(function(m) {
-                                        m.updateDoc(m.doc(window.db, "users", window.currentUser.uid), {
-                                            plan: newPlan, planRef: transaction.reference, planUpdatedAt: new Date().toISOString()
-                                        }).catch(function(){});
-                                    }).catch(function(){});
+                            var btn = document.getElementById('payCTABtn');
+                            if (btn) { btn.textContent = "Verifying payment…"; btn.disabled = true; }
+
+                            // Verify server-side — never trust client-side Paystack callback alone
+                            const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                            const fns = getFunctions(window.auth?.app, "us-central1");
+                            const verify = httpsCallable(fns, "verifySubscriptionPayment");
+                            const result = await verify({ reference: transaction.reference });
+
+                            if (result.data?.success) {
+                                const newPlan = result.data.plan;
                                 window.userPlan = newPlan;
-                                window.updatePlanIcon(window.userPlan);
+                                window.updatePlanIcon(newPlan);
+                                window.applyAvatar(); // apply premium ring immediately
+
+                                // Update allowedMaxItems
+                                window.allowedMaxItems = newPlan === 'premium' ? 50 : 20;
+                                const maxText = document.getElementById('maxLimitText');
+                                if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+
+                                if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "#10b981"; btn.style.color = "#fff"; btn.disabled = false; }
+
+                                // Show celebration
+                                if (typeof window.showRankUpCelebration === 'function') {
+                                    setTimeout(() => {
+                                        window.showCelebrationModal ? window.showCelebrationModal({
+                                            typeLabel: '💎 Premium Activated!',
+                                            title: 'Welcome to Premium',
+                                            desc: '50 questions per deck · 30 generations/day · Gold ring · All ranks unlocked',
+                                            glow: '#fbbf24',
+                                            particleColors: ['#fbbf24','#f97316','#fff','#facc15'],
+                                            badgeHTML: '<div style="font-size:3.5rem;">💎</div>'
+                                        }) : null;
+                                    }, 300);
+                                }
+
+                                setTimeout(() => navigateTo('view-home'), 2500);
+                            } else {
+                                throw new Error('Verification failed');
                             }
-                        } catch(e) {}
-                        var btn = document.getElementById('payCTABtn');
-                        if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "var(--accent-green)"; btn.style.color = "#000"; }
-                        setTimeout(function() { navigateTo('view-home'); }, 1800);
+                        } catch(e) {
+                            console.error("Payment verification error:", e);
+                            var btn = document.getElementById('payCTABtn');
+                            if (btn) { btn.textContent = "Verify failed — contact support"; btn.disabled = false; }
+                        }
                     },
                     onCancel: function() {}
                 });
