@@ -1699,19 +1699,36 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const groupId = window._currentGroupId;
             const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';
             if (!groupId) return;
-            if (!confirm(`Leave "${groupName}"? You can rejoin with the invite code.`)) return;
+
+            const confirmed = await new Promise(resolve => {
+                const sheet = document.createElement('div');
+                sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;';
+                sheet.innerHTML = `
+                    <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
+                        <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+                        <div style="width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                            <i class="fas fa-sign-out-alt" style="color:#f87171;font-size:1.25rem;"></i>
+                        </div>
+                        <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.375rem;">Leave "${groupName}"?</h3>
+                        <p style="font-size:0.875rem;color:var(--text-muted);text-align:center;margin-bottom:1.75rem;line-height:1.5;">You can rejoin anytime with the invite code.</p>
+                        <button id="_leaveConfirm" style="width:100%;padding:1rem;border-radius:9999px;border:none;background:#f87171;color:white;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">Yes, Leave Group</button>
+                        <button id="_leaveCancel" style="width:100%;padding:1rem;border-radius:9999px;border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
+                    </div>`;
+                document.body.appendChild(sheet);
+                sheet.querySelector('#_leaveConfirm').onclick = () => { sheet.remove(); resolve(true); };
+                sheet.querySelector('#_leaveCancel').onclick  = () => { sheet.remove(); resolve(false); };
+                sheet.onclick = (e) => { if (e.target === sheet) { sheet.remove(); resolve(false); } };
+            });
+
+            if (!confirmed) return;
             try {
                 const uid = window.currentUser.uid;
                 const groupRef = doc(db, 'groups', groupId);
-                // Remove user from members map and memberUids array
                 const snap = await getDoc(groupRef);
                 if (!snap.exists()) return;
                 const members = snap.data().members || {};
                 delete members[uid];
-                await updateDoc(groupRef, {
-                    members,
-                    memberUids: Object.keys(members)
-                });
+                await updateDoc(groupRef, { members, memberUids: Object.keys(members) });
                 window.closeGroupDetail();
                 window.loadMyGroups();
             } catch(e) {
@@ -1743,7 +1760,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (!g) return;
             const code = g.inviteCode;
             const name = g.name;
-            const link = `https://medxcel.web.app/join?code=${code}`;
+            const link = `https://medxcel.web.app/index.html?code=${code}`;
             const message = `Join my MedExcel study group "${name}"!\n\nTap the link to join automatically:\n${link}\n\nOr enter code manually: ${code}`;
 
             // Capacitor native share (same as referral link)
