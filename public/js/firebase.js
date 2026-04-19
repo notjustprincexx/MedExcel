@@ -920,9 +920,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (!window.currentUser) { window.showLoginModal(); return; }
                 
                 const requestedItems = parseInt(document.getElementById('itemSlider').value, 10);
+
+                // Check daily quota first
+                const dailyUsed = parseInt(document.getElementById('usageCount')?.textContent || '0');
+                const dailyCap  = window.userPlan === 'premium' ? 30 : 5;
+                if (dailyUsed >= dailyCap) {
+                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
+                    if (wantToUpgrade) window.navigateTo('view-payment');
+                    return;
+                }
+
+                // Check per-deck limit
                 if (requestedItems > window.allowedMaxItems) {
                     const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
-                    if (wantToUpgrade) window.navigateTo('view-payment'); return;
+                    if (wantToUpgrade) window.navigateTo('view-payment');
+                    return;
                 }
 
                 generateBtn.disabled = true; 
@@ -1211,10 +1223,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.selectAvatar = function(index) {
-            localStorage.setItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'), String(index));
-            // Save to Firestore so other users can see it in the leaderboard
+            const uid = window.currentUser?.uid || 'guest';
+            localStorage.setItem('medexcel_avatar_' + uid, String(index));
+            // Clear any custom photo so avatar takes priority
+            localStorage.removeItem('medexcel_photo_' + uid);
+            // Save to Firestore
             if (window.currentUser?.uid) {
-                try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index }).catch(() => {}); } catch(e) {}
+                try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index, photoBase64: null }).catch(() => {}); } catch(e) {}
             }
             window.applyAvatar();
             // Highlight in picker
@@ -1549,8 +1564,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if(usageCountEl) usageCountEl.textContent = dailyUsage;
 
                 const planConfig = {
-                    premium: { max: 30, cap: 30, bar: "#3b82f6" },
-                    free:    { max: 5,  cap:  5, bar: "#94a3b8" }
+                    premium: { max: 50, cap: 30, bar: "#3b82f6" },
+                    free:    { max: 20, cap:  5, bar: "#94a3b8" }
                 };
                 const pc = planConfig[window.userPlan] || planConfig.free;
                 window.allowedMaxItems = pc.max;
@@ -1600,44 +1615,49 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // 4. Process pending referral attribution (runs once for users who were referred)
                 if (data.referredBy && !data.referralProcessed && data.referredBy !== data.referralCode) {
                     try {
-                        // Find referrer by their referralCode field
-                        const { query: fsQuery, where, collection: fsCollection, increment: fsIncrement } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                        const refQuery = fsQuery(fsCollection(db, "users"), where("referralCode", "==", data.referredBy));
-                        const { getDocs: gds } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                        const refSnap = await gds(refQuery);
+                        const refQuery = query(collection(db, "users"), where("referralCode", "==", data.referredBy));
+                        const refSnap  = await getDocs(refQuery);
                         if (!refSnap.empty) {
-                            const referrerDoc = refSnap.docs[0];
+                            const referrerDoc  = refSnap.docs[0];
                             const referrerData = referrerDoc.data();
-                            const newCount = (referrerData.referralCount || 0) + 1;
-                            // Determine reward to apply
+                            const newCount     = (referrerData.referralCount || 0) + 1;
                             const rewards = [
-                                { at: 20, type: 'ambassador',   xp: 0,    days: 0    },
-                                { at: 10, type: 'month_premium', xp: 0,    days: 30   },
-                                { at: 5,  type: 'week_premium',  xp: 0,    days: 7    },
-                                { at: 3,  type: 'limit_2x',      xp: 0,    days: 7    },
-                                { at: 1,  type: 'xp',            xp: 500,  days: 0    },
+                                { at: 20, type: 'ambassador',    xp: 0,    days: 0  },
+                                { at: 10, type: 'month_premium', xp: 0,    days: 30 },
+                                { at: 5,  type: 'week_premium',  xp: 0,    days: 7  },
+                                { at: 3,  type: 'limit_2x',      xp: 0,    days: 7  },
+                                { at: 1,  type: 'xp',            xp: 500,  days: 0  },
                             ];
-                            const rewardToApply = rewards.find(r => newCount === r.at);
-                            let referrerUpdate = { referralCount: newCount };
-                            if (rewardToApply) {
-                                if (rewardToApply.xp > 0) {
-                                    referrerUpdate.xp = (referrerData.xp || 0) + rewardToApply.xp;
-                                }
-                                if (rewardToApply.days > 0) {
+                            const reward       = rewards.find(r => newCount === r.at);
+                            let referrerUpdate = {
+                                referralCount:       newCount,
+                                referralBoostExpiry: referrerData.referralBoostExpiry || null,
+                                referralBoostType:   referrerData.referralBoostType   || null,
+                                xp:                  referrerData.xp || 0
+                            };
+                            if (reward) {
+                                if (reward.xp > 0)   referrerUpdate.xp  = (referrerData.xp || 0) + reward.xp;
+                                if (reward.days > 0) {
                                     const expiry = new Date();
-                                    expiry.setDate(expiry.getDate() + rewardToApply.days);
+                                    expiry.setDate(expiry.getDate() + reward.days);
                                     referrerUpdate.referralBoostExpiry = expiry.toISOString();
-                                    referrerUpdate.referralBoostType   = rewardToApply.type;
+                                    referrerUpdate.referralBoostType   = reward.type;
                                 }
-                                if (rewardToApply.type === 'ambassador') {
-                                    referrerUpdate.referralBoostType = 'ambassador';
-                                }
+                                if (reward.type === 'ambassador') referrerUpdate.referralBoostType = 'ambassador';
                             }
                             await updateDoc(doc(db, "users", referrerDoc.id), referrerUpdate);
                         }
-                        // Mark as processed so we don't double-count
                         await updateDoc(userRef, { referralProcessed: true });
-                    } catch(e) { console.warn("Referral attribution failed (will retry):", e); }
+
+                        // Show toast to the new user so they know they joined via a referral
+                        setTimeout(() => {
+                            const t = document.createElement('div');
+                            t.textContent = '🎉 Joined via referral link! Your friend earns a reward.';
+                            t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                            document.body.appendChild(t);
+                            setTimeout(() => t.remove(), 4000);
+                        }, 2000);
+                    } catch(e) { console.warn("Referral attribution failed:", e); }
                 }
 
                 // ---- BROADCAST ANNOUNCEMENT CHECK ----

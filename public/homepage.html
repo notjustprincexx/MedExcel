@@ -901,44 +901,35 @@
             </div>
 
             <!-- Referral Program Card -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1rem 1.125rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">
-                    <div style="display:flex;align-items:center;gap:0.625rem;">
-                        <i class="fas fa-users" style="color:var(--accent-btn);width:16px;text-align:center;"></i>
-                        <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Referral Program</span>
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1.125rem;">
+                <!-- Header -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Invite Friends</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">You both get rewarded</div>
                     </div>
-                    <span id="profileReferralCount" style="font-size:0.75rem;font-weight:700;background:rgba(167,139,250,0.12);color:var(--accent-btn);padding:3px 10px;border-radius:9999px;">0 referred</span>
+                    <span id="profileReferralCount" style="font-size:0.875rem;font-weight:800;color:var(--accent-btn);">0 <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">referred</span></span>
                 </div>
 
-                <!-- Progress tiers -->
-                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;" id="profileReferralTiers">
-                    <!-- rendered by JS -->
-                </div>
+                <!-- Next reward progress -->
+                <div id="profileReferralTiers" style="margin-bottom:1rem;"></div>
 
-                <!-- Referral link -->
-                <div style="margin-bottom:0.75rem;">
-                    <p style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;">Your referral link</p>
-                    <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg-body);border:1px solid var(--border-color);border-radius:0.875rem;padding:0.625rem 0.75rem;">
-                        <i class="fas fa-link" style="color:var(--accent-btn);font-size:0.75rem;flex-shrink:0;"></i>
-                        <span id="profileReferralLink" style="font-size:0.75rem;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loading...</span>
-                        <div style="display:flex;gap:0.375rem;flex-shrink:0;">
-                            <button onclick="window.shareReferralLink('profile')" id="profileShareBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
-                                <i class="fas fa-share-alt"></i> Share
-                            </button>
-                            <button onclick="window.copyReferralLink('profile')" id="profileCopyBtn" style="background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Active reward indicator -->
-                <div id="profileActiveReward" style="display:none;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:0.75rem;padding:0.625rem 0.75rem;">
+                <!-- Active reward -->
+                <div id="profileActiveReward" style="display:none;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:0.75rem;padding:0.625rem 0.875rem;margin-bottom:1rem;">
                     <div style="display:flex;align-items:center;gap:0.5rem;">
                         <i class="fas fa-check-circle" style="color:#34d399;font-size:0.875rem;"></i>
-                        <span id="profileActiveRewardText" style="font-size:0.8125rem;font-weight:600;color:var(--text-main);"></span>
+                        <span id="profileActiveRewardText" style="font-size:0.8rem;font-weight:600;color:var(--text-main);"></span>
                     </div>
                 </div>
+
+                <!-- Share button — big and obvious -->
+                <button onclick="window.shareReferralLink('profile')" id="profileShareBtn" style="width:100%;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                    <i class="fas fa-share-alt"></i> Share your invite link
+                </button>
+                <!-- Copy fallback -->
+                <button onclick="window.copyReferralLink('profile')" id="profileCopyBtn" style="width:100%;padding:0.5rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.8rem;font-weight:600;cursor:pointer;margin-top:0.375rem;">
+                    <i class="fas fa-copy" style="font-size:0.75rem;"></i> Copy link
+                </button>
             </div>
 
             <!-- Preferences -->

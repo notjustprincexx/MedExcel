@@ -6,7 +6,7 @@
         window.userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { xp: 0, level: 1, streak: 0, count: 0, lastDate: null };
         window.quizzes = [];
         window.userPlan = "free";
-        window.allowedMaxItems = 15;
+        window.allowedMaxItems = 20;
         
         // Study & Create State
         let currentQuiz = null;
@@ -373,27 +373,66 @@
         window.renderReferralTiers = function(containerId, referralCount) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            container.innerHTML = '';
-            REFERRAL_TIERS.forEach(tier => {
+            // Find the next uncompleted tier
+            const next = REFERRAL_TIERS.find(t => referralCount < t.refs);
+            const allDone = !next;
+            if (allDone) {
+                container.innerHTML = `<div style="text-align:center;padding:0.5rem;color:#34d399;font-size:0.8rem;font-weight:700;">🎉 All rewards unlocked!</div>`;
+                return;
+            }
+            const pct = Math.min(100, Math.round((referralCount / next.refs) * 100));
+            const prev = REFERRAL_TIERS[REFERRAL_TIERS.indexOf(next) - 1];
+            container.innerHTML = `
+                <div style="background:var(--bg-body);border-radius:0.875rem;padding:0.875rem;border:1px solid var(--border-color);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <div style="width:28px;height:28px;border-radius:8px;background:${next.color}18;border:1px solid ${next.color}33;display:flex;align-items:center;justify-content:center;">
+                                <i class="fas ${next.icon}" style="font-size:0.75rem;color:${next.color};"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-main);">Next reward</div>
+                                <div style="font-size:0.7rem;color:${next.color};font-weight:600;">${next.refs} friends → ${next.label}</div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.8rem;font-weight:800;color:var(--accent-btn);">${referralCount}<span style="color:var(--text-muted);font-weight:500;">/${next.refs}</span></span>
+                    </div>
+                    <div style="width:100%;height:6px;background:var(--bg-surface);border-radius:9999px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:${next.color};border-radius:9999px;transition:width 0.6s ease;"></div>
+                    </div>
+                    ${prev ? `<div style="margin-top:0.5rem;font-size:0.65rem;color:var(--text-muted);text-align:right;">${next.refs - referralCount} more to go</div>` : ''}
+                </div>
+                <button onclick="window.showAllReferralTiers(${referralCount})" style="background:none;border:none;color:var(--accent-btn);font-size:0.72rem;font-weight:600;cursor:pointer;padding:0.25rem 0;width:100%;text-align:center;">See all rewards →</button>`;
+        };
+
+        window.showAllReferralTiers = function(referralCount) {
+            const sheet = document.createElement('div');
+            sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;';
+            const tiersHTML = REFERRAL_TIERS.map(tier => {
                 const done = referralCount >= tier.refs;
-                const next = !done && (REFERRAL_TIERS.find(t => !referralCount || referralCount < t.refs)?.refs === tier.refs);
                 const pct  = done ? 100 : Math.min(100, Math.round((referralCount / tier.refs) * 100));
-                container.innerHTML += `
-                    <div style="display:flex;align-items:center;gap:0.625rem;">
-                        <div style="width:28px;height:28px;border-radius:8px;background:${done ? tier.color + '20' : 'var(--bg-surface)'};border:1px solid ${done ? tier.color + '40' : 'var(--border-color)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="fas ${tier.icon}" style="font-size:0.6875rem;color:${done ? tier.color : 'var(--text-muted)'};"></i>
+                return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border-color);">
+                    <div style="width:36px;height:36px;border-radius:0.75rem;background:${done ? tier.color + '20' : 'var(--bg-body)'};border:1px solid ${done ? tier.color + '40' : 'var(--border-color)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas ${done ? 'fa-check' : tier.icon}" style="font-size:0.875rem;color:${done ? tier.color : 'var(--text-muted)'};"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.8125rem;font-weight:${done?'700':'600'};color:${done?'var(--text-main)':'var(--text-muted)'};">${tier.refs} friend${tier.refs>1?'s':''} — ${tier.label}</div>
+                        <div style="width:100%;height:4px;background:var(--bg-body);border-radius:9999px;overflow:hidden;margin-top:4px;">
+                            <div style="height:100%;width:${pct}%;background:${tier.color};border-radius:9999px;"></div>
                         </div>
-                        <div style="flex:1;min-width:0;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-                                <span style="font-size:0.75rem;font-weight:${done ? '700' : '600'};color:${done ? 'var(--text-main)' : 'var(--text-muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tier.refs} referral${tier.refs>1?'s':''} — ${tier.label}</span>
-                                <span style="font-size:0.7rem;font-weight:700;color:${done ? tier.color : 'var(--text-muted)'};margin-left:0.5rem;flex-shrink:0;">${done ? '✓' : referralCount + '/' + tier.refs}</span>
-                            </div>
-                            <div style="width:100%;height:4px;background:var(--bg-surface);border-radius:100px;overflow:hidden;border:1px solid var(--border-color);">
-                                <div style="height:100%;width:${pct}%;background:${done ? tier.color : 'var(--text-muted)'};border-radius:100px;transition:width 0.5s ease;"></div>
-                            </div>
-                        </div>
-                    </div>`;
-            });
+                    </div>
+                    <span style="font-size:0.75rem;font-weight:700;color:${done?tier.color:'var(--text-muted)'};flex-shrink:0;">${done ? '✓' : referralCount + '/' + tier.refs}</span>
+                </div>`;
+            }).join('');
+            sheet.innerHTML = `
+                <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
+                    <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+                    <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.25rem;">Referral Rewards</h3>
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Invite friends to earn these rewards</p>
+                    ${tiersHTML}
+                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;margin-top:1rem;">Close</button>
+                </div>`;
+            sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+            document.body.appendChild(sheet);
         };
 
         const REFERRAL_SHARE_MESSAGE = (link) =>
@@ -471,14 +510,13 @@
         window.loadReferralData = function(userData) {
             const code    = userData.referralCode || '';
             const count   = userData.referralCount || 0;
-            const link    = `https://medxcel.web.app?ref=${code}`;
             window._userReferralCode = code;
 
-            // Profile card
+            // Update count display
             const pCount = document.getElementById('profileReferralCount');
-            if (pCount) pCount.textContent = count + ' referred';
-            const pLink = document.getElementById('profileReferralLink');
-            if (pLink) pLink.textContent = link || 'No code yet';
+            if (pCount) pCount.innerHTML = `${count} <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">referred</span>`;
+
+            // Next reward progress
             window.renderReferralTiers('profileReferralTiers', count);
 
             // Active reward indicator
@@ -507,14 +545,14 @@
             if (!boostExpiry || new Date(boostExpiry) <= new Date()) return; // expired or none
 
             if (boostType === 'limit_2x' && window.userPlan === 'free') {
-                window.allowedMaxItems = 30; // 2× of 15
+                window.allowedMaxItems = 40; // 2× of 20
                 const maxText = document.getElementById('maxLimitText');
-                if (maxText) maxText.textContent = '(Max: 30 — Referral Boost)';
+                if (maxText) maxText.textContent = "(Max: 40 — Referral Boost)";
             } else if (boostType === 'week_premium' || boostType === 'month_premium') {
                 // treat as premium for limit purposes only (Groq still used — server enforces AI model)
-                window.allowedMaxItems = 30;
+                window.allowedMaxItems = 50;
                 const maxText = document.getElementById('maxLimitText');
-                if (maxText) maxText.textContent = '(Max: 30 — Referral Reward)';
+                if (maxText) maxText.textContent = '(Max: 50 — Referral Reward)';
             }
         };
 
@@ -2008,29 +2046,34 @@ if (nextBtn) {
         });
         const sliderValue = document.getElementById('sliderValue');
         if(itemSlider && sliderValue) {
-            itemSlider.addEventListener('input', (e) => {
-                let val = parseInt(e.target.value, 10);
-                if (val > window.allowedMaxItems) {
-                    sliderValue.innerHTML = `${val} <i class="fas fa-lock" style="font-size: 10px;"></i>`;
-                    sliderValue.style.color = 'var(--accent-yellow)';
-                    sliderValue.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+            function updateSliderHint(val) {
+                const max = window.allowedMaxItems;
+                let hintEl = document.getElementById('sliderLimitHint');
+                if (val > max) {
+                    sliderValue.innerHTML = `${val} <i class="fas fa-lock" style="font-size:10px;"></i>`;
+                    sliderValue.style.color = '#f97316';
+                    sliderValue.style.borderColor = 'rgba(249,115,22,0.5)';
+                    if (!hintEl) {
+                        hintEl = document.createElement('p');
+                        hintEl.id = 'sliderLimitHint';
+                        hintEl.style.cssText = 'font-size:0.75rem;color:#f97316;text-align:center;margin-top:0.375rem;font-weight:600;';
+                        itemSlider.parentElement.appendChild(hintEl);
+                    }
+                    const plan = window.userPlan === 'premium' ? 'Premium is capped at 50' : `Free plan max is ${max}. Upgrade for 50`;
+                    hintEl.textContent = `⚠️ ${plan}`;
                 } else {
                     sliderValue.textContent = val;
                     sliderValue.style.color = 'var(--text-main)';
                     sliderValue.style.borderColor = 'var(--border-glass)';
+                    if (hintEl) hintEl.remove();
                 }
-            });
-            itemSlider.addEventListener('change', async (e) => {
-                let val = parseInt(e.target.value, 10);
+            }
+            itemSlider.addEventListener('input', (e) => updateSliderHint(parseInt(e.target.value, 10)));
+            itemSlider.addEventListener('change', (e) => {
+                const val = parseInt(e.target.value, 10);
                 if (val > window.allowedMaxItems) {
-                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
-                    if (wantToUpgrade) window.navigateTo('view-payment');
-                    else { 
-                        e.target.value = window.allowedMaxItems; 
-                        sliderValue.textContent = window.allowedMaxItems; 
-                        sliderValue.style.color = 'var(--text-main)';
-                        sliderValue.style.borderColor = 'var(--border-glass)';
-                    }
+                    e.target.value = window.allowedMaxItems;
+                    updateSliderHint(window.allowedMaxItems);
                 }
             });
         }
