@@ -1748,30 +1748,57 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const pendingCode = sessionStorage.getItem('medexcel_pending_group');
             if (!pendingCode || !window.currentUser) return;
             sessionStorage.removeItem('medexcel_pending_group');
+
+            function showToast(msg, color) {
+                const t = document.createElement('div');
+                t.textContent = msg;
+                t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid ' + (color||'rgba(52,211,153,0.4)') + ';box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 4000);
+            }
+
             try {
-                const q = query(collection(db, 'groups'), where('inviteCode', '==', pendingCode));
+                const q = query(collection(db, 'groups'), where('inviteCode', '==', pendingCode.toUpperCase()));
                 const snap = await getDocs(q);
-                if (snap.empty) return;
+                if (snap.empty) { showToast('❌ Group not found. Check the code.', 'rgba(248,113,113,0.4)'); return; }
+
                 const groupDoc = snap.docs[0];
                 const groupData = groupDoc.data();
                 const user = window.currentUser;
                 const userData = window._cachedUserData || {};
-                if (groupData.members?.[user.uid]) return; // already member
-                if (Object.keys(groupData.members || {}).length >= 10) return; // full
+
+                if (groupData.members?.[user.uid]) {
+                    // Already a member — just navigate there
+                    showToast(`👥 Opening "${groupData.name}"…`, 'rgba(139,92,246,0.4)');
+                    window.switchLbTab('groups');
+                    setTimeout(() => window.openGroupDetail(groupDoc.id), 600);
+                    return;
+                }
+
+                if (Object.keys(groupData.members || {}).length >= 10) {
+                    showToast('❌ This group is full (10 members max).', 'rgba(248,113,113,0.4)');
+                    return;
+                }
+
                 await updateDoc(doc(db, 'groups', groupDoc.id), {
                     memberUids: arrayUnion(user.uid),
                     [`members.${user.uid}`]: {
-                        name: userData.displayName || user.email?.split('@')[0] || 'User',
+                        name: userData.displayName || user.displayName || user.email?.split('@')[0] || 'User',
                         xp: userData.xp || 0,
                         joinedAt: new Date().toISOString()
                     }
                 });
-                const t = document.createElement('div');
-                t.textContent = `✅ Joined "${groupData.name}"!`;
-                t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
-                document.body.appendChild(t);
-                setTimeout(() => t.remove(), 4000);
-            } catch(e) { console.warn('handlePendingGroupJoin failed:', e); }
+
+                showToast(`✅ Joined "${groupData.name}"!`, 'rgba(52,211,153,0.4)');
+
+                // Navigate to the group
+                window.switchLbTab('groups');
+                setTimeout(() => window.openGroupDetail(groupDoc.id), 600);
+
+            } catch(e) {
+                console.warn('handlePendingGroupJoin failed:', e);
+                showToast('❌ Could not join group: ' + (e.message || 'Unknown error'), 'rgba(248,113,113,0.4)');
+            }
         };
 
         window.deleteGroup = async function() {
