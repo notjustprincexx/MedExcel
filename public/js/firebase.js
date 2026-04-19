@@ -138,6 +138,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
             window.userStats.weeklyXp = (window.userStats.weeklyXp || 0) + amount;
 
+            // Monthly Rank XP — reset each month
+            const monthKey = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+            const storedMonthKey = localStorage.getItem('medexcel_monthkey_' + uid);
+            if (storedMonthKey !== monthKey) {
+                window.userStats.monthlyRankXp = 0;
+                localStorage.setItem('medexcel_monthkey_' + uid, monthKey);
+            }
+            window.userStats.monthlyRankXp = (window.userStats.monthlyRankXp || 0) + amount;
+
             localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
             if (window.currentUser) {
                 try {
@@ -146,6 +155,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         uid: window.currentUser.uid, 
                         xp: window.userStats.xp, 
                         weeklyXp: window.userStats.weeklyXp,
+                        monthlyRankXp: window.userStats.monthlyRankXp,
+                        rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
                 } catch (e) { console.error("Failed to sync XP", e); }
@@ -153,16 +164,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Update UI elements
             const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
             const uiXP2 = document.getElementById('currentUserXp'); if(uiXP2) uiXP2.textContent = window.formatXP(window.userStats.xp);
+            if (typeof window.updateRankDisplay === 'function') window.updateRankDisplay(window.userStats.monthlyRankXp || 0);
 
             // Keep cached leaderboard data in sync so This Week tab reflects latest XP immediately
             if (window.currentUser && Array.isArray(window._lbUsers)) {
                 const meIdx = window._lbUsers.findIndex(u => u.uid === window.currentUser.uid);
                 const dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : 'User');
                 if (meIdx >= 0) {
-                    window._lbUsers[meIdx].xp       = window.userStats.xp;
-                    window._lbUsers[meIdx].weeklyXp  = window.userStats.weeklyXp;
+                    window._lbUsers[meIdx].xp            = window.userStats.xp;
+                    window._lbUsers[meIdx].weeklyXp      = window.userStats.weeklyXp;
+                    window._lbUsers[meIdx].monthlyRankXp = window.userStats.monthlyRankXp;
                 } else {
-                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, avatarIndex: null, photoBase64: localStorage.getItem("medexcel_photo_" + window.currentUser.uid) || null });
+                    window._lbUsers.push({ uid: window.currentUser.uid, displayName: dName, xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp, monthlyRankXp: window.userStats.monthlyRankXp, avatarIndex: null, photoBase64: localStorage.getItem("medexcel_photo_" + window.currentUser.uid) || null });
                 }
             }
         };
@@ -174,20 +187,372 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // Render Achievements Logic
         const MASTER_ACHIEVEMENTS = [
-            { id: "first_quiz", title: "First Steps", desc: "First set", icon: "fa-seedling" }, { id: "streak_3", title: "On Fire", desc: "3 day streak", icon: "fa-fire" },
-            { id: "accuracy_80", title: "Sharpshooter", desc: "80%+ accuracy", icon: "fa-bullseye" }, { id: "mcq_100", title: "Century", desc: "100 MCQs", icon: "fa-check-double" },
-            { id: "elite_member", title: "Elite", desc: "Subscribed", icon: "fa-crown" }, { id: "night_owl", title: "Night Owl", desc: "Late study", icon: "fa-moon" }
+            { id: 'first_deck',    title: 'First Steps',   desc: 'Complete your first deck',                        hint: 'Finish any deck session',                              icon: 'fa-seedling',       gradient: 'linear-gradient(135deg,#065f46,#10b981)', ribbonColor: '#059669' },
+            { id: 'streak_7',      title: 'On Fire',        desc: '7 day study streak',                              hint: 'Study 7 days in a row without missing one',            icon: 'fa-fire',           gradient: 'linear-gradient(135deg,#b45309,#f97316)', ribbonColor: '#ea580c' },
+            { id: 'streak_30',     title: 'Devoted',        desc: '30 day study streak',                             hint: 'Study every day for a full month',                     icon: 'fa-calendar-check', gradient: 'linear-gradient(135deg,#991b1b,#ef4444)', ribbonColor: '#dc2626' },
+            { id: 'accuracy_90',   title: 'Sharpshooter',  desc: 'Score 90%+ on a 20+ question MCQ deck',           hint: 'High accuracy needs a large enough deck to count',     icon: 'fa-bullseye',       gradient: 'linear-gradient(135deg,#1e40af,#3b82f6)', ribbonColor: '#2563eb' },
+            { id: 'perfect_score', title: 'Perfectionist', desc: 'Score 100% on a 20+ question MCQ',                hint: 'Perfect score — no mistakes on at least 20 questions', icon: 'fa-star',           gradient: 'linear-gradient(135deg,#78350f,#fbbf24)', ribbonColor: '#d97706' },
+            { id: 'century',       title: 'Century',        desc: 'Answer 500 MCQ questions total',                  hint: 'Answer 500 questions across all your decks',           icon: 'fa-check-double',   gradient: 'linear-gradient(135deg,#5b21b6,#8b5cf6)', ribbonColor: '#7c3aed' },
+            { id: 'scholar',       title: 'Scholar',        desc: 'Answer 2,000 MCQ questions total',                hint: 'Answer 2,000 questions — serious dedication',          icon: 'fa-graduation-cap', gradient: 'linear-gradient(135deg,#1e3a5f,#2563eb)', ribbonColor: '#1d4ed8' },
+            { id: 'ten_decks',     title: 'Collector',      desc: 'Create 25 study decks',                           hint: 'Build a library of 25 or more decks',                  icon: 'fa-layer-group',    gradient: 'linear-gradient(135deg,#0e7490,#06b6d4)', ribbonColor: '#0891b2' },
+            { id: 'night_owl',     title: 'Night Owl',      desc: 'Study after midnight',                            hint: 'Complete a session between midnight and 4 AM',         icon: 'fa-moon',           gradient: 'linear-gradient(135deg,#1e1b4b,#4338ca)', ribbonColor: '#3730a3' },
+            { id: 'xp_1000',       title: 'Rising Star',    desc: 'Earn 5,000 total XP',                             hint: 'Accumulate 5,000 XP from studying',                    icon: 'fa-bolt',           gradient: 'linear-gradient(135deg,#92400e,#f59e0b)', ribbonColor: '#d97706' },
+            { id: 'xp_5000',       title: 'Veteran',        desc: 'Earn 20,000 total XP',                            hint: 'Accumulate 20,000 XP — a true veteran',                icon: 'fa-medal',          gradient: 'linear-gradient(135deg,#4c1d95,#7c3aed)', ribbonColor: '#6d28d9' },
+            { id: 'group_member',  title: 'Team Player',    desc: 'Score 80%+ on 3 different group decks',           hint: 'Prove yourself in the group — score well consistently', icon: 'fa-users',          gradient: 'linear-gradient(135deg,#064e3b,#059669)', ribbonColor: '#047857' },
         ];
 
-        window.renderAchievements = function(unlockedIds) {
-            const grid = document.getElementById('achievementsGrid'); if(!grid) return;
-            grid.innerHTML = "";
-            MASTER_ACHIEVEMENTS.forEach(ach => {
-                const isUnlocked = unlockedIds.includes(ach.id);
-                const stateClass = isUnlocked ? "border-[var(--accent-btn)] bg-[var(--bg-body)] shadow-[0_0_15px_rgba(167,139,250,0.1)]" : "border-[var(--border-color)] bg-[var(--bg-body)] opacity-50 grayscale";
-                const iconColor = isUnlocked ? "text-[var(--accent-btn)]" : "text-[var(--text-muted)]";
-                grid.innerHTML += `<div class="${stateClass} border rounded-2xl p-3 flex flex-col items-center text-center transition-all relative overflow-hidden">${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-surface)]/50"><i class="fas fa-lock text-[var(--text-muted)]"></i></div>` : ''}<div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center mb-1.5 ${iconColor}"><i class="fas ${ach.icon} text-sm"></i></div><h4 class="text-[10px] font-bold text-[var(--text-main)] mb-0.5">${ach.title}</h4><p class="text-[8px] text-[var(--text-muted)] leading-tight">${ach.desc}</p></div>`;
+        // ── RANK SYSTEM ──────────────────────────────────────────────────────
+        const RANKS = [
+            { name: 'Bronze',   minXp: 0,    maxXp: 249,  col: 0, barColor: '#d97706' },
+            { name: 'Silver',   minXp: 250,  maxXp: 999,  col: 1, barColor: '#94a3b8' },
+            { name: 'Gold',     minXp: 1000, maxXp: 2499, col: 2, barColor: '#fbbf24' },
+            { name: 'Amethyst', minXp: 2500, maxXp: 4999, col: 3, barColor: '#8b5cf6' },
+            { name: 'Emerald',  minXp: 5000, maxXp: Infinity, col: 4, barColor: '#10b981' },
+        ];
+
+        window.getUserRank = function(xp) {
+            for (let i = RANKS.length - 1; i >= 0; i--) {
+                if (xp >= RANKS[i].minXp) return { ...RANKS[i], index: i };
+            }
+            return { ...RANKS[0], index: 0 };
+        };
+
+        window.showRankInfo = function() {
+            const currentXp = window._cachedUserData?.monthlyRankXp || window.userStats?.monthlyRankXp || 0;
+            const currentRank = window.getUserRank(currentXp);
+            const sheet = document.createElement('div');
+            sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+            const ranksHTML = RANKS.map((r, i) => {
+                const isCurrent = i === currentRank.index;
+                const isUnlocked = currentXp >= r.minXp;
+                const svg = rankBadgeSVG(r.col, 40);
+                const nextXp = RANKS[i + 1]?.minXp;
+                const label = nextXp ? `${r.minXp.toLocaleString()} – ${(nextXp - 1).toLocaleString()} monthly XP` : `${r.minXp.toLocaleString()}+ monthly XP`;
+                return `<div style="display:flex;align-items:center;gap:0.875rem;padding:0.75rem;border-radius:0.875rem;background:${isCurrent ? 'rgba(139,92,246,0.1)' : 'transparent'};border:1px solid ${isCurrent ? 'rgba(139,92,246,0.25)' : 'transparent'};">
+                    <div style="filter:${isUnlocked ? 'none' : 'grayscale(1) opacity(0.35)'};">${svg}</div>
+                    <div style="flex:1;">
+                        <div style="font-size:0.9rem;font-weight:800;color:${isUnlocked ? r.barColor : 'var(--text-muted)'};">${r.name} ${isCurrent ? '<span style="font-size:0.65rem;background:var(--accent-btn);color:white;padding:1px 6px;border-radius:9999px;vertical-align:middle;">Current</span>' : ''}</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted);">${label}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            sheet.innerHTML = `
+                <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
+                    <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+                    <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.25rem;">Monthly Ranks</h3>
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;">Ranks reset on the 1st of every month. Earn XP by studying to climb!</p>
+                    <div style="display:flex;flex-direction:column;gap:0.25rem;margin-bottom:1rem;">${ranksHTML}</div>
+                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Close</button>
+                </div>`;
+            sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+            document.body.appendChild(sheet);
+        };
+
+        // Generate rank badge SVG matching the uploaded sprite style
+        function rankBadgeSVG(rankIndex, size) {
+            const themes = [
+                { outer: '#d97706', mid: '#b45309', inner: '#7c2d12', star: '#fcd34d', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
+                { outer: '#94a3b8', mid: '#64748b', inner: '#1e293b', star: '#e2e8f0', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
+                { outer: '#fbbf24', mid: '#d97706', inner: '#78350f', star: '#fef3c7', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
+                { outer: '#a78bfa', mid: '#7c3aed', inner: '#2e1065', star: '#ddd6fe', ribbon: '#d946ef', ribbonDark: '#a21caf' },
+                { outer: '#34d399', mid: '#059669', inner: '#064e3b', star: '#d1fae5', ribbon: '#4ade80', ribbonDark: '#15803d' },
+            ];
+            const t = themes[Math.min(rankIndex, themes.length - 1)];
+            const s = size || 80;
+            const pad = s * 0.08; // top padding so hex isn't clipped
+            const totalH = Math.round(s * 1.4);
+            const cx = s / 2, cy = s * 0.44 + pad;
+            const r1 = s * 0.44, r2 = s * 0.34, r3 = s * 0.26;
+            function hex(cx, cy, r) {
+                const pts = [];
+                for (let i = 0; i < 6; i++) {
+                    const a = Math.PI / 180 * (60 * i - 30);
+                    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+                }
+                return pts.join(' ');
+            }
+            function star5(cx, cy, r, ir) {
+                const pts = [];
+                for (let i = 0; i < 10; i++) {
+                    const a = Math.PI / 180 * (36 * i - 90);
+                    const rad = i % 2 === 0 ? r : ir;
+                    pts.push(`${(cx + rad * Math.cos(a)).toFixed(1)},${(cy + rad * Math.sin(a)).toFixed(1)}`);
+                }
+                return pts.join(' ');
+            }
+            const ribbonW = s * 0.15, ribbonH = s * 0.3, ribbonGap = s * 0.04;
+            const r1x = cx - ribbonW - ribbonGap, r2x = cx + ribbonGap;
+            const ribbonY = cy + r1 - s * 0.06;
+            return `<svg viewBox="0 0 ${s} ${totalH}" width="${s}" height="${totalH}" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="${hex(cx,cy,r1)}" fill="${t.outer}" stroke="${t.mid}" stroke-width="${s*0.025}"/>
+                <polygon points="${hex(cx,cy,r2)}" fill="${t.inner}"/>
+                <polygon points="${hex(cx,cy,r3)}" fill="${t.inner}" stroke="${t.outer}" stroke-width="${s*0.018}" stroke-opacity="0.5"/>
+                <polygon points="${star5(cx,cy,r2*0.72,r2*0.3)}" fill="${t.star}"/>
+                <rect x="${r1x}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${s*0.025}" fill="${t.ribbon}"/>
+                <rect x="${r2x}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${s*0.025}" fill="${t.ribbon}"/>
+                <polygon points="${r1x},${ribbonY+ribbonH*0.65} ${r1x+ribbonW},${ribbonY+ribbonH*0.65} ${r1x+ribbonW/2},${ribbonY+ribbonH}" fill="${t.ribbonDark}"/>
+                <polygon points="${r2x},${ribbonY+ribbonH*0.65} ${r2x+ribbonW},${ribbonY+ribbonH*0.65} ${r2x+ribbonW/2},${ribbonY+ribbonH}" fill="${t.ribbonDark}"/>
+            </svg>`;
+        }
+
+        window.updateRankDisplay = function(xp, fromLoad) {
+            const rank     = window.getUserRank(xp);
+            const nextRank = RANKS[rank.index + 1];
+
+            // Detect rank-up (not on first load)
+            if (!fromLoad && window._prevRankIndex !== undefined && rank.index > window._prevRankIndex) {
+                const oldRank = RANKS[window._prevRankIndex];
+                setTimeout(() => window.showRankUpCelebration(rank, oldRank), 600);
+            }
+            window._prevRankIndex = rank.index;
+
+            const badgeEl  = document.getElementById('profileRankBadge');
+            const nameEl   = document.getElementById('profileRankName');
+            const labelEl  = document.getElementById('profileRankXpLabel');
+            const barEl    = document.getElementById('profileRankBar');
+            if (badgeEl) badgeEl.innerHTML = rankBadgeSVG(rank.col, 72);
+            if (nameEl)  { nameEl.textContent = rank.name; nameEl.style.color = rank.barColor; }
+            if (nextRank) {
+                const progress = ((xp - rank.minXp) / (nextRank.minXp - rank.minXp)) * 100;
+                if (labelEl) labelEl.textContent = `${(xp - rank.minXp).toLocaleString()} / ${(nextRank.minXp - rank.minXp).toLocaleString()} XP to ${nextRank.name}`;
+                if (barEl)   { barEl.style.width = `${Math.min(100, progress)}%`; barEl.style.background = rank.barColor; }
+            } else {
+                if (labelEl) labelEl.textContent = 'Maximum rank — Emerald! 🎉';
+                if (barEl)   { barEl.style.width = '100%'; barEl.style.background = rank.barColor; }
+            }
+        };
+
+        // ── ACHIEVEMENT TOAST ────────────────────────────────────────────────
+        // ── CELEBRATION MODAL ────────────────────────────────────────────────
+        function injectCelebrationCSS() {
+            if (document.getElementById('_celebCSS')) return;
+            const s = document.createElement('style');
+            s.id = '_celebCSS';
+            s.textContent = `
+                @keyframes _cBounce  { 0%{transform:scale(0) rotate(-12deg);opacity:0} 65%{transform:scale(1.18) rotate(3deg);opacity:1} 85%{transform:scale(0.95)} 100%{transform:scale(1)} }
+                @keyframes _cFadeUp  { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+                @keyframes _cGlow    { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.06)} }
+                @keyframes _cRing    { 0%{transform:translate(-50%,-50%) scale(.4);opacity:.9} 100%{transform:translate(-50%,-50%) scale(2.4);opacity:0} }
+                @keyframes _cPart    { 0%{transform:translate(-50%,-50%) scale(1);opacity:1} 100%{transform:translate(calc(-50% + var(--px)),calc(-50% + var(--py))) scale(0);opacity:0} }
+                @keyframes _cShine   { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+                @keyframes _cOverlay { from{opacity:0} to{opacity:1} }
+            `;
+            document.head.appendChild(s);
+        }
+
+        function showCelebrationModal(cfg) {
+            injectCelebrationCSS();
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:rgba(0,0,0,0.82);animation:_cOverlay .25s ease both;';
+
+            // Particles
+            const pcols = cfg.particleColors || ['#fbbf24','#8b5cf6','#34d399','#f472b6','#60a5fa','#fb923c'];
+            let parts = '';
+            for (let i = 0; i < 22; i++) {
+                const angle = Math.random() * 360;
+                const dist  = 90 + Math.random() * 90;
+                const px    = +(Math.cos(angle * Math.PI / 180) * dist).toFixed(1);
+                const py    = +(Math.sin(angle * Math.PI / 180) * dist).toFixed(1);
+                const size  = 4 + Math.random() * 7;
+                const col   = pcols[i % pcols.length];
+                const delay = (Math.random() * .35).toFixed(2);
+                const br    = Math.random() > .45 ? '50%' : '2px';
+                parts += `<div style="position:absolute;top:50%;left:50%;width:${size}px;height:${size}px;border-radius:${br};background:${col};animation:_cPart .85s ${delay}s cubic-bezier(.15,.6,.3,1) both;--px:${px}px;--py:${py}px;pointer-events:none;"></div>`;
+            }
+
+            overlay.innerHTML = `
+                <div style="position:relative;width:100%;max-width:330px;background:linear-gradient(160deg,#0d0d1a 0%,#181830 100%);border:1px solid rgba(255,255,255,0.08);border-radius:1.75rem;padding:2rem 1.5rem 1.75rem;text-align:center;overflow:hidden;animation:_cBounce .55s .08s cubic-bezier(.34,1.56,.64,1) both;">
+                    <!-- Top shimmer line -->
+                    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,${cfg.glow},transparent);background-size:200%;animation:_cShine 2s infinite;"></div>
+                    <!-- Particles -->
+                    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">${parts}</div>
+                    <!-- Pulse rings -->
+                    <div style="position:absolute;top:35%;left:50%;width:130px;height:130px;margin:-65px;border-radius:50%;border:2px solid ${cfg.glow};animation:_cRing .9s .15s ease-out both;pointer-events:none;"></div>
+                    <div style="position:absolute;top:35%;left:50%;width:130px;height:130px;margin:-65px;border-radius:50%;border:2px solid ${cfg.glow};animation:_cRing .9s .38s ease-out both;pointer-events:none;"></div>
+                    <!-- Badge -->
+                    <div style="position:relative;display:flex;justify-content:center;margin-bottom:1.25rem;animation:_cBounce .65s .18s cubic-bezier(.34,1.56,.64,1) both;">
+                        <div style="animation:_cGlow 2s infinite;filter:drop-shadow(0 0 18px ${cfg.glow}) drop-shadow(0 0 40px ${cfg.glow});">
+                            ${cfg.badgeHTML}
+                        </div>
+                    </div>
+                    <!-- Labels -->
+                    <p style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:${cfg.glow};margin-bottom:0.375rem;animation:_cFadeUp .4s .45s both;">${cfg.typeLabel}</p>
+                    <h2 style="font-size:1.625rem;font-weight:900;color:#fff;margin-bottom:0.5rem;animation:_cFadeUp .4s .55s both;letter-spacing:-.02em;">${cfg.title}</h2>
+                    <p style="font-size:0.8125rem;color:rgba(255,255,255,.6);line-height:1.55;margin-bottom:1.5rem;animation:_cFadeUp .4s .65s both;">${cfg.desc}</p>
+                    <!-- CTA -->
+                    <button onclick="this.closest('[style*=z-index\\:9999]').remove()" style="width:100%;padding:.9rem;border-radius:9999px;border:none;background:${cfg.glow};color:#fff;font-size:1rem;font-weight:800;cursor:pointer;animation:_cFadeUp .4s .75s both;letter-spacing:.02em;box-shadow:0 4px 20px ${cfg.glow}66;">Awesome! 🎉</button>
+                </div>`;
+
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+            setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 6000);
+        }
+
+        function showAchievementToast(ach) {
+            showCelebrationModal({
+                typeLabel:      '🏆 Achievement Unlocked!',
+                title:          ach.title,
+                desc:           ach.desc,
+                glow:           ach.ribbonColor,
+                particleColors: ['#fbbf24', ach.ribbonColor, '#fff', '#f472b6'],
+                badgeHTML: `<div style="width:88px;height:100px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:${ach.gradient};display:flex;align-items:center;justify-content:center;">
+                    <i class="fas ${ach.icon}" style="font-size:2.5rem;color:white;"></i>
+                </div>`
             });
+        }
+
+        window.showRankUpCelebration = function(newRank, oldRank) {
+            const glows = ['#d97706','#94a3b8','#fbbf24','#8b5cf6','#10b981'];
+            const glow  = glows[newRank.col] || '#8b5cf6';
+            showCelebrationModal({
+                typeLabel:      `⬆️ Rank Up! ${oldRank.name} → ${newRank.name}`,
+                title:          newRank.name,
+                desc:           `You've climbed to ${newRank.name} rank this month! Keep studying to reach the top.`,
+                glow,
+                particleColors: [glow, '#fbbf24', '#fff', glow + 'aa'],
+                badgeHTML:      rankBadgeSVG(newRank.col, 88)
+            });
+        };
+
+        // ── ACHIEVEMENTS RENDER ──────────────────────────────────────────────
+        window.renderAchievements = function(unlockedIds) {
+            const grid = document.getElementById('achievementsGrid');
+            if (!grid) return;
+            const count = (unlockedIds || []).length;
+            const countEl = document.getElementById('achievementCount');
+            if (countEl) countEl.textContent = `${count} / ${MASTER_ACHIEVEMENTS.length}`;
+
+            // Short hints for compact display
+            const shortHints = [
+                'Finish any deck','7 days in a row','30 days in a row',
+                '90% on 20+ MCQ','100% on 20+ MCQ','500 MCQs total',
+                '2,000 MCQs total','Create 25 decks','Study after midnight',
+                'Earn 5,000 XP','Earn 20,000 XP','80%+ on 3 group decks'
+            ];
+
+            function renderBadge(ach, i) {
+                const isUnlocked = (unlockedIds || []).includes(ach.id);
+                return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.15rem;cursor:pointer;" onclick="window.showAchievementDetail('${ach.id}')">
+                    <div style="position:relative;margin-bottom:2px;">
+                        <div style="width:48px;height:54px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:${isUnlocked ? ach.gradient : 'var(--bg-body)'};display:flex;align-items:center;justify-content:center;filter:${isUnlocked ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' : 'grayscale(1) opacity(0.25)'};">
+                            <i class="fas ${ach.icon}" style="font-size:1.1rem;color:${isUnlocked ? 'white' : 'var(--text-muted)'};"></i>
+                        </div>
+                        <div style="width:26px;height:7px;background:${isUnlocked ? ach.ribbonColor : '#475569'};clip-path:polygon(0 0,100% 0,82% 100%,50% 78%,18% 100%);margin:0 auto;margin-top:-1px;filter:${isUnlocked ? 'none' : 'grayscale(1) opacity(0.25)'};">
+                        </div>
+                        ${!isUnlocked
+                            ? `<div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);"><i class="fas fa-lock" style="font-size:0.7rem;color:#94a3b8;"></i></div>`
+                            : `<div style="position:absolute;top:-3px;right:-1px;width:13px;height:13px;background:#fbbf24;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg-surface);"><i class="fas fa-check" style="font-size:5px;color:white;"></i></div>`}
+                    </div>
+                    <p style="font-size:0.5rem;font-weight:700;color:${isUnlocked ? 'var(--text-main)' : 'var(--text-muted)'};text-align:center;line-height:1.2;width:58px;white-space:normal;">${ach.title}</p>
+                    <p style="font-size:0.425rem;color:${isUnlocked ? 'var(--accent-btn)' : '#94a3b8'};text-align:center;line-height:1.15;width:58px;white-space:normal;">${shortHints[i] || ach.hint}</p>
+                </div>`;
+            }
+
+            const page1 = MASTER_ACHIEVEMENTS.slice(0, 6);
+            const page2 = MASTER_ACHIEVEMENTS.slice(6);
+
+            grid.innerHTML = `
+                <div style="overflow:hidden;width:100%;">
+                    <div id="achTrack" style="display:flex;width:200%;transition:transform 0.32s cubic-bezier(0.25,1,0.5,1);">
+                        <div style="width:50%;box-sizing:border-box;display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem 0.25rem;padding:0.125rem 0.25rem;">
+                            ${page1.map((a, i) => renderBadge(a, i)).join('')}
+                        </div>
+                        <div style="width:50%;box-sizing:border-box;display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem 0.25rem;padding:0.125rem 0.25rem;">
+                            ${page2.map((a, i) => renderBadge(a, i + 6)).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:center;gap:5px;margin-top:0.625rem;">
+                    <div id="achDot0" style="width:20px;height:4px;border-radius:9999px;background:var(--accent-btn);transition:0.2s;"></div>
+                    <div id="achDot1" style="width:6px;height:4px;border-radius:9999px;background:var(--border-color);transition:0.2s;"></div>
+                </div>`;
+
+            let achPage = 0, startX = 0;
+            const track = document.getElementById('achTrack');
+            function goToPage(p) {
+                achPage = p;
+                track.style.transform = `translateX(-${p * 50}%)`;
+                const d0 = document.getElementById('achDot0');
+                const d1 = document.getElementById('achDot1');
+                if (d0) { d0.style.width = p === 0 ? '20px' : '6px'; d0.style.background = p === 0 ? 'var(--accent-btn)' : 'var(--border-color)'; }
+                if (d1) { d1.style.width = p === 1 ? '20px' : '6px'; d1.style.background = p === 1 ? 'var(--accent-btn)' : 'var(--border-color)'; }
+            }
+            track.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+            track.addEventListener('touchend',   e => {
+                const diff = startX - e.changedTouches[0].clientX;
+                if (diff > 35 && achPage === 0) goToPage(1);
+                else if (diff < -35 && achPage === 1) goToPage(0);
+            }, { passive: true });
+        };
+
+        window.showAchievementDetail = function(id) {
+            const ach = MASTER_ACHIEVEMENTS.find(a => a.id === id);
+            if (!ach) return;
+            const data = window._cachedUserData || {};
+            const isUnlocked = (data.achievements || []).includes(id);
+            const sheet = document.createElement('div');
+            sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+            sheet.innerHTML = `
+                <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);text-align:center;">
+                    <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
+                    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:1.25rem;">
+                        <div style="width:80px;height:90px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:${isUnlocked ? ach.gradient : 'var(--bg-body)'};display:flex;align-items:center;justify-content:center;filter:${isUnlocked ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' : 'grayscale(1) opacity(0.4)'};margin-bottom:4px;">
+                            <i class="fas ${ach.icon}" style="font-size:2.25rem;color:${isUnlocked ? 'white' : 'var(--text-muted)'};"></i>
+                        </div>
+                        <div style="width:46px;height:13px;background:${isUnlocked ? ach.ribbonColor : '#475569'};clip-path:polygon(0 0,100% 0,82% 100%,50% 78%,18% 100%);filter:${isUnlocked ? 'none' : 'grayscale(1) opacity(0.4)'};">
+                        </div>
+                    </div>
+                    <h3 style="font-size:1.25rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">${ach.title}</h3>
+                    <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:0.75rem;line-height:1.5;">${ach.desc}</p>
+                    ${isUnlocked
+                        ? '<p style="font-size:0.8rem;color:#10b981;font-weight:700;">✅ Achievement earned!</p>'
+                        : `<p style="font-size:0.8rem;color:var(--text-muted);">🔒 ${ach.hint}</p>`}
+                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="margin-top:1.25rem;width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Close</button>
+                </div>`;
+            sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+            document.body.appendChild(sheet);
+        };
+
+        // ── CHECK & GRANT ACHIEVEMENTS ───────────────────────────────────────
+        window.checkAchievements = async function(context = {}) {
+            if (!window.currentUser?.uid) return;
+            const data = window._cachedUserData || {};
+            const existing = Array.isArray(data.achievements) ? data.achievements : [];
+            const newlyEarned = [];
+
+            const xp            = data.xp || 0;
+            const streak        = data.streak || 0;
+            const quizzes       = window.quizzes || [];
+            const totalAnswered = data.totalQuestionsAnswered || 0;
+
+            const check = (id, condition) => {
+                if (condition && !existing.includes(id)) newlyEarned.push(id);
+            };
+
+            check('first_deck',    quizzes.length >= 1);
+            check('streak_7',      streak >= 7);
+            check('streak_30',     streak >= 30);
+            check('ten_decks',     quizzes.length >= 25);
+            check('century',       totalAnswered >= 500);
+            check('scholar',       totalAnswered >= 2000);
+            check('xp_1000',       xp >= 5000);
+            check('xp_5000',       xp >= 20000);
+            check('night_owl',     context.isNightOwl === true);
+            check('accuracy_90',   (context.accuracy || 0) >= 90 && (context.questionCount || 0) >= 20);
+            check('perfect_score', context.isPerfect === true && (context.questionCount || 0) >= 20);
+            check('group_member',  (data.groupHighScores || 0) >= 3);
+
+            if (newlyEarned.length === 0) return;
+            try {
+                const allUnlocked = [...existing, ...newlyEarned];
+                await updateDoc(doc(db, 'users', window.currentUser.uid), { achievements: allUnlocked });
+                data.achievements = allUnlocked;
+                window.renderAchievements(allUnlocked);
+                newlyEarned.forEach((id, i) => {
+                    const ach = MASTER_ACHIEVEMENTS.find(a => a.id === id);
+                    if (ach) setTimeout(() => showAchievementToast(ach), i * 1200);
+                });
+            } catch(e) { console.warn('Achievement save failed:', e); }
         };
 
         // Render Library Logic
@@ -312,21 +677,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
             return LB_COLORS[Math.abs(h) % LB_COLORS.length];
         }
+        function lbRankBadge(monthlyXp) {
+            const rank = window.getUserRank ? window.getUserRank(monthlyXp || 0) : { col: 0 };
+            const svg = rankBadgeSVG(rank.col || 0, 18);
+            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
+        }
 
-        // Build an avatar element for a leaderboard user
-        function lbAvatarHTML(user, size, currentUserId) {
+        function lbRankPill(monthlyXp) {
+            const rank = window.getUserRank ? window.getUserRank(monthlyXp || 0) : { name: 'Bronze', barColor: '#d97706' };
+            return `<span style="font-size:0.55rem;font-weight:700;color:${rank.barColor};background:${rank.barColor}18;padding:1px 5px;border-radius:9999px;border:1px solid ${rank.barColor}44;">${rank.name}</span>`;
+        }
+
+        // Build an avatar element — showBadge=false for podium (overflow:hidden clips it)
+        function lbAvatarHTML(user, size, currentUserId, showBadge = true) {
             const isMe = user.uid === currentUserId;
+            const rankBadge = showBadge ? lbRankBadge(user.monthlyRankXp || 0) : '';
 
-            // Check custom photo first (base64)
             let photoBase64 = user.photoBase64 || null;
-            if (isMe && !photoBase64) {
-                photoBase64 = localStorage.getItem('medexcel_photo_' + (currentUserId || 'guest'));
-            }
+            if (isMe && !photoBase64) photoBase64 = localStorage.getItem('medexcel_photo_' + (currentUserId || 'guest'));
             if (photoBase64) {
-                return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='?';"></div>`;
+                return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;"><img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='?';"></div>${rankBadge}</div>`;
             }
 
-            // Fall back to spritesheet avatar
             let avatarIndex = user.avatarIndex ?? null;
             if (isMe && avatarIndex === null) {
                 const saved = localStorage.getItem('medexcel_avatar_' + (currentUserId || 'guest'));
@@ -334,11 +706,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
             if (avatarIndex !== null && AVATAR_GRID) {
                 const a = AVATAR_GRID[parseInt(avatarIndex)];
-                if (a) return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;flex-shrink:0;"></div>`;
+                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}</div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
             const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
-            return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*0.35)}px;color:${fg};flex-shrink:0;">${initial}</div>`;
+            return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;"><div style="width:100%;height:100%;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*0.35)}px;color:${fg};">${initial}</div>${rankBadge}</div>`;
         }
 
         // Tab state
@@ -406,6 +778,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         displayName: data.displayName || data.email?.split('@')[0] || "User",
                         xp: data.xp,
                         weeklyXp: data.weeklyXp || 0,
+                        monthlyRankXp: data.monthlyRankXp || 0,
                         avatarIndex: data.avatarIndex ?? null,
                         photoBase64: data.photoBase64 || null,
                     });
@@ -458,10 +831,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const boxEl  = document.getElementById(slot.boxId);
                 if (!u) { if(nameEl) nameEl.textContent='—'; if(xpEl) xpEl.textContent=''; return; }
                 if (nameEl) nameEl.textContent = u.displayName;
-                if (xpEl)   xpEl.textContent   = window.formatXP(u[xpField]);
+                if (xpEl) {
+                    xpEl.innerHTML = `${window.formatXP(u[xpField])}<br>${lbRankPill(u.monthlyRankXp||0)}`;
+                }
                 if (boxEl) {
                     const size = i === 0 ? 76 : 56;
-                    boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId);
+                    boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId, false);
                 }
             });
 
@@ -1183,8 +1558,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.updatePlanIcon(window.userPlan);
                 window.updateProfileXP(data.xp || 0);
                 window.renderAchievements(data.achievements || []);
+
+                // Monthly rank reset
+                const currentMonthKey = new Date().toISOString().slice(0, 7);
+                let monthlyRankXp = data.monthlyRankXp || 0;
+                if (data.rankMonth && data.rankMonth !== currentMonthKey) {
+                    // New month — reset rank XP
+                    monthlyRankXp = 0;
+                    updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }).catch(() => {});
+                } else if (!data.rankMonth) {
+                    updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
+                }
+                if (window._cachedUserData) window._cachedUserData.monthlyRankXp = monthlyRankXp;
+                window.userStats.monthlyRankXp = monthlyRankXp;
+                window.updateRankDisplay(monthlyRankXp, true);
+                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+
                 window.updateHomeContinueCard();
                 window.renderLibrary('all', '');
+                // Check passive achievements (XP milestones, deck count, streak)
+                setTimeout(() => window.checkAchievements({}), 2000);
 
                 // ---- REFERRAL SYSTEM INIT ----
                 // 1. Ensure user has a referral code (backfill for existing users)
@@ -1481,6 +1874,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 });
                 window.closeModal('createGroupBackdrop');
                 window.loadMyGroups();
+                setTimeout(() => window.checkAchievements({ joinedGroup: true }), 500);
             } catch(e) {
                 alert('Failed to create group: ' + e.message);
             } finally {
@@ -1516,6 +1910,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 });
                 window.closeModal('joinGroupBackdrop');
                 window.loadMyGroups();
+                setTimeout(() => window.checkAchievements({ joinedGroup: true }), 500);
             } catch(e) {
                 err.textContent = 'Failed to join: ' + e.message;
             } finally {

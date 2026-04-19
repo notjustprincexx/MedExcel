@@ -858,16 +858,45 @@
                 </div>
             </div>
 
+            <!-- Rank Card -->
+            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1.125rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <i class="fas fa-shield-halved" style="color:var(--accent-btn);width:16px;text-align:center;"></i>
+                        <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Rank</span>
+                    </div>
+                    <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);background:var(--bg-body);padding:2px 8px;border-radius:9999px;border:1px solid var(--border-color);">Resets monthly</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:1rem;cursor:pointer;" onclick="window.showRankInfo()">
+                    <div style="width:80px;height:96px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                        <div id="profileRankBadge" style="display:flex;align-items:center;justify-content:center;"></div>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
+                            <div id="profileRankName" style="font-size:1.25rem;font-weight:800;color:#d97706;">Bronze</div>
+                            <i class="fas fa-chevron-right" style="font-size:0.625rem;color:var(--text-muted);"></i>
+                        </div>
+                        <div id="profileRankXpLabel" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">0 / 500 XP to Silver</div>
+                        <div style="height:6px;background:var(--bg-body);border-radius:9999px;overflow:hidden;border:1px solid var(--border-color);">
+                            <div id="profileRankBar" style="height:100%;background:#d97706;border-radius:9999px;width:0%;transition:width 0.8s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Achievements -->
             <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1rem 1.125rem;">
-                <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:1rem;">
-                    <i class="fas fa-trophy" style="color:#fbbf24;width:16px;text-align:center;"></i>
-                    <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Achievements</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <i class="fas fa-trophy" style="color:#fbbf24;width:16px;text-align:center;"></i>
+                        <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Achievements</span>
+                    </div>
+                    <span id="achievementCount" style="font-size:0.75rem;font-weight:700;background:rgba(167,139,250,0.12);color:var(--accent-btn);padding:3px 10px;border-radius:9999px;">0 / 12</span>
                 </div>
-                <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
-                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
-                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
-                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
+                <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
                 </div>
             </div>
 

@@ -273,6 +273,7 @@
             const bar = document.getElementById('profileXpBar'); if (bar) bar.style.width = Math.min(100, (cur / needed) * 100) + '%';
             const label = document.getElementById('profileXpLabel'); if (label) label.textContent = cur.toLocaleString() + ' / ' + needed.toLocaleString();
             const xpEl = document.getElementById('studyXpDisplay'); if (xpEl) xpEl.textContent = (xp || 0).toLocaleString() + ' XP';
+            if (typeof window.updateRankDisplay === 'function') window.updateRankDisplay(xp || 0);
         };
 
         // Plan icon — Free or Premium only
@@ -1545,6 +1546,14 @@ if (nextBtn) {
                     if (!currentQuiz._isGroupDeck) {
                         await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
                         localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                        // Track total MCQ questions answered
+                        if (isMCQSession) {
+                            const qCount = currentQuiz.questions ? currentQuiz.questions.length : 0;
+                            const prev = window._cachedUserData?.totalQuestionsAnswered || 0;
+                            const newTotal = prev + qCount;
+                            updateDoc(doc(window.db, 'users', window.currentUser.uid), { totalQuestionsAnswered: newTotal }).catch(() => {});
+                            if (window._cachedUserData) window._cachedUserData.totalQuestionsAnswered = newTotal;
+                        }
                     }
                     // Write to group score feed if this is a group deck
                     if (currentQuiz._isGroupDeck && currentQuiz._groupId) {
@@ -1581,6 +1590,27 @@ if (nextBtn) {
                         } catch(e) {}
                     }
                 } catch(e) { console.error("Stats sync failed", e); }
+
+                // Check achievements with quiz context
+                if (typeof window.checkAchievements === 'function') {
+                    const now = new Date();
+                    const hour = now.getHours();
+                    const qCount = currentQuiz.questions ? currentQuiz.questions.length : 0;
+                    const pct3 = qCount > 0 ? Math.round((examScore / qCount) * 100) : 0;
+                    // Track groupHighScores for Team Player achievement
+                    if (currentQuiz._isGroupDeck && pct3 >= 80 && window.currentUser && window._cachedUserData) {
+                        const prev = window._cachedUserData.groupHighScores || 0;
+                        const newCount = prev + 1;
+                        updateDoc(doc(window.db, 'users', window.currentUser.uid), { groupHighScores: newCount }).catch(() => {});
+                        window._cachedUserData.groupHighScores = newCount;
+                    }
+                    setTimeout(() => window.checkAchievements({
+                        isNightOwl:    hour === 0 || hour === 1 || hour === 2 || hour === 3,
+                        accuracy:      pct3,
+                        isPerfect:     pct3 === 100,
+                        questionCount: isMCQSession ? qCount : 0
+                    }), 1500);
+                }
             }
 
             const area = document.getElementById('studyPracticeArea');
