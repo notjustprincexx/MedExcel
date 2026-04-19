@@ -1796,7 +1796,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const encodedName = encodeURIComponent(name);
             const link = `https://medxcel.web.app/index.html?code=${code}&name=${encodedName}`;
             const appLink = `medxcel://auth?code=${code}`;
-            const message = `Join my MedExcel study group "${name}"!\n\nIf you have the app, tap this link:\n${appLink}\n\nOr join via web:\n${link}\n\nOr enter code manually: ${code}`;
+            const message = `Join my MedExcel study group "${name}"!\n\nTap the link to join automatically:\n${link}\n\nOr enter code manually: ${code}`;
 
             // Capacitor native share (same as referral link)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
