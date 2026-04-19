@@ -1793,7 +1793,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const name = g.name;
             const link = `https://medxcel.web.app/index.html?code=${code}`;
             const appLink = `medxcel://auth?code=${code}`;
-            const message = `Join my MedExcel study group "${name}"!\n\nIf you have the app, tap this link:\n${appLink}\n\nOr join via web:\n${link}\n\nOr enter code manually: ${code}`;
+            const message = `Join my MedExcel study group "${name}"!\n\nTap the link to join instantly in the app, or enter the code manually: ${code}\n\nDon't have the app yet? Join via web: ${link}`;
 
             // Capacitor native share (same as referral link)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -1802,7 +1802,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     await Share.share({
                         title: `Join ${name} on MedExcel`,
                         text: message,
-                        url: link,
+                        url: appLink,
                         dialogTitle: 'Invite to study group'
                     });
                 } catch(e) {
