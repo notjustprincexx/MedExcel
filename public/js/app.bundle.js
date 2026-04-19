@@ -86,36 +86,57 @@
             cMeta.classList.remove('skeleton'); cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
             cProgress.classList.remove('skeleton'); cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
             cIconBox.classList.remove('skeleton');
-            
+
             if (window.quizzes && window.quizzes.length > 0) {
-                // Show the most recently attempted quiz, fall back to last created
+                // Show most recently attempted, fall back to last created
                 const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
                 const lastQuiz = attempted.length > 0
                     ? attempted.reduce((a, b) => (a.id > b.id ? a : b))
                     : window.quizzes[window.quizzes.length - 1];
-                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+
+                const totalQs   = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const attempts  = lastQuiz.stats ? lastQuiz.stats.attempts : 0;
+                const lastScore = lastQuiz.stats ? lastQuiz.stats.lastScore : 0;
                 const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
-                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
-                
+                const isMCQ     = lastQuiz.type && lastQuiz.type.includes('Multiple');
+
                 window._continueQuizId = lastQuiz.id;
-                const isMCQ = lastQuiz.type && lastQuiz.type.includes('Multiple');
                 cIconBox.innerHTML = isMCQ
                     ? '<i class="fas fa-clipboard-list" style="font-size:1.25rem;"></i>'
                     : '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
                 cIconBox.style.color = isMCQ ? '#8b5cf6' : '#60a5fa';
-
                 cTitle.textContent = lastQuiz.title || 'Untitled';
-                cProgress.textContent = `+${progress}%`; 
-                cMeta.innerHTML = `<span>${totalQs}</span> items • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
+
+                if (attempts === 0) {
+                    // Never attempted — show item count as a nudge
+                    cProgress.textContent = `${totalQs} items`;
+                    cProgress.style.background = 'rgba(139,92,246,0.1)';
+                    cProgress.style.color = 'var(--accent-btn)';
+                    cMeta.innerHTML = `<span>${lastQuiz.subject || 'GENERAL'}</span> • <span>Not started</span>`;
+                } else if (isMCQ) {
+                    // MCQ — show last score percentage, best in meta
+                    const lastPct = totalQs > 0 ? Math.round((lastScore / totalQs) * 100) : 0;
+                    const bestPct = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
+                    cProgress.textContent = `${lastPct}%`;
+                    cProgress.style.background = lastPct >= 80 ? 'rgba(52,211,153,0.12)' : lastPct >= 50 ? 'rgba(251,191,36,0.12)' : 'rgba(248,113,113,0.12)';
+                    cProgress.style.color = lastPct >= 80 ? 'var(--accent-green)' : lastPct >= 50 ? 'var(--accent-yellow)' : '#f87171';
+                    cMeta.innerHTML = `<span>Best: ${bestPct}%</span> • <span>${attempts} attempt${attempts !== 1 ? 's' : ''}</span>`;
+                } else {
+                    // Flashcards — show cards reviewed
+                    cProgress.textContent = `${totalQs} cards`;
+                    cProgress.style.background = 'rgba(96,165,250,0.12)';
+                    cProgress.style.color = '#60a5fa';
+                    cMeta.innerHTML = `<span>Reviewed ${attempts}×</span> • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
+                }
             } else {
                 cIconBox.innerHTML = '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
                 cIconBox.style.color = '#60a5fa';
-                cTitle.textContent = "No recent activity";
-                cProgress.textContent = "0%";
-                cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
-                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
+                cTitle.textContent = 'No recent activity';
+                cProgress.textContent = 'Start';
+                cProgress.style.background = 'rgba(139,92,246,0.1)';
+                cProgress.style.color = 'var(--accent-btn)';
+                cMeta.innerHTML = '<span>Create your first deck</span>';
             }
-            // Update recent decks in sync
             window.renderRecentDecks();
         };
 
@@ -1540,10 +1561,24 @@ if (nextBtn) {
                             percentage: pct,
                             scoredAt: new Date().toISOString()
                         });
-                        // Also update scores on the deck doc
-                        await updateDoc(doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id)), {
+                        // Update scores on deck doc
+                        const deckRef = doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id));
+                        await updateDoc(deckRef, {
                             [`scores.${window.currentUser.uid}`]: { score: examScore, percentage: pct, date: new Date().toISOString() }
                         }).catch(() => {});
+                        // Notify deck creator
+                        try {
+                            const deckRef2 = doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id));
+                            const deckSnap = await window._firestoreGetDoc(deckRef2);
+                            if (deckSnap.exists()) {
+                                const creatorUid = deckSnap.data().sharedBy;
+                                if (creatorUid && creatorUid !== window.currentUser.uid) {
+                                    const { getFunctions: gf, httpsCallable: hc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+                                    const fn = hc(gf(window.auth.app, 'us-central1'), 'sendToUserById');
+                                    await fn({ userId: creatorUid, title: '🔥 Score alert!', body: `${memberName} scored ${pct}% on your "${currentQuiz.title}" deck`, data: { type: 'group_score' } }).catch(() => {});
+                                }
+                            }
+                        } catch(e) {}
                     }
                 } catch(e) { console.error("Stats sync failed", e); }
             }
