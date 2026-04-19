@@ -1412,6 +1412,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         });
 
+        // ── DEEP LINK via Capacitor appUrlOpen ───────────────────────────────────
+        // Fires in JS directly when app opens from medxcel:// URL
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            window.Capacitor.Plugins.App.addListener('appUrlOpen', async (event) => {
+                try {
+                    const url = new URL(event.url);
+                    const code = url.searchParams.get('code');
+                    if (!code) return;
+                    sessionStorage.setItem('medexcel_pending_group', code.toUpperCase());
+                    if (window.currentUser) await window.handlePendingGroupJoin();
+                } catch(e) { console.warn('appUrlOpen error:', e); }
+            });
+        }
+
         // ── GROUPS ──────────────────────────────────────────────────────────
 
         function genInviteCode() {
