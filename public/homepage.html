@@ -1014,23 +1014,42 @@
                 </div>
             </div>
 
+            <!-- First month promo — shown only to users who have never subscribed -->
+            <div id="pFirstMonthBanner" style="display:none;background:linear-gradient(135deg,rgba(251,191,36,0.12),rgba(249,115,22,0.1));border:1.5px solid rgba(251,191,36,0.35);border-radius:1rem;padding:.75rem 1rem;margin-bottom:.75rem;cursor:pointer;" onclick="window.switchPayPlan('trial')">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:.5rem;">
+                        <div id="pCheckTrial" style="width:18px;height:18px;border-radius:50%;border:2px solid #fbbf24;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fbbf24;">
+                            <div style="width:7px;height:7px;border-radius:50%;background:white;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:.8125rem;font-weight:800;color:var(--text-main);">🎉 First Month Offer</div>
+                            <div style="font-size:.7rem;color:var(--text-muted);">New users only · then <span id="pTrialThen">₦1,999</span>/mo</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div id="pTrialPrice" style="font-size:1.25rem;font-weight:900;color:#f97316;">₦250</div>
+                        <div style="font-size:.6rem;color:var(--text-muted);">first month</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Plan picker: two cards side by side -->
             <div style="display:flex;gap:.625rem;margin-bottom:.75rem;margin-top:.125rem;">
-                <div class="pplan-card active" id="pCardMonthly" onclick="window.switchPayPlan('monthly')">
+                <div class="pplan-card" id="pCardMonthly" onclick="window.switchPayPlan('monthly')">
                     <div class="pplan-check" id="pCheckMonthly"></div>
                     <div style="font-size:.8125rem;font-weight:700;color:var(--text-main);">Monthly</div>
-                    <div style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:.2rem 0 .1rem;">₦1,999</div>
+                    <div id="pMonthlyPrice" style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:.2rem 0 .1rem;">₦1,999</div>
                     <div style="font-size:.65rem;color:var(--text-muted);">/month</div>
                 </div>
-                <div class="pplan-card" id="pCardYearly" onclick="window.switchPayPlan('yearly')" style="position:relative;">
+                <div class="pplan-card active" id="pCardYearly" onclick="window.switchPayPlan('yearly')" style="position:relative;">
                     <span class="pbadge">Best value!</span>
                     <div class="pplan-check" id="pCheckYearly"></div>
                     <div style="font-size:.8125rem;font-weight:700;color:var(--text-main);">Yearly</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:.25rem;margin:.2rem 0 .1rem;">
-                        <span id="pYearlyOrig" style="font-size:.75rem;color:var(--text-muted);text-decoration:line-through;">₦24,000</span>
-                        <span style="font-size:1.125rem;font-weight:800;color:var(--text-main);">₦17,999</span>
+                        <span id="pYearlyOrig" style="font-size:.75rem;color:var(--text-muted);text-decoration:line-through;"></span>
+                        <span id="pYearlyPrice" style="font-size:1.125rem;font-weight:800;color:var(--text-main);">₦14,999</span>
                     </div>
-                    <div style="font-size:.65rem;color:var(--text-muted);">₦1,500/mo · save 50%</div>
+                    <div id="pYearlySub" style="font-size:.65rem;color:var(--text-muted);">save 37%</div>
                 </div>
             </div>
 

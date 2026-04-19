@@ -186,6 +186,7 @@
                 if (targetViewId === 'view-study' && typeof window.renderLibrary === 'function') window.renderLibrary();
                 if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
                 if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
+                if (targetViewId === 'view-payment' && typeof window.loadGeoPricing === 'function') window.loadGeoPricing();
             } catch(e) { console.warn("View init skipped:", e); }
             
             // 5. Update URL
@@ -2317,28 +2318,113 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             } catch(e) {}
         }
 
+        // ── GEO PRICING ─────────────────────────────────────────────────────
+        const GEO_PRICES = {
+            NG: { currency: 'NGN', symbol: '₦',   monthly: 1999,  yearly: 14999, monthlyKobo: 199900,  yearlyKobo: 1499900, origYearly: 23988, savePct: '37%', perMo: '₦1,249/mo'  },
+            GH: { currency: 'GHS', symbol: 'GH₵', monthly: 25,    yearly: 180,   monthlyKobo: 2500,    yearlyKobo: 18000,   origYearly: 300,   savePct: '40%', perMo: 'GH₵15/mo'   },
+            KE: { currency: 'KES', symbol: 'KSh', monthly: 250,   yearly: 1800,  monthlyKobo: 25000,   yearlyKobo: 180000,  origYearly: 3000,  savePct: '40%', perMo: 'KSh150/mo'  },
+            ZA: { currency: 'ZAR', symbol: 'R',   monthly: 35,    yearly: 260,   monthlyKobo: 3500,    yearlyKobo: 26000,   origYearly: 420,   savePct: '38%', perMo: 'R21.67/mo'  },
+            US: { currency: 'USD', symbol: '$',   monthly: 2.5,   yearly: 18,    monthlyKobo: 250,     yearlyKobo: 1800,    origYearly: 30,    savePct: '40%', perMo: '$1.50/mo'   },
+            GB: { currency: 'GBP', symbol: '£',   monthly: 2,     yearly: 14,    monthlyKobo: 200,     yearlyKobo: 1400,    origYearly: 24,    savePct: '42%', perMo: '£1.17/mo'   },
+        };
+        const DEFAULT_GEO = GEO_PRICES.NG;
+        window._geoPrice = DEFAULT_GEO;
+
+        window.loadGeoPricing = async function() {
+            try {
+                const res  = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) });
+                const json = await res.json();
+                const cc   = (json.country_code || 'NG').toUpperCase();
+                window._geoPrice = GEO_PRICES[cc] || GEO_PRICES.US;
+            } catch(e) {
+                window._geoPrice = DEFAULT_GEO;
+            }
+            window.applyGeoPricing();
+
+            // Show first month promo only if user has never subscribed
+            const userData = window._cachedUserData || {};
+            const neverSubscribed = !userData.planRef && !userData.subscriptionExpiry;
+            const banner = document.getElementById('pFirstMonthBanner');
+            if (banner) {
+                if (neverSubscribed) {
+                    banner.style.display = 'block';
+                    // Pre-select trial
+                    window.switchPayPlan('trial');
+                } else {
+                    banner.style.display = 'none';
+                    window.switchPayPlan('monthly');
+                }
+            }
+        };
+
+        window.applyGeoPricing = function() {
+            const p = window._geoPrice || DEFAULT_GEO;
+            const mFmt = `${p.symbol}${p.monthly.toLocaleString()}`;
+            const yFmt = `${p.symbol}${p.yearly.toLocaleString()}`;
+            const tFmt = `${p.symbol}${p.trialMonthly ? p.trialMonthly.toLocaleString() : (p.currency === 'NGN' ? '250' : Math.round(p.monthly * 0.13).toLocaleString())}`;
+            const mPrice  = document.getElementById('pMonthlyPrice');
+            const yPrice  = document.getElementById('pYearlyPrice');
+            const yOrig   = document.getElementById('pYearlyOrig');
+            const ySub    = document.getElementById('pYearlySub');
+            const cta     = document.getElementById('payCTABtn');
+            const tThen   = document.getElementById('pTrialThen');
+            const tPrice  = document.getElementById('pTrialPrice');
+            if (mPrice) mPrice.textContent = mFmt;
+            if (yPrice) yPrice.textContent = yFmt;
+            if (yOrig)  yOrig.textContent  = `${p.symbol}${p.origYearly.toLocaleString()}`;
+            if (ySub)   ySub.textContent   = `${p.perMo} · save ${p.savePct}`;
+            if (tThen)  tThen.textContent  = mFmt;
+            if (tPrice) tPrice.textContent = tFmt;
+            if (cta && !cta.disabled) {
+                const plan = _payCurrentPlan || 'trial';
+                if (plan === 'trial')   cta.textContent = `Try Premium — ${tFmt} first month`;
+                else if (plan === 'yearly') cta.textContent = `Subscribe Yearly — ${yFmt}`;
+                else cta.textContent = `Subscribe Monthly — ${mFmt}`;
+            }
+        };
+
         window.switchPayPlan = function(plan) {
             try {
                 _payCurrentPlan = plan;
                 var cM = document.getElementById('pCardMonthly'), cY = document.getElementById('pCardYearly');
+                var cT = document.getElementById('pFirstMonthBanner');
+                var ckT = document.getElementById('pCheckTrial');
                 var dealBox = document.getElementById('payDealBox'), ctaEl = document.getElementById('payCTABtn');
                 if (!cM || !cY) return;
-                if (plan === 'monthly') {
-                    cM.classList.add('active'); cY.classList.remove('active');
+                const p = window._geoPrice || DEFAULT_GEO;
+                const mFmt = `${p.symbol}${p.monthly.toLocaleString()}`;
+                const yFmt = `${p.symbol}${p.yearly.toLocaleString()}`;
+                const tAmt = p.currency === 'NGN' ? 250 : Math.round(p.monthly * 0.13);
+                const tFmt = `${p.symbol}${tAmt.toLocaleString()}`;
+
+                // Reset all selections
+                cM.classList.remove('active'); cY.classList.remove('active');
+                if (ckT) { ckT.style.background = 'transparent'; ckT.style.borderColor = '#fbbf24'; ckT.querySelector('div').style.display = 'none'; }
+                if (cT)  cT.style.border = '1.5px solid rgba(251,191,36,0.35)';
+
+                if (plan === 'trial') {
+                    if (ckT) { ckT.style.background = '#fbbf24'; ckT.querySelector('div').style.display = 'block'; }
+                    if (cT)  cT.style.border = '2px solid #fbbf24';
                     if (dealBox) dealBox.style.display = 'none';
                     clearInterval(_payCdInterval);
-                    if (ctaEl) ctaEl.textContent = 'Subscribe Monthly — ₦1,999';
+                    if (ctaEl) ctaEl.textContent = `Try Premium — ${tFmt} first month`;
+                } else if (plan === 'monthly') {
+                    cM.classList.add('active');
+                    if (dealBox) dealBox.style.display = 'none';
+                    clearInterval(_payCdInterval);
+                    if (ctaEl) ctaEl.textContent = `Subscribe Monthly — ${mFmt}`;
                 } else {
-                    cM.classList.remove('active'); cY.classList.add('active');
+                    cY.classList.add('active');
                     if (dealBox) { dealBox.style.display = 'flex'; clearInterval(_payCdInterval); _payTick(); _payCdInterval = setInterval(_payTick, 1000); }
-                    if (ctaEl) ctaEl.textContent = 'Subscribe Yearly — ₦17,999';
+                    if (ctaEl) ctaEl.textContent = `Subscribe Yearly — ${yFmt}`;
                 }
             } catch(e) { console.warn('switchPayPlan error:', e); }
         };
 
         window.handlePayCTA = function() {
             try {
-                if (_payCurrentPlan === 'monthly') window.startPayment('premium');
+                if (_payCurrentPlan === 'trial')   window.startPayment('premium_trial');
+                else if (_payCurrentPlan === 'monthly') window.startPayment('premium');
                 else window.startPayment('premium_yearly');
             } catch(e) { console.warn('handlePayCTA error:', e); }
         };
@@ -2372,14 +2458,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             var lastName  = nameParts.slice(1).join(" ") || ".";
             var email     = window.currentUser.email || "";
 
-            var amounts = {
-                premium:         199900,
-                premium_monthly: 199900,
-                premium_yearly:  1799900,
-                elite:           299900
-            };
-            var amount = amounts[plan];
-            if (!amount) return;
+            const p = window._geoPrice || DEFAULT_GEO;
+            const trialAmt = p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.13);
+
+            var amount   = plan === 'premium_yearly' ? p.yearlyKobo
+                         : plan === 'premium_trial'  ? trialAmt
+                         : p.monthlyKobo;
+            var currency = p.currency;
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
@@ -2390,7 +2475,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     first_name: firstName,
                     last_name:  lastName,
                     amount:     amount,
-                    currency:   "NGN",
+                    currency:   currency,
                     ref:        ref,
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },
