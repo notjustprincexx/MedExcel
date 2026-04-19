@@ -1394,6 +1394,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
                 if (window.initPush) window.initPush(firebaseUser.uid);
+                // Deep link: check for a pending group invite code
+                await window.handlePendingGroupJoin();
             } else {
                 if (_isLoggingOut) return;
                 window.currentUser = null;
@@ -1791,9 +1793,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (!g) return;
             const code = g.inviteCode;
             const name = g.name;
-            const link = `https://medxcel.web.app/join?code=${code}`;
+            const link = `https://medxcel.web.app/index.html?code=${code}`;
             const appLink = `medxcel://auth?code=${code}`;
-            const message = `Join my MedExcel study group "${name}" on MedExcel! 📚\n\nTap to join:\n${link}\n\nOr enter code manually: ${code}`;
+            const message = `Join my MedExcel study group "${name}"!\n\nIf you have the app, tap this link:\n${appLink}\n\nOr join via web:\n${link}\n\nOr enter code manually: ${code}`;
 
             // Capacitor native share (same as referral link)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -1802,6 +1804,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     await Share.share({
                         title: `Join ${name} on MedExcel`,
                         text: message,
+                        url: link,
                         dialogTitle: 'Invite to study group'
                     });
                 } catch(e) {
