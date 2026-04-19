@@ -236,13 +236,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     </div>
                 </div>`;
             }).join('');
+            sheet.id = 'rankInfoModal';
             sheet.innerHTML = `
                 <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
                     <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
                     <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.25rem;">Monthly Ranks</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;">Ranks reset on the 1st of every month. Earn XP by studying to climb!</p>
                     <div style="display:flex;flex-direction:column;gap:0.25rem;margin-bottom:1rem;">${ranksHTML}</div>
-                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Close</button>
+                    <button onclick="document.getElementById('rankInfoModal').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Close</button>
                 </div>`;
             sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
             document.body.appendChild(sheet);
@@ -418,6 +419,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.renderAchievements = function(unlockedIds) {
             const grid = document.getElementById('achievementsGrid');
             if (!grid) return;
+            // Reset skeleton grid styles so the slider layout works correctly
+            grid.style.display = 'block';
+            grid.style.gridTemplateColumns = '';
+            grid.style.gap = '';
             const count = (unlockedIds || []).length;
             const countEl = document.getElementById('achievementCount');
             if (countEl) countEl.textContent = `${count} / ${MASTER_ACHIEVEMENTS.length}`;
