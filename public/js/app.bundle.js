@@ -88,15 +88,26 @@
             cIconBox.classList.remove('skeleton');
 
             if (window.quizzes && window.quizzes.length > 0) {
-                // Show most recently attempted (by timestamp), fall back to last created
+                // Show most recent activity — whichever happened last: creating a deck OR finishing a study session
                 const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
-                const lastQuiz = attempted.length > 0
+                const lastAttempted = attempted.length > 0
                     ? attempted.reduce((a, b) => {
-                        const ta = (a.stats?.lastAttemptedAt || a.id);
-                        const tb = (b.stats?.lastAttemptedAt || b.id);
+                        const ta = a.stats?.lastAttemptedAt ? new Date(a.stats.lastAttemptedAt).getTime() : a.id;
+                        const tb = b.stats?.lastAttemptedAt ? new Date(b.stats.lastAttemptedAt).getTime() : b.id;
                         return ta > tb ? a : b;
                       })
-                    : window.quizzes[window.quizzes.length - 1];
+                    : null;
+                // quiz.id is Date.now() at creation — reliable creation timestamp
+                const lastCreated = window.quizzes[window.quizzes.length - 1];
+                let lastQuiz;
+                if (!lastAttempted) {
+                    lastQuiz = lastCreated;
+                } else {
+                    const attemptedTime = lastAttempted.stats?.lastAttemptedAt
+                        ? new Date(lastAttempted.stats.lastAttemptedAt).getTime()
+                        : lastAttempted.id;
+                    lastQuiz = lastCreated.id > attemptedTime ? lastCreated : lastAttempted;
+                }
 
                 const totalQs   = lastQuiz.questions ? lastQuiz.questions.length : 0;
                 const attempts  = lastQuiz.stats ? lastQuiz.stats.attempts : 0;
@@ -2561,12 +2572,79 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         // --- PAYMENT UI LOGIC ---
+
+        // Shared verify helper — used by inline popup onSuccess AND fallback iframe path
+        window._activatePremium = async function(ref) {
+            var btn = document.getElementById('payCTABtn');
+            var iBtn = document.getElementById('iframeVerifyBtn');
+            if (btn)  { btn.textContent = "Verifying payment…"; btn.disabled = true; }
+            if (iBtn) { iBtn.textContent = "Verifying…"; iBtn.disabled = true; }
+            try {
+                const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                const fns    = getFunctions(window.auth?.app, "us-central1");
+                const verify = httpsCallable(fns, "verifySubscriptionPayment");
+                const result = await verify({ reference: ref });
+                if (result.data?.success) {
+                    // Clear stored pending payment
+                    try { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); } catch(_){}
+                    window._pendingPayRef  = null;
+                    window._pendingPayPlan = null;
+
+                    const newPlan = result.data.plan;
+                    window.userPlan = newPlan;
+                    if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(newPlan);
+                    if (typeof window.applyAvatar    === 'function') window.applyAvatar();
+                    window.allowedMaxItems = newPlan === 'premium' ? 50 : 20;
+                    const maxText = document.getElementById('maxLimitText');
+                    if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+
+                    if (btn)  { btn.textContent = "✓ You're Premium!"; btn.style.background = "#10b981"; btn.style.color = "#fff"; btn.disabled = false; }
+                    if (iBtn) { iBtn.textContent = "✓ Activated!"; iBtn.style.background = "#10b981"; iBtn.disabled = false; }
+
+                    window.closePaymentModal();
+
+                    if (typeof window.showCelebrationModal === 'function') {
+                        setTimeout(() => window.showCelebrationModal({
+                            typeLabel: '💎 Premium Activated!',
+                            title: 'Welcome to Premium',
+                            desc: '50 questions per deck · 30 generations/day · Gold ring · All ranks unlocked',
+                            glow: '#fbbf24',
+                            particleColors: ['#fbbf24','#f97316','#fff','#facc15'],
+                            badgeHTML: '<div style="font-size:3.5rem;">💎</div>'
+                        }), 300);
+                    }
+                    setTimeout(() => navigateTo('view-home'), 2500);
+                } else {
+                    throw new Error(result.data?.message || 'Verification failed');
+                }
+            } catch(e) {
+                console.error("Payment verification error:", e);
+                if (btn)  { btn.textContent = "Verify failed — contact support"; btn.disabled = false; }
+                if (iBtn) { iBtn.textContent = "✓ I've paid — Activate"; iBtn.disabled = false; }
+            }
+        };
+
+        // Verify whatever pending ref is stored (called by "I've paid" button in iframe modal)
+        window.verifyPendingPayment = async function() {
+            const ref = window._pendingPayRef || localStorage.getItem('medx_pending_ref');
+            if (!ref) { alert("No pending payment found. If you were charged, use the recovery option on the payment page."); return; }
+            await window._activatePremium(ref);
+        };
+
         window.openPaymentModal = function(url) {
             const modal = document.getElementById('paymentModalOverlay');
             const sheet = document.getElementById('paymentSheet');
             const iframe = document.getElementById('paystackIframe');
+            const iBtn  = document.getElementById('iframeVerifyBtn');
             iframe.src = url;
             modal.style.display = 'flex';
+            // Show "I've paid" button after 8 s — user has had time to complete payment
+            if (iBtn) {
+                iBtn.style.display = 'none';
+                iBtn.textContent = "✓ I've paid — Activate";
+                iBtn.disabled = false;
+                setTimeout(() => { iBtn.style.display = 'inline-block'; }, 8000);
+            }
             setTimeout(() => { modal.style.opacity = '1'; sheet.style.transform = 'translateY(0)'; }, 10);
         };
 
@@ -2578,6 +2656,17 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             sheet.style.transform = 'translateY(100%)';
             setTimeout(() => { modal.style.display = 'none'; iframe.src = ''; }, 300);
         };
+
+        // Listen for Paystack postMessage from the shop iframe (fires on successful payment)
+        window.addEventListener('message', function(e) {
+            try {
+                if (!e.origin.includes('paystack')) return;
+                var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (d && (d.event === 'success' || d.status === 'success') && window._pendingPayRef) {
+                    window._activatePremium(window._pendingPayRef);
+                }
+            } catch(_) {}
+        });
 
         window.startPayment = function(plan) {
             if (!window.currentUser) { window.showLoginModal(); return; }
@@ -2601,7 +2690,15 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
+            // ── Store pending payment BEFORE attempting PaystackPop ──
+            // If PaystackPop throws or the fallback iframe is used, the ref is still
+            // available so we can verify after the user completes payment.
+            window._pendingPayRef  = ref;
+            window._pendingPayPlan = plan;
+            try { localStorage.setItem('medx_pending_ref', ref); localStorage.setItem('medx_pending_plan', plan); } catch(_) {}
+
             try {
+                if (typeof PaystackPop === 'undefined') throw new Error('PaystackPop not loaded');
                 var handler = PaystackPop.setup({
                     key:        "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
                     email:      email,
@@ -2613,61 +2710,54 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },
                     onSuccess: async function(transaction) {
-                        try {
-                            var btn = document.getElementById('payCTABtn');
-                            if (btn) { btn.textContent = "Verifying payment…"; btn.disabled = true; }
-
-                            // Verify server-side — never trust client-side Paystack callback alone
-                            const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
-                            const fns = getFunctions(window.auth?.app, "us-central1");
-                            const verify = httpsCallable(fns, "verifySubscriptionPayment");
-                            const result = await verify({ reference: transaction.reference });
-
-                            if (result.data?.success) {
-                                const newPlan = result.data.plan;
-                                window.userPlan = newPlan;
-                                window.updatePlanIcon(newPlan);
-                                window.applyAvatar(); // apply premium ring immediately
-
-                                // Update allowedMaxItems
-                                window.allowedMaxItems = newPlan === 'premium' ? 50 : 20;
-                                const maxText = document.getElementById('maxLimitText');
-                                if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
-
-                                if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "#10b981"; btn.style.color = "#fff"; btn.disabled = false; }
-
-                                // Show celebration
-                                if (typeof window.showRankUpCelebration === 'function') {
-                                    setTimeout(() => {
-                                        window.showCelebrationModal ? window.showCelebrationModal({
-                                            typeLabel: '💎 Premium Activated!',
-                                            title: 'Welcome to Premium',
-                                            desc: '50 questions per deck · 30 generations/day · Gold ring · All ranks unlocked',
-                                            glow: '#fbbf24',
-                                            particleColors: ['#fbbf24','#f97316','#fff','#facc15'],
-                                            badgeHTML: '<div style="font-size:3.5rem;">💎</div>'
-                                        }) : null;
-                                    }, 300);
-                                }
-
-                                setTimeout(() => navigateTo('view-home'), 2500);
-                            } else {
-                                throw new Error('Verification failed');
-                            }
-                        } catch(e) {
-                            console.error("Payment verification error:", e);
-                            var btn = document.getElementById('payCTABtn');
-                            if (btn) { btn.textContent = "Verify failed — contact support"; btn.disabled = false; }
-                        }
+                        await window._activatePremium(transaction.reference);
                     },
-                    onCancel: function() {}
+                    onCancel: function() {
+                        // Don't clear pending ref on cancel — user may re-open and complete
+                    }
                 });
                 handler.openIframe();
             } catch(err) {
-                console.error("Paystack error:", err);
+                console.error("Paystack inline error — using fallback iframe:", err);
                 window.openPaymentModal(plan === "elite" ? "https://paystack.shop/pay/lw17s2ggpj" : "https://paystack.shop/pay/5wqjry1l0a");
             }
         };
+
+        // On startup: if a pending ref exists (e.g. app restarted mid-payment), auto-verify
+        (function checkPendingOnLoad() {
+            try {
+                const savedRef = localStorage.getItem('medx_pending_ref');
+                if (!savedRef) return;
+                // Wait for auth to be ready then attempt silent verification
+                var attempts = 0;
+                var poll = setInterval(async function() {
+                    attempts++;
+                    if (attempts > 20) { clearInterval(poll); return; } // give up after 10 s
+                    if (!window.currentUser || !window.auth) return;
+                    clearInterval(poll);
+                    console.log('[MedXcel] Found unverified pending payment, attempting recovery:', savedRef);
+                    try {
+                        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                        const fns    = getFunctions(window.auth?.app, "us-central1");
+                        const verify = httpsCallable(fns, "verifySubscriptionPayment");
+                        const result = await verify({ reference: savedRef });
+                        if (result.data?.success) {
+                            localStorage.removeItem('medx_pending_ref');
+                            localStorage.removeItem('medx_pending_plan');
+                            const newPlan = result.data.plan;
+                            window.userPlan = newPlan;
+                            if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(newPlan);
+                            if (typeof window.applyAvatar    === 'function') window.applyAvatar();
+                            console.log('[MedXcel] Auto-recovery succeeded — plan:', newPlan);
+                        } else {
+                            // Not successful — payment may not have completed, clear after 24 h to avoid stale refs
+                            const saved = parseInt(savedRef.split('_')[1] || '0', 10);
+                            if (Date.now() - saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); }
+                        }
+                    } catch(e) { console.warn('[MedXcel] Auto-recovery check failed silently:', e); }
+                }, 500);
+            } catch(_) {}
+        })();
 
 /* ── push.js ── */
 /**
