@@ -685,7 +685,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         function lbRankBadge(monthlyXp) {
             const rank = window.getUserRank ? window.getUserRank(monthlyXp || 0) : { col: 0 };
             const svg = rankBadgeSVG(rank.col || 0, 18);
-            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;z-index:3;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
+            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
         }
 
         function lbRankPill(monthlyXp) {
@@ -1015,7 +1015,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.lottieAnimation) window.lottieAnimation.play();
                 
                 // NEW PROGRESS BAR LOGIC
-                const ESTIMATED_SECS = 30;
+                const ESTIMATED_SECS = 90;
                 let scanElapsed = 0;
                 const scanProgressBar = document.getElementById('scanProgressBar');
                 const scanElapsedLabel = document.getElementById('scanElapsedLabel');
@@ -1103,10 +1103,59 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 } catch (error) {
                     console.error("Error generating quiz:", error);
                     if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
-                    alert("Generation Error: " + error.message);
                     aiLoader.classList.remove('show');
                     generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';
                     document.getElementById('createBackBtn').style.display = 'flex';
+
+                    // Smart error messages based on error type
+                    const msg = (error.message || '').toLowerCase();
+                    let icon = '⚠️', title = 'Generation Failed', body = 'Something went wrong. Please try again.', tip = null;
+
+                    if (msg.includes('deadline-exceeded') || msg.includes('timeout')) {
+                        icon = '⏱️'; title = 'Took Too Long';
+                        body = 'Your file took too long to process. This usually happens with large files or high question counts.';
+                        tip = 'Try a smaller file or reduce the number of questions.';
+                    } else if (msg.includes('resource-exhausted') || msg.includes('quota')) {
+                        icon = '🔋'; title = 'Daily Limit Reached';
+                        body = window.userPlan === 'free'
+                            ? 'You\'ve used all 5 of your free generations today.'
+                            : 'You\'ve used all 30 of your premium generations today.';
+                        tip = window.userPlan === 'free' ? 'Upgrade to Premium for 30 generations per day.' : 'Your limit resets at midnight.';
+                    } else if (msg.includes('unauthenticated')) {
+                        icon = '🔒'; title = 'Not Logged In';
+                        body = 'Your session expired. Please log in again to continue.';
+                    } else if (msg.includes('invalid-argument') || msg.includes('no readable text') || msg.includes('unsupported')) {
+                        icon = '📄'; title = 'File Not Supported';
+                        body = 'We couldn\'t read this file. It may be scanned, image-only, or corrupted.';
+                        tip = 'Try a text-based PDF, DOCX, PPTX, or paste your notes directly.';
+                    } else if (msg.includes('storage') || msg.includes('upload')) {
+                        icon = '📡'; title = 'Upload Failed';
+                        body = 'Your file couldn\'t be uploaded. Check your internet connection and try again.';
+                    } else if (msg.includes('empty') || msg.includes('invalid card') || msg.includes('format')) {
+                        icon = '🤖'; title = 'AI Couldn\'t Generate';
+                        body = 'The AI returned an unexpected response. This can happen with very short or poorly formatted files.';
+                        tip = 'Try adding more content or pasting your notes manually.';
+                    }
+
+                    // Build and show modal
+                    const existing = document.getElementById('genErrorModal');
+                    if (existing) existing.remove();
+                    const modal = document.createElement('div');
+                    modal.id = 'genErrorModal';
+                    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);padding:0 0 env(safe-area-inset-bottom,0);animation:fadeIn 0.2s ease;';
+                    modal.innerHTML = `
+                        <div style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);border-top:1px solid var(--border-color);animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);">
+                            <div style="width:40px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+                            <div style="text-align:center;margin-bottom:1.25rem;">
+                                <div style="font-size:2.5rem;margin-bottom:0.625rem;line-height:1;">${icon}</div>
+                                <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0 0 0.5rem;letter-spacing:-0.02em;">${title}</h3>
+                                <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.6;margin:0;">${body}</p>
+                                ${tip ? `<div style="margin-top:0.875rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:0.75rem;padding:0.625rem 0.875rem;"><p style="font-size:0.8rem;color:var(--accent-btn);font-weight:600;margin:0;line-height:1.5;">💡 ${tip}</p></div>` : ''}
+                            </div>
+                            <button onclick="document.getElementById('genErrorModal').remove();" style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;">Got it</button>
+                        </div>`;
+                    document.body.appendChild(modal);
+                    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
                 }
             });
         }
@@ -1682,6 +1731,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const dailyUsage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
                 const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
                 if(usageCountEl) usageCountEl.textContent = dailyUsage;
+                if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
 
                 const planConfig = {
                     premium: { max: 50, cap: 30, bar: "#3b82f6" },

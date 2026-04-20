@@ -88,10 +88,14 @@
             cIconBox.classList.remove('skeleton');
 
             if (window.quizzes && window.quizzes.length > 0) {
-                // Show most recently attempted, fall back to last created
+                // Show most recently attempted (by timestamp), fall back to last created
                 const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
                 const lastQuiz = attempted.length > 0
-                    ? attempted.reduce((a, b) => (a.id > b.id ? a : b))
+                    ? attempted.reduce((a, b) => {
+                        const ta = (a.stats?.lastAttemptedAt || a.id);
+                        const tb = (b.stats?.lastAttemptedAt || b.id);
+                        return ta > tb ? a : b;
+                      })
                     : window.quizzes[window.quizzes.length - 1];
 
                 const totalQs   = lastQuiz.questions ? lastQuiz.questions.length : 0;
@@ -443,6 +447,15 @@
         };
         window.escapeHTML = function(str) { return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
         window.getTimeEmoji = function() { const hour = new Date().getHours(); if (hour < 12) return '⛅'; if (hour < 18) return '☀️'; return '🌙'; }
+
+        // Refresh the gens-remaining pill on the Create page header
+        window.refreshGensRemaining = function() {
+            const label = document.getElementById('gensRemainingLabel');
+            if (!label) return;
+            const cap  = (window.userPlan === 'premium') ? 30 : 5;
+            const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
+            label.textContent = Math.max(0, cap - used);
+        };
 
         // =========================================================
 
@@ -1669,6 +1682,7 @@ if (nextBtn) {
             currentQuiz.stats.attempts++;
             currentQuiz.stats.lastScore = examScore;
             if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            currentQuiz.stats.lastAttemptedAt = new Date().toISOString();
 
             if (window.currentUser) {
                 try {
@@ -2040,6 +2054,7 @@ if (nextBtn) {
 
         window.goBackToSelection = function() {
             window.exitQuizMode();
+            if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
             document.getElementById('setupView').style.display = 'none';
             document.getElementById('interactiveView').style.display = 'none';
             document.getElementById('createHeaderTitle').textContent = "What to create?";
@@ -2177,7 +2192,9 @@ if (nextBtn) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
                     const file = e.target.files[0];
-                    if (file.size > 10 * 1024 * 1024) { alert("File is too large. Maximum size is 10MB."); fileInput.value = ''; return; }
+                    const isPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
+                    const maxMB = isPremium ? 50 : 15;
+                    if (file.size > maxMB * 1024 * 1024) { alert(`File is too large. Maximum size is ${maxMB}MB${!isPremium ? ' on the free plan. Upgrade to Premium for 50MB.' : '.'}`); fileInput.value = ''; return; }
                     window.selectedFile = file;
                     const iconEl = document.getElementById('uploadIconInner');
                     if (iconEl) { iconEl.className = 'fas fa-file-check'; iconEl.style.color = 'var(--accent-btn)'; iconEl.style.animation = 'none'; }
