@@ -994,7 +994,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // Check daily quota first
                 const dailyUsed = parseInt(document.getElementById('usageCount')?.textContent || '0');
-                const dailyCap  = window.userPlan === 'premium' ? 30 : 5;
+                const dailyCap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : 5;
                 if (dailyUsed >= dailyCap) {
                     const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
                     if (wantToUpgrade) window.navigateTo('view-payment');
@@ -1734,8 +1734,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
 
                 const planConfig = {
-                    premium: { max: 50, cap: 30, bar: "#3b82f6" },
-                    free:    { max: 20, cap:  5, bar: "#94a3b8" }
+                    premium:       { max: 50, cap: 30, bar: "#3b82f6" },
+                    premium_trial: { max: 50, cap: 30, bar: "#8b5cf6" },
+                    free:          { max: 20, cap:  5, bar: "#94a3b8" }
                 };
                 const pc = planConfig[window.userPlan] || planConfig.free;
                 window.allowedMaxItems = pc.max;

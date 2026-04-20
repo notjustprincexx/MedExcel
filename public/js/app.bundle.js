@@ -463,7 +463,7 @@
         window.refreshGensRemaining = function() {
             const label = document.getElementById('gensRemainingLabel');
             if (!label) return;
-            const cap  = (window.userPlan === 'premium') ? 30 : 5;
+            const cap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : 5;
             const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
             label.textContent = Math.max(0, cap - used);
         };
@@ -688,7 +688,7 @@
 
                 // Populate usage bar
                 const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
-                const cap  = window.userPlan === 'premium' ? 30 : maxAllowed || 5;
+                const cap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : maxAllowed || 5;
                 document.getElementById('upgUsageLabel').textContent = `${used} / ${cap}`;
                 document.getElementById('upgUsageBar').style.width = '100%';
                 document.getElementById('upgModalSubtitle').textContent =
@@ -932,7 +932,7 @@
             // ── Slide 3: Daily usage ─────────────────────────────────
             window.updatePromoUsage = function() {
                 const plan   = window.userPlan || 'free';
-                const cap    = plan === 'premium' ? 30 : 5;
+                const cap    = (plan === 'premium' || plan === 'premium_trial') ? 30 : 5;
                 // Read from the profile usageCount element — firebase.js keeps it up to date
                 const usageEl = document.getElementById('usageCount');
                 const used   = usageEl ? (parseInt(usageEl.textContent) || 0) : 0;
