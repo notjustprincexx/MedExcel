@@ -685,7 +685,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         function lbRankBadge(monthlyXp) {
             const rank = window.getUserRank ? window.getUserRank(monthlyXp || 0) : { col: 0 };
             const svg = rankBadgeSVG(rank.col || 0, 18);
-            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
+            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;z-index:3;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
         }
 
         function lbRankPill(monthlyXp) {
@@ -741,44 +741,98 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const allBtn    = document.getElementById('lbTabAllTime');
             const wkBtn     = document.getElementById('lbTabWeek');
             const grpBtn    = document.getElementById('lbTabGroups');
+            const rnkBtn    = document.getElementById('lbTabRanks');
             const podium    = document.getElementById('podiumContainer');
             const ranked    = document.getElementById('lbRankedSection');
             const grpPanel  = document.getElementById('groupsPanel');
+            const rnkPanel  = document.getElementById('ranksPanel');
             const rankBar   = document.getElementById('yourRankBar');
 
-            [allBtn, wkBtn, grpBtn].forEach(btn => {
+            [allBtn, wkBtn, grpBtn, rnkBtn].forEach(btn => {
                 if (!btn) return;
                 btn.style.background = 'transparent';
                 btn.style.color      = 'var(--text-muted)';
                 btn.style.boxShadow  = 'none';
             });
 
+            // Hide all panels first
+            if (podium)   podium.style.display   = 'none';
+            if (ranked)   ranked.style.display   = 'none';
+            if (grpPanel) grpPanel.style.display  = 'none';
+            if (rnkPanel) rnkPanel.style.display  = 'none';
+            if (rankBar)  rankBar.style.display   = 'none';
+
+            const activate = btn => { if (btn) { btn.style.background='var(--accent-btn)'; btn.style.color='var(--btn-text)'; btn.style.boxShadow='0 2px 8px rgba(139,92,246,0.3)'; } };
+
             if (tab === 'groups') {
-                if (grpBtn) { grpBtn.style.background='var(--accent-btn)'; grpBtn.style.color='var(--btn-text)'; grpBtn.style.boxShadow='0 2px 8px rgba(139,92,246,0.3)'; }
-                if (podium)   podium.style.display  = 'none';
-                if (ranked)   ranked.style.display  = 'none';
+                activate(grpBtn);
                 if (grpPanel) grpPanel.style.display = 'flex';
-                if (rankBar)  rankBar.style.display  = 'none';
                 window.loadMyGroups();
-                return;
-            }
-
-            // Back to leaderboard tabs
-            if (podium)   podium.style.display  = 'flex';
-            if (ranked)   ranked.style.display  = '';
-            if (grpPanel) grpPanel.style.display = 'none';
-
-            if (tab === 'alltime') {
-                if (allBtn) { allBtn.style.background='var(--accent-btn)'; allBtn.style.color='var(--btn-text)'; allBtn.style.boxShadow='0 2px 8px rgba(139,92,246,0.3)'; }
+            } else if (tab === 'ranks') {
+                activate(rnkBtn);
+                if (rnkPanel) rnkPanel.style.display = 'flex';
+                window.renderRanksLeaderboard();
             } else {
-                if (wkBtn) { wkBtn.style.background='var(--accent-btn)'; wkBtn.style.color='var(--btn-text)'; wkBtn.style.boxShadow='0 2px 8px rgba(139,92,246,0.3)'; }
+                if (podium) podium.style.display = 'flex';
+                if (ranked) ranked.style.display = '';
+                if (rankBar) rankBar.style.display = 'block';
+                if (tab === 'alltime') {
+                    activate(allBtn);
+                    if (window._lbUsers.length) window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
+                } else {
+                    activate(wkBtn);
+                    if (window._lbUserId) window.loadLeaderboard(window._lbUserId);
+                }
             }
+        };
 
-            if (tab === 'week' && window._lbUserId) {
-                window.loadLeaderboard(window._lbUserId);
-            } else if (window._lbUsers.length) {
-                window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
-            }
+        window.renderRanksLeaderboard = function() {
+            const list = document.getElementById('ranksLeaderboardList');
+            if (!list) return;
+            const users = window._lbUsers || [];
+            if (!users.length) { list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">No data yet</div>'; return; }
+
+            // Sort by rank tier first (higher = better), then by monthlyRankXp within tier
+            const sorted = [...users].filter(u => u.monthlyRankXp > 0).sort((a, b) => {
+                const rA = window.getUserRank ? window.getUserRank(a.monthlyRankXp || 0) : { index: 0 };
+                const rB = window.getUserRank ? window.getUserRank(b.monthlyRankXp || 0) : { index: 0 };
+                if (rB.index !== rA.index) return rB.index - rA.index;
+                return (b.monthlyRankXp || 0) - (a.monthlyRankXp || 0);
+            });
+
+            if (!sorted.length) { list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">No rank activity this month yet</div>'; return; }
+
+            const currentUserId = window._lbUserId;
+            let lastRankIndex = -1;
+            let html = '';
+
+            sorted.forEach((user, i) => {
+                const rank = window.getUserRank ? window.getUserRank(user.monthlyRankXp || 0) : { name:'Bronze', barColor:'#d97706', col:0, index:0 };
+                const isMe = user.uid === currentUserId;
+                const avatar = lbAvatarHTML(user, 38, currentUserId, false);
+
+                // Tier divider
+                if (rank.index !== lastRankIndex) {
+                    lastRankIndex = rank.index;
+                    const svg = rankBadgeSVG(rank.col, 18);
+                    html += `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0 0.25rem;margin-top:${i===0?'0':'0.5rem'};">
+                        ${svg}
+                        <span style="font-size:0.7rem;font-weight:800;color:${rank.barColor};text-transform:uppercase;letter-spacing:0.06em;">${rank.name}</span>
+                        <div style="flex:1;height:1px;background:${rank.barColor}22;"></div>
+                    </div>`;
+                }
+
+                html += `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.625rem;border-radius:0.875rem;background:${isMe?'rgba(139,92,246,0.08)':'transparent'};">
+                    <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);width:18px;text-align:center;">${i+1}</span>
+                    ${avatar}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.8125rem;font-weight:700;color:${isMe?'var(--accent-btn)':'var(--text-main)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName}${isMe?' <span style="font-size:0.6rem;background:var(--accent-btn);color:white;padding:1px 5px;border-radius:9999px;vertical-align:middle;">YOU</span>':''}</div>
+                        <div style="font-size:0.7rem;color:var(--text-muted);">${window.formatXP(user.monthlyRankXp||0)} this month</div>
+                    </div>
+                </div>`;
+            });
+
+            list.innerHTML = html;
         };
 
         window.loadLeaderboard = async function(currentUserId) {
@@ -916,7 +970,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const rankXpEl   = document.getElementById('yourRankXp');
                 const rankNumEl  = document.getElementById('yourRankNum');
                 if (rankNameEl) rankNameEl.textContent = me.displayName;
-                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me[xpField]) + ' XP';
+                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me[xpField]);
                 if (rankNumEl)  rankNumEl.textContent   = `#${currentUserRank}`;
                 bar.style.display = 'block';
             } else if (bar) {

@@ -279,17 +279,107 @@
 
         // Plan icon — Free or Premium only
         window.updatePlanIcon = function(plan) {
-            const iconEl  = document.getElementById('planIcon');
-            const textEl  = document.getElementById('planBadgeText');
-            const barEl   = document.getElementById('usageProgressBar');
-            const plans = {
-                premium: { icon: 'fas fa-gem',  color: '#3b82f6', label: 'Premium', bar: '#3b82f6' },
-                free:    { icon: 'fas fa-lock', color: '#64748b', label: 'Free',    bar: '#94a3b8' },
-            };
-            const p = plans[plan] || plans.free;
-            if (iconEl) { iconEl.className = p.icon; iconEl.style.color = p.color; }
-            if (textEl) { textEl.textContent = p.label; textEl.style.color = p.color; }
-            if (barEl)  barEl.style.background = p.bar;
+            const freeCard    = document.getElementById('planCardFree');
+            const premCard    = document.getElementById('planCardPremium');
+            const expiryLbl   = document.getElementById('subscriptionExpiryLabel');
+            const iconEl      = document.getElementById('planIcon');
+
+            if (plan === 'premium' || plan === 'elite') {
+                if (freeCard) freeCard.style.display = 'none';
+                if (premCard) premCard.style.display = 'block';
+                // Sync usage to premium elements too
+                const usageFree = document.getElementById('usageCount')?.textContent || '0';
+                const premUsage = document.getElementById('usageCountPremium');
+                const premBar   = document.getElementById('usageProgressBarPremium');
+                const premMax   = document.getElementById('maxLimitDisplayPremium');
+                if (premUsage) premUsage.textContent = usageFree;
+                if (premMax)   premMax.textContent   = '30';
+                if (premBar)   premBar.style.width   = `${Math.min(100, (parseInt(usageFree) / 30) * 100)}%`;
+                // Expiry label
+                const expiry = window._cachedUserData?.subscriptionExpiry;
+                if (expiryLbl && expiry) {
+                    const d = new Date(expiry);
+                    expiryLbl.textContent = `Renews ${d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}`;
+                } else if (expiryLbl) {
+                    expiryLbl.textContent = 'Premium active';
+                }
+                // Hide cancel if already cancelled
+                const cancelBtn = document.querySelector('#subscriptionManageRow button');
+                if (cancelBtn && window._cachedUserData?.subscriptionCancelled) {
+                    cancelBtn.textContent = 'Cancelled';
+                    cancelBtn.disabled = true;
+                    cancelBtn.style.color = 'var(--text-muted)';
+                    if (expiryLbl && expiry) {
+                        expiryLbl.textContent = `Access until ${new Date(expiry).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}`;
+                    }
+                }
+            } else {
+                if (freeCard) freeCard.style.display = 'block';
+                if (premCard) premCard.style.display = 'none';
+                if (iconEl)   { iconEl.className = 'fas fa-lock'; iconEl.style.color = '#64748b'; }
+            }
+
+            // Keep legacy planBadgeText in sync if it exists
+            const planBadge = document.getElementById('planBadgeText');
+            if (planBadge) planBadge.textContent = plan === 'premium' ? 'Premium' : 'Free';
+        };
+
+        window.showCancelSubscriptionSheet = function() {
+            const expiry = window._cachedUserData?.subscriptionExpiry;
+            const expiryStr = expiry
+                ? new Date(expiry).toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' })
+                : 'the end of your billing period';
+
+            const sheet = document.createElement('div');
+            sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+            sheet.innerHTML = `
+                <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
+                    <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+                    <div style="width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                        <i class="fas fa-times-circle" style="color:#ef4444;font-size:1.25rem;"></i>
+                    </div>
+                    <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.5rem;">Cancel Premium?</h3>
+                    <p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;line-height:1.55;margin-bottom:1.5rem;">
+                        You'll keep premium access until <strong style="color:var(--text-main);">${expiryStr}</strong>. After that you'll be moved to the free plan.
+                    </p>
+                    <button id="confirmCancelBtn" onclick="window.confirmCancelSubscription(this)" style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:#ef4444;color:white;font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">
+                        Yes, cancel subscription
+                    </button>
+                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">
+                        Keep Premium
+                    </button>
+                </div>`;
+            sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+            document.body.appendChild(sheet);
+        };
+
+        window.confirmCancelSubscription = async function(btn) {
+            btn.textContent = 'Cancelling…';
+            btn.disabled = true;
+            try {
+                const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                const fns    = getFunctions(window.auth?.app, "us-central1");
+                const cancel = httpsCallable(fns, "cancelSubscription");
+                const result = await cancel();
+                if (result.data?.success) {
+                    // Update local state — premium stays until expiry
+                    if (window._cachedUserData) window._cachedUserData.subscriptionCancelled = true;
+                    btn.closest('[style*=position\\:fixed]').remove();
+                    // Show confirmation toast
+                    const t = document.createElement('div');
+                    t.textContent = '✓ Subscription cancelled. Access continues until expiry.';
+                    t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 5000);
+                    // Update cancel button text
+                    const cancelBtn = document.querySelector('#subscriptionManageRow button');
+                    if (cancelBtn) { cancelBtn.textContent = 'Cancelled'; cancelBtn.style.color = 'var(--text-muted)'; cancelBtn.disabled = true; }
+                }
+            } catch(e) {
+                btn.textContent = 'Failed — try again';
+                btn.disabled = false;
+                console.error('Cancel subscription error:', e);
+            }
         };
 
         // Delete account modal
@@ -406,7 +496,9 @@
         };
 
         window.showAllReferralTiers = function(referralCount) {
+            const sheetId = 'referralTiersSheet_' + Date.now();
             const sheet = document.createElement('div');
+            sheet.id = sheetId;
             sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;';
             const tiersHTML = REFERRAL_TIERS.map(tier => {
                 const done = referralCount >= tier.refs;
@@ -430,7 +522,7 @@
                     <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.25rem;">Referral Rewards</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Invite friends to earn these rewards</p>
                     ${tiersHTML}
-                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;margin-top:1rem;">Close</button>
+                    <button onclick="document.getElementById('${sheetId}').remove()" style="width:100%;padding:0.875rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;margin-top:1rem;">Close</button>
                 </div>`;
             sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
             document.body.appendChild(sheet);
@@ -2341,14 +2433,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             }
             window.applyGeoPricing();
 
-            // Show first month promo only if user has never subscribed
+            // Show first month promo only for free users who have never subscribed
             const userData = window._cachedUserData || {};
+            const isAlreadyPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
             const neverSubscribed = !userData.planRef && !userData.subscriptionExpiry;
             const banner = document.getElementById('pFirstMonthBanner');
             if (banner) {
-                if (neverSubscribed) {
+                if (!isAlreadyPremium && neverSubscribed) {
                     banner.style.display = 'block';
-                    // Pre-select trial
                     window.switchPayPlan('trial');
                 } else {
                     banner.style.display = 'none';
@@ -2361,62 +2453,83 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const p = window._geoPrice || DEFAULT_GEO;
             const mFmt = `${p.symbol}${p.monthly.toLocaleString()}`;
             const yFmt = `${p.symbol}${p.yearly.toLocaleString()}`;
-            const tFmt = `${p.symbol}${p.trialMonthly ? p.trialMonthly.toLocaleString() : (p.currency === 'NGN' ? '250' : Math.round(p.monthly * 0.13).toLocaleString())}`;
+            const tAmt = p.currency === 'NGN' ? 250 : Math.round(p.monthly * 0.13);
+            const tFmt = `${p.symbol}${tAmt.toLocaleString()}`;
+            const eAmt = p.currency === 'NGN' ? 4999 : Math.round(p.monthly * 2.5);
+            const eFmt = `${p.symbol}${eAmt.toLocaleString()}`;
+            const eOrig = `${p.symbol}${(p.monthly * 3).toLocaleString()}`;
+
             const mPrice  = document.getElementById('pMonthlyPrice');
             const yPrice  = document.getElementById('pYearlyPrice');
             const yOrig   = document.getElementById('pYearlyOrig');
             const ySub    = document.getElementById('pYearlySub');
+            const ePrice  = document.getElementById('pExamPrice');
+            const eOrigEl = document.getElementById('pExamOrig');
+            const eSub    = document.getElementById('pExamSub');
             const cta     = document.getElementById('payCTABtn');
             const tThen   = document.getElementById('pTrialThen');
             const tPrice  = document.getElementById('pTrialPrice');
-            if (mPrice) mPrice.textContent = mFmt;
-            if (yPrice) yPrice.textContent = yFmt;
-            if (yOrig)  yOrig.textContent  = `${p.symbol}${p.origYearly.toLocaleString()}`;
-            if (ySub)   ySub.textContent   = `${p.perMo} · save ${p.savePct}`;
-            if (tThen)  tThen.textContent  = mFmt;
-            if (tPrice) tPrice.textContent = tFmt;
+
+            if (mPrice)  mPrice.textContent  = mFmt;
+            if (yPrice)  yPrice.textContent  = yFmt;
+            if (yOrig)   yOrig.textContent   = `${p.symbol}${p.origYearly.toLocaleString()}`;
+            if (ySub)    ySub.textContent    = `${p.perMo} · save ${p.savePct}`;
+            if (ePrice)  ePrice.textContent  = eFmt;
+            if (eOrigEl) eOrigEl.textContent = eOrig;
+            if (tThen)   tThen.textContent   = mFmt;
+            if (tPrice)  tPrice.textContent  = tFmt;
+
             if (cta && !cta.disabled) {
-                const plan = _payCurrentPlan || 'trial';
-                if (plan === 'trial')   cta.textContent = `Try Premium — ${tFmt} first month`;
-                else if (plan === 'yearly') cta.textContent = `Subscribe Yearly — ${yFmt}`;
-                else cta.textContent = `Subscribe Monthly — ${mFmt}`;
+                const plan = _payCurrentPlan || 'yearly';
+                if (plan === 'trial')        cta.textContent = `Try Premium — ${tFmt} first month`;
+                else if (plan === 'monthly') cta.textContent = `Subscribe Monthly — ${mFmt}`;
+                else if (plan === 'exam')    cta.textContent = `Get Exam Season — ${eFmt}`;
+                else                         cta.textContent = `Get Premium — ${yFmt}/yr`;
             }
         };
 
         window.switchPayPlan = function(plan) {
             try {
                 _payCurrentPlan = plan;
-                var cM = document.getElementById('pCardMonthly'), cY = document.getElementById('pCardYearly');
+                var cM = document.getElementById('pCardMonthly');
+                var cE = document.getElementById('pCardExam');
+                var cY = document.getElementById('pCardYearly');
                 var cT = document.getElementById('pFirstMonthBanner');
                 var ckT = document.getElementById('pCheckTrial');
-                var dealBox = document.getElementById('payDealBox'), ctaEl = document.getElementById('payCTABtn');
-                if (!cM || !cY) return;
+                var dealBox = document.getElementById('payDealBox');
+                var ctaEl  = document.getElementById('payCTABtn');
                 const p = window._geoPrice || DEFAULT_GEO;
                 const mFmt = `${p.symbol}${p.monthly.toLocaleString()}`;
                 const yFmt = `${p.symbol}${p.yearly.toLocaleString()}`;
+                const eFmt = `${p.symbol}${p.exam ? p.exam.toLocaleString() : (p.currency === 'NGN' ? '4,999' : Math.round(p.monthly * 2.5).toLocaleString())}`;
                 const tAmt = p.currency === 'NGN' ? 250 : Math.round(p.monthly * 0.13);
                 const tFmt = `${p.symbol}${tAmt.toLocaleString()}`;
 
-                // Reset all selections
-                cM.classList.remove('active'); cY.classList.remove('active');
-                if (ckT) { ckT.style.background = 'transparent'; ckT.style.borderColor = '#fbbf24'; ckT.querySelector('div').style.display = 'none'; }
-                if (cT)  cT.style.border = '1.5px solid rgba(251,191,36,0.35)';
+                // Reset all
+                [cM, cE, cY].forEach(c => c && c.classList.remove('active'));
+                if (ckT) { ckT.style.background = 'white'; ckT.querySelector('div').style.background = '#f97316'; }
+                if (cT)  cT.style.opacity = plan === 'trial' ? '1' : '0.6';
 
                 if (plan === 'trial') {
-                    if (ckT) { ckT.style.background = '#fbbf24'; ckT.querySelector('div').style.display = 'block'; }
-                    if (cT)  cT.style.border = '2px solid #fbbf24';
+                    if (ckT) { ckT.style.background = '#f97316'; ckT.querySelector('div').style.background = 'white'; }
+                    if (cT)  cT.style.opacity = '1';
                     if (dealBox) dealBox.style.display = 'none';
                     clearInterval(_payCdInterval);
                     if (ctaEl) ctaEl.textContent = `Try Premium — ${tFmt} first month`;
                 } else if (plan === 'monthly') {
-                    cM.classList.add('active');
+                    if (cM) cM.classList.add('active');
                     if (dealBox) dealBox.style.display = 'none';
                     clearInterval(_payCdInterval);
                     if (ctaEl) ctaEl.textContent = `Subscribe Monthly — ${mFmt}`;
+                } else if (plan === 'exam') {
+                    if (cE) cE.classList.add('active');
+                    if (dealBox) dealBox.style.display = 'none';
+                    clearInterval(_payCdInterval);
+                    if (ctaEl) ctaEl.textContent = `Get Exam Season — ${eFmt}`;
                 } else {
-                    cY.classList.add('active');
+                    if (cY) cY.classList.add('active');
                     if (dealBox) { dealBox.style.display = 'flex'; clearInterval(_payCdInterval); _payTick(); _payCdInterval = setInterval(_payTick, 1000); }
-                    if (ctaEl) ctaEl.textContent = `Subscribe Yearly — ${yFmt}`;
+                    if (ctaEl) ctaEl.textContent = `Get Premium — ${yFmt}/yr`;
                 }
             } catch(e) { console.warn('switchPayPlan error:', e); }
         };
@@ -2424,6 +2537,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         window.handlePayCTA = function() {
             try {
                 if (_payCurrentPlan === 'trial')   window.startPayment('premium_trial');
+                else if (_payCurrentPlan === 'exam')    window.startPayment('premium_exam');
                 else if (_payCurrentPlan === 'monthly') window.startPayment('premium');
                 else window.startPayment('premium_yearly');
             } catch(e) { console.warn('handlePayCTA error:', e); }
@@ -2460,9 +2574,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
             const p = window._geoPrice || DEFAULT_GEO;
             const trialAmt = p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.13);
+            const examAmt  = p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5);
 
             var amount   = plan === 'premium_yearly' ? p.yearlyKobo
                          : plan === 'premium_trial'  ? trialAmt
+                         : plan === 'premium_exam'   ? examAmt
                          : p.monthlyKobo;
             var currency = p.currency;
 
