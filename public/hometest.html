@@ -70,7 +70,7 @@
                     colors: { themebg: '#050A15', cardbg: '#0A1120', }
                 }
             }
-        }
+        };
         // Group deep link — store pending join if arriving here directly
         (function() {
             try {
@@ -486,8 +486,57 @@
                         <span style="font-size: 1.125rem; font-weight: 700; color: var(--text-main);">Flashcards</span>
                         <span style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.4;">Practice active recall with flip cards based on your material.</span>
                     </div>
+
+                <!-- Divider -->
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem;">
+                    <div style="flex:1;height:1px;background:var(--border-glass);"></div>
+                    <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">or</span>
+                    <div style="flex:1;height:1px;background:var(--border-glass);"></div>
+                </div>
+
+                <a href="javascript:void(0)" onclick="window.openManualCreate()" style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-card);padding:1.5rem;display:flex;align-items:center;gap:1.25rem;cursor:pointer;text-decoration:none;">
+                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
+                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;">
+                            <!-- Document body (purple) -->
+                            <rect x="8" y="8" width="36" height="46" rx="6" fill="#8b5cf6"/>
+                            <!-- Short chip line at top -->
+                            <rect x="16" y="17" width="12" height="3.5" rx="1.75" fill="white" opacity="0.9"/>
+                            <!-- Text lines -->
+                            <rect x="14" y="25" width="22" height="3" rx="1.5" fill="white" opacity="0.9"/>
+                            <rect x="14" y="33" width="22" height="3" rx="1.5" fill="white" opacity="0.9"/>
+                            <rect x="14" y="41" width="14" height="3" rx="1.5" fill="white" opacity="0.7"/>
+                            <!-- Pencil (yellow, rotated 45° overlapping bottom-right) -->
+                            <g transform="rotate(45 38 44)">
+                                <rect x="35" y="30" width="6" height="26" rx="2" fill="#fbbf24"/>
+                                <polygon points="35,56 41,56 38,62" fill="#e5a800"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                        <span style="font-size:1.125rem;font-weight:700;color:var(--text-main);">Create manually</span>
+                        <span style="font-size:0.875rem;color:var(--text-muted);line-height:1.4;">Write your own flashcards one by one.</span>
+                    </div>
                 </a>
             </div>
+            <!-- Manual Create Overlay — hidden until openManualCreate() -->
+            <div id="manualCreateView" style="display:none;"></div>
+            <!-- Anki Import Overlay -->
+            <div id="ankiImportView" style="display:none;"></div>
+
+                <a href="javascript:void(0)" onclick="window.openAnkiImport()" style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-card);padding:1.5rem;display:flex;align-items:center;gap:1.25rem;cursor:pointer;text-decoration:none;">
+                    <div style="width:4rem;height:4rem;border-radius:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg-body);border:1px solid var(--border-glass);">
+                        <svg viewBox="0 0 64 64" fill="none" style="width:40px;height:40px;">
+                            <rect x="10" y="10" width="44" height="44" rx="8" fill="#f59e0b" fill-opacity="0.15"/>
+                            <path d="M20 22h24M20 30h24M20 38h16" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <circle cx="46" cy="40" r="8" fill="#f59e0b" fill-opacity="0.9"/>
+                            <path d="M43 40h6M46 37v6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                        <span style="font-size:1.125rem;font-weight:700;color:var(--text-main);">Import from Anki</span>
+                        <span style="font-size:0.875rem;color:var(--text-muted);line-height:1.4;">Import an .apkg deck exported from Anki.</span>
+                    </div>
+                </a>
 
             <div id="setupView" style="display: none; flex-direction: column; flex: 1; gap: 1.75rem; margin-top:1rem;">
                 <div>

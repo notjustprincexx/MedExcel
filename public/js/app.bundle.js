@@ -2083,7 +2083,7 @@ if (nextBtn) {
 
             // Normal back — show selection screen
             document.getElementById('selectionView').style.display = 'flex';
-            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none';
+            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none'; const _qv = document.getElementById('quizletImportView'); if (_qv) _qv.style.display = 'none';
             
             // Reset state
             window.selectedFile = null;
@@ -2885,17 +2885,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         const hdr = document.querySelector('#view-create .top-header');
         if (hdr) hdr.style.display = 'none';
         document.getElementById('selectionView').style.display = 'none';
-
         const mv = document.getElementById('manualCreateView');
         Object.assign(mv.style, {
-            display:        'flex',
-            position:       'fixed',
-            inset:          '0',
-            zIndex:         '200',
-            background:     'var(--bg-body)',
-            flexDirection:  'column',
-            overflowY:      'auto',
+            display: 'flex', position: 'fixed', inset: '0', zIndex: '300',
+            background: 'var(--bg-body)', flexDirection: 'column', overflowY: 'auto',
+            opacity: '0', transform: 'translateY(24px)', transition: 'opacity 0.22s ease, transform 0.22s ease',
         });
+        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
     }
 
     function _exit() {
@@ -3007,6 +3003,22 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </div>
     ` : ''}
 
+
+    <!-- Import from another app — compact row at bottom -->
+    <div style="display:flex;align-items:center;gap:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-glass);">
+      <span style="font-size:0.7rem;color:var(--text-muted);flex-shrink:0;">Import from:</span>
+      <button data-import="anki" id="mcImportAnkiBtn"
+        style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:9999px;border:1px solid var(--border-glass);background:var(--bg-surface);cursor:pointer;flex:1;justify-content:center;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#3c3c3c;flex-shrink:0;"><i class="fas fa-star" style="font-size:8px;color:#5bb0e8;"></i></span>
+        <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">Anki</span>
+      </button>
+      <button data-import="quizlet" id="mcImportQuizletBtn"
+        style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:9999px;border:1px solid var(--border-glass);background:var(--bg-surface);cursor:pointer;flex:1;justify-content:center;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#4355ff;color:white;font-weight:900;font-size:9px;font-family:Arial,sans-serif;flex-shrink:0;line-height:1;">Q</span>
+        <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">Quizlet</span>
+      </button>
+    </div>
+
   </div><!-- end body -->
 
   <!-- ── Footer ──────────────────────────────────────────────────────────── -->
@@ -3027,6 +3039,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
 </div>`;
     }
+    // Wire import buttons after each render (they're recreated on each _render call)
+    const _ankiBtn = document.getElementById('mcImportAnkiBtn');
+    const _qBtn    = document.getElementById('mcImportQuizletBtn');
+    if (_ankiBtn) _ankiBtn.addEventListener('click', function(){ window._mcImport('anki'); });
+    if (_qBtn)    _qBtn.addEventListener('click',    function(){ window._mcImport('quizlet'); });
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     function _esc(s) {
@@ -3195,6 +3212,27 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             setTimeout(() => t.remove(), 2500);
         }, 350);
     };
+
+    // ── Import from manual create ─────────────────────────────────────────────
+    window._mcImport = function (target) {
+        _flush();
+        window._importEntryPoint = 'manual';
+        var mv = document.getElementById('manualCreateView');
+        if (mv) {
+            mv.style.opacity = '0';
+            mv.style.transform = 'translateY(24px)';
+            setTimeout(function () {
+                mv.style.display = 'none';
+                if (target === 'anki') window.openAnkiImport();
+                else window.openQuizletImport();
+            }, 180);
+        } else {
+            if (target === 'anki') window.openAnkiImport();
+            else window.openQuizletImport();
+        }
+    };
+    window._mcOpenAnki    = function () { window._mcImport('anki'); };
+    window._mcOpenQuizlet = function () { window._mcImport('quizlet'); };
 
 })();
 
@@ -3409,25 +3447,41 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     };
 
     function _ankiEnter() {
-        document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
-        const hdr = document.querySelector('#view-create .top-header');
-        if (hdr) hdr.style.display = 'none';
-        document.getElementById('selectionView').style.display = 'none';
+        // Track which view we came from so back nav can return correctly
+        const onCreateView = document.getElementById('view-create')?.classList.contains('active');
+        window._ankiFromCreate = onCreateView;
+        if (onCreateView) {
+            document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
+            const hdr = document.querySelector('#view-create .top-header');
+            if (hdr) hdr.style.display = 'none';
+            document.getElementById('selectionView').style.display = 'none';
+        }
         const mv = document.getElementById('ankiImportView');
         Object.assign(mv.style, {
-            display: 'flex', position: 'fixed', inset: '0', zIndex: '200',
+            display: 'flex', position: 'fixed', inset: '0', zIndex: '300',
             background: 'var(--bg-body)', flexDirection: 'column', overflowY: 'auto',
+            opacity: '0', transform: 'translateY(24px)', transition: 'opacity 0.22s ease, transform 0.22s ease',
         });
+        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
     }
 
     function _ankiExit() {
-        const nav = document.getElementById('globalBottomNav');
-        if (nav) nav.style.transform = '';
-        const hdr = document.querySelector('#view-create .top-header');
-        if (hdr) hdr.style.display = '';
-        document.getElementById('ankiImportView').style.display = 'none';
-        document.getElementById('selectionView').style.display = 'flex';
+        const mv = document.getElementById('ankiImportView');
+        mv.style.opacity = '0'; mv.style.transform = 'translateY(24px)';
+        setTimeout(() => { mv.style.display = 'none'; mv.style.transition = ''; }, 220);
         _parsed = null;
+        if (window._importEntryPoint === 'manual') {
+            window._importEntryPoint = null;
+            window.openManualCreate();
+        } else if (window._ankiFromCreate) {
+            window._ankiFromCreate = false;
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = '';
+            const hdr = document.querySelector('#view-create .top-header');
+            if (hdr) hdr.style.display = '';
+            document.getElementById('selectionView').style.display = 'flex';
+        }
+        // If from home/library, just close overlay — nav was never hidden
     }
 
     // ── Screen 1: file picker ─────────────────────────────────────────────────
@@ -3678,6 +3732,289 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Escape helper ─────────────────────────────────────────────────────────
     function _esc(s) {
         return String(s || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
+    }
+
+})();
+
+// Quizlet Import — URL-based via Cloud Function
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+
+    let _qParsed = null;
+
+    // ── Entry ─────────────────────────────────────────────────────────────────
+    window.openQuizletImport = function () {
+        if (!window.currentUser) { window.showLoginModal(); return; }
+        _qParsed = null;
+        _qRenderURL();
+        _qEnter();
+    };
+
+    function _qEnter() {
+        const onCreateView = document.getElementById('view-create')?.classList.contains('active');
+        window._qFromCreate = onCreateView;
+        if (onCreateView) {
+            document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
+            const hdr = document.querySelector('#view-create .top-header');
+            if (hdr) hdr.style.display = 'none';
+            document.getElementById('selectionView').style.display = 'none';
+        }
+        const mv = document.getElementById('quizletImportView');
+        Object.assign(mv.style, {
+            display:'flex', position:'fixed', inset:'0', zIndex:'300',
+            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
+            opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
+        });
+        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
+    }
+
+    function _qExit() {
+        const mv = document.getElementById('quizletImportView');
+        mv.style.opacity = '0'; mv.style.transform = 'translateY(24px)';
+        setTimeout(() => { mv.style.display = 'none'; mv.style.transition = ''; }, 220);
+        _qParsed = null;
+        if (window._importEntryPoint === 'manual') {
+            window._importEntryPoint = null;
+            window.openManualCreate();
+        } else if (window._qFromCreate) {
+            window._qFromCreate = false;
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) nav.style.transform = '';
+            const hdr = document.querySelector('#view-create .top-header');
+            if (hdr) hdr.style.display = '';
+            document.getElementById('selectionView').style.display = 'flex';
+        }
+    }
+
+    // ── Screen 1: URL input ───────────────────────────────────────────────────
+    function _qRenderURL() {
+        const mv = document.getElementById('quizletImportView');
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._qBack()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <div style="display:flex;align-items:center;gap:0.5rem;flex:1;">
+<svg viewBox="0 0 64 64" fill="none" style="width:22px;height:22px;border-radius:5px;flex-shrink:0;"><rect width="64" height="64" rx="12" fill="#4355ff"/><circle cx="32" cy="32" r="17.3" fill="none" stroke="white" stroke-width="8.2" stroke-dasharray="92.2 16.6" stroke-dashoffset="-11.2" stroke-linecap="round"/><rect x="39" y="40" width="10" height="7" rx="3" fill="white" transform="rotate(38 44 43.5)"/><rect x="37.5" y="37.5" width="7" height="6" rx="1.5" fill="#4355ff" transform="rotate(38 41 40.5)"/></svg>
+      <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;">Import from Quizlet</h2>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
+
+    <!-- URL input -->
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Quizlet set link</label>
+      <div style="display:flex;gap:0.5rem;align-items:center;background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:0 0.75rem;overflow:hidden;">
+        <i class="fas fa-link" style="font-size:0.8125rem;color:var(--text-muted);flex-shrink:0;"></i>
+        <input id="qUrlInput" type="url"
+          placeholder="https://quizlet.com/..."
+          oninput="window._qUrlChange(this.value)"
+          style="flex:1;padding:0.875rem 0.25rem;border:none;background:transparent;color:var(--text-main);font-size:0.9375rem;outline:none;-webkit-appearance:none;">
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin:0.375rem 0 0;">The set must be public.</p>
+    </div>
+
+    <!-- How to get the link -->
+    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1.125rem;">
+      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.75rem;">How to get the link</p>
+      ${[
+        'Open the Quizlet set in your browser',
+        'Copy the URL from the address bar',
+        'It should look like <span style="font-family:monospace;font-size:0.8rem;color:var(--accent-btn);">quizlet.com/123456/set-name</span>',
+        'Paste it above and tap Import'
+      ].map((step, i) => `
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;${i < 3 ? 'margin-bottom:0.625rem;' : ''}">
+        <div style="width:1.375rem;height:1.375rem;border-radius:50%;background:rgba(66,87,178,0.12);color:#4257b2;font-size:0.6875rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</div>
+        <p style="font-size:0.875rem;color:var(--text-main);margin:0;line-height:1.45;">${step}</p>
+      </div>`).join('')}
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+    <button id="qImportBtn" onclick="window._qFetch()" disabled
+      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--bg-surface);color:var(--text-muted);font-size:1rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s;">
+      Import
+    </button>
+  </div>
+
+</div>`;
+    }
+
+    // ── URL validation ────────────────────────────────────────────────────────
+    window._qUrlChange = function (val) {
+        const btn = document.getElementById('qImportBtn');
+        const valid = val.trim().includes('quizlet.com') && val.trim().length > 15;
+        if (btn) {
+            btn.disabled        = !valid;
+            btn.style.opacity   = valid ? '1' : '0.45';
+            btn.style.background = valid ? '#4257b2' : 'var(--bg-surface)';
+            btn.style.color      = valid ? 'white' : 'var(--text-muted)';
+            btn.style.cursor     = valid ? 'pointer' : 'not-allowed';
+        }
+    };
+
+    // ── Fetch via Cloud Function ──────────────────────────────────────────────
+    window._qFetch = async function () {
+        const url = document.getElementById('qUrlInput')?.value.trim();
+        if (!url || !url.includes('quizlet.com')) return;
+
+        const btn = document.getElementById('qImportBtn');
+        if (btn) { btn.textContent = 'Fetching cards...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+
+        try {
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+            const fns    = getFunctions(window.auth?.app, 'us-central1');
+            const importFn = httpsCallable(fns, 'importFromQuizlet');
+            const result = await importFn({ url });
+
+            if (!result.data?.cards?.length) throw new Error('No cards found');
+
+            _qParsed = { cards: result.data.cards, title: result.data.title || 'Quizlet Import' };
+            _qRenderPreview();
+        } catch(e) {
+            console.error('[QuizletImport]', e);
+            const msg = e.message?.includes('Could not extract')
+                ? 'Could not read this set — make sure it is public and the URL is correct.'
+                : e.message?.includes('Could not reach')
+                ? 'Could not reach Quizlet. Check your connection and try again.'
+                : 'Something went wrong. Try again.';
+            if (btn) { btn.textContent = msg; btn.disabled = false; btn.style.opacity = '1'; btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.color = '#f87171'; }
+            setTimeout(() => { if (btn) { btn.textContent = 'Import'; btn.style.background = '#4257b2'; btn.style.color = 'white'; } }, 3000);
+        }
+    };
+
+    // ── Screen 2: preview ─────────────────────────────────────────────────────
+    function _qRenderPreview() {
+        if (!_qParsed) return;
+        const { cards, title } = _qParsed;
+        const preview = cards.slice(0, 3);
+        const mv = document.getElementById('quizletImportView');
+
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._qRenderURL()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Review Import</h2>
+    <span style="font-size:0.7rem;font-weight:700;background:rgba(16,185,129,0.12);color:var(--accent-green);padding:3px 10px;border-radius:9999px;">${cards.length} cards</span>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
+
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Deck title</label>
+      <input id="qTitleInput" type="text" value="${_qEsc(title)}" maxlength="60"
+        style="width:100%;padding:0.875rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;">
+    </div>
+
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Subject</label>
+      <input id="qSubjectInput" type="text" placeholder="e.g. Pharmacology" maxlength="40"
+        style="width:100%;padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.875rem;box-sizing:border-box;outline:none;">
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
+        <p style="font-size:1.5rem;font-weight:800;color:var(--text-main);margin:0 0 0.125rem;">${cards.length}</p>
+        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">Cards</p>
+      </div>
+      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
+        <p style="font-size:1.5rem;font-weight:800;color:var(--accent-green);margin:0 0 0.125rem;">+${Math.min(cards.length * 5, 500)}</p>
+        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">XP earned</p>
+      </div>
+    </div>
+
+    <div>
+      <p style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.625rem;">Preview</p>
+      <div style="display:flex;flex-direction:column;gap:0.625rem;">
+        ${preview.map((c, i) => `
+        <div style="background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;">
+          <p style="font-size:0.6875rem;font-weight:700;color:#4257b2;margin:0 0 0.25rem;text-transform:uppercase;letter-spacing:0.06em;">Card ${i+1}</p>
+          <p style="font-size:0.875rem;font-weight:600;color:var(--text-main);margin:0 0 0.375rem;line-height:1.4;">${_qEsc(c.front.substring(0,120))}${c.front.length>120?'…':''}</p>
+          <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.4;">${_qEsc(c.back.substring(0,100))}${c.back.length>100?'…':''}</p>
+        </div>`).join('')}
+        ${cards.length > 3 ? `<p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;margin:0.25rem 0 0;">and ${cards.length - 3} more cards</p>` : ''}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+    <button onclick="window._qSave()"
+      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:#4257b2;color:white;font-size:1rem;font-weight:700;cursor:pointer;">
+      Import ${cards.length} cards
+    </button>
+  </div>
+
+</div>`;
+        window._qRenderURL = _qRenderURL;
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────────
+    window._qSave = async function () {
+        if (!_qParsed) return;
+        const btn = document.querySelector('#quizletImportView button:last-of-type');
+        if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+
+        const title   = document.getElementById('qTitleInput')?.value.trim()   || _qParsed.title;
+        const subject = document.getElementById('qSubjectInput')?.value.trim() || 'General';
+        const { cards } = _qParsed;
+
+        const newQuiz = {
+            id: Date.now(), title, subject, favorite: false,
+            source: 'quizlet', type: 'Flashcards',
+            stats: { bestScore: 0, attempts: 0, lastScore: 0 },
+            questions: cards.map(c => ({ text: c.front, options: [c.back], correct: 0, explanation: '' }))
+        };
+
+        try {
+            if (window.currentUser && window.db) {
+                const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                await setDoc(doc(window.db, 'users', window.currentUser.uid, 'quizzes', String(newQuiz.id)), newQuiz);
+            }
+        } catch(e) { console.warn('[QuizletImport] Firestore error:', e); }
+
+        const uid   = window.currentUser?.uid || 'guest';
+        const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
+        store.push(newQuiz);
+        localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
+        window.quizzes = store;
+
+        try { await window.addXP(Math.min(cards.length * 5, 500)); } catch(e) {}
+
+        _qExit();
+        window.updateHomeContinueCard?.();
+        window.navigateTo('view-study');
+
+        setTimeout(() => {
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#4257b2;color:white;padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+            t.textContent = `${cards.length} cards imported from Quizlet`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2800);
+        }, 350);
+    };
+
+    window._qBack = _qExit;
+
+    function _qEsc(s) {
+        return String(s||'').replace(/[&<>"']/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
     }
 
 })();
