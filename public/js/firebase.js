@@ -249,51 +249,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             document.body.appendChild(sheet);
         };
 
-        // Generate rank badge SVG matching the uploaded sprite style
+        // Rank badge from rank.svg sprite sheet (5 cols × 2 rows)
+        // rank.svg uses luminance-to-alpha masking — black bg becomes transparent in browsers.
+        // Rendered at 738×738px; badge content sits at y=161–545 (2 rows × 192px).
+        // Badge cell width = 738/5 = 147.6px → bgSize = 5*s, posX = -col*s
+        // Row 0 (small, top):    posY multiplier = 1.091
+        // Row 1 (large, bottom): posY multiplier = 2.392
+        // Col 0=Bronze, 1=Silver, 2=Gold, 3=Amethyst, 4=Emerald
         function rankBadgeSVG(rankIndex, size) {
-            const themes = [
-                { outer: '#d97706', mid: '#b45309', inner: '#7c2d12', star: '#fcd34d', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
-                { outer: '#94a3b8', mid: '#64748b', inner: '#1e293b', star: '#e2e8f0', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
-                { outer: '#fbbf24', mid: '#d97706', inner: '#78350f', star: '#fef3c7', ribbon: '#ef4444', ribbonDark: '#b91c1c' },
-                { outer: '#a78bfa', mid: '#7c3aed', inner: '#2e1065', star: '#ddd6fe', ribbon: '#d946ef', ribbonDark: '#a21caf' },
-                { outer: '#34d399', mid: '#059669', inner: '#064e3b', star: '#d1fae5', ribbon: '#4ade80', ribbonDark: '#15803d' },
-            ];
-            const t = themes[Math.min(rankIndex, themes.length - 1)];
-            const s = size || 80;
-            const pad = s * 0.08; // top padding so hex isn't clipped
-            const totalH = Math.round(s * 1.4);
-            const cx = s / 2, cy = s * 0.44 + pad;
-            const r1 = s * 0.44, r2 = s * 0.34, r3 = s * 0.26;
-            function hex(cx, cy, r) {
-                const pts = [];
-                for (let i = 0; i < 6; i++) {
-                    const a = Math.PI / 180 * (60 * i - 30);
-                    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
-                }
-                return pts.join(' ');
-            }
-            function star5(cx, cy, r, ir) {
-                const pts = [];
-                for (let i = 0; i < 10; i++) {
-                    const a = Math.PI / 180 * (36 * i - 90);
-                    const rad = i % 2 === 0 ? r : ir;
-                    pts.push(`${(cx + rad * Math.cos(a)).toFixed(1)},${(cy + rad * Math.sin(a)).toFixed(1)}`);
-                }
-                return pts.join(' ');
-            }
-            const ribbonW = s * 0.15, ribbonH = s * 0.3, ribbonGap = s * 0.04;
-            const r1x = cx - ribbonW - ribbonGap, r2x = cx + ribbonGap;
-            const ribbonY = cy + r1 - s * 0.06;
-            return `<svg viewBox="0 0 ${s} ${totalH}" width="${s}" height="${totalH}" xmlns="http://www.w3.org/2000/svg">
-                <polygon points="${hex(cx,cy,r1)}" fill="${t.outer}" stroke="${t.mid}" stroke-width="${s*0.025}"/>
-                <polygon points="${hex(cx,cy,r2)}" fill="${t.inner}"/>
-                <polygon points="${hex(cx,cy,r3)}" fill="${t.inner}" stroke="${t.outer}" stroke-width="${s*0.018}" stroke-opacity="0.5"/>
-                <polygon points="${star5(cx,cy,r2*0.72,r2*0.3)}" fill="${t.star}"/>
-                <rect x="${r1x}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${s*0.025}" fill="${t.ribbon}"/>
-                <rect x="${r2x}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${s*0.025}" fill="${t.ribbon}"/>
-                <polygon points="${r1x},${ribbonY+ribbonH*0.65} ${r1x+ribbonW},${ribbonY+ribbonH*0.65} ${r1x+ribbonW/2},${ribbonY+ribbonH}" fill="${t.ribbonDark}"/>
-                <polygon points="${r2x},${ribbonY+ribbonH*0.65} ${r2x+ribbonW},${ribbonY+ribbonH*0.65} ${r2x+ribbonW/2},${ribbonY+ribbonH}" fill="${t.ribbonDark}"/>
-            </svg>`;
+            const col  = Math.min(Math.max(rankIndex, 0), 4);
+            const s    = size || 80;
+            const h    = Math.round(s * 1.4);
+            const row  = s >= 40 ? 1 : 0;
+            const bgSz = 5 * s;
+            const posX = -(col * s);
+            const posY = -Math.round(s * (row === 0 ? 1.091 : 2.392));
+            return `<div style="width:${s}px;height:${h}px;background-image:url('rank.svg');background-size:${bgSz}px ${bgSz}px;background-position:${posX}px ${posY}px;background-repeat:no-repeat;display:inline-block;"></div>`;
         }
 
         window.updateRankDisplay = function(xp, fromLoad) {
@@ -311,7 +282,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const nameEl   = document.getElementById('profileRankName');
             const labelEl  = document.getElementById('profileRankXpLabel');
             const barEl    = document.getElementById('profileRankBar');
-            if (badgeEl) badgeEl.innerHTML = rankBadgeSVG(rank.col, 72);
+            if (badgeEl) badgeEl.innerHTML = rankBadgeSVG(rank.col, 66);
             if (nameEl)  { nameEl.textContent = rank.name; nameEl.style.color = rank.barColor; }
             if (nextRank) {
                 const progress = ((xp - rank.minXp) / (nextRank.minXp - rank.minXp)) * 100;
@@ -341,7 +312,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             document.head.appendChild(s);
         }
 
-        function showCelebrationModal(cfg) {
+        window.showCelebrationModal = function showCelebrationModal(cfg) {
             injectCelebrationCSS();
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:rgba(0,0,0,0.82);animation:_cOverlay .25s ease both;';
@@ -685,7 +656,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         function lbRankBadge(monthlyXp) {
             const rank = window.getUserRank ? window.getUserRank(monthlyXp || 0) : { col: 0 };
             const svg = rankBadgeSVG(rank.col || 0, 18);
-            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;">${svg}</div>`;
+            return `<div style="position:absolute;bottom:-4px;right:-5px;width:20px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));pointer-events:none;z-index:2;">${svg}</div>`;
         }
 
         function lbRankPill(monthlyXp) {
@@ -696,7 +667,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         // Build an avatar element — showBadge=false for podium (overflow:hidden clips it)
         function lbAvatarHTML(user, size, currentUserId, showBadge = true) {
             const isMe      = user.uid === currentUserId;
-            const isPremium = user.plan === 'premium' || user.plan === 'elite';
+            const isPremium = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite';
             const rankBadge = showBadge ? lbRankBadge(user.monthlyRankXp || 0) : '';
 
             // Premium ring — animated golden gradient border
@@ -930,7 +901,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const [bg] = lbColorFor(user.displayName);
                 const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
                 const nameCls = isMe ? 'color:var(--accent-btn);' : 'color:var(--text-main);';
-                const proPill = user.plan === 'premium' || user.plan === 'elite'
+                const proPill = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite'
                     ? `<span style="font-size:0.55rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;letter-spacing:0.03em;">PRO</span>`
                     : '';
 
@@ -1368,7 +1339,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const homeBtn   = document.getElementById('homeAvatarBtn');
             const initial   = document.getElementById('userInitial');
             const storedInitial = initial ? initial.textContent : (document.getElementById('homeAvatarInitial') ? document.getElementById('homeAvatarInitial').textContent : '?');
-            const isPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
+            const isPremium = window.userPlan === 'premium' || window.userPlan === 'premium_trial' || window.userPlan === 'elite';
 
             // Premium ring style — applied to the wrap itself
             const premiumBorder  = isPremium ? 'background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);padding:2.5px;' : '';

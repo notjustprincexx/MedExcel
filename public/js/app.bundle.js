@@ -299,7 +299,7 @@
             const expiryLbl   = document.getElementById('subscriptionExpiryLabel');
             const iconEl      = document.getElementById('planIcon');
 
-            if (plan === 'premium' || plan === 'elite') {
+            if (plan === 'premium' || plan === 'premium_trial' || plan === 'elite') {
                 if (freeCard) freeCard.style.display = 'none';
                 if (premCard) premCard.style.display = 'block';
                 // Sync usage to premium elements too
@@ -2083,6 +2083,7 @@ if (nextBtn) {
 
             // Normal back — show selection screen
             document.getElementById('selectionView').style.display = 'flex';
+            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none';
             
             // Reset state
             window.selectedFile = null;
@@ -2594,7 +2595,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     window.userPlan = newPlan;
                     if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(newPlan);
                     if (typeof window.applyAvatar    === 'function') window.applyAvatar();
-                    window.allowedMaxItems = newPlan === 'premium' ? 50 : 20;
+                    window.allowedMaxItems = (newPlan === 'premium' || newPlan === 'premium_trial' || newPlan === 'elite') ? 50 : 20;
                     const maxText = document.getElementById('maxLimitText');
                     if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
 
@@ -2679,7 +2680,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             var email     = window.currentUser.email || "";
 
             const p = window._geoPrice || DEFAULT_GEO;
-            const trialAmt = p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.13);
+            const trialAmt = p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.132);
             const examAmt  = p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5);
 
             var amount   = plan === 'premium_yearly' ? p.yearlyKobo
@@ -2855,4 +2856,828 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             // 'registration' listener above (which is already attached).
             await PushNotifications.register();
             console.log("[Push] register() called — awaiting token event...");
+        };// Manual Flashcard Creation
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let _cards   = [];    // [{ front: '', back: '' }, ...]
+    let _idx     = 0;     // card currently in the editor
+    let _saving  = false;
+    window._mcTitle   = '';
+    window._mcSubject = '';
+
+    // ── Public entry ─────────────────────────────────────────────────────────
+    window.openManualCreate = function () {
+        if (!window.currentUser) { window.showLoginModal(); return; }
+        _cards   = [{ front: '', back: '' }];
+        _idx     = 0;
+        _saving  = false;
+        window._mcTitle   = '';
+        window._mcSubject = '';
+        _render();
+        _enter();
+    };
+
+    // ── Overlay enter / exit ─────────────────────────────────────────────────
+    function _enter() {
+        document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
+        const hdr = document.querySelector('#view-create .top-header');
+        if (hdr) hdr.style.display = 'none';
+        document.getElementById('selectionView').style.display = 'none';
+
+        const mv = document.getElementById('manualCreateView');
+        Object.assign(mv.style, {
+            display:        'flex',
+            position:       'fixed',
+            inset:          '0',
+            zIndex:         '200',
+            background:     'var(--bg-body)',
+            flexDirection:  'column',
+            overflowY:      'auto',
+        });
+    }
+
+    function _exit() {
+        const nav = document.getElementById('globalBottomNav');
+        if (nav) nav.style.transform = '';
+        const hdr = document.querySelector('#view-create .top-header');
+        if (hdr) hdr.style.display = '';
+        document.getElementById('manualCreateView').style.display = 'none';
+        document.getElementById('selectionView').style.display = 'flex';
+    }
+
+    // ── Full render ──────────────────────────────────────────────────────────
+    function _render() {
+        const mv    = document.getElementById('manualCreateView');
+        const card  = _cards[_idx];
+        const total = _cards.length;
+
+        const canAdd     = !!(card.front.trim() && card.back.trim());
+        const hasSave    = _cards.some(c => c.front.trim() && c.back.trim());
+        const onFirst    = _idx === 0;
+        const onLast     = _idx === total - 1;
+
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;flex-shrink:0;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._mcBack()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;flex-shrink:0;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Create Flashcards</h2>
+    <span style="font-size:0.7rem;font-weight:700;background:rgba(139,92,246,0.12);color:var(--accent-btn);padding:3px 10px;border-radius:9999px;white-space:nowrap;">
+      ${total} card${total !== 1 ? 's' : ''}
+    </span>
+  </div>
+
+  <!-- ── Scrollable body ───────────────────────────────────────────────── -->
+  <div style="flex:1;overflow-y:auto;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
+
+    <!-- Deck info (only on card 0) -->
+    ${onFirst ? `
+    <div style="display:flex;flex-direction:column;gap:0.625rem;">
+      <input id="mcTitleInput" type="text" placeholder="Deck title" maxlength="60"
+        value="${_esc(window._mcTitle)}"
+        oninput="window._mcTitle=this.value"
+        style="width:100%;padding:0.875rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;-webkit-appearance:none;">
+      <input id="mcSubjectInput" type="text" placeholder="Subject  (e.g. Pharmacology)" maxlength="40"
+        value="${_esc(window._mcSubject)}"
+        oninput="window._mcSubject=this.value"
+        style="width:100%;padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.875rem;box-sizing:border-box;outline:none;-webkit-appearance:none;">
+    </div>
+    <div style="height:1px;background:var(--border-glass);"></div>
+    ` : ''}
+
+    <!-- Card nav row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;">
+        Card ${_idx + 1} of ${total}
+      </span>
+      <div style="display:flex;gap:0.375rem;">
+        <button onclick="window._mcNav(-1)" ${onFirst ? 'disabled' : ''}
+          style="width:2rem;height:2rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);color:var(--text-main);display:flex;align-items:center;justify-content:center;font-size:0.7rem;cursor:${onFirst ? 'default' : 'pointer'};opacity:${onFirst ? '0.35' : '1'};">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button onclick="window._mcNav(1)" ${onLast ? 'disabled' : ''}
+          style="width:2rem;height:2rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);color:var(--text-main);display:flex;align-items:center;justify-content:center;font-size:0.7rem;cursor:${onLast ? 'default' : 'pointer'};opacity:${onLast ? '0.35' : '1'};">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Front -->
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Front</label>
+      <textarea id="mcFrontInput"
+        placeholder="Question or term..."
+        oninput="window._mcLive('front',this.value)"
+        style="width:100%;min-height:5.5rem;padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;line-height:1.55;resize:none;box-sizing:border-box;outline:none;font-family:inherit;-webkit-appearance:none;">${_esc(card.front)}</textarea>
+    </div>
+
+    <!-- Back -->
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Back</label>
+      <textarea id="mcBackInput"
+        placeholder="Answer or definition..."
+        oninput="window._mcLive('back',this.value)"
+        style="width:100%;min-height:5.5rem;padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;line-height:1.55;resize:none;box-sizing:border-box;outline:none;font-family:inherit;-webkit-appearance:none;">${_esc(card.back)}</textarea>
+    </div>
+
+    <!-- Delete card -->
+    ${total > 1 ? `
+    <button onclick="window._mcDelete()"
+      style="align-self:flex-start;padding:0.375rem 0.875rem;border-radius:9999px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.07);color:#f87171;font-size:0.75rem;font-weight:600;cursor:pointer;">
+      <i class="fas fa-trash" style="margin-right:0.375rem;font-size:0.6875rem;"></i>Remove card
+    </button>
+    ` : ''}
+
+    <!-- Progress dots (max 8 shown) -->
+    ${total > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.375rem;flex-wrap:wrap;">
+      ${Array.from({ length: Math.min(total, 8) }, (_, i) => {
+          const dotIdx = total <= 8 ? i : Math.round(i * (total - 1) / 7);
+          const active = total <= 8 ? (i === _idx) : (dotIdx === _idx || (i === 7 && _idx >= dotIdx));
+          return `<div style="width:${active ? '20px' : '6px'};height:6px;border-radius:9999px;background:${active ? 'var(--accent-btn)' : 'var(--border-glass)'};transition:width 0.2s ease;"></div>`;
+      }).join('')}
+      ${total > 8 ? `<span style="font-size:0.65rem;color:var(--text-muted);margin-left:2px;">+${total - 8}</span>` : ''}
+    </div>
+    ` : ''}
+
+  </div><!-- end body -->
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);display:flex;gap:0.75rem;z-index:10;">
+
+    <!-- Add card -->
+    <button id="mcAddBtn" onclick="window._mcAdd()" ${!canAdd ? 'disabled' : ''}
+      style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:1.5px solid ${canAdd ? 'var(--accent-btn)' : 'var(--border-glass)'};background:transparent;color:${canAdd ? 'var(--accent-btn)' : 'var(--text-muted)'};font-size:0.9375rem;font-weight:700;cursor:${canAdd ? 'pointer' : 'not-allowed'};opacity:${canAdd ? '1' : '0.45'};transition:all 0.2s;">
+      <i class="fas fa-plus" style="margin-right:0.375rem;font-size:0.875rem;"></i>Add card
+    </button>
+
+    <!-- Save deck -->
+    <button id="mcSaveBtn" onclick="window._mcSave()" ${!hasSave ? 'disabled' : ''}
+      style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:${hasSave ? 'var(--accent-btn)' : 'var(--bg-surface)'};color:${hasSave ? 'var(--btn-text)' : 'var(--text-muted)'};font-size:0.9375rem;font-weight:700;cursor:${hasSave ? 'pointer' : 'not-allowed'};opacity:${hasSave ? '1' : '0.45'};transition:all 0.2s;">
+      Save deck
+    </button>
+  </div>
+
+</div>`;
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function _esc(s) {
+        return String(s || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
+    }
+
+    // Save textarea values before any action that re-renders
+    function _flush() {
+        const f = document.getElementById('mcFrontInput');
+        const b = document.getElementById('mcBackInput');
+        if (f) _cards[_idx].front = f.value;
+        if (b) _cards[_idx].back  = b.value;
+        const t = document.getElementById('mcTitleInput');
+        const s = document.getElementById('mcSubjectInput');
+        if (t) window._mcTitle   = t.value;
+        if (s) window._mcSubject = s.value;
+    }
+
+    // ── Live updates (typing — no re-render) ─────────────────────────────────
+    window._mcLive = function (field, value) {
+        _cards[_idx][field] = value;
+        const canAdd  = !!(  _cards[_idx].front.trim() && _cards[_idx].back.trim());
+        const hasSave = _cards.some(c => c.front.trim() && c.back.trim());
+
+        const addBtn  = document.getElementById('mcAddBtn');
+        const saveBtn = document.getElementById('mcSaveBtn');
+        if (addBtn) {
+            addBtn.disabled          = !canAdd;
+            addBtn.style.opacity     = canAdd ? '1' : '0.45';
+            addBtn.style.color       = canAdd ? 'var(--accent-btn)' : 'var(--text-muted)';
+            addBtn.style.borderColor = canAdd ? 'var(--accent-btn)' : 'var(--border-glass)';
+            addBtn.style.cursor      = canAdd ? 'pointer' : 'not-allowed';
+        }
+        if (saveBtn) {
+            saveBtn.disabled        = !hasSave;
+            saveBtn.style.opacity   = hasSave ? '1' : '0.45';
+            saveBtn.style.background = hasSave ? 'var(--accent-btn)' : 'var(--bg-surface)';
+            saveBtn.style.color      = hasSave ? 'var(--btn-text)' : 'var(--text-muted)';
+            saveBtn.style.cursor     = hasSave ? 'pointer' : 'not-allowed';
+        }
+    };
+
+    // ── Navigation ───────────────────────────────────────────────────────────
+    window._mcNav = function (dir) {
+        _flush();
+        const next = _idx + dir;
+        if (next < 0 || next >= _cards.length) return;
+        _idx = next;
+        _render();
+    };
+
+    // ── Add card ─────────────────────────────────────────────────────────────
+    window._mcAdd = function () {
+        _flush();
+        const card = _cards[_idx];
+        if (!card.front.trim() || !card.back.trim()) return;
+
+        // If on a middle card, just advance to next
+        if (_idx < _cards.length - 1) {
+            _idx++;
+            _render();
+            return;
+        }
+        // Append new blank card
+        _cards.push({ front: '', back: '' });
+        _idx = _cards.length - 1;
+        _render();
+        setTimeout(() => document.getElementById('mcFrontInput')?.focus(), 60);
+    };
+
+    // ── Delete card ──────────────────────────────────────────────────────────
+    window._mcDelete = function () {
+        _flush();
+        if (_cards.length <= 1) return;
+        _cards.splice(_idx, 1);
+        _idx = Math.max(0, Math.min(_idx, _cards.length - 1));
+        _render();
+    };
+
+    // ── Back / exit ──────────────────────────────────────────────────────────
+    window._mcBack = function () {
+        _flush();
+        const hasContent = _cards.some(c => c.front.trim() || c.back.trim());
+        if (!hasContent) { _exit(); return; }
+
+        // Bottom-sheet confirm instead of browser confirm()
+        _showDiscardSheet();
+    };
+
+    function _showDiscardSheet() {
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+        backdrop.innerHTML = `
+<div style="width:100%;background:var(--bg-surface);border-radius:1.25rem 1.25rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);display:flex;flex-direction:column;gap:0.75rem;">
+  <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.25rem;">Discard deck?</p>
+  <p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 0.25rem;line-height:1.5;">Your cards won't be saved.</p>
+  <button id="_discardYes" style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:#ef4444;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">Discard</button>
+  <button id="_discardNo"  style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:1px solid var(--border-glass);background:transparent;color:var(--text-main);font-size:1rem;font-weight:600;cursor:pointer;">Keep editing</button>
+</div>`;
+        document.body.appendChild(backdrop);
+        backdrop.querySelector('#_discardYes').onclick = () => { backdrop.remove(); _exit(); };
+        backdrop.querySelector('#_discardNo').onclick  = () => backdrop.remove();
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+    }
+
+    // ── Save deck ────────────────────────────────────────────────────────────
+    window._mcSave = async function () {
+        if (_saving) return;
+        _flush();
+
+        const valid = _cards.filter(c => c.front.trim() && c.back.trim());
+        if (!valid.length) return;
+
+        const title   = (window._mcTitle   || '').trim() || 'My Flashcards';
+        const subject = (window._mcSubject || '').trim() || 'General';
+
+        _saving = true;
+        const btn = document.getElementById('mcSaveBtn');
+        if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+
+        const newQuiz = {
+            id:       Date.now(),
+            title,
+            subject,
+            favorite: false,
+            source:   'manual',
+            type:     'Flashcards',
+            stats:    { bestScore: 0, attempts: 0, lastScore: 0 },
+            questions: valid.map(c => ({
+                text:        c.front.trim(),
+                options:     [c.back.trim()],
+                correct:     0,
+                explanation: ''
+            }))
         };
+
+        // Firestore
+        try {
+            if (window.currentUser && window.db) {
+                const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                await setDoc(doc(window.db, 'users', window.currentUser.uid, 'quizzes', String(newQuiz.id)), newQuiz);
+            }
+        } catch (e) { console.warn('[ManualCreate] Firestore save error:', e); }
+
+        // localStorage + in-memory
+        const uid   = window.currentUser?.uid || 'guest';
+        const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
+        store.push(newQuiz);
+        localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
+        window.quizzes = store;
+
+        // XP (5 per card)
+        try { await window.addXP(valid.length * 5); } catch (e) {}
+
+        _saving = false;
+        _exit();
+        window.updateHomeContinueCard?.();
+        window.navigateTo('view-study');
+
+        // Toast
+        setTimeout(() => {
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--accent-btn);color:var(--btn-text);padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+            t.textContent = `${valid.length} card${valid.length !== 1 ? 's' : ''} saved`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }, 350);
+    };
+
+})();
+
+// Anki .apkg Import
+// ─────────────────────────────────────────────────────────────────────────────
+// Supports .apkg (Anki package) files — no external dependencies except JSZip
+// which is loaded on-demand from cdnjs when the user first opens this feature.
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+
+    // ── JSZip loader ─────────────────────────────────────────────────────────
+    let _jszipReady = null;
+    function _loadJSZip() {
+        if (_jszipReady) return _jszipReady;
+        _jszipReady = new Promise((resolve, reject) => {
+            if (typeof JSZip !== 'undefined') { resolve(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            s.onload  = resolve;
+            s.onerror = () => reject(new Error('Failed to load JSZip'));
+            document.head.appendChild(s);
+        });
+        return _jszipReady;
+    }
+
+    // ── Minimal SQLite reader (Anki-specific) ─────────────────────────────────
+    // Reads leaf and interior b-tree pages, handles text + integer fields.
+    // Overflow pages are skipped (rare in typical Anki decks).
+    function _varint(u8, pos) {
+        let v = 0;
+        for (let i = 0; i < 9; i++) {
+            const b = u8[pos + i];
+            if (i === 8) { v = (v * 256) + b; return { v, next: pos + 9 }; }
+            v = v * 128 + (b & 0x7f);
+            if (!(b & 0x80))    { return { v, next: pos + i + 1 }; }
+        }
+        return { v, next: pos + 9 };
+    }
+
+    function _record(u8, pos) {
+        const hdr = _varint(u8, pos);
+        let hp = hdr.next;
+        const hdrEnd = pos + hdr.v;
+        const types = [];
+        while (hp < hdrEnd) {
+            const t = _varint(u8, hp);
+            types.push(t.v); hp = t.next;
+        }
+        let dp = hdrEnd;
+        const fields = [];
+        const dec = new TextDecoder('utf-8');
+        for (const type of types) {
+            if      (type === 0)              { fields.push(null); }
+            else if (type === 1)              { fields.push(u8[dp]); dp += 1; }
+            else if (type === 2)              { fields.push((u8[dp]<<8)|u8[dp+1]); dp += 2; }
+            else if (type === 3)              { fields.push((u8[dp]<<16)|(u8[dp+1]<<8)|u8[dp+2]); dp += 3; }
+            else if (type === 4)              { const dv = new DataView(u8.buffer, u8.byteOffset+dp, 4); fields.push(dv.getInt32(0,false)); dp += 4; }
+            else if (type === 5)              { dp += 6; fields.push(0); }
+            else if (type === 6)              { dp += 8; fields.push(0); }
+            else if (type === 7)              { const dv = new DataView(u8.buffer, u8.byteOffset+dp, 8); fields.push(dv.getFloat64(0,false)); dp += 8; }
+            else if (type === 8)              { fields.push(0); }
+            else if (type === 9)              { fields.push(1); }
+            else if (type >= 12 && !(type%2)) { const len = (type-12)>>1; fields.push(u8.slice(dp, dp+len)); dp += len; }
+            else if (type >= 13 &&  (type%2)) { const len = (type-13)>>1; fields.push(dec.decode(u8.slice(dp, dp+len))); dp += len; }
+            else                              { fields.push(null); }
+        }
+        return fields;
+    }
+
+    function _readLeaf(u8, pageOffset, isRoot, rows) {
+        const ho = isRoot ? 100 : pageOffset; // header offset (page 1 has 100-byte db header)
+        if (u8[ho] !== 0x0d) return;
+        const cellCount = (u8[ho+3]<<8)|u8[ho+4];
+        const ptrOff    = ho + 8;
+        for (let i = 0; i < cellCount; i++) {
+            const cp = pageOffset + ((u8[ptrOff+i*2]<<8)|u8[ptrOff+i*2+1]);
+            let p = cp;
+            const pl = _varint(u8, p); p = pl.next; // payload length
+            const ri = _varint(u8, p); p = ri.next; // row id
+            try { rows.push(_record(u8, p)); } catch(e) { /* skip corrupt row */ }
+        }
+    }
+
+    function _readInterior(u8, pageOffset, isRoot, pageSize, rows) {
+        const ho = isRoot ? 100 : pageOffset;
+        if (u8[ho] !== 0x05) return;
+        const cellCount = (u8[ho+3]<<8)|u8[ho+4];
+        // Left-most child
+        const lm = ((u8[ho+8]<<24)|(u8[ho+9]<<16)|(u8[ho+10]<<8)|u8[ho+11]) >>> 0;
+        _readBtree(u8, (lm-1)*pageSize, lm===1, pageSize, rows);
+        const ptrOff = ho + 12;
+        for (let i = 0; i < cellCount; i++) {
+            const cp = pageOffset + ((u8[ptrOff+i*2]<<8)|u8[ptrOff+i*2+1]);
+            const child = ((u8[cp]<<24)|(u8[cp+1]<<16)|(u8[cp+2]<<8)|u8[cp+3]) >>> 0;
+            _readBtree(u8, (child-1)*pageSize, child===1, pageSize, rows);
+        }
+    }
+
+    function _readBtree(u8, pageOffset, isRoot, pageSize, rows) {
+        const ho = isRoot ? 100 : pageOffset;
+        if (ho >= u8.length) return;
+        const type = u8[ho];
+        if      (type === 0x0d) _readLeaf(u8, pageOffset, isRoot, rows);
+        else if (type === 0x05) _readInterior(u8, pageOffset, isRoot, pageSize, rows);
+    }
+
+    function _readTable(u8, pageSize, rootPage) {
+        const rows = [];
+        _readBtree(u8, (rootPage-1)*pageSize, rootPage===1, pageSize, rows);
+        return rows;
+    }
+
+    function _parseSQLite(arrayBuffer) {
+        const u8  = new Uint8Array(arrayBuffer);
+        const dv  = new DataView(arrayBuffer);
+
+        // Validate magic
+        const magic = 'SQLite format 3\x00';
+        for (let i = 0; i < 16; i++) {
+            if (u8[i] !== magic.charCodeAt(i)) throw new Error('Not a valid SQLite file');
+        }
+
+        const pageSize = dv.getUint16(16, false) || 65536;
+
+        // Read sqlite_master (always page 1) to find table root pages
+        const schemaRows = [];
+        _readBtree(u8, 0, true, pageSize, schemaRows);
+
+        const tableMap = {};
+        for (const row of schemaRows) {
+            if (row[0] === 'table' && typeof row[1] === 'string') {
+                tableMap[row[1]] = row[3]; // name -> rootPage
+            }
+        }
+
+        const result = {};
+        for (const [name, rootPage] of Object.entries(tableMap)) {
+            if (typeof rootPage === 'number' && rootPage > 0) {
+                result[name] = _readTable(u8, pageSize, rootPage);
+            }
+        }
+        return result;
+    }
+
+    // ── HTML strip helper ─────────────────────────────────────────────────────
+    function _stripHTML(html) {
+        if (!html) return '';
+        return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .trim();
+    }
+
+    // ── Parse .apkg file → array of {front, back, tags, deckName} ─────────────
+    async function _parseApkg(file) {
+        await _loadJSZip();
+        const zip  = await JSZip.loadAsync(file);
+
+        // Prefer collection.anki21 (newer format), fall back to collection.anki2
+        let dbFile = zip.file('collection.anki21') || zip.file('collection.anki2');
+        if (!dbFile) throw new Error('No Anki collection file found in .apkg');
+
+        const dbBuf = await dbFile.async('arraybuffer');
+        const tables = _parseSQLite(dbBuf);
+
+        // Get deck name from col table
+        let deckName = 'Anki Import';
+        if (tables.col && tables.col.length) {
+            try {
+                const decksJson = tables.col[0][8]; // decks column
+                if (typeof decksJson === 'string') {
+                    const decks = JSON.parse(decksJson);
+                    const names = Object.values(decks)
+                        .map(d => d.name)
+                        .filter(n => n && n !== 'Default');
+                    if (names.length) deckName = names[0];
+                }
+            } catch(e) { /* use default */ }
+        }
+
+        // Parse notes
+        const cards = [];
+        const notes = tables.notes || tables.note || [];
+        for (const row of notes) {
+            const flds = typeof row[6] === 'string' ? row[6] : null;
+            if (!flds) continue;
+            const parts = flds.split('\x1f');
+            if (parts.length < 2) continue;
+            const front = _stripHTML(parts[0]);
+            const back  = _stripHTML(parts[1]);
+            if (!front || !back) continue;
+            cards.push({ front, back, tags: typeof row[5] === 'string' ? row[5].trim() : '' });
+        }
+
+        return { cards, deckName };
+    }
+
+    // ── UI state ─────────────────────────────────────────────────────────────
+    let _parsed = null; // { cards, deckName }
+
+    // ── Entry point ───────────────────────────────────────────────────────────
+    window.openAnkiImport = function () {
+        if (!window.currentUser) { window.showLoginModal(); return; }
+        _parsed = null;
+        _renderAnkiPicker();
+        _ankiEnter();
+    };
+
+    function _ankiEnter() {
+        document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
+        const hdr = document.querySelector('#view-create .top-header');
+        if (hdr) hdr.style.display = 'none';
+        document.getElementById('selectionView').style.display = 'none';
+        const mv = document.getElementById('ankiImportView');
+        Object.assign(mv.style, {
+            display: 'flex', position: 'fixed', inset: '0', zIndex: '200',
+            background: 'var(--bg-body)', flexDirection: 'column', overflowY: 'auto',
+        });
+    }
+
+    function _ankiExit() {
+        const nav = document.getElementById('globalBottomNav');
+        if (nav) nav.style.transform = '';
+        const hdr = document.querySelector('#view-create .top-header');
+        if (hdr) hdr.style.display = '';
+        document.getElementById('ankiImportView').style.display = 'none';
+        document.getElementById('selectionView').style.display = 'flex';
+        _parsed = null;
+    }
+
+    // ── Screen 1: file picker ─────────────────────────────────────────────────
+    function _renderAnkiPicker() {
+        const mv = document.getElementById('ankiImportView');
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._ankiBack()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Import from Anki</h2>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;padding:1.5rem 1.125rem;display:flex;flex-direction:column;gap:1.5rem;">
+
+    <!-- Drop zone -->
+    <label id="ankiDropZone" for="ankiFileInput"
+      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:3rem 1.5rem;border-radius:var(--radius-card);border:2px dashed var(--border-glass);background:var(--bg-surface);cursor:pointer;text-align:center;transition:border-color 0.2s;">
+      <div style="width:4rem;height:4rem;border-radius:1rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-file-import" style="font-size:1.5rem;color:var(--accent-btn);"></i>
+      </div>
+      <div>
+        <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.375rem;">Select .apkg file</p>
+        <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.5;">Export a deck from Anki Desktop,<br>then select the .apkg file here.</p>
+      </div>
+      <input type="file" id="ankiFileInput" accept=".apkg" style="display:none;" onchange="window._ankiFileChosen(this)">
+    </label>
+
+    <!-- How to export guide -->
+    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1.125rem;">
+      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.75rem;">How to export from Anki</p>
+      ${['Open Anki Desktop on your computer', 'Right-click a deck and choose Export', 'Set format to Anki Deck Package (.apkg)', 'Send the file to your phone'].map((step, i) => `
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;${i < 3 ? 'margin-bottom:0.625rem;' : ''}">
+        <div style="width:1.375rem;height:1.375rem;border-radius:50%;background:rgba(139,92,246,0.12);color:var(--accent-btn);font-size:0.6875rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</div>
+        <p style="font-size:0.875rem;color:var(--text-main);margin:0;line-height:1.45;">${step}</p>
+      </div>`).join('')}
+    </div>
+
+  </div>
+</div>`;
+    }
+
+    // ── File chosen — parse and show preview ──────────────────────────────────
+    window._ankiFileChosen = async function (input) {
+        const file = input.files[0];
+        if (!file) return;
+        if (!file.name.endsWith('.apkg')) {
+            alert('Please select an .apkg file exported from Anki.');
+            return;
+        }
+
+        _renderAnkiLoading(file.name);
+
+        try {
+            _parsed = await _parseApkg(file);
+
+            if (!_parsed.cards.length) {
+                _renderAnkiError('No cards found in this deck. Make sure it contains Basic cards with front and back fields.');
+                return;
+            }
+
+            _renderAnkiPreview();
+        } catch(e) {
+            console.error('[AnkiImport]', e);
+            _renderAnkiError(e.message || 'Could not read this file. Make sure it is a valid .apkg export from Anki.');
+        }
+    };
+
+    // ── Screen 2: loading ─────────────────────────────────────────────────────
+    function _renderAnkiLoading(filename) {
+        const mv = document.getElementById('ankiImportView');
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;padding:2rem;text-align:center;gap:1.5rem;">
+  <div style="width:5rem;height:5rem;border-radius:50%;border:3px solid var(--border-glass);border-top-color:var(--accent-btn);animation:spin 0.9s linear infinite;"></div>
+  <div>
+    <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.375rem;">Reading deck</p>
+    <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${_esc(filename)}</p>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>`;
+    }
+
+    // ── Screen 3: preview / confirm ───────────────────────────────────────────
+    function _renderAnkiPreview() {
+        if (!_parsed) return;
+        const { cards, deckName } = _parsed;
+        const preview = cards.slice(0, 3);
+        const mv = document.getElementById('ankiImportView');
+
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._renderAnkiPicker()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Review Import</h2>
+    <span style="font-size:0.7rem;font-weight:700;background:rgba(16,185,129,0.12);color:var(--accent-green);padding:3px 10px;border-radius:9999px;">${cards.length} cards</span>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
+
+    <!-- Deck title input -->
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Deck title</label>
+      <input id="ankiTitleInput" type="text" value="${_esc(deckName)}" maxlength="60"
+        style="width:100%;padding:0.875rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;">
+    </div>
+
+    <!-- Subject input -->
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Subject</label>
+      <input id="ankiSubjectInput" type="text" placeholder="e.g. Pharmacology" maxlength="40"
+        style="width:100%;padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.875rem;box-sizing:border-box;outline:none;">
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:0.75rem;">
+      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
+        <p style="font-size:1.5rem;font-weight:800;color:var(--text-main);margin:0 0 0.125rem;">${cards.length}</p>
+        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">Cards</p>
+      </div>
+      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
+        <p style="font-size:1.5rem;font-weight:800;color:var(--accent-green);margin:0 0 0.125rem;">+${cards.length * 5}</p>
+        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">XP earned</p>
+      </div>
+    </div>
+
+    <!-- Preview cards -->
+    <div>
+      <p style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.625rem;">Preview</p>
+      <div style="display:flex;flex-direction:column;gap:0.625rem;">
+        ${preview.map((c, i) => `
+        <div style="background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;">
+          <p style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin:0 0 0.25rem;text-transform:uppercase;letter-spacing:0.06em;">Card ${i+1}</p>
+          <p style="font-size:0.875rem;font-weight:600;color:var(--text-main);margin:0 0 0.375rem;line-height:1.4;">${_esc(c.front.substring(0, 120))}${c.front.length > 120 ? '…' : ''}</p>
+          <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.4;">${_esc(c.back.substring(0, 100))}${c.back.length > 100 ? '…' : ''}</p>
+        </div>`).join('')}
+        ${cards.length > 3 ? `<p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;margin:0.25rem 0 0;">and ${cards.length - 3} more cards</p>` : ''}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+    <button onclick="window._ankiConfirmImport()"
+      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
+      Import ${cards.length} cards
+    </button>
+  </div>
+
+</div>`;
+        // expose for back button
+        window._renderAnkiPicker = _renderAnkiPicker;
+    }
+
+    // ── Screen 4: error ───────────────────────────────────────────────────────
+    function _renderAnkiError(msg) {
+        const mv = document.getElementById('ankiImportView');
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;padding:2rem;text-align:center;gap:1.25rem;">
+  <div style="width:4rem;height:4rem;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;">
+    <i class="fas fa-exclamation-triangle" style="font-size:1.5rem;color:#f87171;"></i>
+  </div>
+  <div>
+    <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.5rem;">Could not read deck</p>
+    <p style="font-size:0.875rem;color:var(--text-muted);margin:0;line-height:1.5;">${_esc(msg)}</p>
+  </div>
+  <button onclick="window._renderAnkiPicker(); window._renderAnkiPicker = _renderAnkiPicker;"
+    style="padding:0.75rem 2rem;border-radius:var(--radius-btn);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;font-weight:600;cursor:pointer;">
+    Try another file
+  </button>
+</div>`;
+        window._renderAnkiPicker = _renderAnkiPicker;
+    }
+
+    // ── Save imported deck ────────────────────────────────────────────────────
+    window._ankiConfirmImport = async function () {
+        if (!_parsed) return;
+        const btn = document.querySelector('#ankiImportView button:last-of-type');
+        if (btn) { btn.textContent = 'Importing...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+
+        const title   = document.getElementById('ankiTitleInput')?.value.trim()   || _parsed.deckName || 'Anki Import';
+        const subject = document.getElementById('ankiSubjectInput')?.value.trim() || 'General';
+        const { cards } = _parsed;
+
+        const newQuiz = {
+            id:       Date.now(),
+            title,
+            subject,
+            favorite: false,
+            source:   'anki',
+            type:     'Flashcards',
+            stats:    { bestScore: 0, attempts: 0, lastScore: 0 },
+            questions: cards.map(c => ({
+                text:        c.front,
+                options:     [c.back],
+                correct:     0,
+                explanation: ''
+            }))
+        };
+
+        // Firestore
+        try {
+            if (window.currentUser && window.db) {
+                const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                await setDoc(doc(window.db, 'users', window.currentUser.uid, 'quizzes', String(newQuiz.id)), newQuiz);
+            }
+        } catch(e) { console.warn('[AnkiImport] Firestore error:', e); }
+
+        // localStorage + in-memory
+        const uid   = window.currentUser?.uid || 'guest';
+        const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
+        store.push(newQuiz);
+        localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
+        window.quizzes = store;
+
+        // XP (5 per card, capped at 500 so a huge import doesn't break the economy)
+        try { await window.addXP(Math.min(cards.length * 5, 500)); } catch(e) {}
+
+        _ankiExit();
+        window.updateHomeContinueCard?.();
+        window.navigateTo('view-study');
+
+        setTimeout(() => {
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--accent-btn);color:var(--btn-text);padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+            t.textContent = `${cards.length} cards imported`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2800);
+        }, 350);
+    };
+
+    // ── Back ──────────────────────────────────────────────────────────────────
+    window._ankiBack = _ankiExit;
+
+    // ── Escape helper ─────────────────────────────────────────────────────────
+    function _esc(s) {
+        return String(s || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
+    }
+
+})();
