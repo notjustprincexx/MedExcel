@@ -4038,6 +4038,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     // ── Enter / Exit overlay ─────────────────────────────────────────────────
     function _enter() {
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = window.Capacitor.Plugins;
+                StatusBar.setBackgroundColor({ color: '#0f0720' });
+                StatusBar.setStyle({ style: 'DARK' });
+            } catch(e) {}
+        }
         document.getElementById('globalBottomNav')?.style.setProperty('transform','translateY(100%)');
         const mv = document.getElementById('bossFightView');
         Object.assign(mv.style, {
@@ -4050,6 +4057,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     }
 
     function _exit() {
+        const isLight = localStorage.getItem('medexcel_theme') !== 'dark';
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try {
+                const { StatusBar } = window.Capacitor.Plugins;
+                StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+                StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+            } catch(e) {}
+        }
         const mv = document.getElementById('bossFightView');
         if (!mv) return;
         mv.style.opacity='0'; mv.style.transform='translateY(20px)';
