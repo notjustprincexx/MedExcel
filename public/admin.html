@@ -866,8 +866,6 @@ window.loadData = async function() {
     allUsers = [];
     snap.forEach(d => allUsers.push({ uid: d.id, ...d.data() }));
     renderAll();
-    loadBroadcastHistory();
-    loadUpdateStatus();
   } catch(e) { toast('Failed to load data'); }
 };
 
@@ -886,7 +884,9 @@ function renderAll() {
 // ── AMBASSADOR DASHBOARD ──
 function renderAmbassadorDashboard() {
   if (currentRole !== 'ambassador' || !ambassadorUserData) return;
-  const d = ambassadorUserData;
+  // Prefer fresh data from the latest allUsers fetch so stats update on refresh
+  const fresh = allUsers.find(u => u.uid === ambassadorUserData.uid);
+  const d = fresh ? { ...ambassadorUserData, ...fresh } : ambassadorUserData;
 
   const xp           = d.xp || 0;
   const streak       = d.streak || 0;
@@ -991,8 +991,10 @@ async function renderDAUChart() {
       ).join('');
     }
   } catch(e) {
-    barsEl.innerHTML = `<div style="color:var(--red);font-size:.75rem;font-family:var(--mono);padding:.25rem 0;">
-      <i class="fas fa-triangle-exclamation" style="margin-right:.3rem;"></i>Permission denied — add dailyActive to Firestore rules
+    barsEl.innerHTML = `<div style="color:var(--red);font-size:.75rem;font-family:var(--mono);padding:.25rem 0;line-height:1.8;">
+      <i class="fas fa-triangle-exclamation" style="margin-right:.3rem;"></i>Permission denied on <code>dailyActive</code><br>
+      <span style="color:var(--muted);font-size:.68rem;">Add to Firestore rules:<br>
+      <code>match /dailyActive/{date} { allow read: if request.auth != null; allow write: if request.auth != null; }</code></span>
     </div>`;
   }
 }
@@ -1387,7 +1389,8 @@ window.unbanUser = async function(uid) {
 
 window.resetUserUsage = async function(uid) {
   try {
-    await updateDoc(doc(db,'users',uid), { planUsed:0, dailyUsage:0, lastDailyReset:new Date().toDateString() });
+    // Use ISO date format to match what the app reads: new Date().toISOString().split('T')[0]
+    await updateDoc(doc(db,'users',uid), { planUsed:0, dailyUsage:0, lastDailyReset:new Date().toISOString().split('T')[0] });
     toast('✓ Daily usage reset'); closeUserModal(); loadData();
   } catch(e) { toast('Failed'); }
 };
