@@ -4039,17 +4039,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Enter / Exit overlay ─────────────────────────────────────────────────
     function _enter() {
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            try {
-                const { StatusBar } = window.Capacitor.Plugins;
-                StatusBar.setBackgroundColor({ color: '#0f0720' });
-                StatusBar.setStyle({ style: 'DARK' });
-            } catch(e) {}
+            try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: '#0f0720' }); StatusBar.setStyle({ style: 'DARK' }); } catch(e) {}
         }
         document.getElementById('globalBottomNav')?.style.setProperty('transform','translateY(100%)');
         const mv = document.getElementById('bossFightView');
         Object.assign(mv.style, {
             display:'flex', position:'fixed', inset:'0', zIndex:'300',
-            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
+            background:'linear-gradient(160deg,#0f0720 0%,#1e0a40 55%,#0f0720 100%)', flexDirection:'column', overflowY:'auto',
             opacity:'0', transform:'translateY(20px)',
             transition:'opacity .22s ease, transform .22s ease',
         });
@@ -4059,11 +4055,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     function _exit() {
         const isLight = localStorage.getItem('medexcel_theme') !== 'dark';
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            try {
-                const { StatusBar } = window.Capacitor.Plugins;
-                StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
-                StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
-            } catch(e) {}
+            try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); } catch(e) {}
         }
         const mv = document.getElementById('bossFightView');
         if (!mv) return;
@@ -4130,13 +4122,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 <div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;">
+  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid rgba(124,58,237,.2);background:transparent;flex-shrink:0;">
     <button onclick="window._bossExit()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;transition:transform .1s;"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:white;cursor:pointer;transition:transform .1s;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
       <i class="fas fa-arrow-left" style="font-size:.875rem;"></i>
     </button>
-    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;flex:1;">Boss Fight</h2>
+    <h2 style="font-size:1rem;font-weight:700;color:white;margin:0;flex:1;">Boss Fight</h2>
   </div>
 
   <!-- Boss arena banner -->
