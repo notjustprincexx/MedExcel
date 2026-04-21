@@ -2224,32 +2224,41 @@ if (nextBtn) {
                     const isPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
                     const maxMB = isPremium ? 50 : 15;
                     if (file.size > maxMB * 1024 * 1024) { alert(`File is too large. Maximum size is ${maxMB}MB${!isPremium ? ' on the free plan. Upgrade to Premium for 50MB.' : '.'}`); fileInput.value = ''; return; }
-                    window.selectedFile = file;
-                    const iconEl = document.getElementById('uploadIconInner');
-                    if (iconEl) { iconEl.className = 'fas fa-file-check'; iconEl.style.color = 'var(--accent-btn)'; iconEl.style.animation = 'none'; }
-                    document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
-                    
-                    // Auto-suggest deck name from filename
-                    const nameInput = document.getElementById('deckNameInput');
-                    if (nameInput && !nameInput.value.trim()) {
-                        const suggested = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
-                        nameInput.value = suggested.charAt(0).toUpperCase() + suggested.slice(1);
-                        nameInput.style.borderColor = 'var(--accent-btn)';
+
+                    // PDFs get the page selector first
+                    if (file.name.toLowerCase().endsWith('.pdf')) {
+                        window.openPdfPageSelector(file);
+                        return;
                     }
-                    
-                    document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
-                    document.getElementById('dropZone').classList.add('file-selected');
-                    document.getElementById('configSection').style.opacity = '1';
-                    document.getElementById('configSection').style.pointerEvents = 'auto';
-                    
-                    const btn = document.getElementById('generateBtn');
-                    btn.disabled = false;
-                    btn.style.background = 'var(--accent-btn)';
-                    btn.style.color = 'var(--btn-text)';
-                    btn.style.cursor = 'pointer';
+
+                    // All other file types proceed as normal
+                    window._applySelectedFile(file);
                 }
             });
         }
+
+        // Shared helper — called after page selection or for non-PDF files
+        window._applySelectedFile = function(file) {
+            window.selectedFile = file;
+            const iconEl = document.getElementById('uploadIconInner');
+            if (iconEl) { iconEl.className = 'fas fa-file-check'; iconEl.style.color = 'var(--accent-btn)'; iconEl.style.animation = 'none'; }
+            document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
+            const nameInput = document.getElementById('deckNameInput');
+            if (nameInput && !nameInput.value.trim()) {
+                const suggested = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+                nameInput.value = suggested.charAt(0).toUpperCase() + suggested.slice(1);
+                nameInput.style.borderColor = 'var(--accent-btn)';
+            }
+            document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
+            document.getElementById('dropZone').classList.add('file-selected');
+            document.getElementById('configSection').style.opacity = '1';
+            document.getElementById('configSection').style.pointerEvents = 'auto';
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = false;
+            btn.style.background = 'var(--accent-btn)';
+            btn.style.color = 'var(--btn-text)';
+            btn.style.cursor = 'pointer';
+        };
 //// --- NEW INTERACTIVE RENDERER LOGIC (CREATE VIEW) ---
 
 window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
@@ -3066,11 +3075,6 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#3c3c3c;flex-shrink:0;"><i class="fas fa-star" style="font-size:8px;color:#5bb0e8;"></i></span>
         <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">Anki</span>
       </button>
-      <button data-import="quizlet" id="mcImportQuizletBtn"
-        style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:9999px;border:1px solid var(--border-glass);background:var(--bg-surface);cursor:pointer;flex:1;justify-content:center;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#4355ff;color:white;font-weight:900;font-size:9px;font-family:Arial,sans-serif;flex-shrink:0;line-height:1;">Q</span>
-        <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">Quizlet</span>
-      </button>
     </div>
 
   </div><!-- end body -->
@@ -3095,9 +3099,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // Wire import buttons — must happen after innerHTML is set
     (function(){
         var ab=document.getElementById('mcImportAnkiBtn');
-        var qb=document.getElementById('mcImportQuizletBtn');
         if(ab) ab.onclick=function(){window._mcImport('anki');};
-        if(qb) qb.onclick=function(){window._mcImport('quizlet');};
     })();
     }
 
@@ -4617,6 +4619,290 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Helpers ───────────────────────────────────────────────────────────────
     function _esc(s) {
         return String(s||'').replace(/[&<>"']/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
+    }
+
+})();
+
+// PDF Page Selector
+// ─────────────────────────────────────────────────────────────────────────────
+// Shows a thumbnail grid of all PDF pages so users can pick which pages
+// to include before quiz generation. Uses PDF.js for rendering and
+// PDF-lib for reconstructing a new PDF from selected pages only.
+(function () {
+
+    let _pdfFile       = null;
+    let _pdfDoc        = null;
+    let _selectedPages = new Set();
+    let _totalPages    = 0;
+
+    const PDFJS_CDN  = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    const PDFLIB_CDN = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+
+    function _loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+            const s = document.createElement('script');
+            s.src = src; s.onload = resolve; s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    window.openPdfPageSelector = async function (file) {
+        _pdfFile       = file;
+        _selectedPages = new Set();
+        _pdfDoc        = null;
+
+        const mv = _getOverlay();
+        mv.innerHTML = _loadingHTML(file.name);
+        _show(mv);
+
+        try {
+            await _loadScript(PDFJS_CDN);
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            const arrayBuffer = await file.arrayBuffer();
+            _pdfDoc     = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            _totalPages = _pdfDoc.numPages;
+
+            for (let i = 1; i <= _totalPages; i++) _selectedPages.add(i);
+
+            await _renderGrid(mv);
+        } catch (e) {
+            console.error('[PdfPageSelector]', e);
+            mv.innerHTML = _errorHTML(e.message);
+        }
+    };
+
+    async function _renderGrid(mv) {
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+    <button onclick="window._pdfSelectorBack()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
+      <i class="fas fa-times"></i>
+    </button>
+    <div style="flex:1;">
+      <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;">Select pages</h2>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin:0;" id="pdfSelCount">${_totalPages} of ${_totalPages} selected</p>
+    </div>
+    <button onclick="window._pdfToggleAll()" id="pdfToggleAllBtn"
+      style="font-size:0.75rem;font-weight:700;color:var(--accent-btn);background:transparent;border:none;cursor:pointer;padding:0.25rem 0.5rem;">
+      Deselect all
+    </button>
+  </div>
+
+  <!-- Grid -->
+  <div id="pdfThumbGrid"
+    style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem 1rem 7rem;">
+  </div>
+
+  <!-- Footer -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+    <button id="pdfContinueBtn" onclick="window._pdfConfirm()"
+      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
+      Continue with ${_totalPages} pages
+    </button>
+  </div>
+
+</div>`;
+
+        const grid = mv.querySelector('#pdfThumbGrid');
+
+        for (let pageNum = 1; pageNum <= _totalPages; pageNum++) {
+            const wrapper = document.createElement('div');
+            wrapper.id = `pdfPage_${pageNum}`;
+            wrapper.style.cssText = `
+                position:relative;border-radius:0.75rem;overflow:hidden;cursor:pointer;
+                border:2.5px solid var(--accent-btn);background:var(--bg-surface);
+                transition:border-color 0.15s,opacity 0.15s;`;
+            wrapper.onclick = () => window._pdfTogglePage(pageNum);
+
+            // Use img tag so width:100%;height:auto correctly preserves aspect ratio
+            const img = document.createElement('img');
+            img.style.cssText = 'width:100%;height:auto;display:block;';
+            img.alt = `Page ${pageNum}`;
+
+            const checkEl = document.createElement('div');
+            checkEl.id = `pdfCheck_${pageNum}`;
+            checkEl.style.cssText = `
+                position:absolute;bottom:0.5rem;right:0.5rem;
+                width:1.5rem;height:1.5rem;border-radius:50%;
+                background:var(--accent-btn);display:flex;align-items:center;justify-content:center;
+                transition:opacity 0.15s;`;
+            checkEl.innerHTML = '<i class="fas fa-check" style="font-size:0.6rem;color:white;"></i>';
+
+            const pageLabel = document.createElement('div');
+            pageLabel.style.cssText = `
+                position:absolute;top:0.375rem;left:0.5rem;
+                font-size:0.6rem;font-weight:700;color:white;
+                background:rgba(0,0,0,0.45);padding:2px 6px;border-radius:9999px;`;
+            pageLabel.textContent = pageNum;
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(checkEl);
+            wrapper.appendChild(pageLabel);
+            grid.appendChild(wrapper);
+
+            // Render to offscreen canvas then export as img src to preserve aspect ratio
+            try {
+                const page     = await _pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 1.0 });
+                const targetW  = 300;
+                const scale    = targetW / viewport.width;
+                const scaled   = page.getViewport({ scale });
+
+                const offscreen   = document.createElement('canvas');
+                offscreen.width   = Math.round(scaled.width);
+                offscreen.height  = Math.round(scaled.height);
+                await page.render({ canvasContext: offscreen.getContext('2d'), viewport: scaled }).promise;
+                img.src = offscreen.toDataURL('image/jpeg', 0.85);
+            } catch (e) {
+                img.style.minHeight = '150px';
+            }
+        }
+
+        _refreshUI();
+    }
+
+    window._pdfTogglePage = function (pageNum) {
+        if (_selectedPages.has(pageNum)) _selectedPages.delete(pageNum);
+        else _selectedPages.add(pageNum);
+        _refreshUI();
+    };
+
+    window._pdfToggleAll = function () {
+        if (_selectedPages.size === _totalPages) _selectedPages.clear();
+        else for (let i = 1; i <= _totalPages; i++) _selectedPages.add(i);
+        _refreshUI();
+    };
+
+    function _refreshUI() {
+        const count = _selectedPages.size;
+
+        const countEl = document.getElementById('pdfSelCount');
+        if (countEl) countEl.textContent = `${count} of ${_totalPages} selected`;
+
+        const toggleBtn = document.getElementById('pdfToggleAllBtn');
+        if (toggleBtn) toggleBtn.textContent = count === _totalPages ? 'Deselect all' : 'Select all';
+
+        const continueBtn = document.getElementById('pdfContinueBtn');
+        if (continueBtn) {
+            continueBtn.disabled       = count === 0;
+            continueBtn.style.opacity  = count === 0 ? '0.45' : '1';
+            continueBtn.style.cursor   = count === 0 ? 'not-allowed' : 'pointer';
+            continueBtn.textContent    = count === 0
+                ? 'Select at least one page'
+                : `Continue with ${count} page${count !== 1 ? 's' : ''}`;
+        }
+
+        for (let i = 1; i <= _totalPages; i++) {
+            const wrapper  = document.getElementById(`pdfPage_${i}`);
+            const checkEl  = document.getElementById(`pdfCheck_${i}`);
+            const selected = _selectedPages.has(i);
+            if (wrapper) {
+                wrapper.style.borderColor = selected ? 'var(--accent-btn)' : 'var(--border-glass)';
+                wrapper.style.opacity     = selected ? '1' : '0.45';
+            }
+            if (checkEl) checkEl.style.opacity = selected ? '1' : '0';
+        }
+    }
+
+    window._pdfConfirm = async function () {
+        if (_selectedPages.size === 0) return;
+
+        const btn = document.getElementById('pdfContinueBtn');
+        if (btn) { btn.textContent = 'Building PDF…'; btn.disabled = true; btn.style.opacity = '0.65'; }
+
+        try {
+            const sortedPages = [..._selectedPages].sort((a, b) => a - b);
+            let finalFile;
+
+            if (sortedPages.length === _totalPages) {
+                finalFile = _pdfFile;
+            } else {
+                await _loadScript(PDFLIB_CDN);
+                const { PDFDocument } = PDFLib;
+
+                const originalBytes = await _pdfFile.arrayBuffer();
+                const srcDoc        = await PDFDocument.load(originalBytes);
+                const newDoc        = await PDFDocument.create();
+                const indices       = sortedPages.map(p => p - 1);
+                const copied        = await newDoc.copyPages(srcDoc, indices);
+                copied.forEach(page => newDoc.addPage(page));
+
+                const newBytes = await newDoc.save();
+                const blob     = new Blob([newBytes], { type: 'application/pdf' });
+                const baseName = _pdfFile.name.replace(/\.pdf$/i, '');
+                finalFile = new File([blob], `${baseName}_pages.pdf`, { type: 'application/pdf' });
+            }
+
+            _hide(_getOverlay());
+            window._applySelectedFile(finalFile);
+
+        } catch (e) {
+            console.error('[PdfPageSelector] Confirm error:', e);
+            if (btn) {
+                btn.textContent = 'Something went wrong — try again';
+                btn.disabled = false; btn.style.opacity = '1';
+                btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.color = '#f87171';
+            }
+            setTimeout(() => {
+                if (btn) {
+                    btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)';
+                    btn.textContent = `Continue with ${_selectedPages.size} pages`;
+                }
+            }, 3000);
+        }
+    };
+
+    window._pdfSelectorBack = function () {
+        _hide(_getOverlay());
+        _pdfFile = null; _pdfDoc = null; _selectedPages.clear();
+    };
+
+    function _getOverlay() {
+        let mv = document.getElementById('pdfPageSelectorView');
+        if (!mv) {
+            mv = document.createElement('div');
+            mv.id = 'pdfPageSelectorView';
+            document.body.appendChild(mv);
+        }
+        return mv;
+    }
+
+    function _show(mv) {
+        Object.assign(mv.style, {
+            display:'flex', position:'fixed', inset:'0', zIndex:'350',
+            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
+            opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
+        });
+        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
+    }
+
+    function _hide(mv) {
+        mv.style.opacity = '0'; mv.style.transform = 'translateY(24px)';
+        setTimeout(() => { mv.style.display = 'none'; mv.style.transition = ''; }, 220);
+    }
+
+    function _loadingHTML(name) {
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;gap:1rem;padding:2rem;">
+            <div style="width:2.5rem;height:2.5rem;border:3px solid var(--border-glass);border-top-color:var(--accent-btn);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+            <p style="font-size:0.9375rem;font-weight:600;color:var(--text-main);margin:0;">Loading pages…</p>
+            <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${name}</p>
+        </div>`;
+    }
+
+    function _errorHTML(msg) {
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;gap:1rem;padding:2rem;text-align:center;">
+            <i class="fas fa-exclamation-circle" style="font-size:2.5rem;color:#f87171;"></i>
+            <p style="font-size:0.9375rem;font-weight:600;color:var(--text-main);margin:0;">Couldn't load PDF</p>
+            <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${msg}</p>
+            <button onclick="window._pdfSelectorBack()" style="margin-top:0.5rem;padding:0.75rem 1.5rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-weight:700;cursor:pointer;">Go back</button>
+        </div>`;
     }
 
 })();
