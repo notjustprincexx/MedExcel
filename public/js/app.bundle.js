@@ -2083,7 +2083,7 @@ if (nextBtn) {
 
             // Normal back — show selection screen
             document.getElementById('selectionView').style.display = 'flex';
-            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none'; const _qv = document.getElementById('quizletImportView'); if (_qv) _qv.style.display = 'none';
+            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none'; const _bv = document.getElementById('bossFightView'); if (_bv) _bv.style.display = 'none';
             
             // Reset state
             window.selectedFile = null;
@@ -3042,7 +3042,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     <!-- Import from another app — compact row at bottom -->
     <div style="display:flex;align-items:center;gap:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-glass);">
-      <span style="font-size:0.7rem;color:var(--text-muted);flex-shrink:0;">Import from:</span>
+      <span style="font-size:0.7rem;color:var(--text-muted);flex-shrink:0;">Import from Anki:</span>
       <button data-import="anki" id="mcImportAnkiBtn"
         style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:9999px;border:1px solid var(--border-glass);background:var(--bg-surface);cursor:pointer;flex:1;justify-content:center;">
         <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#3c3c3c;flex-shrink:0;"><i class="fas fa-star" style="font-size:8px;color:#5bb0e8;"></i></span>
@@ -3261,16 +3261,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             mv.style.transform = 'translateY(24px)';
             setTimeout(function () {
                 mv.style.display = 'none';
-                if (target === 'anki') window.openAnkiImport();
-                else window.openQuizletImport();
+                window.openAnkiImport();
             }, 180);
         } else {
-            if (target === 'anki') window.openAnkiImport();
-            else window.openQuizletImport();
+            window.openAnkiImport();
         }
     };
     window._mcOpenAnki    = function () { window._mcImport('anki'); };
-    window._mcOpenQuizlet = function () { window._mcImport('quizlet'); };
 
 })();
 
@@ -3942,285 +3939,624 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     }
 
 })();
-
-// Quizlet Import — URL-based via Cloud Function
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// BOSS FIGHT MODE
+// ═══════════════════════════════════════════════════════════════════════════
 (function () {
 
-    let _qParsed = null;
+    // ── State ────────────────────────────────────────────────────────────────
+    let _questions  = [];   // shuffled subset from chosen deck
+    let _qIdx       = 0;    // current question index
+    let _bossHP     = 100;
+    let _playerHP   = 100;
+    let _timer      = null;
+    let _timeLeft   = 10;
+    let _answered   = false;
+    let _deckTitle  = '';
+    let _xpDelta    = 0;    // net XP change at end
 
-    // ── Entry ─────────────────────────────────────────────────────────────────
-    window.openQuizletImport = function () {
-        if (!window.currentUser) { window.showLoginModal(); return; }
-        _qParsed = null;
-        _qRenderURL();
-        _qEnter();
-    };
+    const TOTAL_Q    = 15;
+    const BOSS_MAX   = 100;
+    const PLAYER_MAX = 100;
+    const TIME_PER_Q = 10;  // seconds
 
-    function _qEnter() {
-        const onCreateView = document.getElementById('view-create')?.classList.contains('active');
-        window._qFromCreate = onCreateView;
-        if (onCreateView) {
-            document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
-            const hdr = document.querySelector('#view-create .top-header');
-            if (hdr) hdr.style.display = 'none';
-            document.getElementById('selectionView').style.display = 'none';
-        }
-        const mv = document.getElementById('quizletImportView');
+    // Damage values
+    const DMG_CORRECT_BASE  = 15;
+    const DMG_CORRECT_QUICK = 5;   // bonus if answered in ≤4s
+    const DMG_WRONG_PLAYER  = 20;
+    const XP_WIN            = 50;
+    const XP_LOSE           = -15;
+
+    // ── CSS (injected once) ──────────────────────────────────────────────────
+    function _injectStyles() {
+        if (document.getElementById('bossStyle')) return;
+        const s = document.createElement('style');
+        s.id = 'bossStyle';
+        s.textContent = `
+            @keyframes bossShake {
+                0%,100%{transform:translateX(0)}
+                20%{transform:translateX(-6px)}
+                40%{transform:translateX(6px)}
+                60%{transform:translateX(-4px)}
+                80%{transform:translateX(4px)}
+            }
+            @keyframes bossPlayerShake {
+                0%,100%{transform:translateX(0)}
+                25%{transform:translateX(5px)}
+                75%{transform:translateX(-5px)}
+            }
+            @keyframes bossHPBar {
+                from{width:var(--from)}
+                to{width:var(--to)}
+            }
+            @keyframes bossPop {
+                0%{transform:scale(0.8);opacity:0}
+                60%{transform:scale(1.08)}
+                100%{transform:scale(1);opacity:1}
+            }
+            @keyframes bossDmgFloat {
+                0%{transform:translateY(0);opacity:1}
+                100%{transform:translateY(-40px);opacity:0}
+            }
+            @keyframes bossTimerPulse {
+                0%,100%{opacity:1}
+                50%{opacity:.4}
+            }
+            @keyframes bossCardIn {
+                from{transform:translateY(20px) scale(0.96);opacity:0}
+                to{transform:translateY(0) scale(1);opacity:1}
+            }
+            @keyframes bossLightning {
+                0%,100%{opacity:0}
+                50%{opacity:1}
+            }
+            @keyframes bossWin {
+                0%{transform:scale(0) rotate(-10deg);opacity:0}
+                60%{transform:scale(1.15) rotate(3deg)}
+                100%{transform:scale(1) rotate(0);opacity:1}
+            }
+            .boss-hp-bar {
+                height:100%;
+                border-radius:inherit;
+                transition:width 0.5s cubic-bezier(0.4,0,0.2,1);
+            }
+            .boss-opt-btn {
+                width:100%;text-align:left;padding:.75rem 1rem;
+                border-radius:.875rem;border:1.5px solid var(--border-glass);
+                background:var(--bg-surface);color:var(--text-main);
+                font-size:.875rem;font-weight:600;cursor:pointer;
+                transition:border-color .12s,background .12s,transform .1s;
+                -webkit-tap-highlight-color:transparent;
+            }
+            .boss-opt-btn:active{transform:scale(0.98);}
+            .boss-opt-btn.correct{border-color:#10b981;background:rgba(16,185,129,.12);color:#10b981;}
+            .boss-opt-btn.wrong{border-color:#ef4444;background:rgba(239,68,68,.12);color:#ef4444;}
+            .boss-opt-btn.reveal{border-color:#10b981;background:rgba(16,185,129,.08);color:#10b981;}
+        `;
+        document.head.appendChild(s);
+    }
+
+    // ── Enter / Exit overlay ─────────────────────────────────────────────────
+    function _enter() {
+        document.getElementById('globalBottomNav')?.style.setProperty('transform','translateY(100%)');
+        const mv = document.getElementById('bossFightView');
         Object.assign(mv.style, {
             display:'flex', position:'fixed', inset:'0', zIndex:'300',
             background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
-            opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
+            opacity:'0', transform:'translateY(20px)',
+            transition:'opacity .22s ease, transform .22s ease',
         });
-        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
+        requestAnimationFrame(() => { mv.style.opacity='1'; mv.style.transform='translateY(0)'; });
     }
 
-    function _qExit() {
-        const mv = document.getElementById('quizletImportView');
-        mv.style.opacity = '0'; mv.style.transform = 'translateY(24px)';
-        setTimeout(() => { mv.style.display = 'none'; mv.style.transition = ''; }, 220);
-        _qParsed = null;
-        if (window._importEntryPoint === 'manual') {
-            window._importEntryPoint = null;
-            window.openManualCreate();
-        } else if (window._qFromCreate) {
-            window._qFromCreate = false;
-            const nav = document.getElementById('globalBottomNav');
-            if (nav) nav.style.transform = '';
-            const hdr = document.querySelector('#view-create .top-header');
-            if (hdr) hdr.style.display = '';
-            document.getElementById('selectionView').style.display = 'flex';
+    function _exit() {
+        const mv = document.getElementById('bossFightView');
+        if (!mv) return;
+        mv.style.opacity='0'; mv.style.transform='translateY(20px)';
+        setTimeout(() => { mv.style.display='none'; mv.style.transition=''; }, 230);
+        const nav = document.getElementById('globalBottomNav');
+        if (nav) nav.style.transform = '';
+        if (_timer) { clearInterval(_timer); _timer = null; }
+    }
+
+    // ── Entry point ──────────────────────────────────────────────────────────
+    window.openBossFight = function () {
+        if (!window.currentUser) { window.showLoginModal(); return; }
+        const quizzes = (window.quizzes || []).filter(q => q.questions && q.questions.length >= 5);
+        if (!quizzes.length) {
+            alert('You need at least one deck with 5+ questions to start a Boss Fight. Generate a deck first!');
+            return;
         }
-    }
+        _injectStyles();
+        _renderDeckPicker(quizzes);
+        _enter();
+    };
 
-    // ── Screen 1: URL input ───────────────────────────────────────────────────
-    function _qRenderURL() {
-        const mv = document.getElementById('quizletImportView');
+    // ── Screen 1: Deck picker ────────────────────────────────────────────────
+    function _renderDeckPicker(quizzes) {
+        const mv = document.getElementById('bossFightView');
+
+        const deckListHTML = quizzes.length === 0
+            ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1.5rem;text-align:center;gap:1rem;flex:1;">
+                 <div style="width:64px;height:64px;border-radius:50%;background:rgba(124,58,237,.12);display:flex;align-items:center;justify-content:center;">
+                   <i class="fas fa-layer-group" style="font-size:1.5rem;color:#7c3aed;"></i>
+                 </div>
+                 <div>
+                   <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 .375rem;">No decks yet</p>
+                   <p style="font-size:.8125rem;color:var(--text-muted);margin:0;line-height:1.5;">Generate a deck from the Create tab first, then come back to fight.</p>
+                 </div>
+                 <button onclick="window._bossExit();window.navigateTo('view-create');" style="padding:.75rem 1.5rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:.9375rem;font-weight:700;cursor:pointer;">
+                   Create a deck
+                 </button>
+               </div>`
+            : quizzes.map((q, i) => `
+              <button onclick="window._bossStartFight('${q.id}')"
+                style="display:flex;align-items:center;gap:.875rem;background:var(--bg-surface);border:1.5px solid var(--border-glass);border-radius:1rem;padding:1rem 1rem;cursor:pointer;width:100%;text-align:left;transition:border-color .12s,transform .1s;animation:bossFadeUp .25s ease ${i*0.04}s both;"
+                ontouchstart="this.style.borderColor='var(--accent-btn)';this.style.transform='scale(0.98)'"
+                ontouchend="this.style.borderColor='var(--border-glass)';this.style.transform=''">
+                <!-- Deck icon -->
+                <div style="width:44px;height:44px;border-radius:.75rem;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="fas fa-layer-group" style="color:white;font-size:1rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:.9375rem;font-weight:700;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(q.title)}</div>
+                  <div style="font-size:.75rem;color:var(--text-muted);margin-top:.125rem;display:flex;align-items:center;gap:.375rem;">
+                    <span>${q.questions.length} questions</span>
+                    <span style="width:3px;height:3px;border-radius:50%;background:var(--border-glass);display:inline-block;"></span>
+                    <span>${_esc(q.subject||'General')}</span>
+                  </div>
+                </div>
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="fas fa-chevron-right" style="color:#7c3aed;font-size:.6875rem;"></i>
+                </div>
+              </button>`).join('');
+
         mv.innerHTML = `
-<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+<div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
-    <button onclick="window._qBack()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
+  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;">
+    <button onclick="window._bossExit()"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;transition:transform .1s;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
-      <i class="fas fa-arrow-left"></i>
+      <i class="fas fa-arrow-left" style="font-size:.875rem;"></i>
     </button>
-    <div style="display:flex;align-items:center;gap:0.5rem;flex:1;">
-<svg viewBox="0 0 64 64" fill="none" style="width:22px;height:22px;border-radius:5px;flex-shrink:0;"><rect width="64" height="64" rx="12" fill="#4355ff"/><circle cx="32" cy="32" r="17.3" fill="none" stroke="white" stroke-width="8.2" stroke-dasharray="92.2 16.6" stroke-dashoffset="-11.2" stroke-linecap="round"/><rect x="39" y="40" width="10" height="7" rx="3" fill="white" transform="rotate(38 44 43.5)"/><rect x="37.5" y="37.5" width="7" height="6" rx="1.5" fill="#4355ff" transform="rotate(38 41 40.5)"/></svg>
-      <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;">Import from Quizlet</h2>
-    </div>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;flex:1;">Boss Fight</h2>
   </div>
 
-  <!-- Body -->
-  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
+  <!-- Boss arena banner -->
+  <div style="background:linear-gradient(160deg,#0f0720 0%,#1e0a40 55%,#0f0720 100%);padding:1.25rem 1.25rem 1.125rem;flex-shrink:0;position:relative;overflow:hidden;">
+    <!-- Glow -->
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 80%,rgba(124,58,237,.3) 0%,transparent 65%);pointer-events:none;"></div>
 
-    <!-- URL input -->
-    <div>
-      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Quizlet set link</label>
-      <div style="display:flex;gap:0.5rem;align-items:center;background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:0 0.75rem;overflow:hidden;">
-        <i class="fas fa-link" style="font-size:0.8125rem;color:var(--text-muted);flex-shrink:0;"></i>
-        <input id="qUrlInput" type="url"
-          placeholder="https://quizlet.com/..."
-          oninput="window._qUrlChange(this.value)"
-          style="flex:1;padding:0.875rem 0.25rem;border:none;background:transparent;color:var(--text-main);font-size:0.9375rem;outline:none;-webkit-appearance:none;">
+    <div style="display:flex;align-items:center;gap:1rem;position:relative;">
+      <!-- Boss char -->
+      <div style="flex-shrink:0;">${_bossSVG(60)}</div>
+
+      <!-- Boss info -->
+      <div style="flex:1;">
+        <p style="font-size:.625rem;font-weight:800;color:rgba(167,139,250,.7);text-transform:uppercase;letter-spacing:.1em;margin:0 0 .125rem;">Challenge</p>
+        <p style="font-size:1.125rem;font-weight:900;color:white;margin:0 0 .5rem;letter-spacing:-.01em;">The Medicus</p>
+        <!-- Rules pills -->
+        <div style="display:flex;flex-wrap:wrap;gap:.375rem;">
+          <span style="font-size:.625rem;font-weight:700;background:rgba(239,68,68,.2);color:#fca5a5;padding:2px 8px;border-radius:9999px;">15 questions</span>
+          <span style="font-size:.625rem;font-weight:700;background:rgba(251,191,36,.2);color:#fde68a;padding:2px 8px;border-radius:9999px;">10s per question</span>
+          <span style="font-size:.625rem;font-weight:700;background:rgba(16,185,129,.2);color:#6ee7b7;padding:2px 8px;border-radius:9999px;">Win +50 XP</span>
+        </div>
       </div>
-      <p style="font-size:0.75rem;color:var(--text-muted);margin:0.375rem 0 0;">The set must be public.</p>
     </div>
 
-    <!-- How to get the link -->
-    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1.125rem;">
-      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.75rem;">How to get the link</p>
-      ${[
-        'Open the Quizlet set in your browser',
-        'Copy the URL from the address bar',
-        'It should look like <span style="font-family:monospace;font-size:0.8rem;color:var(--accent-btn);">quizlet.com/123456/set-name</span>',
-        'Paste it above and tap Import'
-      ].map((step, i) => `
-      <div style="display:flex;gap:0.75rem;align-items:flex-start;${i < 3 ? 'margin-bottom:0.625rem;' : ''}">
-        <div style="width:1.375rem;height:1.375rem;border-radius:50%;background:rgba(66,87,178,0.12);color:#4257b2;font-size:0.6875rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</div>
-        <p style="font-size:0.875rem;color:var(--text-main);margin:0;line-height:1.45;">${step}</p>
-      </div>`).join('')}
+    <!-- VS stat bar -->
+    <div style="display:flex;align-items:center;gap:.5rem;margin-top:.875rem;">
+      <div style="flex:1;background:rgba(255,255,255,.08);border-radius:.5rem;padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:.8125rem;font-weight:900;color:#c4b5fd;">💀 100</div>
+        <div style="font-size:.55rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Boss HP</div>
+      </div>
+      <div style="font-size:.75rem;font-weight:900;color:rgba(255,255,255,.25);">VS</div>
+      <div style="flex:1;background:rgba(255,255,255,.08);border-radius:.5rem;padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:.8125rem;font-weight:900;color:#6ee7b7;">❤️ 100</div>
+        <div style="font-size:.55rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Your HP</div>
+      </div>
     </div>
-
   </div>
 
-  <!-- Footer -->
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
-    <button id="qImportBtn" onclick="window._qFetch()" disabled
-      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--bg-surface);color:var(--text-muted);font-size:1rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s;">
-      Import
-    </button>
+  <!-- Deck list -->
+  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div style="padding:.875rem .875rem calc(env(safe-area-inset-bottom,0px) + .875rem);">
+      ${quizzes.length > 0 ? `<p style="font-size:.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin:0 0 .625rem;">Choose your deck</p>` : ''}
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        ${deckListHTML}
+      </div>
+    </div>
   </div>
 
 </div>`;
+
+        // Inject stagger keyframe if missing
+        if (!document.getElementById('bossFadeStyle')) {
+            const st = document.createElement('style');
+            st.id = 'bossFadeStyle';
+            st.textContent = '@keyframes bossFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}';
+            document.head.appendChild(st);
+        }
+
+        window._bossExit = _exit;
     }
 
-    // ── URL validation ────────────────────────────────────────────────────────
-    window._qUrlChange = function (val) {
-        const btn = document.getElementById('qImportBtn');
-        const valid = val.trim().includes('quizlet.com') && val.trim().length > 15;
-        if (btn) {
-            btn.disabled        = !valid;
-            btn.style.opacity   = valid ? '1' : '0.45';
-            btn.style.background = valid ? '#4257b2' : 'var(--bg-surface)';
-            btn.style.color      = valid ? 'white' : 'var(--text-muted)';
-            btn.style.cursor     = valid ? 'pointer' : 'not-allowed';
-        }
+    // ── Start fight ──────────────────────────────────────────────────────────
+    window._bossStartFight = function(deckId) {
+        const quiz = (window.quizzes||[]).find(q => String(q.id) === String(deckId));
+        if (!quiz) return;
+
+        // Shuffle and take up to TOTAL_Q
+        const pool = [...quiz.questions].sort(() => Math.random()-.5).slice(0, TOTAL_Q);
+        _questions  = pool;
+        _qIdx       = 0;
+        _bossHP     = BOSS_MAX;
+        _playerHP   = PLAYER_MAX;
+        _xpDelta    = 0;
+        _deckTitle  = quiz.title;
+
+        _renderFight();
     };
 
-    // ── Fetch via Cloud Function ──────────────────────────────────────────────
-    window._qFetch = async function () {
-        const url = document.getElementById('qUrlInput')?.value.trim();
-        if (!url || !url.includes('quizlet.com')) return;
+    // ── Boss SVG character ───────────────────────────────────────────────────
+    function _bossSVG(size, extra) {
+        const s = size || 64;
+        return `<img src="boss.svg" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;object-fit:contain;" alt="Boss"/>`;
+    }
 
-        const btn = document.getElementById('qImportBtn');
-        if (btn) { btn.textContent = 'Fetching cards...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+    // ── Main fight screen ────────────────────────────────────────────────────
+    function _renderFight() {
+        const mv = document.getElementById('bossFightView');
+        const q  = _questions[_qIdx];
+        const progress = ((_qIdx) / _questions.length) * 100;
+        const bossW  = (_bossHP / BOSS_MAX) * 100;
+        const playerW= (_playerHP / PLAYER_MAX) * 100;
 
-        try {
-            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
-            const fns    = getFunctions(window.auth?.app, 'us-central1');
-            const importFn = httpsCallable(fns, 'importFromQuizlet');
-            const result = await importFn({ url });
-
-            if (!result.data?.cards?.length) throw new Error('No cards found');
-
-            _qParsed = { cards: result.data.cards, title: result.data.title || 'Quizlet Import' };
-            _qRenderPreview();
-        } catch(e) {
-            console.error('[QuizletImport]', e);
-            const msg = e.message?.includes('Could not extract')
-                ? 'Could not read this set — make sure it is public and the URL is correct.'
-                : e.message?.includes('Could not reach')
-                ? 'Could not reach Quizlet. Check your connection and try again.'
-                : 'Something went wrong. Try again.';
-            if (btn) { btn.textContent = msg; btn.disabled = false; btn.style.opacity = '1'; btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.color = '#f87171'; }
-            setTimeout(() => { if (btn) { btn.textContent = 'Import'; btn.style.background = '#4257b2'; btn.style.color = 'white'; } }, 3000);
-        }
-    };
-
-    // ── Screen 2: preview ─────────────────────────────────────────────────────
-    function _qRenderPreview() {
-        if (!_qParsed) return;
-        const { cards, title } = _qParsed;
-        const preview = cards.slice(0, 3);
-        const mv = document.getElementById('quizletImportView');
+        const opts = q.options || [];
+        const optsHTML = opts.map((opt, i) => `
+            <button class="boss-opt-btn" id="bossOpt_${i}" onclick="window._bossAnswer(${i})">
+                <span style="display:inline-block;width:1.5rem;height:1.5rem;border-radius:6px;background:var(--bg-body);text-align:center;line-height:1.5rem;font-size:.7rem;font-weight:800;margin-right:.625rem;flex-shrink:0;">${String.fromCharCode(65+i)}</span>
+                ${_esc(String(opt))}
+            </button>`).join('');
 
         mv.innerHTML = `
-<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+<div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);background:var(--bg-body);">
 
-  <!-- Header -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
-    <button onclick="window._qRenderURL()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
-      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Review Import</h2>
-    <span style="font-size:0.7rem;font-weight:700;background:rgba(16,185,129,0.12);color:var(--accent-green);padding:3px 10px;border-radius:9999px;">${cards.length} cards</span>
-  </div>
+  <!-- Arena header -->
+  <div style="background:linear-gradient(160deg,#0f0720,#1a0a38);padding:.875rem 1rem .75rem;flex-shrink:0;">
 
-  <!-- Body -->
-  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:6rem;">
-
-    <div>
-      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Deck title</label>
-      <input id="qTitleInput" type="text" value="${_qEsc(title)}" maxlength="60"
-        style="width:100%;padding:0.875rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;">
+    <!-- Top bar: exit + title -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;">
+      <button onclick="window._bossConfirmExit()"
+        style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,.1);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;"
+        ontouchstart="this.style.background='rgba(255,255,255,.2)'" ontouchend="this.style.background='rgba(255,255,255,.1)'">
+        <i class="fas fa-times" style="color:rgba(255,255,255,.7);font-size:.8125rem;"></i>
+      </button>
+      <span style="font-size:.6875rem;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;">Boss Fight</span>
+      <div style="width:2rem;"></div>
     </div>
 
-    <div>
-      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Subject</label>
-      <input id="qSubjectInput" type="text" placeholder="e.g. Pharmacology" maxlength="40"
-        style="width:100%;padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.875rem;box-sizing:border-box;outline:none;">
-    </div>
+    <!-- HP bars row -->
+    <div style="display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;gap:.5rem;margin-bottom:.625rem;">
 
-    <div style="display:flex;gap:0.75rem;">
-      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
-        <p style="font-size:1.5rem;font-weight:800;color:var(--text-main);margin:0 0 0.125rem;">${cards.length}</p>
-        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">Cards</p>
+      <!-- Boss HP -->
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;">
+          <span style="font-size:.6rem;font-weight:800;color:rgba(167,139,250,.8);text-transform:uppercase;letter-spacing:.06em;">BOSS</span>
+          <span id="bossHPLabel" style="font-size:.6rem;font-weight:800;color:#a78bfa;">${_bossHP}</span>
+        </div>
+        <div style="height:8px;background:rgba(255,255,255,.08);border-radius:9999px;overflow:hidden;">
+          <div id="bossHPBar" class="boss-hp-bar" style="width:${bossW}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div>
+        </div>
       </div>
-      <div style="flex:1;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;text-align:center;">
-        <p style="font-size:1.5rem;font-weight:800;color:var(--accent-green);margin:0 0 0.125rem;">+${Math.min(cards.length * 5, 500)}</p>
-        <p style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);margin:0;text-transform:uppercase;">XP earned</p>
-      </div>
-    </div>
 
-    <div>
-      <p style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.625rem;">Preview</p>
-      <div style="display:flex;flex-direction:column;gap:0.625rem;">
-        ${preview.map((c, i) => `
-        <div style="background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border-glass);padding:0.875rem;">
-          <p style="font-size:0.6875rem;font-weight:700;color:#4257b2;margin:0 0 0.25rem;text-transform:uppercase;letter-spacing:0.06em;">Card ${i+1}</p>
-          <p style="font-size:0.875rem;font-weight:600;color:var(--text-main);margin:0 0 0.375rem;line-height:1.4;">${_qEsc(c.front.substring(0,120))}${c.front.length>120?'…':''}</p>
-          <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.4;">${_qEsc(c.back.substring(0,100))}${c.back.length>100?'…':''}</p>
-        </div>`).join('')}
-        ${cards.length > 3 ? `<p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;margin:0.25rem 0 0;">and ${cards.length - 3} more cards</p>` : ''}
+      <!-- VS -->
+      <div style="text-align:center;font-size:.625rem;font-weight:900;color:rgba(255,255,255,.3);letter-spacing:.08em;">VS</div>
+
+      <!-- Player HP -->
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;">
+          <span style="font-size:.6rem;font-weight:800;color:rgba(16,185,129,.8);text-transform:uppercase;letter-spacing:.06em;">YOU</span>
+          <span id="playerHPLabel" style="font-size:.6rem;font-weight:800;color:#10b981;">${_playerHP}</span>
+        </div>
+        <div style="height:8px;background:rgba(255,255,255,.08);border-radius:9999px;overflow:hidden;">
+          <div id="playerHPBar" class="boss-hp-bar" style="width:${playerW}%;background:linear-gradient(90deg,#059669,#10b981);"></div>
+        </div>
       </div>
     </div>
 
+    <!-- Boss + Timer row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div id="bossChar" style="animation:bossPop .3s ease both;">${_bossSVG(52)}</div>
+
+      <!-- Question progress -->
+      <div style="text-align:center;flex:1;padding:0 .5rem;">
+        <div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:.25rem;">Q ${_qIdx+1} / ${_questions.length}</div>
+        <div style="height:3px;background:rgba(255,255,255,.1);border-radius:9999px;">
+          <div style="height:100%;width:${progress}%;background:#fbbf24;border-radius:9999px;transition:width .4s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Timer ring -->
+      <div id="bossTimerWrap" style="position:relative;width:44px;height:44px;flex-shrink:0;">
+        <svg viewBox="0 0 44 44" style="transform:rotate(-90deg);width:44px;height:44px;">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+          <circle id="bossTimerRing" cx="22" cy="22" r="18" fill="none" stroke="#fbbf24" stroke-width="3"
+            stroke-dasharray="113.1" stroke-dashoffset="0" stroke-linecap="round"
+            style="transition:stroke-dashoffset .9s linear,stroke .3s;"/>
+        </svg>
+        <div id="bossTimerNum" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.875rem;font-weight:900;color:white;">${TIME_PER_Q}</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Footer -->
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
-    <button onclick="window._qSave()"
-      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:#4257b2;color:white;font-size:1rem;font-weight:700;cursor:pointer;">
-      Import ${cards.length} cards
-    </button>
+  <!-- Question + Options -->
+  <div style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem;">
+    <div id="bossQCard" style="background:var(--bg-surface);border-radius:1rem;border:1px solid var(--border-glass);padding:1rem 1rem .875rem;animation:bossCardIn .25s ease both;">
+      <p style="font-size:.9375rem;font-weight:700;color:var(--text-main);line-height:1.5;margin:0;">${_esc(q.text||q.front||'')}</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem;" id="bossOptsWrap">
+      ${optsHTML}
+    </div>
   </div>
 
+  <!-- Damage float layer -->
+  <div id="bossDmgLayer" style="position:fixed;inset:0;pointer-events:none;z-index:400;"></div>
 </div>`;
-        window._qRenderURL = _qRenderURL;
+
+        _startTimer();
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
-    window._qSave = async function () {
-        if (!_qParsed) return;
-        const btn = document.querySelector('#quizletImportView button:last-of-type');
-        if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; btn.style.opacity = '0.65'; }
+    // ── Timer ────────────────────────────────────────────────────────────────
+    function _startTimer() {
+        _timeLeft = TIME_PER_Q;
+        _answered = false;
+        if (_timer) clearInterval(_timer);
 
-        const title   = document.getElementById('qTitleInput')?.value.trim()   || _qParsed.title;
-        const subject = document.getElementById('qSubjectInput')?.value.trim() || 'General';
-        const { cards } = _qParsed;
+        const ring    = document.getElementById('bossTimerRing');
+        const numEl   = document.getElementById('bossTimerNum');
+        const circ    = 113.1;
 
-        const newQuiz = {
-            id: Date.now(), title, subject, favorite: false,
-            source: 'quizlet', type: 'Flashcards',
-            stats: { bestScore: 0, attempts: 0, lastScore: 0 },
-            questions: cards.map(c => ({ text: c.front, options: [c.back], correct: 0, explanation: '' }))
-        };
+        _timer = setInterval(() => {
+            _timeLeft--;
+            if (numEl) numEl.textContent = Math.max(0, _timeLeft);
+            if (ring)  ring.style.strokeDashoffset = circ - ((_timeLeft / TIME_PER_Q) * circ);
 
-        try {
-            if (window.currentUser && window.db) {
-                const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-                await setDoc(doc(window.db, 'users', window.currentUser.uid, 'quizzes', String(newQuiz.id)), newQuiz);
+            // Turn red when ≤3s
+            if (_timeLeft <= 3 && ring) {
+                ring.style.stroke = '#ef4444';
+                if (numEl) { numEl.style.color = '#ef4444'; numEl.style.animation = 'bossTimerPulse .5s ease infinite'; }
             }
-        } catch(e) { console.warn('[QuizletImport] Firestore error:', e); }
 
-        const uid   = window.currentUser?.uid || 'guest';
-        const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
-        store.push(newQuiz);
-        localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
-        window.quizzes = store;
+            if (_timeLeft <= 0) {
+                clearInterval(_timer);
+                _timer = null;
+                if (!_answered) _bossAnswerTimeout();
+            }
+        }, 1000);
+    }
 
-        try { await window.addXP(Math.min(cards.length * 5, 500)); } catch(e) {}
+    // ── Answer handling ───────────────────────────────────────────────────────
+    window._bossAnswer = function(idx) {
+        if (_answered) return;
+        _answered = true;
+        if (_timer) { clearInterval(_timer); _timer = null; }
 
-        _qExit();
-        window.updateHomeContinueCard?.();
-        window.navigateTo('view-study');
+        const q       = _questions[_qIdx];
+        const correct = q.correct;
+        const isRight = idx === correct;
+        const quick   = _timeLeft >= (TIME_PER_Q - 4); // answered within 4s
 
+        // Style buttons
+        const btns = document.querySelectorAll('.boss-opt-btn');
+        btns.forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === correct) btn.classList.add('reveal');
+            if (i === idx && !isRight) btn.classList.add('wrong');
+            if (i === idx && isRight)  btn.classList.add('correct');
+        });
+
+        if (isRight) {
+            const dmg = DMG_CORRECT_BASE + (quick ? DMG_CORRECT_QUICK : 0);
+            _bossHP = Math.max(0, _bossHP - dmg);
+            _floatDamage(`-${dmg}`, '#a78bfa', 'boss');
+            _shakeEl('bossChar');
+            _updateHP('boss', _bossHP);
+        } else {
+            _playerHP = Math.max(0, _playerHP - DMG_WRONG_PLAYER);
+            _floatDamage(`-${DMG_WRONG_PLAYER}`, '#ef4444', 'player');
+            _shakeEl('bossTimerWrap');
+            _updateHP('player', _playerHP);
+        }
+
+        // Check win/lose
         setTimeout(() => {
-            const t = document.createElement('div');
-            t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#4257b2;color:white;padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
-            t.textContent = `${cards.length} cards imported from Quizlet`;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 2800);
-        }, 350);
+            if (_bossHP <= 0)     { _endFight(true); return; }
+            if (_playerHP <= 0)   { _endFight(false); return; }
+            if (_qIdx + 1 >= _questions.length) { _endFight(_bossHP < _playerHP); return; }
+            _qIdx++;
+            _renderFight();
+        }, isRight ? 900 : 1100);
     };
 
-    window._qBack = _qExit;
+    function _bossAnswerTimeout() {
+        if (_answered) return;
+        _answered = true;
+        _playerHP = Math.max(0, _playerHP - DMG_WRONG_PLAYER);
+        _floatDamage('TIME!', '#ef4444', 'player');
+        _updateHP('player', _playerHP);
+        document.querySelectorAll('.boss-opt-btn').forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === _questions[_qIdx].correct) btn.classList.add('reveal');
+        });
+        setTimeout(() => {
+            if (_playerHP <= 0) { _endFight(false); return; }
+            if (_qIdx + 1 >= _questions.length) { _endFight(_bossHP < _playerHP); return; }
+            _qIdx++;
+            _renderFight();
+        }, 1000);
+    }
 
-    function _qEsc(s) {
+    // ── Visual helpers ────────────────────────────────────────────────────────
+    function _updateHP(who, val) {
+        const pct   = (val / (who === 'boss' ? BOSS_MAX : PLAYER_MAX)) * 100;
+        const barId = who === 'boss' ? 'bossHPBar' : 'playerHPBar';
+        const lblId = who === 'boss' ? 'bossHPLabel' : 'playerHPLabel';
+        const bar   = document.getElementById(barId);
+        const lbl   = document.getElementById(lblId);
+        if (bar) bar.style.width = pct + '%';
+        if (lbl) lbl.textContent = val;
+    }
+
+    function _shakeEl(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = id === 'bossChar'
+            ? 'bossShake .4s ease'
+            : 'bossPlayerShake .35s ease';
+    }
+
+    function _floatDamage(text, color, who) {
+        const layer = document.getElementById('bossDmgLayer');
+        if (!layer) return;
+        const d = document.createElement('div');
+        d.textContent = text;
+        const isLeft = who === 'boss';
+        d.style.cssText = `
+            position:absolute;
+            ${isLeft ? 'left:14%' : 'right:14%'};
+            top:22%;
+            font-size:1.375rem;font-weight:900;color:${color};
+            text-shadow:0 2px 8px rgba(0,0,0,.4);
+            animation:bossDmgFloat .9s ease forwards;
+            pointer-events:none;`;
+        layer.appendChild(d);
+        setTimeout(() => d.remove(), 950);
+    }
+
+    // ── End screen ────────────────────────────────────────────────────────────
+    function _endFight(won) {
+        if (_timer) { clearInterval(_timer); _timer = null; }
+        // ── Daily win cap — max 3 boss wins per day ──────────────────────
+        let xp = XP_LOSE;
+        if (won) {
+            const today = new Date().toDateString();
+            const key   = 'boss_wins_' + today;
+            const wins  = parseInt(localStorage.getItem(key) || '0');
+            if (wins < 3) {
+                localStorage.setItem(key, wins + 1);
+                xp = XP_WIN;
+            } else {
+                // Already maxed today — win but no XP
+                xp = 0;
+            }
+        }
+        _xpDelta = xp;
+
+        try { if (window.addXP && xp !== 0) window.addXP(xp); } catch(e) {}
+
+        const mv = document.getElementById('bossFightView');
+        mv.innerHTML = `
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;padding:2rem 1.5rem;text-align:center;background:linear-gradient(160deg,#0f0720,#1a0a38 50%,#0f0720);">
+
+  <div style="animation:bossWin .5s cubic-bezier(.34,1.56,.64,1) both;margin-bottom:1rem;">
+    ${won
+        ? `<div style="font-size:5rem;line-height:1;">🏆</div>`
+        : _bossSVG(80)}
+  </div>
+
+  <h1 style="font-size:1.875rem;font-weight:900;color:white;margin:0 0 .375rem;letter-spacing:-.02em;">
+    ${won ? 'Boss Defeated!' : 'Defeated!'}
+  </h1>
+  <p style="font-size:.9375rem;color:rgba(167,139,250,.8);margin:0 0 2rem;">
+    ${won ? 'You conquered The Medicus.' : 'The Medicus was too strong.'}
+  </p>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;width:100%;max-width:320px;margin-bottom:2rem;">
+    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:.875rem;padding:.875rem .5rem;">
+      <div style="font-size:1.25rem;font-weight:900;color:${won?'#10b981':'#ef4444'};">${won?'👑':'💀'}</div>
+      <div style="font-size:.625rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:.25rem;">${won?'Victory':'Defeat'}</div>
+    </div>
+    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:.875rem;padding:.875rem .5rem;">
+      <div style="font-size:1.25rem;font-weight:900;color:${xp>0?'#fbbf24':xp===0?'rgba(255,255,255,.4)':'#ef4444'};">${xp>0?'+':''}${xp===0?'—':xp+' XP'}</div>
+      <div style="font-size:.625rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:.25rem;">${xp>0?'XP Earned':xp===0?'Daily limit':'XP Lost'}</div>
+    </div>
+    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:.875rem;padding:.875rem .5rem;">
+      <div style="font-size:1.25rem;font-weight:900;color:#a78bfa;">${_playerHP}</div>
+      <div style="font-size:.625rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:.25rem;">HP Left</div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <button onclick="window._bossRematch()" style="width:100%;max-width:320px;padding:1rem;border-radius:var(--radius-btn);border:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:white;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:.75rem;">
+    ${won ? 'Fight Again' : 'Try Again'}
+  </button>
+  <button onclick="window._bossExitToHome()" style="width:100%;max-width:320px;padding:1rem;border-radius:var(--radius-btn);border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:.9375rem;font-weight:600;cursor:pointer;">
+    Back to Home
+  </button>
+</div>`;
+    }
+
+    // ── Nav ───────────────────────────────────────────────────────────────────
+    window._bossConfirmExit = function() {
+        // Show a quick confirmation sheet
+        if (_timer) clearInterval(_timer);
+        _answered = true; // pause the current question
+
+        const sheet = document.createElement('div');
+        sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;';
+        sheet.innerHTML = `
+<div style="width:100%;background:var(--bg-surface);border-radius:1.25rem 1.25rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);display:flex;flex-direction:column;gap:.75rem;">
+  <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;">Quit Boss Fight?</p>
+  <p style="font-size:.875rem;color:var(--text-muted);margin:0;line-height:1.5;">Your progress will be lost and you'll lose <strong style="color:#ef4444;">15 XP</strong>.</p>
+  <button id="_bossQuitYes" style="width:100%;padding:.9375rem;border-radius:var(--radius-btn);border:none;background:#ef4444;color:white;font-size:1rem;font-weight:700;cursor:pointer;">Quit anyway</button>
+  <button id="_bossQuitNo" style="width:100%;padding:.9375rem;border-radius:var(--radius-btn);border:1px solid var(--border-glass);background:transparent;color:var(--text-main);font-size:1rem;font-weight:600;cursor:pointer;">Keep fighting</button>
+</div>`;
+        document.body.appendChild(sheet);
+
+        sheet.querySelector('#_bossQuitYes').onclick = function() {
+            sheet.remove();
+            try { if (window.addXP) window.addXP(-15); } catch(e) {}
+            _exit();
+        };
+        sheet.querySelector('#_bossQuitNo').onclick = function() {
+            sheet.remove();
+            // Resume timer
+            _answered = false;
+            _startTimer();
+        };
+        sheet.addEventListener('click', function(e) {
+            if (e.target === sheet) {
+                sheet.remove();
+                _answered = false;
+                _startTimer();
+            }
+        });
+    };
+
+    window._bossRematch = function() {
+        _bossStartFight((_questions[0] && window.quizzes || []).find(
+            q => q.questions && q.questions.some(qq => qq === _questions[0])
+        )?.id || '');
+        // Simpler: just re-pick from same questions
+        _qIdx=0; _bossHP=BOSS_MAX; _playerHP=PLAYER_MAX; _xpDelta=0;
+        _questions = [..._questions].sort(() => Math.random()-.5);
+        _renderFight();
+    };
+
+    window._bossExitToHome = function() {
+        _exit();
+        window.navigateTo?.('view-home');
+        window.updateHomeContinueCard?.();
+    };
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function _esc(s) {
         return String(s||'').replace(/[&<>"']/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
     }
 

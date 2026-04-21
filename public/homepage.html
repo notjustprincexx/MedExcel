@@ -381,6 +381,28 @@
                         </div>
                     </a>
 
+                    <!-- Boss Fight card -->
+                    <a href="javascript:void(0)" onclick="window.openBossFight()" class="crypto-card card-lift" >
+                        <div class="mb-4 flex items-start">
+                            <svg viewBox="0 0 64 64" fill="none" style="width:52px;height:52px;">
+                                <!-- Controller body — purple, no bg square -->
+                                <path d="M8 28 C8 20 14 16 22 16 L42 16 C50 16 56 20 56 28 L56 36 C56 44 50 48 46 48 L42 48 C40 48 38 46 36 44 L28 44 C26 46 24 48 22 48 C18 48 8 44 8 36 Z" fill="#7c3aed"/>
+                                <!-- D-pad -->
+                                <rect x="17" y="27" width="5" height="11" rx="1.5" fill="white" opacity="0.9"/>
+                                <rect x="13" y="31" width="13" height="5" rx="1.5" fill="white" opacity="0.9"/>
+                                <!-- Buttons -->
+                                <circle cx="42" cy="28" r="3" fill="white" opacity="0.9"/>
+                                <circle cx="47.5" cy="33" r="3" fill="white" opacity="0.9"/>
+                                <circle cx="36.5" cy="33" r="3" fill="white" opacity="0.9"/>
+                                <circle cx="42" cy="38" r="3" fill="white" opacity="0.9"/>
+                            </svg>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-lg font-bold text-[var(--text-main)]">Game Mode</span>
+                            <span class="text-[15px] text-[var(--text-muted)]">Boss Fight</span>
+                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">Win XP ⚡</span>
+                        </div>
+                    </a>
                     <!-- Anki import card -->
                     <a href="javascript:void(0)" onclick="window.openAnkiImport()" class="crypto-card card-lift">
                         <div class="mb-4 flex items-start">
@@ -393,17 +415,6 @@
                         </div>
                     </a>
 
-                    <!-- Quizlet import card -->
-                    <a href="javascript:void(0)" onclick="window.openQuizletImport()" class="crypto-card card-lift">
-                        <div class="mb-4 flex items-start">
-<svg viewBox="0 0 64 64" fill="none" style="width:52px;height:52px;"><rect width="64" height="64" rx="12" fill="#4355ff"/><circle cx="32" cy="32" r="17" fill="none" stroke="white" stroke-width="8" stroke-dasharray="97.9 8.9" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(45 32 32)"/><rect x="41" y="42" width="9" height="6" rx="2.5" fill="white" transform="rotate(45 45.5 45)"/><rect x="39.5" y="39.5" width="7" height="5.5" rx="1.5" fill="#4355ff" transform="rotate(45 43 42.3)"/></svg>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-lg font-bold text-[var(--text-main)]">Quizlet</span>
-                            <span class="text-[15px] text-[var(--text-muted)]">Import set</span>
-                            <span class="text-sm font-medium mt-0.5" style="color:#7b93ff;">Paste link</span>
-                        </div>
-                    </a>
                 </div>
             </div>
 
@@ -1333,8 +1344,8 @@
 
     <!-- Import Overlays — OUTSIDE all app-views so they work from any screen -->
     <div id="manualCreateView" style="display:none;"></div>
+    <div id="bossFightView" style="display:none;"></div>
     <div id="ankiImportView" style="display:none;"></div>
-    <div id="quizletImportView" style="display:none;"></div>
 
     <!-- Paystack Payment Modal — must be OUTSIDE all app-views to avoid overflow:hidden clipping -->
     <div id="paymentModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9000;display:none;flex-direction:column;justify-content:flex-end;opacity:0;transition:opacity 0.3s;">
