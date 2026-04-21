@@ -2520,45 +2520,65 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         window.switchPayPlan = function(plan) {
             try {
                 _payCurrentPlan = plan;
-                var cM = document.getElementById('pCardMonthly');
-                var cE = document.getElementById('pCardExam');
-                var cY = document.getElementById('pCardYearly');
-                var cT = document.getElementById('pFirstMonthBanner');
-                var ckT = document.getElementById('pCheckTrial');
-                var dealBox = document.getElementById('payDealBox');
-                var ctaEl  = document.getElementById('payCTABtn');
-                const p = window._geoPrice || DEFAULT_GEO;
-                const mFmt = `${p.symbol}${p.monthly.toLocaleString()}`;
-                const yFmt = `${p.symbol}${p.yearly.toLocaleString()}`;
-                const eFmt = `${p.symbol}${p.exam ? p.exam.toLocaleString() : (p.currency === 'NGN' ? '4,999' : Math.round(p.monthly * 2.5).toLocaleString())}`;
+                const p   = window._geoPrice || DEFAULT_GEO;
+                const sym = p.symbol;
+                const mFmt = sym + p.monthly.toLocaleString();
+                const yFmt = sym + p.yearly.toLocaleString();
+                const eAmt = p.currency === 'NGN' ? 4999 : Math.round(p.monthly * 2.5);
+                const eFmt = sym + eAmt.toLocaleString();
                 const tAmt = p.currency === 'NGN' ? 250 : Math.round(p.monthly * 0.13);
-                const tFmt = `${p.symbol}${tAmt.toLocaleString()}`;
+                const tFmt = sym + tAmt.toLocaleString();
 
-                // Reset all
-                [cM, cE, cY].forEach(c => c && c.classList.remove('active'));
-                if (ckT) { ckT.style.background = 'white'; ckT.querySelector('div').style.background = '#f97316'; }
-                if (cT)  cT.style.opacity = plan === 'trial' ? '1' : '0.6';
+                // Reset all three cards to idle
+                ['Monthly','Yearly','Exam'].forEach(function(n) {
+                    var card = document.getElementById('pCard' + n);
+                    var check= document.getElementById('pCheck' + n);
+                    if (!card) return;
+                    if (n === 'Yearly') {
+                        card.style.borderColor = 'var(--border-color)';
+                        card.style.background  = 'var(--bg-surface)';
+                        if (check) { check.style.background='transparent'; check.style.borderColor='var(--border-color)'; check.innerHTML=''; }
+                    } else {
+                        card.style.borderColor = 'var(--border-color)';
+                        if (check) { check.style.background='transparent'; check.style.border='2px solid var(--border-color)'; check.innerHTML=''; }
+                    }
+                });
+
+                // Trial banner
+                var cT  = document.getElementById('pFirstMonthBanner');
+                var ckT = document.getElementById('pCheckTrial');
+                if (cT)  cT.style.opacity = plan === 'trial' ? '1' : '0.65';
+                if (ckT) {
+                    if (plan === 'trial') { ckT.style.background='#f97316'; if(ckT.firstElementChild) ckT.firstElementChild.style.background='white'; }
+                    else { ckT.style.background='white'; if(ckT.firstElementChild) ckT.firstElementChild.style.background='#f97316'; }
+                }
+
+                function activateCard(name) {
+                    var card  = document.getElementById('pCard' + name);
+                    var check = document.getElementById('pCheck' + name);
+                    if (!card) return;
+                    card.style.borderColor = 'var(--accent-btn)';
+                    if (name === 'Yearly') card.style.background = 'rgba(139,92,246,.08)';
+                    if (check) {
+                        check.style.background  = 'var(--accent-btn)';
+                        check.style.border      = 'none';
+                        check.innerHTML = '<i class="fas fa-check" style="color:white;font-size:.5rem;"></i>';
+                    }
+                }
+
+                var ctaEl = document.getElementById('payCTABtn');
 
                 if (plan === 'trial') {
-                    if (ckT) { ckT.style.background = '#f97316'; ckT.querySelector('div').style.background = 'white'; }
-                    if (cT)  cT.style.opacity = '1';
-                    if (dealBox) dealBox.style.display = 'none';
-                    clearInterval(_payCdInterval);
-                    if (ctaEl) ctaEl.textContent = `Try Premium — ${tFmt} first month`;
+                    if (ctaEl) ctaEl.textContent = 'Try Premium — ' + tFmt + ' first month';
                 } else if (plan === 'monthly') {
-                    if (cM) cM.classList.add('active');
-                    if (dealBox) dealBox.style.display = 'none';
-                    clearInterval(_payCdInterval);
-                    if (ctaEl) ctaEl.textContent = `Subscribe Monthly — ${mFmt}`;
+                    activateCard('Monthly');
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Monthly — ' + mFmt;
                 } else if (plan === 'exam') {
-                    if (cE) cE.classList.add('active');
-                    if (dealBox) dealBox.style.display = 'none';
-                    clearInterval(_payCdInterval);
-                    if (ctaEl) ctaEl.textContent = `Get Exam Season — ${eFmt}`;
+                    activateCard('Exam');
+                    if (ctaEl) ctaEl.textContent = 'Get Exam Season — ' + eFmt;
                 } else {
-                    if (cY) cY.classList.add('active');
-                    if (dealBox) { dealBox.style.display = 'flex'; clearInterval(_payCdInterval); _payTick(); _payCdInterval = setInterval(_payTick, 1000); }
-                    if (ctaEl) ctaEl.textContent = `Get Premium — ${yFmt}/yr`;
+                    activateCard('Yearly');
+                    if (ctaEl) ctaEl.textContent = 'Get Premium — ' + yFmt + '/yr';
                 }
             } catch(e) { console.warn('switchPayPlan error:', e); }
         };
