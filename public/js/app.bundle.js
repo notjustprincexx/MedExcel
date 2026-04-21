@@ -1260,6 +1260,41 @@
         let currentStreakCount = 0;
         let hasCheckedInToday = false;
 
+        // Called after any real study action (quiz complete, deck generated, boss fight, Anki import)
+        window.commitStreakOnAction = function() {
+            if (hasCheckedInToday || !window.currentUser) return;
+            const uid      = window.currentUser.uid;
+            const todayStr = new Date().toDateString();
+
+            // Save to local history
+            const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
+            if (!history.includes(todayStr)) {
+                history.push(todayStr);
+                const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+                localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(history.filter(d => new Date(d) >= cutoff)));
+            }
+
+            window.userStats.count    = currentStreakCount;
+            window.userStats.lastDate = todayStr;
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+            hasCheckedInToday = true;
+
+            // Update header
+            const hDisplay = document.getElementById('headerStreakDisplay');
+            if (hDisplay) hDisplay.textContent = currentStreakCount;
+            const hIcon = document.getElementById('headerFireIcon');
+            if (hIcon) hIcon.style.opacity = '1';
+
+            // Sync to Firestore
+            if (window.syncUserStreak) window.syncUserStreak(uid, currentStreakCount, todayStr);
+            if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
+
+            // Show celebration modal (only after onboarding is done)
+            if (localStorage.getItem('medexcel_onboarding_v1')) {
+                setTimeout(() => window.openStreakModal(), 600);
+            }
+        };
+
         function buildCalendarRow() {
             const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
             const today = new Date();
@@ -1448,30 +1483,11 @@
         };
 
         document.getElementById('closeStreakModal').onclick = () => {
-            if (!hasCheckedInToday && window.currentUser) {
-                // Save check-in to history
-                const uid = window.currentUser.uid;
-                const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
-                const todayStr = new Date().toDateString();
-                if (!history.includes(todayStr)) {
-                    history.push(todayStr);
-                    // Keep only last 90 days
-                    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
-                    const trimmed = history.filter(d => new Date(d) >= cutoff);
-                    localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(trimmed));
-                }
-                window.userStats.count = currentStreakCount;
-                window.userStats.lastDate = todayStr;
-                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
-                hasCheckedInToday = true;
-                if (window.syncUserStreak) window.syncUserStreak(uid, currentStreakCount, todayStr);
-            }
             window.closeGlobalModal('streakModalBackdrop');
             const hDisplay = document.getElementById('headerStreakDisplay');
             if (hDisplay) hDisplay.textContent = currentStreakCount;
             const hIcon = document.getElementById('headerFireIcon');
-            if (hIcon) hIcon.style.opacity = '1';
-            if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
+            if (hIcon) hIcon.style.opacity = hasCheckedInToday ? '1' : '0.4';
         };
 
 /* ── study.js ── */
@@ -1689,6 +1705,7 @@ if (nextBtn) {
                 ? (isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
                 : 0;
             if (totalXP > 0) window.addXP(totalXP);
+            window.commitStreakOnAction?.();
 
             currentQuiz.stats.attempts++;
             currentQuiz.stats.lastScore = examScore;
@@ -2397,6 +2414,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const btn = document.querySelector('.btn-claim-xp');
             btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7';
             try { await window.addXP(window.finalEarnedXP); } catch(e) {}
+            window.commitStreakOnAction?.();
             window.goBackToSelection();
             window.updateHomeContinueCard();
         };
@@ -3235,6 +3253,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         // XP (5 per card)
         try { await window.addXP(valid.length * 5); } catch (e) {}
+        window.commitStreakOnAction?.();
 
         _saving = false;
         _exit();
@@ -3916,6 +3935,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         // XP (5 per card, capped at 500 so a huge import doesn't break the economy)
         try { await window.addXP(Math.min(cards.length * 5, 500)); } catch(e) {}
+        window.commitStreakOnAction?.();
 
         _ankiExit();
         window.updateHomeContinueCard?.();
@@ -4038,14 +4058,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     // ── Enter / Exit overlay ─────────────────────────────────────────────────
     function _enter() {
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: '#0f0720' }); StatusBar.setStyle({ style: 'DARK' }); } catch(e) {}
-        }
         document.getElementById('globalBottomNav')?.style.setProperty('transform','translateY(100%)');
         const mv = document.getElementById('bossFightView');
         Object.assign(mv.style, {
             display:'flex', position:'fixed', inset:'0', zIndex:'300',
-            background:'linear-gradient(160deg,#0f0720 0%,#1e0a40 55%,#0f0720 100%)', flexDirection:'column', overflowY:'auto',
+            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
             opacity:'0', transform:'translateY(20px)',
             transition:'opacity .22s ease, transform .22s ease',
         });
@@ -4053,10 +4070,6 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     }
 
     function _exit() {
-        const isLight = localStorage.getItem('medexcel_theme') !== 'dark';
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); } catch(e) {}
-        }
         const mv = document.getElementById('bossFightView');
         if (!mv) return;
         mv.style.opacity='0'; mv.style.transform='translateY(20px)';
@@ -4122,13 +4135,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 <div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid rgba(124,58,237,.2);background:transparent;flex-shrink:0;">
+  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;">
     <button onclick="window._bossExit()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:white;cursor:pointer;transition:transform .1s;"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;transition:transform .1s;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
       <i class="fas fa-arrow-left" style="font-size:.875rem;"></i>
     </button>
-    <h2 style="font-size:1rem;font-weight:700;color:white;margin:0;flex:1;">Boss Fight</h2>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;flex:1;">Boss Fight</h2>
   </div>
 
   <!-- Boss arena banner -->
@@ -4210,7 +4223,45 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Boss SVG character ───────────────────────────────────────────────────
     function _bossSVG(size, extra) {
         const s = size || 64;
-        return `<img src="boss.svg" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;object-fit:contain;" alt="Boss"/>`;
+        return `<svg viewBox="0 0 64 64" fill="none" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;">
+            <!-- Shadow/glow base -->
+            <ellipse cx="32" cy="60" rx="18" ry="4" fill="rgba(124,58,237,.25)"/>
+            <!-- Lab coat body -->
+            <rect x="18" y="38" width="28" height="20" rx="4" fill="#e2d9f3"/>
+            <!-- Coat lapels -->
+            <path d="M32 38 L26 44 L32 46 L38 44 Z" fill="white"/>
+            <!-- Red tie -->
+            <path d="M32 42 L30 50 L32 52 L34 50 Z" fill="#ef4444"/>
+            <!-- Stethoscope -->
+            <path d="M24 42 Q20 48 22 54" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <circle cx="22" cy="55" r="2" fill="#374151"/>
+            <!-- Neck -->
+            <rect x="28" y="33" width="8" height="7" rx="3" fill="#fcd9a0"/>
+            <!-- Head -->
+            <ellipse cx="32" cy="27" rx="13" ry="13" fill="#fcd9a0"/>
+            <!-- Evil eyebrows — angled sharply inward -->
+            <path d="M22 21 Q25 18.5 28 20" stroke="#1e1b4b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <path d="M36 20 Q39 18.5 42 21" stroke="#1e1b4b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <!-- Eyes — narrow evil squint -->
+            <ellipse cx="26" cy="24" rx="3.5" ry="2.5" fill="white"/>
+            <ellipse cx="38" cy="24" rx="3.5" ry="2.5" fill="white"/>
+            <ellipse cx="26.5" cy="24.5" rx="2" ry="2" fill="#4c1d95"/>
+            <ellipse cx="38.5" cy="24.5" rx="2" ry="2" fill="#4c1d95"/>
+            <ellipse cx="27" cy="24" rx=".8" ry=".8" fill="white"/>
+            <ellipse cx="39" cy="24" rx=".8" ry=".8" fill="white"/>
+            <!-- Evil grin -->
+            <path d="M25 32 Q32 38 39 32" stroke="#1e1b4b" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <!-- Teeth -->
+            <path d="M27 32.5 Q32 37 37 32.5" fill="white"/>
+            <!-- Hair — swept back dramatic villain style -->
+            <path d="M19 22 Q20 12 32 14 Q44 12 45 22 Q40 10 32 11 Q24 10 19 22 Z" fill="#1e1b4b"/>
+            <!-- Crown/horns hint on hair -->
+            <path d="M24 14 L22 8 L26 13" fill="#7c3aed"/>
+            <path d="M40 14 L42 8 L38 13" fill="#7c3aed"/>
+            <!-- Monocle -->
+            <circle cx="38" cy="24" r="5" stroke="#fbbf24" stroke-width="1.2" fill="none"/>
+            <line x1="43" y1="24" x2="45" y2="26" stroke="#fbbf24" stroke-width="1.2"/>
+        </svg>`;
     }
 
     // ── Main fight screen ────────────────────────────────────────────────────
@@ -4465,6 +4516,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         _xpDelta = xp;
 
         try { if (window.addXP && xp !== 0) window.addXP(xp); } catch(e) {}
+        window.commitStreakOnAction?.();
 
         const mv = document.getElementById('bossFightView');
         mv.innerHTML = `
