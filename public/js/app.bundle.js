@@ -4675,11 +4675,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     };
 
     async function _renderGrid(mv) {
+        // Use a flex column layout so the footer sticks to the bottom naturally.
+        // position:fixed breaks inside overflow:auto parents on mobile — using
+        // flex:1 on the scrollable grid and a static footer avoids this entirely.
         mv.innerHTML = `
-<div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
+<div style="display:flex;flex-direction:column;height:100%;position:absolute;inset:0;">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);position:sticky;top:0;z-index:5;">
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:calc(env(safe-area-inset-top,0px) + 1rem) 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;z-index:5;">
     <button onclick="window._pdfSelectorBack()"
       style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
@@ -4695,13 +4698,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </button>
   </div>
 
-  <!-- Grid -->
+  <!-- Grid — flex:1 + overflow-y:auto makes this the scroll area -->
   <div id="pdfThumbGrid"
-    style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem 1rem 7rem;">
+    style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem;align-content:start;">
   </div>
 
-  <!-- Footer -->
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+  <!-- Footer — sits naturally below the grid, never floats into it -->
+  <div style="flex-shrink:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);">
     <button id="pdfContinueBtn" onclick="window._pdfConfirm()"
       style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
       Continue with ${_totalPages} pages
@@ -4876,8 +4879,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
     function _show(mv) {
         Object.assign(mv.style, {
-            display:'flex', position:'fixed', inset:'0', zIndex:'350',
-            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
+            display:'block', position:'fixed', inset:'0', zIndex:'350',
+            background:'var(--bg-body)', overflow:'hidden',
             opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
         });
         requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
