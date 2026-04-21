@@ -2680,14 +2680,30 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             var email     = window.currentUser.email || "";
 
             const p = window._geoPrice || DEFAULT_GEO;
-            const trialAmt = p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.132);
-            const examAmt  = p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5);
 
-            var amount   = plan === 'premium_yearly' ? p.yearlyKobo
+            // ── Always charge in NGN (Paystack account currency) ─────────────
+            // Non-NGN prices are converted to NGN at a fixed rate so foreign
+            // cards still work — the user's bank handles the final FX conversion.
+            // Sending any other currency causes "Currency not supported" errors.
+            const NGN_RATES = { NGN:1, USD:1600, GBP:2050, GHS:110, KES:12, ZAR:85 };
+            const rate = NGN_RATES[p.currency] || 1600;
+
+            function toNGNKobo(kobo) {
+                if (p.currency === 'NGN') return kobo;
+                // kobo here is in the foreign currency's smallest unit (e.g. cents)
+                // convert: kobo/100 = display amount in foreign currency
+                // × rate = NGN amount, × 100 = NGN kobo
+                return Math.round((kobo / 100) * rate * 100);
+            }
+
+            const trialAmt = toNGNKobo(p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.132));
+            const examAmt  = toNGNKobo(p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5));
+
+            var amount   = plan === 'premium_yearly' ? toNGNKobo(p.yearlyKobo)
                          : plan === 'premium_trial'  ? trialAmt
                          : plan === 'premium_exam'   ? examAmt
-                         : p.monthlyKobo;
-            var currency = p.currency;
+                         : toNGNKobo(p.monthlyKobo);
+            var currency = 'NGN'; // always NGN — Paystack account only supports NGN
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
@@ -3038,12 +3054,14 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
   </div>
 
 </div>`;
+    // Wire import buttons — must happen after innerHTML is set
+    (function(){
+        var ab=document.getElementById('mcImportAnkiBtn');
+        var qb=document.getElementById('mcImportQuizletBtn');
+        if(ab) ab.onclick=function(){window._mcImport('anki');};
+        if(qb) qb.onclick=function(){window._mcImport('quizlet');};
+    })();
     }
-    // Wire import buttons after each render (they're recreated on each _render call)
-    const _ankiBtn = document.getElementById('mcImportAnkiBtn');
-    const _qBtn    = document.getElementById('mcImportQuizletBtn');
-    if (_ankiBtn) _ankiBtn.addEventListener('click', function(){ window._mcImport('anki'); });
-    if (_qBtn)    _qBtn.addEventListener('click',    function(){ window._mcImport('quizlet'); });
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     function _esc(s) {
@@ -3258,24 +3276,68 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         return _jszipReady;
     }
 
-    // ── Minimal SQLite reader (Anki-specific) ─────────────────────────────────
-    // Reads leaf and interior b-tree pages, handles text + integer fields.
-    // Overflow pages are skipped (rare in typical Anki decks).
+    // ── SQLite reader with overflow page support ────────────────────────────────
     function _varint(u8, pos) {
         let v = 0;
         for (let i = 0; i < 9; i++) {
             const b = u8[pos + i];
-            if (i === 8) { v = (v * 256) + b; return { v, next: pos + 9 }; }
+            if (i === 8) { v = v * 256 + b; return { v, next: pos + 9 }; }
             v = v * 128 + (b & 0x7f);
-            if (!(b & 0x80))    { return { v, next: pos + i + 1 }; }
+            if (!(b & 0x80)) return { v, next: pos + i + 1 };
         }
         return { v, next: pos + 9 };
     }
 
-    function _record(u8, pos) {
-        const hdr = _varint(u8, pos);
+    // Concatenate payload across overflow pages into a single Uint8Array
+    function _fullPayload(u8, pageSize, cellPos, totalPayloadLen) {
+        const reservedBytes = u8[20];
+        const usable = pageSize - reservedBytes;
+        const maxLocal = usable - 35;
+        const minLocal = Math.floor((usable - 12) * 32 / 255) - 23;
+
+        if (totalPayloadLen <= maxLocal) {
+            // No overflow — all data is on this page
+            return u8.slice(cellPos, cellPos + totalPayloadLen);
+        }
+
+        // Calculate how many bytes are stored locally
+        let localSize = minLocal + ((totalPayloadLen - minLocal) % (usable - 4));
+        if (localSize > maxLocal) localSize = minLocal;
+
+        // Collect local bytes
+        const chunks = [u8.slice(cellPos, cellPos + localSize)];
+
+        // Read overflow page number (4 bytes right after local payload)
+        const dv = new DataView(u8.buffer, u8.byteOffset);
+        let ovflPage = dv.getUint32(cellPos + localSize, false);
+
+        // Follow overflow page chain
+        let collected = localSize;
+        let safety = 0;
+        while (ovflPage > 0 && collected < totalPayloadLen && safety++ < 500) {
+            const pageOff = (ovflPage - 1) * pageSize;
+            if (pageOff + 4 > u8.length) break;
+            const nextPage = dv.getUint32(pageOff, false);
+            const dataStart = pageOff + 4;
+            const dataLen = Math.min(usable - 4, totalPayloadLen - collected);
+            chunks.push(u8.slice(dataStart, dataStart + dataLen));
+            collected += dataLen;
+            ovflPage = nextPage;
+        }
+
+        // Merge chunks
+        const total = chunks.reduce((s, c) => s + c.length, 0);
+        const merged = new Uint8Array(total);
+        let offset = 0;
+        for (const c of chunks) { merged.set(c, offset); offset += c.length; }
+        return merged;
+    }
+
+    function _record(payload) {
+        const u8 = payload;
+        const hdr = _varint(u8, 0);
         let hp = hdr.next;
-        const hdrEnd = pos + hdr.v;
+        const hdrEnd = hdr.v;
         const types = [];
         while (hp < hdrEnd) {
             const t = _varint(u8, hp);
@@ -3289,30 +3351,33 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             else if (type === 1)              { fields.push(u8[dp]); dp += 1; }
             else if (type === 2)              { fields.push((u8[dp]<<8)|u8[dp+1]); dp += 2; }
             else if (type === 3)              { fields.push((u8[dp]<<16)|(u8[dp+1]<<8)|u8[dp+2]); dp += 3; }
-            else if (type === 4)              { const dv = new DataView(u8.buffer, u8.byteOffset+dp, 4); fields.push(dv.getInt32(0,false)); dp += 4; }
+            else if (type === 4)              { fields.push(new DataView(u8.buffer, u8.byteOffset+dp, 4).getInt32(0,false)); dp += 4; }
             else if (type === 5)              { dp += 6; fields.push(0); }
             else if (type === 6)              { dp += 8; fields.push(0); }
-            else if (type === 7)              { const dv = new DataView(u8.buffer, u8.byteOffset+dp, 8); fields.push(dv.getFloat64(0,false)); dp += 8; }
+            else if (type === 7)              { fields.push(new DataView(u8.buffer, u8.byteOffset+dp, 8).getFloat64(0,false)); dp += 8; }
             else if (type === 8)              { fields.push(0); }
             else if (type === 9)              { fields.push(1); }
-            else if (type >= 12 && !(type%2)) { const len = (type-12)>>1; fields.push(u8.slice(dp, dp+len)); dp += len; }
-            else if (type >= 13 &&  (type%2)) { const len = (type-13)>>1; fields.push(dec.decode(u8.slice(dp, dp+len))); dp += len; }
+            else if (type >= 12 && !(type%2)) { const len=(type-12)>>1; fields.push(u8.slice(dp,dp+len)); dp+=len; }
+            else if (type >= 13 &&  (type%2)) { const len=(type-13)>>1; fields.push(dec.decode(u8.slice(dp,dp+len))); dp+=len; }
             else                              { fields.push(null); }
         }
         return fields;
     }
 
-    function _readLeaf(u8, pageOffset, isRoot, rows) {
-        const ho = isRoot ? 100 : pageOffset; // header offset (page 1 has 100-byte db header)
+    function _readLeaf(u8, pageOffset, isRoot, pageSize, rows) {
+        const ho = isRoot ? 100 : pageOffset;
         if (u8[ho] !== 0x0d) return;
         const cellCount = (u8[ho+3]<<8)|u8[ho+4];
-        const ptrOff    = ho + 8;
+        const ptrOff = ho + 8;
         for (let i = 0; i < cellCount; i++) {
             const cp = pageOffset + ((u8[ptrOff+i*2]<<8)|u8[ptrOff+i*2+1]);
             let p = cp;
-            const pl = _varint(u8, p); p = pl.next; // payload length
-            const ri = _varint(u8, p); p = ri.next; // row id
-            try { rows.push(_record(u8, p)); } catch(e) { /* skip corrupt row */ }
+            const pl = _varint(u8, p); p = pl.next; // total payload length
+            const ri = _varint(u8, p); p = ri.next; // row id (skip)
+            try {
+                const payload = _fullPayload(u8, pageSize, p, pl.v);
+                rows.push(_record(payload));
+            } catch(e) { /* skip unparseable row */ }
         }
     }
 
@@ -3320,7 +3385,6 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         const ho = isRoot ? 100 : pageOffset;
         if (u8[ho] !== 0x05) return;
         const cellCount = (u8[ho+3]<<8)|u8[ho+4];
-        // Left-most child
         const lm = ((u8[ho+8]<<24)|(u8[ho+9]<<16)|(u8[ho+10]<<8)|u8[ho+11]) >>> 0;
         _readBtree(u8, (lm-1)*pageSize, lm===1, pageSize, rows);
         const ptrOff = ho + 12;
@@ -3335,7 +3399,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         const ho = isRoot ? 100 : pageOffset;
         if (ho >= u8.length) return;
         const type = u8[ho];
-        if      (type === 0x0d) _readLeaf(u8, pageOffset, isRoot, rows);
+        if      (type === 0x0d) _readLeaf(u8, pageOffset, isRoot, pageSize, rows);
         else if (type === 0x05) _readInterior(u8, pageOffset, isRoot, pageSize, rows);
     }
 
@@ -3346,10 +3410,10 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     }
 
     function _parseSQLite(arrayBuffer) {
-        const u8  = new Uint8Array(arrayBuffer);
-        const dv  = new DataView(arrayBuffer);
+        const u8 = new Uint8Array(arrayBuffer);
+        const dv = new DataView(arrayBuffer);
 
-        // Validate magic
+        // Validate SQLite magic
         const magic = 'SQLite format 3\x00';
         for (let i = 0; i < 16; i++) {
             if (u8[i] !== magic.charCodeAt(i)) throw new Error('Not a valid SQLite file');
@@ -3357,14 +3421,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
         const pageSize = dv.getUint16(16, false) || 65536;
 
-        // Read sqlite_master (always page 1) to find table root pages
         const schemaRows = [];
         _readBtree(u8, 0, true, pageSize, schemaRows);
 
         const tableMap = {};
         for (const row of schemaRows) {
             if (row[0] === 'table' && typeof row[1] === 'string') {
-                tableMap[row[1]] = row[3]; // name -> rootPage
+                tableMap[row[1]] = row[3];
             }
         }
 
@@ -3376,7 +3439,6 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         }
         return result;
     }
-
     // ── HTML strip helper ─────────────────────────────────────────────────────
     function _stripHTML(html) {
         if (!html) return '';
@@ -3394,47 +3456,79 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Parse .apkg file → array of {front, back, tags, deckName} ─────────────
     async function _parseApkg(file) {
         await _loadJSZip();
-        const zip  = await JSZip.loadAsync(file);
+        const zip = await JSZip.loadAsync(file);
 
-        // Prefer collection.anki21 (newer format), fall back to collection.anki2
-        let dbFile = zip.file('collection.anki21') || zip.file('collection.anki2');
-        if (!dbFile) throw new Error('No Anki collection file found in .apkg');
-
-        const dbBuf = await dbFile.async('arraybuffer');
-        const tables = _parseSQLite(dbBuf);
-
-        // Get deck name from col table
+        const zipFiles = Object.keys(zip.files);
+        const hasAnki21b = zipFiles.some(n => n === 'collection.anki21b');
+        let dbBuf = null;
         let deckName = 'Anki Import';
-        if (tables.col && tables.col.length) {
+
+        for (const name of ['collection.anki21', 'collection.anki2']) {
+            const f = zip.file(name);
+            if (!f) continue;
             try {
-                const decksJson = tables.col[0][8]; // decks column
-                if (typeof decksJson === 'string') {
-                    const decks = JSON.parse(decksJson);
-                    const names = Object.values(decks)
-                        .map(d => d.name)
-                        .filter(n => n && n !== 'Default');
-                    if (names.length) deckName = names[0];
-                }
-            } catch(e) { /* use default */ }
+                const buf = await f.async('arraybuffer');
+                const magic = new Uint8Array(buf, 0, 16);
+                const expected = [83,81,76,105,116,101,32,102,111,114,109,97,116,32,51,0];
+                if (expected.every((b,i) => magic[i] === b)) { dbBuf = buf; break; }
+            } catch(e) {}
         }
 
-        // Parse notes
-        const cards = [];
-        const notes = tables.notes || tables.note || [];
-        for (const row of notes) {
-            const flds = typeof row[6] === 'string' ? row[6] : null;
-            if (!flds) continue;
-            const parts = flds.split('\x1f');
-            if (parts.length < 2) continue;
-            const front = _stripHTML(parts[0]);
-            const back  = _stripHTML(parts[1]);
-            if (!front || !back) continue;
-            cards.push({ front, back, tags: typeof row[5] === 'string' ? row[5].trim() : '' });
+        if (!dbBuf && hasAnki21b) {
+            throw new Error(
+                'This deck uses the new Anki format. In Anki Desktop: ' +
+                'File \u2192 Export \u2192 tick "Support older Anki versions" \u2192 Export, then import that file.'
+            );
+        }
+        if (!dbBuf) throw new Error('No readable collection found in this .apkg file.');
+
+        let cards = [];
+        try {
+            const tables = _parseSQLite(dbBuf);
+
+            if (tables.col && tables.col.length) {
+                for (const ci of [8, 9, 7]) {
+                    const v = tables.col[0][ci];
+                    if (typeof v === 'string' && v.startsWith('{')) {
+                        try {
+                            const decks = JSON.parse(v);
+                            const names = Object.values(decks).map(d => d.name)
+                                .filter(n => n && n !== 'Default' && !n.includes('::'));
+                            if (names.length) { deckName = names[0]; break; }
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            const notes = tables.notes || tables.note || [];
+            for (const row of notes) {
+                let flds = null;
+                for (const idx of [6, 7, 5]) {
+                    if (typeof row[idx] === 'string' && row[idx].includes('\x1f')) {
+                        flds = row[idx]; break;
+                    }
+                }
+                if (!flds) continue;
+                const parts = flds.split('\x1f');
+                if (parts.length < 2) continue;
+                const front = _stripHTML(parts[0]);
+                const back  = _stripHTML(parts[1]);
+                if (!front || !back) continue;
+                cards.push({ front, back, tags: typeof row[5] === 'string' ? row[5].trim() : '' });
+            }
+        } catch(e) {
+            throw new Error('Could not read this deck: ' + e.message);
+        }
+
+        if (cards.length === 0) {
+            throw new Error(
+                'No cards found. If exported from recent Anki: ' +
+                'File \u2192 Export \u2192 tick "Support older Anki versions" \u2192 Export.'
+            );
         }
 
         return { cards, deckName };
     }
-
     // ── UI state ─────────────────────────────────────────────────────────────
     let _parsed = null; // { cards, deckName }
 
@@ -3484,8 +3578,9 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         // If from home/library, just close overlay — nav was never hidden
     }
 
-    // ── Screen 1: file picker ─────────────────────────────────────────────────
-    function _renderAnkiPicker() {
+    // ── Screen 1: picker with two tabs (File / Paste text) ───────────────────
+    function _renderAnkiPicker(tab) {
+        tab = tab || 'file';
         const mv = document.getElementById('ankiImportView');
         mv.innerHTML = `
 <div style="display:flex;flex-direction:column;min-height:100svh;padding-top:env(safe-area-inset-top,0px);">
@@ -3500,35 +3595,127 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);flex:1;margin:0;">Import from Anki</h2>
   </div>
 
-  <!-- Body -->
-  <div style="flex:1;padding:1.5rem 1.125rem;display:flex;flex-direction:column;gap:1.5rem;">
+  <!-- Tabs -->
+  <div style="display:flex;gap:0;border-bottom:1px solid var(--border-glass);background:var(--bg-body);">
+    <button id="ankiTabFile" onclick="window._renderAnkiPicker('file')"
+      style="flex:1;padding:0.75rem;font-size:0.875rem;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid ${tab==='file' ? 'var(--accent-btn)' : 'transparent'};color:${tab==='file' ? 'var(--accent-btn)' : 'var(--text-muted)'};">
+      .apkg file
+    </button>
+    <button id="ankiTabPaste" onclick="window._renderAnkiPicker('paste')"
+      style="flex:1;padding:0.75rem;font-size:0.875rem;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid ${tab==='paste' ? 'var(--accent-btn)' : 'transparent'};color:${tab==='paste' ? 'var(--accent-btn)' : 'var(--text-muted)'};">
+      Paste text
+    </button>
+  </div>
 
-    <!-- Drop zone -->
-    <label id="ankiDropZone" for="ankiFileInput"
-      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:3rem 1.5rem;border-radius:var(--radius-card);border:2px dashed var(--border-glass);background:var(--bg-surface);cursor:pointer;text-align:center;transition:border-color 0.2s;">
-      <div style="width:4rem;height:4rem;border-radius:1rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;">
-        <i class="fas fa-file-import" style="font-size:1.5rem;color:var(--accent-btn);"></i>
+  <!-- Body -->
+  <div style="flex:1;padding:1.25rem 1.125rem;display:flex;flex-direction:column;gap:1.25rem;padding-bottom:5rem;">
+
+    ${tab === 'file' ? `
+    <!-- FILE TAB -->
+    <label for="ankiFileInput"
+      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2.5rem 1.5rem;border-radius:var(--radius-card);border:2px dashed var(--border-glass);background:var(--bg-surface);cursor:pointer;text-align:center;">
+      <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-file-import" style="font-size:1.375rem;color:var(--accent-btn);"></i>
       </div>
       <div>
-        <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.375rem;">Select .apkg file</p>
-        <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.5;">Export a deck from Anki Desktop,<br>then select the .apkg file here.</p>
+        <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.25rem;">Select .apkg file</p>
+        <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;line-height:1.5;">Works with Anki 2.0 and older 2.1 exports.</p>
       </div>
-      <input type="file" id="ankiFileInput" accept=".apkg" style="display:none;" onchange="window._ankiFileChosen(this)">
+      <input type="file" id="ankiFileInput" accept=".apkg,.txt" style="display:none;" onchange="window._ankiFileChosen(this)">
     </label>
 
-    <!-- How to export guide -->
-    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1.125rem;">
-      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.75rem;">How to export from Anki</p>
-      ${['Open Anki Desktop on your computer', 'Right-click a deck and choose Export', 'Set format to Anki Deck Package (.apkg)', 'Send the file to your phone'].map((step, i) => `
-      <div style="display:flex;gap:0.75rem;align-items:flex-start;${i < 3 ? 'margin-bottom:0.625rem;' : ''}">
-        <div style="width:1.375rem;height:1.375rem;border-radius:50%;background:rgba(139,92,246,0.12);color:var(--accent-btn);font-size:0.6875rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</div>
-        <p style="font-size:0.875rem;color:var(--text-main);margin:0;line-height:1.45;">${step}</p>
+    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1rem;">
+      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.625rem;">How to export</p>
+      ${['Open Anki Desktop', 'Right-click a deck → Export', 'Format: Anki Deck Package (.apkg)', 'Transfer .apkg to your phone'].map((s,i)=>`
+      <div style="display:flex;gap:0.625rem;align-items:flex-start;${i<3?'margin-bottom:0.5rem':''}">
+        <div style="width:1.25rem;height:1.25rem;border-radius:50%;background:rgba(139,92,246,0.12);color:var(--accent-btn);font-size:0.625rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+        <p style="font-size:0.8125rem;color:var(--text-main);margin:0;line-height:1.4;">${s}</p>
+      </div>`).join('')}
+    </div>
+    ` : `
+    <!-- PASTE TAB -->
+    <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:var(--radius-md);padding:0.875rem;">
+      <p style="font-size:0.8125rem;color:var(--text-main);margin:0;line-height:1.5;">Works with <b>all Anki versions</b> including the latest. Export as plain text, then paste below.</p>
+    </div>
+
+    <div style="background:var(--bg-surface);border-radius:var(--radius-card);border:1px solid var(--border-glass);padding:1rem;">
+      <p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:0 0 0.625rem;">How to export</p>
+      ${['Open Anki Desktop', 'Click a deck → Export', 'Format: <b style="color:var(--text-main)">Notes in Plain Text (.txt)</b>', 'Open the .txt file, select all, copy', 'Paste into the box below'].map((s,i)=>`
+      <div style="display:flex;gap:0.625rem;align-items:flex-start;${i<4?'margin-bottom:0.5rem':''}">
+        <div style="width:1.25rem;height:1.25rem;border-radius:50%;background:rgba(139,92,246,0.12);color:var(--accent-btn);font-size:0.625rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+        <p style="font-size:0.8125rem;color:var(--text-main);margin:0;line-height:1.4;">${s}</p>
       </div>`).join('')}
     </div>
 
+    <div>
+      <label style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.5rem;">Paste exported text</label>
+      <textarea id="ankiPasteArea" placeholder="Term&#9;Definition&#10;Term&#9;Definition&#10;..."
+        oninput="window._ankiPasteLive(this.value)"
+        style="width:100%;min-height:8rem;padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-surface);color:var(--text-main);font-size:0.875rem;line-height:1.55;resize:none;box-sizing:border-box;outline:none;font-family:monospace;-webkit-appearance:none;"></textarea>
+      <p id="ankiPasteStatus" style="font-size:0.75rem;color:var(--text-muted);margin:0.375rem 0 0;min-height:1rem;"></p>
+    </div>
+    `}
+
   </div>
+
+  ${tab === 'paste' ? `
+  <!-- Footer for paste tab -->
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);z-index:10;">
+    <button id="ankiPasteImportBtn" onclick="window._ankiPasteImport()" disabled
+      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--bg-surface);color:var(--text-muted);font-size:1rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s;">
+      Import
+    </button>
+  </div>
+  ` : ''}
+
 </div>`;
+        // Expose for tab switching
+        window._renderAnkiPicker = _renderAnkiPicker;
     }
+
+    // ── Live paste feedback ───────────────────────────────────────────────────
+    window._ankiPasteLive = function(val) {
+        const cards = _parseTSV(val);
+        const status = document.getElementById('ankiPasteStatus');
+        const btn    = document.getElementById('ankiPasteImportBtn');
+        if (!val.trim()) {
+            if (status) status.textContent = '';
+            if (btn) { btn.disabled=true; btn.style.opacity='0.45'; btn.style.background='var(--bg-surface)'; btn.style.color='var(--text-muted)'; btn.style.cursor='not-allowed'; }
+            return;
+        }
+        if (cards.length === 0) {
+            if (status) { status.textContent = 'No cards detected — make sure a tab separates term and definition.'; status.style.color='#f87171'; }
+            if (btn) { btn.disabled=true; btn.style.opacity='0.45'; btn.style.background='var(--bg-surface)'; btn.style.color='var(--text-muted)'; btn.style.cursor='not-allowed'; }
+        } else {
+            if (status) { status.textContent = cards.length + ' card' + (cards.length!==1?'s':'') + ' detected'; status.style.color='var(--accent-green)'; }
+            if (btn) { btn.disabled=false; btn.style.opacity='1'; btn.style.background='var(--accent-btn)'; btn.style.color='var(--btn-text)'; btn.style.cursor='pointer'; }
+        }
+    };
+
+    // ── Parse tab-separated text (Anki plain text export) ─────────────────────
+    function _parseTSV(text) {
+        if (!text.trim()) return [];
+        const cards = [];
+        for (const line of text.split('\n')) {
+            const t = line.trim();
+            if (!t || t.startsWith('#')) continue; // skip empty + Anki comment lines
+            const tabIdx = t.indexOf('\t');
+            if (tabIdx === -1) continue;
+            const front = _stripHTML(t.substring(0, tabIdx).trim());
+            const back  = _stripHTML(t.substring(tabIdx + 1).trim());
+            if (front && back) cards.push({ front, back, tags: '' });
+        }
+        return cards;
+    }
+
+    // ── Import from paste ─────────────────────────────────────────────────────
+    window._ankiPasteImport = function() {
+        const text  = document.getElementById('ankiPasteArea')?.value || '';
+        const cards = _parseTSV(text);
+        if (!cards.length) return;
+        _parsed = { cards, deckName: 'Anki Import' };
+        _renderAnkiPreview();
+    };
 
     // ── File chosen — parse and show preview ──────────────────────────────────
     window._ankiFileChosen = async function (input) {
