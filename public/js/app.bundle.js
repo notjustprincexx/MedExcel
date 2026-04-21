@@ -4064,11 +4064,18 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         const mv = document.getElementById('bossFightView');
         Object.assign(mv.style, {
             display:'flex', position:'fixed', inset:'0', zIndex:'300',
-            background:'var(--bg-body)', flexDirection:'column', overflowY:'auto',
+            background:'#0f0720', flexDirection:'column', overflowY:'auto',
+            overflow:'hidden', overflowY:'auto',
             opacity:'0', transform:'translateY(20px)',
             transition:'opacity .22s ease, transform .22s ease',
         });
         requestAnimationFrame(() => { mv.style.opacity='1'; mv.style.transform='translateY(0)'; });
+        // Purple status bar for boss fight
+        const _themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (_themeMeta) _themeMeta.content = '#0f0720';
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: '#0f0720' }); StatusBar.setStyle({ style: 'DARK' }); } catch(e) {}
+        }
     }
 
     function _exit() {
@@ -4076,6 +4083,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         if (!mv) return;
         mv.style.opacity='0'; mv.style.transform='translateY(20px)';
         setTimeout(() => { mv.style.display='none'; mv.style.transition=''; }, 230);
+        // Reset status bar to theme
+        const _isLight = localStorage.getItem('medexcel_theme') !== 'dark';
+        const _tm = document.querySelector('meta[name="theme-color"]');
+        if (_tm) _tm.content = _isLight ? '#f1f5f9' : '#09090b';
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try { window.syncStatusBar(_isLight); } catch(e) {}
+        }
         const nav = document.getElementById('globalBottomNav');
         if (nav) nav.style.transform = '';
         if (_timer) { clearInterval(_timer); _timer = null; }
@@ -4137,13 +4151,13 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 <div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;">
+  <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .875rem;background:#0f0720;flex-shrink:0;border-bottom:none;">
     <button onclick="window._bossExit()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;transition:transform .1s;"
+      style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(255,255,255,.12);border:none;display:flex;align-items:center;justify-content:center;color:white;cursor:pointer;transition:transform .1s;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
       <i class="fas fa-arrow-left" style="font-size:.875rem;"></i>
     </button>
-    <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;flex:1;">Boss Fight</h2>
+    <h2 style="font-size:1rem;font-weight:700;color:white;margin:0;flex:1;">Boss Fight</h2>
   </div>
 
   <!-- Boss arena banner -->
@@ -4225,45 +4239,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     // ── Boss SVG character ───────────────────────────────────────────────────
     function _bossSVG(size, extra) {
         const s = size || 64;
-        return `<svg viewBox="0 0 64 64" fill="none" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;">
-            <!-- Shadow/glow base -->
-            <ellipse cx="32" cy="60" rx="18" ry="4" fill="rgba(124,58,237,.25)"/>
-            <!-- Lab coat body -->
-            <rect x="18" y="38" width="28" height="20" rx="4" fill="#e2d9f3"/>
-            <!-- Coat lapels -->
-            <path d="M32 38 L26 44 L32 46 L38 44 Z" fill="white"/>
-            <!-- Red tie -->
-            <path d="M32 42 L30 50 L32 52 L34 50 Z" fill="#ef4444"/>
-            <!-- Stethoscope -->
-            <path d="M24 42 Q20 48 22 54" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-            <circle cx="22" cy="55" r="2" fill="#374151"/>
-            <!-- Neck -->
-            <rect x="28" y="33" width="8" height="7" rx="3" fill="#fcd9a0"/>
-            <!-- Head -->
-            <ellipse cx="32" cy="27" rx="13" ry="13" fill="#fcd9a0"/>
-            <!-- Evil eyebrows — angled sharply inward -->
-            <path d="M22 21 Q25 18.5 28 20" stroke="#1e1b4b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-            <path d="M36 20 Q39 18.5 42 21" stroke="#1e1b4b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-            <!-- Eyes — narrow evil squint -->
-            <ellipse cx="26" cy="24" rx="3.5" ry="2.5" fill="white"/>
-            <ellipse cx="38" cy="24" rx="3.5" ry="2.5" fill="white"/>
-            <ellipse cx="26.5" cy="24.5" rx="2" ry="2" fill="#4c1d95"/>
-            <ellipse cx="38.5" cy="24.5" rx="2" ry="2" fill="#4c1d95"/>
-            <ellipse cx="27" cy="24" rx=".8" ry=".8" fill="white"/>
-            <ellipse cx="39" cy="24" rx=".8" ry=".8" fill="white"/>
-            <!-- Evil grin -->
-            <path d="M25 32 Q32 38 39 32" stroke="#1e1b4b" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-            <!-- Teeth -->
-            <path d="M27 32.5 Q32 37 37 32.5" fill="white"/>
-            <!-- Hair — swept back dramatic villain style -->
-            <path d="M19 22 Q20 12 32 14 Q44 12 45 22 Q40 10 32 11 Q24 10 19 22 Z" fill="#1e1b4b"/>
-            <!-- Crown/horns hint on hair -->
-            <path d="M24 14 L22 8 L26 13" fill="#7c3aed"/>
-            <path d="M40 14 L42 8 L38 13" fill="#7c3aed"/>
-            <!-- Monocle -->
-            <circle cx="38" cy="24" r="5" stroke="#fbbf24" stroke-width="1.2" fill="none"/>
-            <line x1="43" y1="24" x2="45" y2="26" stroke="#fbbf24" stroke-width="1.2"/>
-        </svg>`;
+        return `<img src="boss.svg" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;object-fit:contain;" alt="Boss">`;
     }
 
     // ── Main fight screen ────────────────────────────────────────────────────
@@ -4285,7 +4261,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 <div style="display:flex;flex-direction:column;height:100svh;padding-top:env(safe-area-inset-top,0px);background:var(--bg-body);">
 
   <!-- Arena header -->
-  <div style="background:linear-gradient(160deg,#0f0720,#1a0a38);padding:.875rem 1rem .75rem;flex-shrink:0;">
+  <div style="background:#0f0720;padding:.875rem 1rem .75rem;flex-shrink:0;">
 
     <!-- Top bar: exit + title -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;">
@@ -4679,10 +4655,10 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         // position:fixed breaks inside overflow:auto parents on mobile — using
         // flex:1 on the scrollable grid and a static footer avoids this entirely.
         mv.innerHTML = `
-<div style="display:flex;flex-direction:column;height:100%;position:absolute;inset:0;">
+<div style="display:flex;flex-direction:column;min-height:100%;">
 
   <!-- Header -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:calc(env(safe-area-inset-top,0px) + 1rem) 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;z-index:5;">
+  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;position:sticky;top:0;z-index:5;">
     <button onclick="window._pdfSelectorBack()"
       style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
       ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
@@ -4700,11 +4676,11 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
   <!-- Grid — flex:1 + overflow-y:auto makes this the scroll area -->
   <div id="pdfThumbGrid"
-    style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem;align-content:start;">
+    style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem;">
   </div>
 
   <!-- Footer — sits naturally below the grid, never floats into it -->
-  <div style="flex-shrink:0;padding:0.875rem 1.125rem calc(env(safe-area-inset-bottom,0px) + 0.875rem);background:var(--bg-body);border-top:1px solid var(--border-glass);">
+  <div style="padding:0.875rem 1.125rem 0.875rem;background:var(--bg-body);border-top:1px solid var(--border-glass);position:sticky;bottom:0;z-index:5;">
     <button id="pdfContinueBtn" onclick="window._pdfConfirm()"
       style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
       Continue with ${_totalPages} pages
@@ -4721,7 +4697,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             wrapper.style.cssText = `
                 position:relative;border-radius:0.75rem;overflow:hidden;cursor:pointer;
                 border:2.5px solid var(--accent-btn);background:var(--bg-surface);
-                transition:border-color 0.15s,opacity 0.15s;`;
+                transition:border-color 0.15s,opacity 0.15s;min-height:180px;`;
             wrapper.onclick = () => window._pdfTogglePage(pageNum);
 
             // Use img tag so width:100%;height:auto correctly preserves aspect ratio
@@ -4754,7 +4730,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             try {
                 const page     = await _pdfDoc.getPage(pageNum);
                 const viewport = page.getViewport({ scale: 1.0 });
-                const targetW  = 300;
+                const targetW  = 500;
                 const scale    = targetW / viewport.width;
                 const scaled   = page.getViewport({ scale });
 
@@ -4880,7 +4856,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     function _show(mv) {
         Object.assign(mv.style, {
             display:'block', position:'fixed', inset:'0', zIndex:'350',
-            background:'var(--bg-body)', overflow:'hidden',
+            background:'var(--bg-body)', overflowY:'auto', overflowX:'hidden',
             opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
         });
         requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
