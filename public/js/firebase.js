@@ -793,7 +793,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     </div>`;
                 }
 
-                html += `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.625rem;border-radius:0.875rem;background:${isMe?'rgba(139,92,246,0.08)':'transparent'};">
+                html += `<div onclick="window.openUserProfile('${user.uid}')" style="cursor:pointer;display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.625rem;border-radius:0.875rem;background:${isMe?'rgba(139,92,246,0.08)':'transparent'};">
                     <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);width:18px;text-align:center;">${i+1}</span>
                     ${avatar}
                     <div style="flex:1;min-width:0;">
@@ -881,6 +881,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (boxEl) {
                     const size = i === 0 ? 76 : 56;
                     boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId, false);
+                    boxEl.style.cursor = 'pointer';
+                    boxEl.onclick = () => window.openUserProfile(u.uid);
                 }
             });
 
@@ -906,7 +908,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     : '';
 
                 listContainer.innerHTML += `
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
+                    <div onclick="window.openUserProfile('${user.uid}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
                         <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
                             <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
                             ${avatarHTML}
@@ -949,7 +951,197 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
         
+        // ── User Profile Viewer (leaderboard tap) ──────────────────────────────
+        window.openUserProfile = async function(uid) {
+            if (!uid) return;
+            if (uid === window.currentUser?.uid) { window.navigateTo('view-profile'); return; }
+
+            const existing = document.getElementById('_userProfilePage');
+            if (existing) existing.remove();
+
+            const cached = (window._lbUsers || []).find(u => u.uid === uid);
+            if (!cached) return;
+
+            // ── Show page immediately with skeleton while fetching ────────────
+            const page = document.createElement('div');
+            page.id = '_userProfilePage';
+            page.style.cssText = 'position:fixed;inset:0;z-index:9600;background:var(--bg-body);overflow-y:auto;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.19,1,0.22,1);';
+            page.className = 'hide-scroll';
+
+            const AVATAR_GRID_LOCAL = [
+                {col:0,row:0},{col:1,row:0},{col:2,row:0},
+                {col:0,row:1},{col:1,row:1},{col:2,row:1},
+                {col:0,row:2},{col:1,row:2},{col:2,row:2},
+            ];
+
+            function buildAvatar(user, size) {
+                if (user.photoBase64) {
+                    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-btn);"><img src="'+user.photoBase64+'" style="width:100%;height:100%;object-fit:cover;"></div>';
+                } else if (user.avatarIndex !== null && user.avatarIndex !== undefined && AVATAR_GRID_LOCAL[user.avatarIndex]) {
+                    const a = AVATAR_GRID_LOCAL[user.avatarIndex];
+                    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-btn);background-image:url(\'avatar.svg\');background-size:300% 300%;background-position:'+(a.col*50)+'% '+(a.row*50)+'%;"></div>';
+                } else {
+                    const initial = (user.displayName || 'U').charAt(0).toUpperCase();
+                    const colors = ['#8b5cf6','#3b82f6','#10b981','#f97316','#ef4444','#ec4899'];
+                    const bg = colors[user.displayName?.charCodeAt(0) % colors.length] || '#8b5cf6';
+                    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+bg+';border:3px solid var(--accent-btn);display:flex;align-items:center;justify-content:center;font-size:'+(size*0.38)+'px;font-weight:800;color:white;">'+initial+'</div>';
+                }
+            }
+
+            const rankInfo = window.getUserRank ? window.getUserRank(cached.monthlyRankXp || 0) : { name:'Bronze', barColor:'#d97706' };
+            const isPro    = cached.plan === 'premium' || cached.plan === 'premium_trial' || cached.plan === 'elite';
+            const myXP     = window.userStats?.xp || 0;
+            const theirXP  = cached.xp || 0;
+            const maxXP    = Math.max(myXP, theirXP, 1);
+            const myPct    = Math.round((myXP / maxXP) * 100);
+            const theirPct = Math.round((theirXP / maxXP) * 100);
+            const myName   = window.currentUser?.displayName || 'You';
+            const firstName = window.escapeHTML((cached.displayName || 'Them').split(' ')[0]);
+
+            function renderPage(extra) {
+                const studyLine = (extra && extra.studyProgram)
+                    ? ('<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">'
+                        + ({mbbs:'MBBS',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy',other:'Other'}[extra.studyProgram] || extra.studyProgram)
+                        + (extra.studyLevel ? ' · ' + ({
+                            '1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year',
+                            '4th':'4th Year','final':'Final Year','postgrad':'Post-grad'
+                          }[extra.studyLevel] || extra.studyLevel) : '')
+                        + '</div>')
+                    : '';
+
+                const totalQs   = extra?.totalQuestionsAnswered || 0;
+                const deckCount = extra?.planUsed || 0;
+
+                // Achievements scrollable row
+                const unlocked  = extra?.achievements || [];
+                const achHTML   = MASTER_ACHIEVEMENTS.map(function(ach) {
+                    const done = unlocked.includes(ach.id);
+                    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:60px;">'
+                        + '<div style="position:relative;">'
+                        + '<div style="width:48px;height:54px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:'
+                        + (done ? ach.gradient : 'var(--bg-body)')
+                        + ';display:flex;align-items:center;justify-content:center;filter:'
+                        + (done ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' : 'grayscale(1) opacity(0.2)')
+                        + ';">'
+                        + '<i class="fas ' + ach.icon + '" style="font-size:1rem;color:white;"></i>'
+                        + '</div>'
+                        + '<div style="width:26px;height:7px;background:' + (done ? ach.ribbonColor : '#475569') + ';clip-path:polygon(0 0,100% 0,82% 100%,50% 78%,18% 100%);margin:0 auto;margin-top:-1px;filter:' + (done ? 'none' : 'grayscale(1) opacity(0.2)') + ';"></div>'
+                        + (!done ? '<div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);"><i class="fas fa-lock" style="font-size:0.65rem;color:#94a3b8;"></i></div>' : '')
+                        + '</div>'
+                        + '<span style="font-size:0.5rem;font-weight:700;color:'
+                        + (done ? 'var(--text-main)' : 'var(--text-muted)')
+                        + ';text-align:center;line-height:1.2;">' + ach.title + '</span>'
+                        + '</div>';
+                }).join('');
+
+                const nudge = theirXP > myXP
+                    ? '<div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:16px;text-align:center;">'
+                        + '<div style="font-size:1.25rem;margin-bottom:6px;">💪</div>'
+                        + '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);margin-bottom:4px;">They are ahead by ' + window.formatXP(theirXP - myXP) + '</div>'
+                        + '<div style="font-size:0.8rem;color:var(--text-muted);">Study consistently to close the gap.</div>'
+                        + '</div>'
+                    : '<div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:16px;padding:16px;text-align:center;">'
+                        + '<div style="font-size:1.25rem;margin-bottom:6px;">🏆</div>'
+                        + '<div style="font-size:0.875rem;font-weight:700;color:#34d399;margin-bottom:4px;">You are ahead by ' + window.formatXP(myXP - theirXP) + '</div>'
+                        + '<div style="font-size:0.8rem;color:var(--text-muted);">Keep studying to maintain your lead.</div>'
+                        + '</div>';
+
+                page.innerHTML =
+                    // Header
+                    '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);border-bottom:1px solid var(--border-glass);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">'
+                        + '<div style="display:flex;align-items:center;gap:12px;">'
+                            + '<button onclick="var _p=document.getElementById(\'_userProfilePage\');if(_p){_p.style.transform=\'translateX(100%)\';setTimeout(function(){_p.remove();},320);}" '
+                                + 'style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">'
+                                + '<i class="fas fa-arrow-left"></i>'
+                            + '</button>'
+                            + '<h1 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0;letter-spacing:-0.02em;">Profile</h1>'
+                        + '</div>'
+                    + '</div>'
+                    // Body
+                    + '<div style="padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 2rem);">'
+                        // Avatar + name
+                        + '<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:2rem;">'
+                            + buildAvatar(cached, 80)
+                            + '<h2 style="font-size:1.25rem;font-weight:800;color:var(--text-main);margin:14px 0 4px;letter-spacing:-0.02em;">'
+                                + window.escapeHTML(cached.displayName || 'User')
+                                + (isPro ? '<span style="font-size:0.6rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:2px 7px;border-radius:9999px;margin-left:8px;vertical-align:middle;">PRO</span>' : '')
+                            + '</h2>'
+                            + '<span style="font-size:0.8rem;font-weight:700;color:'+rankInfo.barColor+';">'+rankInfo.name+'</span>'
+                            + studyLine
+                        + '</div>'
+                        // Stats grid
+                        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:2rem;">'
+                            + '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">'
+                                + '<div style="font-size:1.25rem;font-weight:800;color:var(--text-main);">'+window.formatXP(theirXP)+'</div>'
+                                + '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Total XP</div>'
+                            + '</div>'
+                            + '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">'
+                                + '<div style="font-size:1.25rem;font-weight:800;color:var(--text-main);">'+window.formatXP(cached.weeklyXp||0)+'</div>'
+                                + '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">This Week</div>'
+                            + '</div>'
+                            + '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">'
+                                + '<div style="font-size:1.25rem;font-weight:800;color:var(--text-main);">'+(deckCount > 0 ? deckCount : (totalQs > 0 ? totalQs.toLocaleString() : '0'))+'</div>'
+                                + '<div style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">'+(deckCount > 0 ? 'Decks Made' : 'Questions')+'</div>'
+                            + '</div>'
+                        + '</div>'
+                        // Achievements
+                        + '<div style="margin-bottom:2rem;">'
+                            + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+                                + '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Achievements</h3>'
+                                + '<span style="font-size:0.75rem;font-weight:700;color:var(--accent-btn);">'+unlocked.length+' / '+MASTER_ACHIEVEMENTS.length+'</span>'
+                            + '</div>'
+                            + '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:16px;overflow-x:auto;" class="hide-scroll">'
+                                + '<div style="display:flex;gap:10px;width:max-content;padding-bottom:4px;">'+achHTML+'</div>'
+                            + '</div>'
+                        + '</div>'
+                        // XP comparison
+                        + '<div style="margin-bottom:2rem;">'
+                            + '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">You vs '+firstName+'</h3>'
+                            + '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:18px 16px;">'
+                                + '<div style="margin-bottom:14px;">'
+                                    + '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
+                                        + '<span style="font-size:0.8125rem;font-weight:700;color:var(--accent-btn);">'+window.escapeHTML(myName)+' (You)</span>'
+                                        + '<span style="font-size:0.8125rem;font-weight:700;color:var(--text-main);">'+window.formatXP(myXP)+'</span>'
+                                    + '</div>'
+                                    + '<div style="height:8px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">'
+                                        + '<div style="height:100%;width:'+myPct+'%;background:var(--accent-btn);border-radius:9999px;"></div>'
+                                    + '</div>'
+                                + '</div>'
+                                + '<div>'
+                                    + '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
+                                        + '<span style="font-size:0.8125rem;font-weight:700;color:var(--text-main);">'+window.escapeHTML(cached.displayName||'User')+'</span>'
+                                        + '<span style="font-size:0.8125rem;font-weight:700;color:var(--text-main);">'+window.formatXP(theirXP)+'</span>'
+                                    + '</div>'
+                                    + '<div style="height:8px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">'
+                                        + '<div style="height:100%;width:'+theirPct+'%;background:#64748b;border-radius:9999px;"></div>'
+                                    + '</div>'
+                                + '</div>'
+                            + '</div>'
+                        + '</div>'
+                        // Nudge
+                        + nudge
+                    + '</div>';
+            }
+
+            // Render with skeleton data immediately
+            renderPage(null);
+            document.body.appendChild(page);
+            requestAnimationFrame(function() { page.style.transform = 'translateX(0)'; });
+
+            // Fetch extra data and re-render
+            try {
+                const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                const snap = await getDoc(doc(db, 'users', uid));
+                if (snap.exists()) {
+                    renderPage(snap.data());
+                }
+            } catch(e) {
+                console.warn('[UserProfile] Fetch failed:', e.message);
+            }
+        };
+
         // Create Generation API Logic
+
         const generateBtn = document.getElementById('generateBtn');
         const aiLoader = document.getElementById('aiLoader');
         const loadingText = document.getElementById('loadingText');

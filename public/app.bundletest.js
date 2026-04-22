@@ -89,7 +89,6 @@
         };
 
         window.updateHomeContinueCard = function() {
-            if (typeof window.renderStudyFocusCard === 'function') window.renderStudyFocusCard();
             const cTitle = document.getElementById('continueTitle');
             const cMeta = document.getElementById('continueMeta');
             const cProgress = document.getElementById('continueProgressText');
@@ -1528,7 +1527,25 @@
         })();
 
         // Weekly Target Rotator
-        // Weekly Target replaced by smart Study Focus card — see window.renderStudyFocusCard()
+        const targetMessages = [
+            { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
+            { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." },
+            { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
+        ];
+        let currentTargetIdx = 0;
+        setInterval(() => {
+            currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
+            const titleEl = document.getElementById('targetTitle');
+            const descEl = document.getElementById('targetDesc');
+            if(titleEl && descEl) {
+                titleEl.style.opacity = '0'; descEl.style.opacity = '0';
+                setTimeout(() => {
+                    titleEl.textContent = targetMessages[currentTargetIdx].title;
+                    descEl.textContent = targetMessages[currentTargetIdx].desc;
+                    titleEl.style.opacity = '1'; descEl.style.opacity = '1';
+                }, 300);
+            }
+        }, 5000);
 
         // Streak Calendar UI
         let currentStreakCount = 0;
@@ -1985,20 +2002,6 @@ if (nextBtn) {
             currentQuiz.stats.lastScore = examScore;
             if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
             currentQuiz.stats.lastAttemptedAt = new Date().toISOString();
-
-            // ── Daily study log for 7-day activity chart ─────────────────────
-            try {
-                const _logKey  = 'medexcel_studylog_' + (window.currentUser?.uid || 'guest');
-                const _logDate = new Date().toISOString().split('T')[0];
-                const _log     = JSON.parse(localStorage.getItem(_logKey) || '{}');
-                if (!_log[_logDate]) _log[_logDate] = { questions: 0, sessions: 0 };
-                _log[_logDate].questions += (currentQuiz.questions?.length || 0);
-                _log[_logDate].sessions  += 1;
-                const _trimmed = {};
-                Object.keys(_log).sort().slice(-30).forEach(k => _trimmed[k] = _log[k]);
-                localStorage.setItem(_logKey, JSON.stringify(_trimmed));
-            } catch(_le) {}
-            // ─────────────────────────────────────────────────────────────────
 
             if (window.currentUser) {
                 try {
@@ -2778,409 +2781,6 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 obj.textContent = current;
             }, stepTime);
         }
-
-// ══════════════════════════════════════════════════════════════════════════════
-// STUDY FOCUS CARD + PROGRESS SHEET
-// ══════════════════════════════════════════════════════════════════════════════
-
-window.renderStudyFocusCard = function() {
-    const card = document.getElementById('studyFocusCard');
-    if (!card) return;
-
-    const quizzes = (window.quizzes || []).filter(function(q) { return !q._pending && q.questions && q.questions.length > 0; });
-    const DAY_MS  = 86400000;
-    const now     = Date.now();
-
-    if (quizzes.length === 0) {
-        card.innerHTML =
-            '<div style="display:flex;gap:14px;padding:16px;background:rgba(139,92,246,0.05);' +
-            'border:1px solid rgba(139,92,246,0.1);border-radius:var(--radius-card);align-items:center;">' +
-                '<div style="width:42px;height:42px;border-radius:50%;background:rgba(139,92,246,0.15);' +
-                    'color:#a78bfa;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-                    '<i class="fas fa-seedling" style="font-size:0.9rem;"></i>' +
-                '</div>' +
-                '<div style="flex:1;">' +
-                    '<div style="font-size:0.9375rem;font-weight:700;color:var(--text-main);margin-bottom:3px;">No study history yet</div>' +
-                    '<div style="font-size:0.8rem;color:var(--text-muted);">Generate your first quiz to start tracking your progress.</div>' +
-                '</div>' +
-                '<i class="fas fa-chevron-right" style="font-size:0.75rem;color:var(--text-muted);"></i>' +
-            '</div>';
-        return;
-    }
-
-    var attempted = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
-    var scored = attempted.map(function(q) {
-        var total   = q.questions.length;
-        var pct     = total > 0 ? Math.round((q.stats.bestScore / total) * 100) : 0;
-        var lastMs  = q.stats.lastAttemptedAt ? new Date(q.stats.lastAttemptedAt).getTime() : 0;
-        var daysAgo = lastMs ? Math.floor((now - lastMs) / DAY_MS) : null;
-        return { q: q, pct: pct, daysAgo: daysAgo };
-    });
-
-    var weak  = scored.filter(function(s) { return s.pct < 60; }).sort(function(a, b) { return a.pct - b.pct; });
-    var stale = scored.filter(function(s) { return s.daysAgo !== null && s.daysAgo >= 5; }).sort(function(a, b) { return b.daysAgo - a.daysAgo; });
-
-    var icon, color, badge, title, sub;
-    if (weak.length > 0) {
-        icon = 'fa-book-medical'; color = '#8b5cf6'; badge = 'Needs work';
-        title = window.escapeHTML(weak[0].q.title || 'Untitled');
-        sub   = 'Best score ' + weak[0].pct + '%' + (weak[0].daysAgo !== null ? ' · ' + (weak[0].daysAgo === 0 ? 'today' : weak[0].daysAgo + 'd ago') : '');
-    } else if (stale.length > 0) {
-        icon = 'fa-rotate-left'; color = '#8b5cf6'; badge = 'Due for review';
-        title = window.escapeHTML(stale[0].q.title || 'Untitled');
-        sub   = 'Not studied in ' + stale[0].daysAgo + ' day' + (stale[0].daysAgo !== 1 ? 's' : '') + ' · ' + stale[0].pct + '% best';
-    } else {
-        icon = 'fa-chart-line'; color = '#34d399'; badge = 'On track';
-        title = 'All decks looking good';
-        sub   = 'Tap to see your full progress report';
-    }
-
-    card.innerHTML =
-        '<div style="display:flex;gap:14px;padding:16px;background:rgba(139,92,246,0.05);' +
-        'border:1px solid rgba(139,92,246,0.1);border-radius:var(--radius-card);align-items:center;">' +
-            '<div style="position:relative;width:44px;height:50px;flex-shrink:0;">' +
-                '<div style="position:absolute;bottom:0;left:4px;width:34px;height:42px;border-radius:5px;background:' + color + '30;transform:rotate(-8deg);"></div>' +
-                '<div style="position:absolute;bottom:0;left:2px;width:34px;height:42px;border-radius:5px;background:' + color + '55;transform:rotate(-3deg);"></div>' +
-                '<div style="position:absolute;bottom:0;left:0;width:36px;height:44px;border-radius:5px;background:' + color + ';display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:6px 7px;gap:4px;box-shadow:0 4px 12px ' + color + '40;">' +
-                    '<div style="width:100%;height:2.5px;border-radius:9999px;background:rgba(255,255,255,0.9);"></div>' +
-                    '<div style="width:75%;height:2.5px;border-radius:9999px;background:rgba(255,255,255,0.65);"></div>' +
-                    '<div style="width:85%;height:2.5px;border-radius:9999px;background:rgba(255,255,255,0.65);"></div>' +
-                    '<div style="width:60%;height:2.5px;border-radius:9999px;background:rgba(255,255,255,0.5);"></div>' +
-                '</div>' +
-            '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
-                    '<span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + title + '</span>' +
-                    '<span style="font-size:0.6rem;font-weight:700;color:' + color + ';background:' + color + '18;padding:2px 7px;border-radius:9999px;white-space:nowrap;flex-shrink:0;">' + badge + '</span>' +
-                '</div>' +
-                '<div style="font-size:0.8rem;color:var(--text-muted);">' + sub + '</div>' +
-            '</div>' +
-            '<i class="fas fa-chevron-right" style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;"></i>' +
-        '</div>';
-};
-
-window.openProgressSheet = function() {
-    var existing = document.getElementById('_progressPage');
-    if (existing) { existing.remove(); }
-
-    var quizzes  = (window.quizzes || []).filter(function(q) { return !q._pending && q.questions && q.questions.length > 0; });
-    var DAY_MS   = 86400000;
-    var now      = Date.now();
-    var logKey   = 'medexcel_studylog_' + (window.currentUser ? window.currentUser.uid : 'guest');
-    var log      = JSON.parse(localStorage.getItem(logKey) || '{}');
-
-    // ── Stats ─────────────────────────────────────────────────────────────────
-    var attempted    = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
-    var totalSessions = Object.values(log).reduce(function(s, d) { return s + (d.sessions || 0); }, 0);
-    var totalQs      = Object.values(log).reduce(function(s, d) { return s + (d.questions || 0); }, 0);
-    var avgScore     = attempted.length > 0
-        ? Math.round(attempted.reduce(function(s, q) { return s + (q.questions.length > 0 ? (q.stats.bestScore / q.questions.length) * 100 : 0); }, 0) / attempted.length)
-        : null;
-
-    // ── Ring chart (avg score or 0) ───────────────────────────────────────────
-    var ringPct   = avgScore !== null ? avgScore : 0;
-    var R         = 54;
-    var circ      = 2 * Math.PI * R;
-    var dashArr   = (ringPct / 100 * circ).toFixed(1) + ' ' + circ.toFixed(1);
-    var ringColor = ringPct >= 80 ? '#34d399' : ringPct >= 60 ? '#fbbf24' : ringPct >= 40 ? '#fb923c' : '#8b5cf6';
-    var ringLabel = avgScore !== null ? avgScore + '%' : '—';
-    var ringDesc  = avgScore !== null ? 'Avg score' : 'No attempts yet';
-
-    // ── 7-day chart ───────────────────────────────────────────────────────────
-    var days = [];
-    for (var i = 6; i >= 0; i--) {
-        var d   = new Date(now - i * DAY_MS);
-        var key = d.toISOString().split('T')[0];
-        var lbl = d.toLocaleDateString(undefined, { weekday: 'short' });
-        days.push({ label: lbl, val: (log[key] && log[key].questions) || 0, isToday: i === 0 });
-    }
-    var maxVal = Math.max.apply(null, days.map(function(d) { return d.val; }).concat([20])); // floor at 20 so small values don't look disproportionate
-    var bars   = days.map(function(d) {
-        var h   = Math.max(4, Math.round((d.val / maxVal) * 100));
-        var col = d.isToday ? '#8b5cf6' : d.val > 0 ? 'rgba(139,92,246,0.4)' : 'var(--border-glass)';
-        return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;">' +
-            '<div style="width:100%;display:flex;align-items:flex-end;justify-content:center;height:100px;">' +
-                '<div style="width:clamp(8px,60%,26px);height:' + h + 'px;background:' + col + ';border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>' +
-            '</div>' +
-            '<span style="font-size:0.625rem;font-weight:' + (d.isToday ? '700' : '600') + ';color:' + (d.isToday ? '#8b5cf6' : 'var(--text-muted)') + ';">' + d.label + '</span>' +
-            (d.val > 0 ? '<span style="font-size:0.55rem;color:var(--text-muted);">' + d.val + '</span>' : '<span style="font-size:0.55rem;color:transparent;">0</span>') +
-        '</div>';
-    }).join('');
-
-    // ── Deck rows ─────────────────────────────────────────────────────────────
-    var deckRows = quizzes.map(function(q) {
-        var total   = q.questions.length;
-        var pct     = (q.stats && q.stats.attempts > 0) ? Math.round((q.stats.bestScore / total) * 100) : null;
-        var lastMs  = (q.stats && q.stats.lastAttemptedAt) ? new Date(q.stats.lastAttemptedAt).getTime() : 0;
-        var daysAgo = lastMs ? Math.floor((now - lastMs) / DAY_MS) : null;
-        var col     = pct === null ? 'var(--text-muted)' : pct >= 80 ? '#34d399' : pct >= 60 ? '#fbbf24' : '#f87171';
-        var pctTxt  = pct === null ? 'New' : pct + '%';
-        var when    = daysAgo === null ? 'Never' : daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + 'd ago';
-        var isMCQ   = q.type && q.type.includes('Multiple');
-        return { q: q, pct: pct === null ? -1 : pct, col: col, pctTxt: pctTxt, when: when, total: total, isMCQ: isMCQ };
-    }).sort(function(a, b) { return a.pct - b.pct; });
-
-    var deckHTML = deckRows.length === 0
-        ? '<p style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:2rem 0;">Generate your first quiz to see it here</p>'
-        : deckRows.map(function(r) {
-            var barW = r.pct < 0 ? 0 : r.pct;
-            var _rid = String(r.q.id);
-            return '<div style="padding:14px 0;border-bottom:1px solid var(--border-glass);cursor:pointer;" onclick="window._openProgressDeck(\''+_rid+'\')">' +
-                '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
-                    '<div style="width:36px;height:36px;border-radius:10px;background:' + r.col + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-                        '<i class="fas ' + (r.isMCQ ? 'fa-clipboard-list' : 'fa-layer-group') + '" style="font-size:0.75rem;color:' + r.col + ';"></i>' +
-                    '</div>' +
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window.escapeHTML(r.q.title || 'Untitled') + '</div>' +
-                        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + r.total + ' items · ' + r.when + '</div>' +
-                    '</div>' +
-                    '<span style="font-size:1rem;font-weight:800;color:' + r.col + ';flex-shrink:0;">' + r.pctTxt + '</span>' +
-                '</div>' +
-                '<div style="width:100%;height:4px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">' +
-                    '<div style="height:100%;width:' + barW + '%;background:' + r.col + ';border-radius:9999px;transition:width 0.6s ease;"></div>' +
-                '</div>' +
-            '</div>';
-        }).join('');
-
-    // ── Suggestion ────────────────────────────────────────────────────────────
-    var sugg = deckRows.find(function(d) { return d.pct >= 0 && d.pct < 60; })
-        || deckRows.find(function(d) { return d.q.stats && d.q.stats.lastAttemptedAt && Math.floor((now - new Date(d.q.stats.lastAttemptedAt).getTime()) / DAY_MS) >= 5; })
-        || (deckRows.length > 0 ? deckRows[deckRows.length - 1] : null);
-
-    var suggSection = sugg ? (
-        '<div style="margin-bottom:2rem;">' +
-            '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Suggested Next</h3>' +
-            '<div onclick="window._openProgressDeck(\''+ String(sugg.q.id) +'\')" style="display:flex;align-items:center;gap:14px;padding:16px;' +
-                'background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(139,92,246,0.05));' +
-                'border:1px solid rgba(139,92,246,0.25);border-radius:16px;cursor:pointer;">' +
-                '<div style="flex:1;min-width:0;">' +
-                    '<div style="font-size:0.7rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Study Now</div>' +
-                    '<div style="font-size:1rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window.escapeHTML(sugg.q.title || 'Untitled') + '</div>' +
-                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">' + (sugg.pct < 0 ? 'Not attempted yet' : 'Best score ' + sugg.pctTxt) + '</div>' +
-                '</div>' +
-                '<div style="width:44px;height:44px;border-radius:50%;background:#8b5cf6;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(139,92,246,0.4);">' +
-                    '<i class="fas fa-play" style="font-size:0.875rem;color:white;margin-left:3px;"></i>' +
-                '</div>' +
-            '</div>' +
-        '</div>'
-    ) : '';
-
-    // ── Build page ────────────────────────────────────────────────────────────
-    var page = document.createElement('div');
-    page.id = '_progressPage';
-    page.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg-body);overflow-y:auto;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.19,1,0.22,1);';
-    page.className = 'hide-scroll';
-
-    page.innerHTML =
-        // Header
-        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);border-bottom:1px solid var(--border-glass);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
-            '<div style="display:flex;align-items:center;gap:12px;">' +
-                '<button onclick="window._closeProgressPage()" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">' +
-                    '<i class="fas fa-arrow-left"></i>' +
-                '</button>' +
-                '<h1 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0;letter-spacing:-0.02em;">Progress</h1>' +
-            '</div>' +
-        '</div>' +
-
-        '<div style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 2rem);">' +
-
-            // Ring chart hero
-            '<div style="display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;margin-bottom:1.75rem;">' +
-                '<div style="position:relative;width:140px;height:140px;">' +
-                    '<svg width="140" height="140" style="transform:rotate(-90deg);">' +
-                        '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="var(--border-glass)" stroke-width="10"/>' +
-                        '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + ringColor + '" stroke-width="10" stroke-linecap="round" ' +
-                            'stroke-dasharray="' + dashArr + '" style="transition:stroke-dasharray 0.8s ease;"/>' +
-                    '</svg>' +
-                    '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
-                        '<span style="font-size:2rem;font-weight:800;color:var(--text-main);line-height:1;">' + ringLabel + '</span>' +
-                        '<span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);margin-top:4px;">' + ringDesc + '</span>' +
-                    '</div>' +
-                '</div>' +
-                '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:1rem;text-align:center;">Performance Overview</p>' +
-            '</div>' +
-
-            // Stats row
-            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:2rem;">' +
-                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
-                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + totalSessions + '</div>' +
-                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Sessions</div>' +
-                '</div>' +
-                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
-                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + totalQs + '</div>' +
-                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Questions</div>' +
-                '</div>' +
-                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
-                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + (avgScore !== null ? avgScore + '%' : '—') + '</div>' +
-                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Avg Score</div>' +
-                '</div>' +
-            '</div>' +
-
-            // 7-day chart
-            '<div style="margin-bottom:2rem;">' +
-                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
-                    '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Learning Statistics</h3>' +
-                    '<span style="font-size:0.72rem;font-weight:600;color:var(--accent-btn);">This Week</span>' +
-                '</div>' +
-                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:20px 16px 14px;">' +
-                    '<div style="display:flex;gap:6px;align-items:flex-end;height:120px;">' + bars + '</div>' +
-                    '<div style="margin-top:10px;font-size:0.7rem;color:var(--text-muted);text-align:center;letter-spacing:0.02em;">Questions studied per day</div>' +
-                '</div>' +
-            '</div>' +
-
-            // Suggested next
-            suggSection +
-
-            // ── Subject Breakdown ─────────────────────────────────────────
-            (function() {
-                // Group quizzes by subject, compute avg best score per group
-                var subjectMap = {};
-                quizzes.forEach(function(q) {
-                    var subj = (q.subject || 'General').toUpperCase().trim();
-                    if (!subjectMap[subj]) subjectMap[subj] = { total: 0, scoreSum: 0, count: 0, attempts: 0 };
-                    subjectMap[subj].count++;
-                    if (q.stats && q.stats.attempts > 0) {
-                        subjectMap[subj].attempts++;
-                        var pct = q.questions.length > 0 ? Math.round((q.stats.bestScore / q.questions.length) * 100) : 0;
-                        subjectMap[subj].scoreSum += pct;
-                    }
-                });
-                var subjects = Object.keys(subjectMap).sort(function(a, b) {
-                    var pa = subjectMap[a].attempts > 0 ? subjectMap[a].scoreSum / subjectMap[a].attempts : 101;
-                    var pb = subjectMap[b].attempts > 0 ? subjectMap[b].scoreSum / subjectMap[b].attempts : 101;
-                    return pa - pb; // weakest first
-                });
-                if (subjects.length === 0) return '';
-                var rows = subjects.map(function(subj) {
-                    var s   = subjectMap[subj];
-                    var avg = s.attempts > 0 ? Math.round(s.scoreSum / s.attempts) : null;
-                    var col = avg === null ? 'var(--text-muted)' : avg >= 80 ? '#34d399' : avg >= 60 ? '#fbbf24' : '#f87171';
-                    var bar = avg !== null ? avg : 0;
-                    var lbl = avg !== null ? avg + '%' : 'Not attempted';
-                    var sub = s.count + ' deck' + (s.count !== 1 ? 's' : '') + (s.attempts > 0 ? ' · ' + s.attempts + ' attempted' : '');
-                    return '<div style="margin-bottom:14px;">' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
-                            '<div>' +
-                                '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);">' + subj + '</div>' +
-                                '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + sub + '</div>' +
-                            '</div>' +
-                            '<span style="font-size:0.9375rem;font-weight:800;color:' + col + ';flex-shrink:0;margin-left:12px;">' + lbl + '</span>' +
-                        '</div>' +
-                        '<div style="width:100%;height:6px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">' +
-                            '<div style="height:100%;width:' + bar + '%;background:' + col + ';border-radius:9999px;transition:width 0.6s ease;"></div>' +
-                        '</div>' +
-                    '</div>';
-                }).join('');
-                return '<div style="margin-bottom:2rem;">' +
-                    '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Subject Breakdown</h3>' +
-                    '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:18px 16px;">' +
-                        rows +
-                    '</div>' +
-                '</div>';
-            })() +
-
-            // ── Streak Calendar ───────────────────────────────────────────────
-            (function() {
-                var uid        = window.currentUser ? window.currentUser.uid : 'guest';
-                var history    = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
-                var historySet = new Set(history);
-                var streak     = (window.userStats && window.userStats.count) || 0;
-                var consistency = 0;
-                if (history.length > 0) {
-                    // Count days studied in last 14 days
-                    var studied14 = 0;
-                    for (var i = 0; i < 14; i++) {
-                        var d14 = new Date(now - i * DAY_MS);
-                        if (historySet.has(d14.toDateString())) studied14++;
-                    }
-                    consistency = Math.round((studied14 / 14) * 100);
-                }
-
-                // Build 4-week calendar grid (28 days, newest = bottom-right)
-                var cells = [];
-                for (var w = 27; w >= 0; w--) {
-                    var dc = new Date(now - w * DAY_MS);
-                    var isToday  = w === 0;
-                    var studied  = historySet.has(dc.toDateString());
-                    var isFuture = w < 0;
-                    var col;
-                    if (isToday && studied)   col = '#8b5cf6';
-                    else if (isToday)         col = 'rgba(139,92,246,0.25)';
-                    else if (studied)         col = 'rgba(139,92,246,0.6)';
-                    else                      col = 'var(--border-glass)';
-                    cells.push('<div style="width:28px;height:28px;border-radius:6px;background:' + col + ';flex-shrink:0;" title="' + dc.toDateString() + '"></div>');
-                }
-
-                // Arrange into 4 rows of 7
-                var rows4 = '';
-                var dayLabels = '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
-                    ['M','T','W','T','F','S','S'].map(function(l) {
-                        return '<div style="width:28px;text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);">' + l + '</div>';
-                    }).join('') + '</div>';
-                for (var row = 0; row < 4; row++) {
-                    rows4 += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
-                    for (var col2 = 0; col2 < 7; col2++) {
-                        rows4 += cells[row * 7 + col2] || '<div style="width:28px;height:28px;"></div>';
-                    }
-                    rows4 += '</div>';
-                }
-
-                var consistencyColor = consistency >= 70 ? '#34d399' : consistency >= 40 ? '#fbbf24' : '#f87171';
-
-                return '<div style="margin-bottom:2rem;">' +
-                    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
-                        '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Study Calendar</h3>' +
-                        '<div style="display:flex;align-items:center;gap:6px;">' +
-                            '<i class="fas fa-fire" style="font-size:0.75rem;color:#fb923c;"></i>' +
-                            '<span style="font-size:0.8rem;font-weight:700;color:var(--text-main);">' + streak + ' day streak</span>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:18px 16px;">' +
-                        dayLabels + rows4 +
-                        '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-glass);display:flex;align-items:center;justify-content:space-between;">' +
-                            '<div>' +
-                                '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">14-Day Consistency</div>' +
-                                '<div style="font-size:1.25rem;font-weight:800;color:' + consistencyColor + ';margin-top:2px;">' + consistency + '%</div>' +
-                            '</div>' +
-                            '<div style="display:flex;align-items:center;gap:8px;">' +
-                                '<div style="display:flex;align-items:center;gap:4px;">' +
-                                    '<div style="width:10px;height:10px;border-radius:3px;background:rgba(139,92,246,0.6);"></div>' +
-                                    '<span style="font-size:0.65rem;color:var(--text-muted);">Studied</span>' +
-                                '</div>' +
-                                '<div style="display:flex;align-items:center;gap:4px;">' +
-                                    '<div style="width:10px;height:10px;border-radius:3px;background:var(--border-glass);"></div>' +
-                                    '<span style="font-size:0.65rem;color:var(--text-muted);">Missed</span>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            })() +
-
-        '</div>';
-
-    document.body.appendChild(page);
-    requestAnimationFrame(function() { page.style.transform = 'translateX(0)'; });
-};
-
-window._closeProgressPage = function() {
-    var page = document.getElementById('_progressPage');
-    if (!page) return;
-    page.style.transform = 'translateX(100%)';
-    setTimeout(function() { page.remove(); }, 320);
-};
-
-window._openProgressDeck = function(quizId) {
-    window._closeProgressPage();
-    var quiz = (window.quizzes || []).find(function(q) { return String(q.id) === String(quizId); });
-    if (quiz) {
-        window.currentQuiz = quiz;
-        window.navigateTo('view-study');
-    }
-};
-
-
-
 
 /* ── payment.js ── */
 // Payment View

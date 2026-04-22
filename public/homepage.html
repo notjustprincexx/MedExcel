@@ -419,19 +419,22 @@
             </div>
 
             <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Weekly Target</h2>
-                <a href="javascript:void(0)" onclick="navigateTo('view-profile')" class="flex gap-4 p-5 bg-[#8b5cf6]/5 border border-[#8b5cf6]/10 rounded-[var(--radius-card)] items-start">
-                    <div class="w-10 h-10 rounded-full bg-[#8b5cf6]/15 text-[#a78bfa] flex items-center justify-center shrink-0">
-                        <span class="fa-stack" style="font-size:0.6rem;">
-                            <i class="fas fa-bullseye fa-stack-2x"></i>
-                            <i class="fas fa-arrow-right fa-stack-1x" style="transform:rotate(-45deg) translate(2px,-2px); font-size:0.85em; color:#c4b5fd;"></i>
-                        </span>
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Study Focus</h2>
+                    <button onclick="window.openProgressSheet()" style="background:none;border:none;font-size:0.75rem;font-weight:700;color:var(--accent-btn);cursor:pointer;font-family:inherit;padding:0;">Full Report</button>
+                </div>
+                <div id="studyFocusCard" onclick="window.openProgressSheet()" style="cursor:pointer;">
+                    <div class="flex gap-4 p-5 bg-[#8b5cf6]/5 border border-[#8b5cf6]/10 rounded-[var(--radius-card)] items-center">
+                        <div class="w-10 h-10 rounded-full bg-[#8b5cf6]/15 text-[#a78bfa] flex items-center justify-center shrink-0">
+                            <i class="fas fa-chart-line" style="font-size:0.875rem;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <h4 class="text-[15px] font-bold text-[var(--text-main)] mb-1">Loading your focus...</h4>
+                            <p class="text-[13px] text-[var(--text-muted)] leading-relaxed">Analysing your study history</p>
+                        </div>
+                        <i class="fas fa-chevron-right" style="font-size:0.75rem;color:var(--text-muted);"></i>
                     </div>
-                    <div>
-                        <h4 id="targetTitle" class="text-[15px] font-bold text-[var(--text-main)] mb-1 transition-opacity">Study Consistency</h4>
-                        <p id="targetDesc" class="text-[13px] text-[var(--text-muted)] leading-relaxed transition-opacity">You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
-                    </div>
-                </a>
+                </div>
             </div>
 
             <div class="flex flex-col gap-4">
