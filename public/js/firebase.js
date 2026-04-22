@@ -1068,6 +1068,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     const deckNameClear = document.getElementById('deckNameInput');
                     if (deckNameClear) { deckNameClear.value = ''; deckNameClear.style.borderColor = 'var(--border-glass)'; }
                     window._fromCreateFlow = true;
+
+                    // Immediately reflect new usage count in UI — no restart needed
+                    const _usageEl = document.getElementById('usageCount');
+                    if (_usageEl) {
+                        const _prev = parseInt(_usageEl.textContent || '0', 10);
+                        _usageEl.textContent = _prev + 1;
+                    }
+                    const _barEl = document.getElementById('usageProgressBar');
+                    if (_barEl) {
+                        const _cap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : 5;
+                        const _used = parseInt(document.getElementById('usageCount')?.textContent || '0', 10);
+                        _barEl.style.width = Math.min(100, (_used / _cap) * 100) + '%';
+                    }
+                    if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
+
                     window.enterQuizMode();
                     window.renderCreateCurrentCard();
                     

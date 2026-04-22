@@ -2367,11 +2367,39 @@ if (nextBtn) {
             document.getElementById('createHeaderTitle').textContent = "What to create?";
             document.getElementById('createBackBtn').style.display = 'none';
 
+            // ── Always reset file/button state BEFORE any early return ──────
+            window.selectedFile     = null;
+            window._sourceIsPaste   = false;
+            window._sourceIsYoutube = false;
+            window._youtubeVideoId  = null;
+
+            const _fi = document.getElementById('fileInput');
+            if (_fi) _fi.value = '';
+            const _icon = document.getElementById('uploadIconInner');
+            if (_icon) { _icon.className = 'fas fa-cloud-upload-alt'; _icon.style.color = ''; _icon.style.animation = ''; }
+            const _title = document.getElementById('uploadTitle');
+            if (_title) _title.textContent = 'Tap to Upload File';
+            const _dz = document.getElementById('dropZone');
+            if (_dz) { _dz.style.borderColor = 'var(--border-glass)'; _dz.classList.remove('file-selected'); }
+            const _pasteTA = document.getElementById('pasteTextarea');
+            if (_pasteTA) { _pasteTA.value = ''; _pasteTA.style.borderColor = 'var(--border-glass)'; }
+            const _charCount = document.getElementById('pasteCharCount');
+            if (_charCount) _charCount.textContent = '0';
+            const _ytInput = document.getElementById('youtubeInput');
+            if (_ytInput) { _ytInput.value = ''; _ytInput.style.borderColor = 'var(--border-glass)'; }
+            const _ytFb = document.getElementById('youtubeFeedback');
+            if (_ytFb) _ytFb.innerHTML = '';
+            const _cfg = document.getElementById('configSection');
+            if (_cfg) { _cfg.style.opacity = '0.5'; _cfg.style.pointerEvents = 'none'; }
+            const _btn = document.getElementById('generateBtn');
+            if (_btn) { _btn.disabled = true; _btn.style.background = 'var(--bg-surface)'; _btn.style.color = 'var(--text-muted)'; _btn.style.cursor = 'not-allowed'; }
+            document.getElementById('interactiveView').style.display = 'none';
+            // ────────────────────────────────────────────────────────────────
+
             // If coming from home page MCQ/Flashcard tap, skip selection entirely
             if (window._pendingCreateType) {
                 const type = window._pendingCreateType;
                 window._pendingCreateType = null;
-                // Hide selection so it never shows, then open the setup view directly
                 document.getElementById('selectionView').style.display = 'none';
                 window.openCreateView(type);
                 return;
@@ -2379,52 +2407,31 @@ if (nextBtn) {
 
             // Normal back — show selection screen
             document.getElementById('selectionView').style.display = 'flex';
-            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none'; const _av = document.getElementById('ankiImportView'); if (_av) _av.style.display = 'none'; const _bv = document.getElementById('bossFightView'); if (_bv) _bv.style.display = 'none';
-            
-            // Reset state
-            window.selectedFile = null;
-            document.getElementById('fileInput').value = '';
-            const resetIcon = document.getElementById('uploadIconInner');
-            if (resetIcon) { resetIcon.className = 'fas fa-cloud-upload-alt'; resetIcon.style.color = ''; resetIcon.style.animation = ''; }
-            document.getElementById('uploadTitle').textContent = "Tap to Upload File";
-            document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
-            document.getElementById('dropZone').classList.remove('file-selected');
-            document.getElementById('dropZone').style.display = 'flex';
-            // Reset paste zone
-            const pasteZone = document.getElementById('pasteZone');
-            if (pasteZone) pasteZone.style.display = 'none';
-            const pasteTA = document.getElementById('pasteTextarea');
-            if (pasteTA) { pasteTA.value = ''; pasteTA.style.borderColor = 'var(--border-glass)'; }
-            const charCount = document.getElementById('pasteCharCount');
-            if (charCount) charCount.textContent = '0';
-            window._sourceIsPaste = false;
-            // Reset tabs
-            // Reset all tabs — only border/color, no background
+            const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none';
+            const _av = document.getElementById('ankiImportView');   if (_av) _av.style.display = 'none';
+            const _bv = document.getElementById('bossFightView');    if (_bv) _bv.style.display = 'none';
+
+            if (_dz) _dz.style.display = 'flex';
+            const _pasteZone = document.getElementById('pasteZone');
+            if (_pasteZone) _pasteZone.style.display = 'none';
+            const _ytZone = document.getElementById('youtubeZone');
+            if (_ytZone) _ytZone.style.display = 'none';
+
+            // Reset source tabs — upload active, others inactive
             ['tabUpload','tabPaste','tabYoutube'].forEach((id, i) => {
                 const b = document.getElementById(id);
                 if (!b) return;
                 if (i === 0) { b.style.borderColor = '#8b5cf6'; b.style.color = '#8b5cf6'; }
-                else { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
+                else         { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
             });
-            
+
             // Reset style selector to default (Direct & Factual)
-            const topicInput = document.getElementById('topicFocus');
-            if (topicInput) topicInput.value = 'direct';
+            const _topicInput = document.getElementById('topicFocus');
+            if (_topicInput) _topicInput.value = 'direct';
             document.querySelectorAll('.style-btn').forEach((b, i) => {
                 if (i === 0) { b.style.borderColor = 'var(--accent-btn)'; b.style.background = 'rgba(167,139,250,0.1)'; b.style.color = 'var(--accent-btn)'; }
-                else { b.style.borderColor = 'var(--border-glass)'; b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+                else         { b.style.borderColor = 'var(--border-glass)'; b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
             });
-            
-            document.getElementById('configSection').style.opacity = '0.5';
-            document.getElementById('configSection').style.pointerEvents = 'none';
-            
-            const btn = document.getElementById('generateBtn');
-            btn.disabled = true;
-            btn.style.background = 'var(--bg-surface)';
-            btn.style.color = 'var(--text-muted)';
-            btn.style.cursor = 'not-allowed';
-            
-            document.getElementById('interactiveView').style.display = 'none';
         };
 
         // --- LIBRARY FILTER TABS & SEARCH ---
@@ -4938,10 +4945,15 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         }
     };
 
+    function _ensureShimmer() {
+        if (document.getElementById('_pdfShimmerKf')) return;
+        const s = document.createElement('style');
+        s.id = '_pdfShimmerKf';
+        s.textContent = '@keyframes _pdfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}';
+        document.head.appendChild(s);
+    }
+
     async function _renderGrid(mv) {
-        // Use a flex column layout so the footer sticks to the bottom naturally.
-        // position:fixed breaks inside overflow:auto parents on mobile — using
-        // flex:1 on the scrollable grid and a static footer avoids this entirely.
         mv.innerHTML = `
 <div style="display:flex;flex-direction:column;min-height:100%;">
 
@@ -4962,12 +4974,12 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     </button>
   </div>
 
-  <!-- Grid — flex:1 + overflow-y:auto makes this the scroll area -->
+  <!-- Grid -->
   <div id="pdfThumbGrid"
-    style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem;">
+    style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;padding:1rem;flex:1;">
   </div>
 
-  <!-- Footer — sits naturally below the grid, never floats into it -->
+  <!-- Footer -->
   <div style="padding:0.875rem 1.125rem 0.875rem;background:var(--bg-body);border-top:1px solid var(--border-glass);position:sticky;bottom:0;z-index:5;">
     <button id="pdfContinueBtn" onclick="window._pdfConfirm()"
       style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
@@ -4977,62 +4989,81 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
 </div>`;
 
+        _ensureShimmer();
         const grid = mv.querySelector('#pdfThumbGrid');
 
+        // Step 1 — stamp ALL skeleton placeholders synchronously so the full
+        // grid layout appears instantly before any canvas work starts
         for (let pageNum = 1; pageNum <= _totalPages; pageNum++) {
             const wrapper = document.createElement('div');
             wrapper.id = `pdfPage_${pageNum}`;
-            wrapper.style.cssText = `
-                position:relative;border-radius:0.75rem;overflow:hidden;cursor:pointer;
-                border:2.5px solid var(--accent-btn);background:var(--bg-surface);
-                transition:border-color 0.15s,opacity 0.15s;min-height:180px;`;
+            wrapper.style.cssText = 'position:relative;border-radius:0.75rem;overflow:hidden;cursor:pointer;border:2.5px solid var(--accent-btn);background:var(--bg-surface);transition:border-color 0.15s,opacity 0.15s;';
             wrapper.onclick = () => window._pdfTogglePage(pageNum);
 
-            // Use img tag so width:100%;height:auto correctly preserves aspect ratio
+            // Skeleton — padding-bottom trick holds aspect ratio without knowing image height
+            const skel = document.createElement('div');
+            skel.id = `pdfSkel_${pageNum}`;
+            skel.style.cssText = 'width:100%;padding-bottom:133%;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border-glass) 50%,var(--bg-surface) 75%);background-size:200% 100%;animation:_pdfShimmer 1.3s infinite linear;';
+
             const img = document.createElement('img');
-            img.style.cssText = 'width:100%;height:auto;display:block;';
+            img.id = `pdfImg_${pageNum}`;
+            img.style.cssText = 'width:100%;height:auto;display:none;';
             img.alt = `Page ${pageNum}`;
 
             const checkEl = document.createElement('div');
             checkEl.id = `pdfCheck_${pageNum}`;
-            checkEl.style.cssText = `
-                position:absolute;bottom:0.5rem;right:0.5rem;
-                width:1.5rem;height:1.5rem;border-radius:50%;
-                background:var(--accent-btn);display:flex;align-items:center;justify-content:center;
-                transition:opacity 0.15s;`;
+            checkEl.style.cssText = 'position:absolute;bottom:0.5rem;right:0.5rem;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;transition:opacity 0.15s;';
             checkEl.innerHTML = '<i class="fas fa-check" style="font-size:0.6rem;color:white;"></i>';
 
             const pageLabel = document.createElement('div');
-            pageLabel.style.cssText = `
-                position:absolute;top:0.375rem;left:0.5rem;
-                font-size:0.6rem;font-weight:700;color:white;
-                background:rgba(0,0,0,0.45);padding:2px 6px;border-radius:9999px;`;
+            pageLabel.style.cssText = 'position:absolute;top:0.375rem;left:0.5rem;font-size:0.6rem;font-weight:700;color:white;background:rgba(0,0,0,0.45);padding:2px 6px;border-radius:9999px;';
             pageLabel.textContent = pageNum;
 
+            wrapper.appendChild(skel);
             wrapper.appendChild(img);
             wrapper.appendChild(checkEl);
             wrapper.appendChild(pageLabel);
             grid.appendChild(wrapper);
-
-            // Render to offscreen canvas then export as img src to preserve aspect ratio
-            try {
-                const page     = await _pdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: 1.0 });
-                const targetW  = 500;
-                const scale    = targetW / viewport.width;
-                const scaled   = page.getViewport({ scale });
-
-                const offscreen   = document.createElement('canvas');
-                offscreen.width   = Math.round(scaled.width);
-                offscreen.height  = Math.round(scaled.height);
-                await page.render({ canvasContext: offscreen.getContext('2d'), viewport: scaled }).promise;
-                img.src = offscreen.toDataURL('image/jpeg', 0.85);
-            } catch (e) {
-                img.style.minHeight = '150px';
-            }
         }
 
         _refreshUI();
+
+        // Step 2 — render thumbnails in parallel batches of 4.
+        // Each page swaps its skeleton for the real image the moment it finishes.
+        const BATCH_SIZE = 4;
+        for (let start = 1; start <= _totalPages; start += BATCH_SIZE) {
+            const batch = [];
+            for (let p = start; p < start + BATCH_SIZE && p <= _totalPages; p++) {
+                batch.push(_renderPageThumb(p));
+            }
+            await Promise.all(batch);
+        }
+    }
+
+    async function _renderPageThumb(pageNum) {
+        try {
+            const page     = await _pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.0 });
+            const scale    = 380 / viewport.width;
+            const scaled   = page.getViewport({ scale });
+
+            const canvas   = document.createElement('canvas');
+            canvas.width   = Math.round(scaled.width);
+            canvas.height  = Math.round(scaled.height);
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaled }).promise;
+
+            const img  = document.getElementById(`pdfImg_${pageNum}`);
+            const skel = document.getElementById(`pdfSkel_${pageNum}`);
+            if (img && skel) {
+                img.src           = canvas.toDataURL('image/jpeg', 0.72);
+                img.style.display = 'block';
+                skel.style.display = 'none';
+            }
+        } catch (_e) {
+            // Failed page: kill shimmer, leave neutral grey — other pages continue normally
+            const skel = document.getElementById(`pdfSkel_${pageNum}`);
+            if (skel) { skel.style.animation = 'none'; skel.style.background = 'var(--bg-surface)'; }
+        }
     }
 
     window._pdfTogglePage = function (pageNum) {
