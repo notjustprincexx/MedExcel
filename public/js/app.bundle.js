@@ -346,6 +346,7 @@
                 : 'the end of your billing period';
 
             const sheet = document.createElement('div');
+            sheet.id = 'cancelSubscriptionSheet';
             sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
             sheet.innerHTML = `
                 <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
@@ -360,7 +361,7 @@
                     <button id="confirmCancelBtn" onclick="window.confirmCancelSubscription(this)" style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:#ef4444;color:white;font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">
                         Yes, cancel subscription
                     </button>
-                    <button onclick="this.closest('[style*=position\\:fixed]').remove()" style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">
+                    <button onclick="document.getElementById('cancelSubscriptionSheet').remove()" style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">
                         Keep Premium
                     </button>
                 </div>`;
@@ -378,14 +379,26 @@
                 const result = await cancel();
                 if (result.data?.success) {
                     // Update local state — premium stays until expiry
-                    if (window._cachedUserData) window._cachedUserData.subscriptionCancelled = true;
-                    btn.closest('[style*=position\\:fixed]').remove();
-                    // Show confirmation toast
+                    if (window._cachedUserData) {
+                        window._cachedUserData.subscriptionCancelled = true;
+                        // Store expiresAt from server so downgrade check and UI have the correct date
+                        if (result.data.expiresAt) {
+                            window._cachedUserData.subscriptionExpiry = result.data.expiresAt;
+                        }
+                    }
+                    document.getElementById('cancelSubscriptionSheet')?.remove();
+                    // Show confirmation toast with actual expiry date if available
+                    const expiryForToast = result.data.expiresAt || window._cachedUserData?.subscriptionExpiry;
+                    const expiryLabel = expiryForToast
+                        ? `until ${new Date(expiryForToast).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}`
+                        : 'until your billing period ends';
                     const t = document.createElement('div');
-                    t.textContent = '✓ Subscription cancelled. Access continues until expiry.';
+                    t.textContent = `✓ Subscription cancelled. Access continues ${expiryLabel}.`;
                     t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
                     document.body.appendChild(t);
                     setTimeout(() => t.remove(), 5000);
+                    // Refresh plan icon so label switches from "Renews X" to "Access until X"
+                    if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(window.userPlan);
                     // Update cancel button text
                     const cancelBtn = document.querySelector('#subscriptionManageRow button');
                     if (cancelBtn) { cancelBtn.textContent = 'Cancelled'; cancelBtn.style.color = 'var(--text-muted)'; cancelBtn.disabled = true; }
@@ -430,9 +443,24 @@
             const btn = document.getElementById('confirmAccountDeleteBtn');
             if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
+                // Delete Firestore user document
                 if (window.currentUser?.uid && window._deleteDoc && window._doc) {
                     try { await window._deleteDoc(window._doc(window.db, "users", window.currentUser.uid)); } catch(e) {}
                 }
+                // Delete the Firebase Auth account itself
+                if (window.currentUser) {
+                    try {
+                        await window.currentUser.delete();
+                    } catch(e) {
+                        if (e.code === 'auth/requires-recent-login') {
+                            if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1'; }
+                            alert("For security, please sign out and sign back in before deleting your account.");
+                            return;
+                        }
+                        throw e;
+                    }
+                }
+                // Sign out and clear local data
                 try { if (window._signOut && window.auth) await window._signOut(window.auth); } catch(e) {}
                 const _delTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();

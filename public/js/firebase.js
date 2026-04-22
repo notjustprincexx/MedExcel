@@ -1680,15 +1680,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const pStreak = document.getElementById("profileStreakCount"); if(pStreak) pStreak.textContent = currentStreakCount;
                 const studyStreak = document.getElementById("studyStreakDisplay"); if(studyStreak) studyStreak.textContent = `${currentStreakCount} Day`;
                 const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(data.xp || 0);
-                if (data.createdAt) {
+                {
                     let memberDate = null;
-                    // Handle Firestore Timestamp
-                    if (data.createdAt.toDate) memberDate = data.createdAt.toDate();
-                    // Handle ISO string (e.g. stored as new Date().toISOString())
-                    else if (typeof data.createdAt === 'string') memberDate = new Date(data.createdAt);
-                    // Handle plain JS Date stored as millis
-                    else if (typeof data.createdAt === 'number') memberDate = new Date(data.createdAt);
-                    
+                    // Primary: Firebase Auth creation time — always present for every account
+                    if (user.metadata && user.metadata.creationTime) memberDate = new Date(user.metadata.creationTime);
+                    // Fallback: Firestore createdAt (handles Timestamp, ISO string, or millis)
+                    if (!memberDate || isNaN(memberDate)) {
+                        if (data.createdAt && data.createdAt.toDate) memberDate = data.createdAt.toDate();
+                        else if (typeof data.createdAt === 'string') memberDate = new Date(data.createdAt);
+                        else if (typeof data.createdAt === 'number') memberDate = new Date(data.createdAt);
+                    }
                     const memberSince = document.getElementById("memberSince");
                     if (memberSince && memberDate && !isNaN(memberDate)) {
                         memberSince.textContent = memberDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
