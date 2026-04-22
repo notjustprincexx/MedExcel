@@ -159,7 +159,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
-                } catch (e) { console.error("Failed to sync XP", e); }
+                } catch (e) { console.error("Failed to sync XP", e); window.logClientError?.('addXP_sync', e); }
             }
             // Update UI elements
             const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
@@ -182,7 +182,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         window.syncUserStreak = async function(uid, streakCount, lastDate) {
             try { await updateDoc(doc(window.db, "users", uid), { streak: streakCount, lastCheckIn: lastDate }); } 
-            catch(e) { console.error("Failed to sync streak to cloud", e); }
+            catch(e) { console.error("Failed to sync streak to cloud", e); window.logClientError?.('syncStreak', e); }
         };
 
         // Render Achievements Logic
@@ -1073,6 +1073,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     
                 } catch (error) {
                     console.error("Error generating quiz:", error);
+
+                    // Log unexpected errors only — quota/auth/timeout are normal user-facing events
+                    const _msg = (error.message || '').toLowerCase();
+                    const _isExpected = _msg.includes('resource-exhausted') || _msg.includes('unauthenticated') || _msg.includes('quota');
+                    if (!_isExpected) {
+                        window.logClientError?.('generateQuizFromFile', error, {
+                            quizType: window.globalQuizType,
+                            fileName: window.selectedFile?.name,
+                            plan: window.userPlan,
+                        });
+                    }
                     if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
                     aiLoader.classList.remove('show');
                     generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';

@@ -554,15 +554,18 @@
         window.showContactSupport = function() {
             const user = window._cachedUserData || {};
             const userEmail = window.currentUser?.email || '';
-            const userName = user.displayName || user.nickname || '';
+
+            // Remove any existing sheet first
+            document.getElementById('contactSupportSheet')?.remove();
 
             const sheet = document.createElement('div');
+            sheet.id = 'contactSupportSheet';
             sheet.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;';
             sheet.innerHTML = `
                 <div style="width:100%;max-height:92vh;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;display:flex;flex-direction:column;overflow:hidden;">
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.125rem 1.25rem;border-bottom:1px solid var(--border-color);flex-shrink:0;">
                         <h3 style="font-size:1rem;font-weight:800;color:var(--text-main);margin:0;">Contact Support</h3>
-                        <button id="supportCloseBtn" style="background:var(--bg-body);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:1rem;">×</button>
+                        <button id="supportCloseBtn" style="background:var(--bg-body);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:1.25rem;line-height:1;">×</button>
                     </div>
                     <div style="overflow-y:auto;padding:1.25rem;flex:1;-webkit-overflow-scrolling:touch;">
                         <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.55;">We typically respond within 24–48 hours. A confirmation will be sent to your email.</p>
@@ -571,7 +574,7 @@
                             <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.375rem;">Category</label>
                             <select id="supportCategory" style="width:100%;padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.875rem;font-weight:600;outline:none;-webkit-appearance:none;">
                                 <option value="Bug Report">Bug Report</option>
-                                <option value="Billing & Subscription">Billing &amp; Subscription</option>
+                                <option value="Billing & Subscription">Billing & Subscription</option>
                                 <option value="Account Issue">Account Issue</option>
                                 <option value="Feature Request">Feature Request</option>
                                 <option value="AI Generation Issue">AI Generation Issue</option>
@@ -590,12 +593,9 @@
                     </div>
                 </div>`;
 
-            sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
-            document.getElementById('supportCloseBtn')?.addEventListener('click', () => sheet.remove());
             document.body.appendChild(sheet);
-
-            // Wire close button after appending
-            sheet.querySelector('#supportCloseBtn').onclick = () => sheet.remove();
+            document.getElementById('supportCloseBtn').addEventListener('click', () => sheet.remove());
+            sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
         };
 
         window._submitSupportForm = async function() {
@@ -629,9 +629,9 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    btn.closest('[style*=position\\:fixed]').remove();
+                    document.getElementById('contactSupportSheet')?.remove();
                     const toast = document.createElement('div');
-                    toast.textContent = 'Message sent. We\'ll get back to you soon.';
+                    toast.textContent = "Message sent. We'll get back to you soon.";
                     toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--bg-surface);color:var(--text-main);padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.3);white-space:nowrap;';
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 4000);
@@ -647,6 +647,35 @@
         };
 
         window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
+
+        // ── Frontend Error Logger ────────────────────────────────────────────
+        // Logs critical client-side errors to Firestore errorLogs via Firebase SDK.
+        // Rate-limited per session — same error only logged once every 5 minutes.
+        const _errorLogCache = new Map();
+        window.logClientError = async function(source, error, context = {}) {
+            try {
+                const message = error?.message || String(error);
+                const cacheKey = source + ':' + message.substring(0, 60);
+                const now = Date.now();
+                if (_errorLogCache.has(cacheKey) && (now - _errorLogCache.get(cacheKey)) < 5 * 60 * 1000) return;
+                _errorLogCache.set(cacheKey, now);
+
+                if (!window.db || !window._addDoc || !window._collection) return;
+                const { _addDoc, _collection, db } = window;
+                await _addDoc(_collection(db, 'errorLogs'), {
+                    source,
+                    message,
+                    uid: window.currentUser?.uid || null,
+                    context,
+                    platform: 'client',
+                    userAgent: navigator.userAgent.substring(0, 100),
+                    count: 1,
+                    firstSeen: now,
+                    lastSeen: now,
+                    resolved: false,
+                });
+            } catch(e) { /* never crash on logger failure */ }
+        };
         window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
         window.timeAgo = function(iso) {
             if (!iso) return '';
@@ -2877,6 +2906,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 }
             } catch(e) {
                 console.error("Payment verification error:", e);
+                window.logClientError?.('verifyPayment', e, { plan: selectedPlan });
                 if (btn)  { btn.textContent = "Verify failed — contact support"; btn.disabled = false; }
                 if (iBtn) { iBtn.textContent = "✓ I've paid — Activate"; iBtn.disabled = false; }
             }
