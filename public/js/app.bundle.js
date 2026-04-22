@@ -45,6 +45,20 @@
             const icons = ['fas fa-layer-group', 'fas fa-cards-blank', 'fas fa-brain'];
 
             container.innerHTML = recent.map((quiz, i) => {
+                // Skeleton card for pending (background) generation
+                if (quiz._pending) {
+                    return `<div class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]" style="overflow:hidden;">
+                        <div class="flex items-center min-w-0" style="flex:1;">
+                            <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mr-4 shrink-0" style="animation:_skelPulse 1.3s ease-in-out infinite;">
+                                <i class="fas fa-spinner" style="color:var(--accent-btn);animation:spin 1s linear infinite;"></i>
+                            </div>
+                            <div class="flex flex-col min-w-0" style="flex:1;">
+                                <span class="text-[15px] font-bold text-[var(--text-main)] truncate">${window.escapeHTML(quiz.title || 'Generating…')}</span>
+                                <span class="text-[12px] text-[var(--text-muted)]" style="animation:_skelPulse 1.3s ease-in-out infinite;">Generating your quiz…</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }
                 const isMCQ = quiz.type && quiz.type.includes('Multiple');
                 const count = quiz.questions ? quiz.questions.length : 0;
                 const best = quiz.stats ? quiz.stats.bestScore : 0;

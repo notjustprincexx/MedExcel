@@ -421,6 +421,7 @@ code{background:var(--hover);padding:2px 6px;border-radius:4px;color:var(--purpl
     <button class="tab-btn active"  onclick="switchTab('overview')"><i class="fas fa-chart-line"></i> Overview</button>
     <button class="tab-btn"         onclick="switchTab('users')"><i class="fas fa-users"></i> Users</button>
     <button class="tab-btn"         onclick="switchTab('activity')"><i class="fas fa-bolt"></i> Activity</button>
+    <button class="tab-btn"         onclick="switchTab('insights')"><i class="fas fa-chart-pie"></i> Insights</button>
     <button class="tab-btn"         onclick="switchTab('broadcast')"><i class="fas fa-bullhorn"></i> Broadcast</button>
     <button class="tab-btn"         onclick="switchTab('team')"><i class="fas fa-shield-halved"></i> Team</button>
   </div>
@@ -617,6 +618,25 @@ code{background:var(--hover);padding:2px 6px;border-radius:4px;color:var(--purpl
   </div>
 
   <!-- ══ BROADCAST ══ -->
+  <div class="tab-page" id="tab-insights">
+    <div class="sec-hd">
+      <span class="sec-title">Onboarding Insights</span>
+      <span class="sec-action" onclick="loadInsights()"><i class="fas fa-rotate-right"></i> Refresh</span>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+      Aggregated answers from users who completed personalised onboarding.
+    </p>
+
+    <!-- Summary strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:1.25rem;" id="ins-summary">
+      <div class="stat-card"><div class="stat-val" id="ins-total">—</div><div class="stat-lbl">Onboarded Users</div></div>
+      <div class="stat-card"><div class="stat-val" id="ins-ref-used">—</div><div class="stat-lbl">Referral Codes Used</div></div>
+    </div>
+
+    <!-- Breakdown cards -->
+    <div id="ins-breakdowns"></div>
+  </div>
+
   <div class="tab-page" id="tab-broadcast">
     <div class="sec">Send Announcement</div>
     <div class="card" style="padding:1rem;">
@@ -1429,6 +1449,7 @@ window.switchTab = function(tab) {
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-'+tab)?.classList.add('active');
   if (tab === 'broadcast') { loadBroadcastHistory(); loadUpdateStatus(); }
+  if (tab === 'insights') { loadInsights(); }
   setTimeout(() => {
     document.querySelectorAll('.bar-fill[data-w]').forEach(el=>{ el.style.width=el.dataset.w+'%'; });
   }, 80);
@@ -1456,6 +1477,93 @@ function fmtDate(ts) {
   return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
 }
 function fmt(n){ return n>=1000?(n/1000).toFixed(1)+'k':n; }
+
+// ── ONBOARDING INSIGHTS ──────────────────────────────────────────────────────
+window.loadInsights = async function() {
+  const breakdowns = document.getElementById('ins-breakdowns');
+  const totalEl    = document.getElementById('ins-total');
+  const refEl      = document.getElementById('ins-ref-used');
+  if (!breakdowns) return;
+
+  breakdowns.innerHTML = '<p style="color:var(--muted);font-size:.8rem;padding:.5rem 0;">Loading...</p>';
+  totalEl.textContent = '…';
+  refEl.textContent   = '…';
+
+  try {
+    const snap = await db.collection('users')
+      .where('onboardingDone', '==', true)
+      .get();
+
+    const users = snap.docs.map(d => d.data());
+    totalEl.textContent = users.length;
+
+    const refCount = users.filter(u => u.referralCode || u.claimedReferral).length;
+    refEl.textContent = refCount;
+
+    const fields = [
+      { key: 'studyProgram', label: 'Study Programme',
+        map: { mbbs:'MBBS / Med School', usmle:'USMLE', plab:'PLAB', nursing:'Nursing', pharmacy:'Pharmacy', other:'Other' } },
+      { key: 'studyLevel', label: 'Year of Study',
+        map: { '1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year','4th':'4th Year','final':'Final Year','postgrad':'Post-grad / Resident' } },
+      { key: 'studyGoal', label: 'Primary Goal',
+        map: { pass:'Pass exams', understand:'Deepen understanding', consistency:'Build consistency', revise:'Quick revision' } },
+      { key: 'studyTime', label: 'Preferred Study Time',
+        map: { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' } },
+      { key: 'dailyTarget', label: 'Daily Target',
+        map: { '10':'10 items','20':'20 items','30':'30 items','50':'50+ items' } },
+      { key: 'gender', label: 'Gender',
+        map: { male:'Male', female:'Female', other:'Prefer not to say' } },
+    ];
+
+    breakdowns.innerHTML = fields.map(field => {
+      // Count occurrences
+      const counts = {};
+      users.forEach(u => {
+        const val = String(u[field.key] || 'unknown');
+        counts[val] = (counts[val] || 0) + 1;
+      });
+
+      const total = users.length || 1;
+      const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+
+      const bars = sorted.map(([val, count]) => {
+        const label = field.map[val] || val;
+        const pct   = Math.round((count / total) * 100);
+        return `
+          <div style="margin-bottom:.625rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:.78rem;font-weight:600;color:var(--text);">${label}</span>
+              <span style="font-size:.72rem;color:var(--muted);font-weight:700;">${count} · ${pct}%</span>
+            </div>
+            <div style="height:7px;background:var(--border);border-radius:9999px;overflow:hidden;">
+              <div class="bar-fill" data-w="${pct}"
+                style="height:100%;width:0%;background:var(--purple2);border-radius:9999px;transition:width .6s cubic-bezier(.19,1,.22,1);"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="sec-hd" style="margin-bottom:.75rem;">
+            <span class="sec-title" style="font-size:.8rem;">${field.label}</span>
+          </div>
+          ${bars}
+        </div>`;
+    }).join('');
+
+    // Animate bars in
+    setTimeout(() => {
+      document.querySelectorAll('#ins-breakdowns .bar-fill[data-w]').forEach(el => {
+        el.style.width = el.dataset.w + '%';
+      });
+    }, 80);
+
+  } catch(e) {
+    breakdowns.innerHTML = `<p style="color:var(--red);font-size:.8rem;">Failed to load: ${e.message}</p>`;
+    console.error('[Insights]', e);
+  }
+};
+
 </script>
 </body>
 </html>

@@ -36,14 +36,22 @@
             });
         };
 
-        const REFERRAL_SHARE_MESSAGE = (link) =>
-            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nJoin me and we both get rewards! Sign up here:\n${link}`;
+        // ── Short code generator — 6 uppercase alphanumeric, no ambiguous chars ──
+        function _generateShortCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        const REFERRAL_SHARE_MESSAGE = (code, link) =>
+            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nUse my code *${code}* when you sign up and we both get rewards!\n\nOr tap the link:\n${link}`;
 
         window.shareReferralLink = async function(source) {
             const code = window._userReferralCode || '';
             if (!code) return;
             const link = `https://medxcel.web.app?ref=${code}`;
-            const message = REFERRAL_SHARE_MESSAGE(link);
+            const message = REFERRAL_SHARE_MESSAGE(code, link);
 
             // Capacitor native share (Android / iOS)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -108,17 +116,97 @@
             }
         };
 
-        window.loadReferralData = function(userData) {
-            const code    = userData.referralCode || '';
-            const count   = userData.referralCount || 0;
-            const link    = `https://medxcel.web.app?ref=${code}`;
-            window._userReferralCode = code;
+        window.copyReferralCode = function(source) {
+            const code = window._userReferralCode || '';
+            if (!code) return;
+            const btnId = source === 'upg' ? 'upgCopyCodeBtn' : 'profileCopyCodeBtn';
+            const btn = document.getElementById(btnId);
+            const showFeedback = (success) => {
+                if (!btn) return;
+                const orig = btn.innerHTML;
+                btn.innerHTML = success ? '<i class="fas fa-check"></i> Copied!' : '<i class="fas fa-times"></i>';
+                btn.style.color = success ? 'var(--accent-green)' : 'var(--accent-red)';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+            };
+            try {
+                navigator.clipboard.writeText(code).then(() => showFeedback(true)).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = code; document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); showFeedback(true); } catch(e) { showFeedback(false); }
+                    document.body.removeChild(ta);
+                });
+            } catch(e) {
+                const ta = document.createElement('textarea');
+                ta.value = code; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); showFeedback(true); } catch(e2) { showFeedback(false); }
+                document.body.removeChild(ta);
+            }
+        };
 
-            // Profile card
+        window.loadReferralData = async function(userData) {
+            let code  = userData.referralCode || '';
+            const count = userData.referralCount || 0;
+
+            // ── Upgrade old long-format codes to a clean short code ───────────
+            // Old codes look like "medx_1714567890_abc123" — not shareable verbally.
+            // Generate a 6-char uppercase code and save it back to Firestore.
+            // claimReferral already does .toUpperCase() before querying, so this
+            // works with the existing backend without any changes.
+            const _isLegacyCode = !code || code.startsWith('medx_') || code.length > 10;
+            if (_isLegacyCode) {
+                code = _generateShortCode();
+                // Save back to Firestore so claimReferral can find it
+                if (window.currentUser && window._updateDoc && window._doc && window.db) {
+                    try {
+                        await window._updateDoc(
+                            window._doc(window.db, 'users', window.currentUser.uid),
+                            { referralCode: code }
+                        );
+                    } catch(_e) { console.warn('[Referral] Could not save short code', _e); }
+                }
+                userData.referralCode = code;
+            }
+            // ─────────────────────────────────────────────────────────────────
+
+            window._userReferralCode = code;
+            const link = `https://medxcel.web.app?ref=${code}`;
+
+            // Profile card — show code prominently, link below
             const pCount = document.getElementById('profileReferralCount');
             if (pCount) pCount.textContent = count + ' referred';
+
+            // Replace the link element with a code display + copy button
             const pLink = document.getElementById('profileReferralLink');
-            if (pLink) pLink.textContent = link || 'No code yet';
+            if (pLink) {
+                pLink.innerHTML = `
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;background:var(--bg-body);border:1px solid var(--border-glass);
+                                border-radius:10px;padding:12px 14px;text-align:center;">
+                                <div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);
+                                    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Your Code</div>
+                                <div style="font-size:1.5rem;font-weight:800;color:var(--accent-btn);
+                                    letter-spacing:0.15em;font-family:monospace;">${code}</div>
+                            </div>
+                            <button id="profileCopyCodeBtn" onclick="window.copyReferralCode('profile')"
+                                style="background:var(--accent-btn);color:var(--btn-text);border:none;
+                                border-radius:10px;padding:12px 14px;font-size:0.8rem;font-weight:700;
+                                cursor:pointer;white-space:nowrap;font-family:inherit;">
+                                <i class="fas fa-copy"></i> Copy Code
+                            </button>
+                        </div>
+                        <button onclick="window.copyReferralLink('profile')"
+                            style="background:transparent;border:1px solid var(--border-glass);
+                            border-radius:9999px;padding:8px 14px;font-size:0.72rem;font-weight:600;
+                            color:var(--text-muted);cursor:pointer;font-family:inherit;width:100%;
+                            display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <i class="fas fa-link" style="font-size:0.65rem;"></i>
+                            Copy invite link instead
+                        </button>
+                    </div>`;
+                pLink.style.cssText = '';
+            }
+
             window.renderReferralTiers('profileReferralTiers', count);
 
             // Active reward indicator

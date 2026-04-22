@@ -103,6 +103,13 @@
             defaultTime: '20:00'
         },
         {
+            id: 'referral',
+            type: 'referral',
+            emoji: '🎁',
+            title: 'Got a referral code?',
+            subtitle: "Enter a friend's code to unlock bonus rewards. Tap Skip if you don't have one.",
+        },
+        {
             id: 'done',
             type: 'outro',
             emoji: '🎉',
@@ -450,6 +457,39 @@
                 body.style.transition = 'opacity 0.3s, transform 0.3s';
                 return;
 
+            } else if (step.type === 'referral') {
+                var refVal = answers['referralCode'] || '';
+                wrap.innerHTML =
+                    '<div class="ob-emoji">' + step.emoji + '</div>' +
+                    '<h1 class="ob-title">' + step.title + '</h1>' +
+                    '<p class="ob-subtitle">' + step.subtitle + '</p>' +
+                    '<div style="background:#F4F3FF;border-radius:20px;padding:20px 16px;margin-bottom:10px;">' +
+                        '<input id="ob-ref-input" type="text" placeholder="e.g. PRINCE47" maxlength="20"' +
+                        ' style="width:100%;background:white;border:1.5px solid #e2e8f0;border-radius:9999px;' +
+                        'padding:14px 18px;font-size:1rem;font-weight:700;font-family:inherit;color:#0f172a;' +
+                        'text-transform:uppercase;letter-spacing:0.08em;outline:none;text-align:center;" value="' + refVal + '">' +
+                    '</div>' +
+                    '<div id="ob-ref-feedback" style="text-align:center;font-size:0.8rem;font-weight:600;min-height:20px;margin-top:4px;color:#8b5cf6;"></div>';
+
+                body.appendChild(wrap);
+
+                var refInp = document.getElementById('ob-ref-input');
+                refInp.addEventListener('input', function() {
+                    var v = this.value.trim().toUpperCase();
+                    this.value = v;
+                    answers['referralCode'] = v || null;
+                    mainBtn.textContent = v.length > 0 ? 'Claim Code' : 'Skip';
+                    document.getElementById('ob-ref-feedback').textContent = '';
+                });
+
+                mainBtn.textContent = refVal.length > 0 ? 'Claim Code' : 'Skip';
+                mainBtn.style.display = 'block';
+
+                body.style.opacity = '1';
+                body.style.transform = 'translateY(0)';
+                body.style.transition = 'opacity 0.3s, transform 0.3s';
+                return;
+
             } else if (step.type === 'outro') {
                 wrap.innerHTML =
                     '<div class="ob-emoji">' + step.emoji + '</div>' +
@@ -502,6 +542,11 @@
             reminderEnabled:  answers.reminderEnabled !== false,
             onboardingAt:     new Date().toISOString()
         };
+
+        // Store pending referral code — firebase.js picks it up after login
+        if (answers.referralCode) {
+            localStorage.setItem('medexcel_pending_referral_code', answers.referralCode.trim().toUpperCase());
+        }
 
         // Save locally
         localStorage.setItem(DONE_KEY, '1');

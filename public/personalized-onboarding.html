@@ -187,6 +187,7 @@ var STEPS=[
   {id:'studyTime',   type:'choice', icon:'fa-clock',          title:'When do you usually study?',     sub:"We'll send your reminders at the right time.",              opts:[{v:'morning',l:'Morning',s:'Before the world wakes up'},{v:'afternoon',l:'Afternoon',s:'Peak focus hours'},{v:'evening',l:'Evening',s:'After the day winds down'},{v:'night',l:'Night',s:'When it gets quiet'}]},
   {id:'dailyTarget', type:'choice', icon:'fa-chart-bar',      title:'Daily study target?',            sub:'How many items do you want to tackle each day?',             opts:[{v:'10',l:'10 items',s:'Easy start — build the habit'},{v:'20',l:'20 items',s:'Steady pace — solid progress'},{v:'30',l:'30 items',s:'Serious mode — exam ready'},{v:'50',l:'50+ items',s:'Beast mode — full commitment'}]},
   {id:'reminder',    type:'time',   icon:'fa-bell',           title:'Set a daily reminder',           sub:"We'll nudge you to study every day so you never break your streak.", def:'20:00'},
+  {id:'referral',    type:'referral',icon:'fa-gift',           title:'Got a referral code?',           sub:'Enter a friend\'s code to unlock bonus rewards. Tap Skip if you don\'t have one.'},
   {id:'done',        type:'outro',  icon:'fa-circle-check',   title:"You're all set!",               sub:'MedExcel is now personalised just for you.'}
 ];
 
@@ -255,6 +256,22 @@ function render(idx){
       document.getElementById('ob-tog').onclick=function(){answers.reminderEnabled=!answers.reminderEnabled;this.classList.toggle('off',!answers.reminderEnabled);};
       btnEl.textContent='Set Reminder'; btnEl.style.display='block';
 
+    } else if(s.type==='referral'){
+      var refVal = answers['referralCode'] || '';
+      c.innerHTML='<h2 class="q-title">'+s.title+'</h2><p class="q-sub">'+s.sub+'</p>'        +'<div style="background:var(--opt-bg);border-radius:20px;padding:20px 16px;margin-bottom:10px;">'        +'<input id="refCodeInput" type="text" placeholder="e.g. PRINCE47" maxlength="20"'        +' style="width:100%;background:white;border:1.5px solid var(--border);border-radius:9999px;'        +'padding:14px 18px;font-size:1rem;font-weight:700;font-family:inherit;color:var(--text-dark);'        +'text-transform:uppercase;letter-spacing:0.08em;outline:none;text-align:center;"'        +' value="'+refVal+'">'        +'</div>'        +'<div id="refFeedback" style="text-align:center;font-size:0.8rem;font-weight:600;min-height:20px;margin-top:4px;"></div>';
+      bodyEl.appendChild(c);
+      var refInput = document.getElementById('refCodeInput');
+      var refFb = document.getElementById('refFeedback');
+      refInput.addEventListener('input', function(){
+        var v = this.value.trim().toUpperCase();
+        this.value = v;
+        answers['referralCode'] = v || null;
+        btnEl.textContent = v.length > 0 ? 'Claim Code' : 'Skip';
+        refFb.textContent = '';
+      });
+      btnEl.textContent = refVal.length > 0 ? 'Claim Code' : 'Skip';
+      btnEl.style.display = 'block';
+
     } else if(s.type==='outro'){
       var prog=({mbbs:'MBBS / Med School',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy',other:'Other'})[answers.studyProgram]||'Your programme';
       var goal=({pass:'Pass exams',understand:'Deepen understanding',consistency:'Build consistency',revise:'Quick revision'})[answers.studyGoal]||'Reach your goals';
@@ -302,6 +319,10 @@ function finish(){
     onboardingAt:     new Date().toISOString()
   };
 
+  // Save pending referral code so firebase.js can claim it after login
+  if (answers.referralCode) {
+    localStorage.setItem('medexcel_pending_referral_code', answers.referralCode.trim().toUpperCase());
+  }
   localStorage.setItem(DONE_KEY, '1');
   localStorage.setItem('medexcel_user_profile', JSON.stringify(profile));
   window.userProfile = profile;

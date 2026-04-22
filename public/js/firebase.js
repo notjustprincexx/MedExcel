@@ -953,8 +953,65 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const generateBtn = document.getElementById('generateBtn');
         const aiLoader = document.getElementById('aiLoader');
         const loadingText = document.getElementById('loadingText');
-        const loadingMessages = ["Analyzing document structure...", "Extracting key concepts...", "Formulating questions...", "Reviewing accuracy...", "Almost there..."];
         let messageInterval = null;
+
+        // ── Global generation status pill (shown when user leaves scanning screen) ──
+        function _showGenPill(title) {
+            let pill = document.getElementById('_genStatusPill');
+            if (!pill) {
+                pill = document.createElement('div');
+                pill.id = '_genStatusPill';
+                pill.style.cssText = [
+                    'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);',
+                    'background:var(--bg-surface);border:1px solid var(--border-glass);',
+                    'border-radius:9999px;padding:10px 18px;display:flex;align-items:center;gap:8px;',
+                    'font-size:0.8125rem;font-weight:600;color:var(--text-main);',
+                    'box-shadow:0 4px 20px rgba(0,0,0,0.25);z-index:9999;',
+                    'white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;',
+                ].join('');
+                document.body.appendChild(pill);
+            }
+            pill.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:var(--accent-btn);flex-shrink:0;animation:_pillPulse 1.2s ease-in-out infinite;"></span>'
+                + '<span>Generating “' + title + '”…</span>';
+            pill.style.display = 'flex';
+            if (!document.getElementById('_pillPulseKf')) {
+                const s = document.createElement('style');
+                s.id = '_pillPulseKf';
+                s.textContent = '@keyframes _pillPulse{0%,100%{opacity:1}50%{opacity:0.35}}';
+                document.head.appendChild(s);
+            }
+        }
+        function _hideGenPill() {
+            const pill = document.getElementById('_genStatusPill');
+            if (pill) { pill.style.opacity='0'; pill.style.transition='opacity 0.3s'; setTimeout(()=>pill.remove(),300); }
+        }
+        function _showGenToast(title, success) {
+            const msg = success
+                ? '✓ “' + title + '” is ready — tap Library to study'
+                : '⚠ Generation failed. Please try again.';
+            if (typeof window.showToast === 'function') {
+                window.showToast(msg, success ? 'success' : 'error');
+            } else {
+                // Fallback inline toast
+                let t = document.getElementById('_genToast');
+                if (!t) {
+                    t = document.createElement('div');
+                    t.id = '_genToast';
+                    t.style.cssText = [
+                        'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);',
+                        'border-radius:9999px;padding:10px 20px;font-size:0.8125rem;font-weight:700;',
+                        'z-index:9999;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;',
+                        'box-shadow:0 4px 20px rgba(0,0,0,0.25);transition:opacity 0.3s;',
+                    ].join('');
+                    document.body.appendChild(t);
+                }
+                t.textContent = msg;
+                t.style.background = success ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)';
+                t.style.color = '#fff';
+                t.style.opacity = '1';
+                setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 4000);
+            }
+        }
 
         if (generateBtn) {
             generateBtn.addEventListener('click', async () => {
@@ -979,38 +1036,106 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     return;
                 }
 
-                generateBtn.disabled = true; 
+                generateBtn.disabled = true;
                 generateBtn.style.background = 'var(--bg-surface)'; generateBtn.style.color = 'var(--text-muted)';
                 aiLoader.classList.add('show');
                 document.getElementById('createBackBtn').style.display = 'none';
                 if (window.lottieAnimation) window.lottieAnimation.play();
-                
-                // NEW PROGRESS BAR LOGIC
-                const ESTIMATED_SECS = 90;
+
+                // ── Dynamic contextual messages ───────────────────────────────
+                const _fname   = (window.selectedFile?.name || 'document').replace(/\.[^.]+$/, '');
+                const _pageEst = Math.max(3, Math.min(20, Math.round((window.selectedFile?.size || 0) / 350000)));
+                const _qType   = window.globalQuizType === 'Multiple Choice' ? 'MCQs' : 'flashcards';
+                const loadingMessages = [
+                    `Reading "${_fname}"…`,
+                    `Scanning page 1 of ${_pageEst}…`,
+                    _pageEst > 4 ? `Scanning page ${Math.ceil(_pageEst * 0.45)} of ${_pageEst}…` : `Extracting medical content…`,
+                    `Identifying high-yield concepts…`,
+                    `Writing question 1 of ${requestedItems}…`,
+                    `Writing question ${Math.ceil(requestedItems * 0.4)} of ${requestedItems}…`,
+                    requestedItems > 15 ? `Writing question ${Math.ceil(requestedItems * 0.72)} of ${requestedItems}…` : `Reviewing answer accuracy…`,
+                    `Checking explanations for accuracy…`,
+                    `Finalising your ${requestedItems} ${_qType}…`,
+                ];
+                // ─────────────────────────────────────────────────────────────
+
+                // ── Estimated time (pages × 6s + questions × 1.5s) ───────────
+                const ESTIMATED_SECS = Math.round(_pageEst * 6 + requestedItems * 1.5);
                 let scanElapsed = 0;
-                const scanProgressBar = document.getElementById('scanProgressBar');
+                const scanProgressBar  = document.getElementById('scanProgressBar');
                 const scanElapsedLabel = document.getElementById('scanElapsedLabel');
-                const scanEstLabel = document.getElementById('scanEstLabel');
-                if(scanProgressBar) {
-                    scanProgressBar.style.transition = 'none';
-                    scanProgressBar.style.width = '0%';
-                }
-                if(scanElapsedLabel) scanElapsedLabel.textContent = '0s';
-                if(scanEstLabel) scanEstLabel.textContent = `~${ESTIMATED_SECS}s left`;
-                setTimeout(() => { if(scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
-                
+                const scanEstLabel     = document.getElementById('scanEstLabel');
+                if (scanProgressBar) { scanProgressBar.style.transition = 'none'; scanProgressBar.style.width = '0%'; }
+                if (scanElapsedLabel) scanElapsedLabel.textContent = '0s';
+                if (scanEstLabel)     scanEstLabel.textContent = `~${ESTIMATED_SECS}s`;
+                setTimeout(() => { if (scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
+
                 window.scanProgressInterval = setInterval(() => {
                     scanElapsed++;
                     const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
-                    if(scanProgressBar) scanProgressBar.style.width = progress + '%';
-                    if(scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s`;
+                    if (scanProgressBar)  scanProgressBar.style.width = progress + '%';
+                    if (scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s`;
                     const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
-                    if(scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s left` : 'Almost done...';
+                    if (scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s left` : 'Almost done…';
                 }, 1000);
-                
-                let msgIndex = 0; if(loadingText) loadingText.style.opacity = 0;
-                setTimeout(() => { if(loadingText) { loadingText.textContent = loadingMessages[0]; loadingText.style.opacity = 1; } }, 300);
-                messageInterval = setInterval(() => { if(loadingText) { loadingText.style.opacity = 0; setTimeout(() => { msgIndex = (msgIndex + 1) % loadingMessages.length; loadingText.textContent = loadingMessages[msgIndex]; loadingText.style.opacity = 1; }, 300); } }, 3500); 
+                // ─────────────────────────────────────────────────────────────
+
+                // ── Message cycling ───────────────────────────────────────────
+                let msgIndex = 0;
+                if (loadingText) loadingText.style.opacity = 0;
+                setTimeout(() => { if (loadingText) { loadingText.textContent = loadingMessages[0]; loadingText.style.opacity = 1; } }, 300);
+                const _msgInterval = Math.max(2500, Math.round((ESTIMATED_SECS * 1000) / loadingMessages.length));
+                messageInterval = setInterval(() => {
+                    if (loadingText) {
+                        loadingText.style.opacity = 0;
+                        setTimeout(() => {
+                            msgIndex = (msgIndex + 1) % loadingMessages.length;
+                            loadingText.textContent = loadingMessages[msgIndex];
+                            loadingText.style.opacity = 1;
+                        }, 300);
+                    }
+                }, _msgInterval);
+                // ─────────────────────────────────────────────────────────────
+
+                // ── "Keep using app" leave button ─────────────────────────────
+                const _deckNameEl = document.getElementById('deckNameInput');
+                const _deckTitle  = (_deckNameEl && _deckNameEl.value.trim())
+                    ? _deckNameEl.value.trim()
+                    : _fname;
+                let _userLeftScan = false;
+
+                let _leaveBtn = document.getElementById('_scanLeaveBtn');
+                if (!_leaveBtn) {
+                    _leaveBtn = document.createElement('button');
+                    _leaveBtn.id = '_scanLeaveBtn';
+                    _leaveBtn.style.cssText = [
+                        'position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);',
+                        'background:transparent;border:1px solid rgba(255,255,255,0.2);',
+                        'border-radius:9999px;padding:10px 22px;',
+                        'color:rgba(255,255,255,0.7);font-size:0.8125rem;font-weight:600;',
+                        'cursor:pointer;white-space:nowrap;font-family:inherit;',
+                        'transition:border-color 0.2s,color 0.2s;',
+                    ].join('');
+                    _leaveBtn.textContent = 'Keep using app';
+                    if (aiLoader) aiLoader.style.position = 'relative';
+                    if (aiLoader) aiLoader.appendChild(_leaveBtn);
+                }
+                _leaveBtn.style.display = 'block';
+                _leaveBtn.onclick = () => {
+                    _userLeftScan = true;
+                    aiLoader.classList.remove('show');
+                    if (window.lottieAnimation) window.lottieAnimation.stop();
+                    document.getElementById('createBackBtn').style.display = 'flex';
+                    // Add skeleton card to library
+                    const _tempId = 'pending_' + Date.now();
+                    window._pendingQuizId = _tempId;
+                    if (!window.quizzes) window.quizzes = [];
+                    window.quizzes.push({ id: _tempId, title: _deckTitle, subject: document.getElementById('topicFocus')?.value || 'General', _pending: true });
+                    if (typeof window.renderRecentDecks === 'function') window.renderRecentDecks();
+                    _showGenPill(_deckTitle);
+                    window.goBackToSelection();
+                };
+                // ─────────────────────────────────────────────────────────────
 
                 try {
                     const uniqueFileName = Date.now() + '_' + window.selectedFile.name;
@@ -1069,12 +1194,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     if (deckNameClear) { deckNameClear.value = ''; deckNameClear.style.borderColor = 'var(--border-glass)'; }
                     window._fromCreateFlow = true;
 
-                    // Immediately reflect new usage count in UI — no restart needed
+                    // Update usage count in UI immediately
                     const _usageEl = document.getElementById('usageCount');
-                    if (_usageEl) {
-                        const _prev = parseInt(_usageEl.textContent || '0', 10);
-                        _usageEl.textContent = _prev + 1;
-                    }
+                    if (_usageEl) { const _prev = parseInt(_usageEl.textContent || '0', 10); _usageEl.textContent = _prev + 1; }
                     const _barEl = document.getElementById('usageProgressBar');
                     if (_barEl) {
                         const _cap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : 5;
@@ -1083,8 +1205,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                     if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
 
-                    window.enterQuizMode();
-                    window.renderCreateCurrentCard();
+                    // ── Remove leave button ───────────────────────────────────
+                    const _lb = document.getElementById('_scanLeaveBtn');
+                    if (_lb) _lb.style.display = 'none';
+                    // ─────────────────────────────────────────────────────────
+
+                    if (_userLeftScan) {
+                        // User already left — replace skeleton card with real one + show toast
+                        if (window._pendingQuizId) {
+                            window.quizzes = (window.quizzes || []).filter(q => q.id !== window._pendingQuizId);
+                            window._pendingQuizId = null;
+                        }
+                        window.quizzes = existingQuizzes;
+                        _hideGenPill();
+                        _showGenToast(_deckTitle, true);
+                        if (typeof window.renderRecentDecks === 'function') window.renderRecentDecks();
+                        if (typeof window.updateHomeContinueCard === 'function') window.updateHomeContinueCard();
+                    } else {
+                        // User still on scanning screen — go straight to quiz
+                        window.enterQuizMode();
+                        window.renderCreateCurrentCard();
+                    }
                     
                 } catch (error) {
                     console.error("Error generating quiz:", error);
@@ -1101,8 +1242,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                     if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
                     aiLoader.classList.remove('show');
+                    const _lb2 = document.getElementById('_scanLeaveBtn'); if (_lb2) _lb2.style.display = 'none';
                     generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';
                     document.getElementById('createBackBtn').style.display = 'flex';
+                    // Clean up skeleton card if user had left the screen
+                    if (window._pendingQuizId) {
+                        window.quizzes = (window.quizzes || []).filter(q => q.id !== window._pendingQuizId);
+                        window._pendingQuizId = null;
+                        if (typeof window.renderRecentDecks === 'function') window.renderRecentDecks();
+                    }
+                    _hideGenPill();
+                    if (_userLeftScan) { _showGenToast(_deckTitle, false); }
 
                     // Smart error messages based on error type
                     const msg = (error.message || '').toLowerCase();
@@ -1936,6 +2086,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
                 if (window.initPush) window.initPush(firebaseUser.uid);
+
+                // ── Claim pending referral code from onboarding ───────────────
+                // Set during onboarding if user entered a friend's code.
+                // We attempt it once after login then clear it regardless of outcome.
+                const _pendingRef = localStorage.getItem('medexcel_pending_referral_code');
+                if (_pendingRef) {
+                    localStorage.removeItem('medexcel_pending_referral_code');
+                    try {
+                        const _claimFn = httpsCallable(functions, 'claimReferral');
+                        const _result  = await _claimFn({ referralCode: _pendingRef });
+                        if (_result?.data?.success) {
+                            console.log('[Referral] Claimed code:', _pendingRef);
+                            // Show a brief toast so the user knows it worked
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
+                            }
+                        }
+                    } catch (_refErr) {
+                        // Invalid or already-used code — fail silently, don't block login
+                        console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────
             } else {
                 if (_isLoggingOut) return;
                 window.currentUser = null;
