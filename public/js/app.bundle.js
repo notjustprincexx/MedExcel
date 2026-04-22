@@ -404,9 +404,29 @@
                     if (cancelBtn) { cancelBtn.textContent = 'Cancelled'; cancelBtn.style.color = 'var(--text-muted)'; cancelBtn.disabled = true; }
                 }
             } catch(e) {
-                btn.textContent = 'Failed — try again';
-                btn.disabled = false;
                 console.error('Cancel subscription error:', e);
+                // FAILED_PRECONDITION means the cloud function found no Paystack subscription
+                // to cancel — this happens with fixed-period (non-auto-renewing) plans.
+                // Treat it as already cancelled: no renewal will happen anyway.
+                if (e.code === 'functions/failed-precondition') {
+                    if (window._cachedUserData) window._cachedUserData.subscriptionCancelled = true;
+                    document.getElementById('cancelSubscriptionSheet')?.remove();
+                    const expiryForToast = window._cachedUserData?.subscriptionExpiry;
+                    const expiryLabel = expiryForToast
+                        ? `until ${new Date(expiryForToast).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}`
+                        : 'until your billing period ends';
+                    const t = document.createElement('div');
+                    t.textContent = `✓ Subscription cancelled. Access continues ${expiryLabel}.`;
+                    t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 5000);
+                    if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(window.userPlan);
+                    const cancelBtn = document.querySelector('#subscriptionManageRow button');
+                    if (cancelBtn) { cancelBtn.textContent = 'Cancelled'; cancelBtn.style.color = 'var(--text-muted)'; cancelBtn.disabled = true; }
+                } else {
+                    btn.textContent = 'Failed — try again';
+                    btn.disabled = false;
+                }
             }
         };
 
