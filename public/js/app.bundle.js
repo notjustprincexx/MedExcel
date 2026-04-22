@@ -843,14 +843,14 @@
             document.body.appendChild(sheet);
         };
 
-        const REFERRAL_SHARE_MESSAGE = (link) =>
-            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nJoin me and we both get rewards! Sign up here:\n${link}`;
+        const REFERRAL_SHARE_MESSAGE = (code, link) =>
+            `🩺 I've been using MedExcel to study smarter — it generates MCQs and flashcards from my notes using AI.\n\nDownload the app and enter my code *${code}* when signing up — we both get rewards!\n\nGet MedExcel: ${link}`;
 
         window.shareReferralLink = async function(source) {
             const code = window._userReferralCode || '';
             if (!code) return;
             const link = `https://medxcel.web.app?ref=${code}`;
-            const message = REFERRAL_SHARE_MESSAGE(link);
+            const message = REFERRAL_SHARE_MESSAGE(code, link);
 
             // Capacitor native share (Android / iOS)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
