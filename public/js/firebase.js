@@ -1137,13 +1137,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // ─────────────────────────────────────────────────────────────
 
                 try {
-                    const uniqueFileName = Date.now() + '_' + window.selectedFile.name;
+                    // Capture file ref and name immediately — goBackToSelection() can null
+                    // window.selectedFile if the user taps "Keep using app" mid-upload
+                    const _capturedFile     = window.selectedFile;
+                    const _capturedFileName = _capturedFile.name;
+
+                    const uniqueFileName = Date.now() + '_' + _capturedFileName;
                     const securePath = `uploads/${window.currentUser.email || window.currentUser.uid}/${uniqueFileName}`;
                     const storageReference = ref(storage, securePath);
-                    await uploadBytes(storageReference, window.selectedFile);
+                    await uploadBytes(storageReference, _capturedFile);
                     
                     const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
-                    const response = await generateQuizFunction({ filePath: securePath, fileName: window.selectedFile.name, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems });
+                    const response = await generateQuizFunction({ filePath: securePath, fileName: _capturedFileName, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems });
                     
                     const payload = response.data;
                     const cards = payload.cards || payload.flashcards || payload.items || payload.questions;
@@ -1168,7 +1173,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     const deckNameEl = document.getElementById('deckNameInput');
                     const deckName = deckNameEl && deckNameEl.value.trim()
                         ? deckNameEl.value.trim()
-                        : window.selectedFile.name.split('.')[0].replace(/[-_]/g, ' ');
+                        : _capturedFileName.split('.')[0].replace(/[-_]/g, ' ');
                     const newQuiz = {
                         id: Date.now(), title: deckName, subject: subjectName, favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 },
                         questions: generatedCards.map(card => {
@@ -1283,7 +1288,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         tip = 'Try adding more content or pasting your notes manually.';
                     }
 
-                    // Build and show modal
+                    // Only show error modal if user is still on the scanning screen
+                    if (_userLeftScan) return;
+
                     const existing = document.getElementById('genErrorModal');
                     if (existing) existing.remove();
                     const modal = document.createElement('div');
