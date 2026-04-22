@@ -86,7 +86,8 @@
                 const title = window.escapeHTML ? window.escapeHTML(quiz.title || 'Untitled') : (quiz.title || 'Untitled');
                 const subject = window.escapeHTML ? window.escapeHTML(quiz.subject || 'General') : (quiz.subject || 'General');
 
-                return `<a href="javascript:void(0)" onclick="navigateTo('view-study')"
+                const quizId = JSON.stringify(quiz.id);
+                return `<a href="javascript:void(0)" onclick="(function(){var q=window.quizzes&&window.quizzes.find(function(x){return x.id===${quizId};});if(q){navigateTo('view-study');if(window.setCurrentQuiz)window.setCurrentQuiz(q);else window.currentQuiz=q;if(window.openPracticeMobile)window.openPracticeMobile();}})()"
                     style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);text-decoration:none;">
                     <div style="display:flex;align-items:center;min-width:0;flex:1;">
                         <div style="width:48px;height:48px;border-radius:50%;background:${bg};color:${color};display:flex;align-items:center;justify-content:center;font-size:1.125rem;margin-right:1rem;flex-shrink:0;">

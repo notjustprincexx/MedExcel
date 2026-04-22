@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Privacy Policy — MedExcel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const saved = localStorage.getItem('medexcel_theme');
+      const isLight = saved !== 'dark';
+      if (isLight) document.documentElement.classList.add('light-mode');
+    })();
+  </script>
+  <style>
+    :root {
+      --bg-body: #09090b; --bg-surface: #121216;
+      --text-main: #ffffff; --text-muted: #94a3b8;
+      --accent-btn: #a78bfa; --border-color: rgba(255,255,255,0.06);
+    }
+    .light-mode {
+      --bg-body: #f1f5f9; --bg-surface: #ffffff;
+      --text-main: #0f172a; --text-muted: #64748b;
+      --accent-btn: #8b5cf6; --border-color: rgba(0,0,0,0.06);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', ui-sans-serif, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg-body);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 1.25rem;
+      height: 56px;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .back-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--bg-surface); border: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-main); font-size: 1rem;
+      flex-shrink: 0; text-decoration: none;
+    }
+    .back-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    header h1 { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+    main { padding: 1.5rem 1.25rem 4rem; max-width: 680px; margin: 0 auto; }
+    .updated { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.75rem; }
+    h2 { font-size: 0.9375rem; font-weight: 700; color: var(--text-main); margin: 1.75rem 0 0.5rem; }
+    h2:first-of-type { margin-top: 0; }
+    p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 0.75rem; }
+    ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+    ul li { font-size: 0.875rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 0.25rem; }
+    strong { color: var(--text-main); font-weight: 600; }
+    .divider { height: 1px; background: var(--border-color); margin: 1.25rem 0; }
+    .highlight-box {
+      background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 12px; padding: 1rem 1.125rem; margin-bottom: 1rem;
+    }
+    .highlight-box p { margin: 0; color: var(--text-main); font-weight: 600; font-size: 0.875rem; }
+    .contact-box {
+      background: var(--bg-surface); border: 1px solid var(--border-color);
+      border-radius: 16px; padding: 1.125rem 1.25rem; margin-top: 2rem;
+    }
+    .contact-box p { margin: 0; }
+    .contact-box a { color: var(--accent-btn); text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back-btn" onclick="history.back()" href="javascript:void(0)">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <h1>Privacy Policy</h1>
+  </header>
+
+  <main>
+    <p class="updated">Last updated: April 2025</p>
+
+    <div class="highlight-box">
+      <p>We never sell your data. MedExcel collects only what is needed to provide you with the service.</p>
+    </div>
+
+    <h2>1. What We Collect</h2>
+    <p>We collect the following information when you use MedExcel:</p>
+    <ul>
+      <li><strong>Account data</strong> — name, email address, and profile photo (via Google Sign-In or email registration)</li>
+      <li><strong>Study data</strong> — quizzes, flashcards, XP, streaks, and usage statistics</li>
+      <li><strong>Uploaded content</strong> — documents and images you upload for quiz generation. These are <strong>temporarily stored and deleted immediately after processing</strong></li>
+      <li><strong>Payment references</strong> — transaction references from Paystack. We do <strong>not</strong> store card numbers or banking details</li>
+      <li><strong>Device data</strong> — FCM push notification tokens, used only to send study reminders you opt into</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <h2>2. How We Use Your Data</h2>
+    <p>We use your data exclusively to:</p>
+    <ul>
+      <li>Provide and improve the MedExcel service</li>
+      <li>Process subscription payments</li>
+      <li>Send study reminders and streak notifications (opt-out available)</li>
+      <li>Send account security notifications (login alerts, password resets)</li>
+      <li>Respond to support requests</li>
+    </ul>
+    <p>We do <strong>not</strong> use your data for advertising, profiling, or any purpose outside of providing MedExcel.</p>
+
+    <div class="divider"></div>
+
+    <h2>3. Data Storage</h2>
+    <p>Your data is stored securely on <strong>Google Firebase</strong> (Firestore database and Firebase Storage), hosted on Google Cloud infrastructure in data centres with enterprise-grade security.</p>
+    <p>Uploaded study materials are stored temporarily in Firebase Storage and are <strong>permanently deleted</strong> from our servers immediately after your quiz or flashcard set is generated.</p>
+
+    <div class="divider"></div>
+
+    <h2>4. Third-Party Services</h2>
+    <p>MedExcel integrates with the following third-party services, each with their own privacy policies:</p>
+    <ul>
+      <li><strong>Google Firebase</strong> — authentication, database, and file storage</li>
+      <li><strong>Paystack</strong> — payment processing</li>
+      <li><strong>Google Gemini & Groq AI</strong> — AI-powered quiz and flashcard generation</li>
+      <li><strong>Google Cloud Text-to-Speech</strong> — audio narration feature</li>
+    </ul>
+    <p>We share only the minimum data necessary with each provider to perform their function.</p>
+
+    <div class="divider"></div>
+
+    <h2>5. We Never Sell Your Data</h2>
+    <p>We do not sell, rent, lease, or trade your personal information to any third party, advertiser, or data broker. Your data exists solely to provide you with MedExcel.</p>
+
+    <div class="divider"></div>
+
+    <h2>6. Your Rights (NDPR)</h2>
+    <p>Under the <strong>Nigeria Data Protection Regulation (NDPR)</strong>, you have the following rights:</p>
+    <ul>
+      <li><strong>Access</strong> — request a copy of the personal data we hold about you</li>
+      <li><strong>Correction</strong> — request correction of inaccurate data</li>
+      <li><strong>Deletion</strong> — delete your account at any time from the Profile page. All associated data is permanently removed within 30 days</li>
+      <li><strong>Objection</strong> — object to certain types of data processing</li>
+    </ul>
+    <p>To exercise any of these rights, contact us at medexcel.app@gmail.com.</p>
+
+    <div class="divider"></div>
+
+    <h2>7. Push Notifications</h2>
+    <p>If you grant notification permissions, we may send study reminders, streak alerts, and quiz completion notifications. You can disable notifications at any time through your device settings. We do not send marketing or promotional push notifications.</p>
+
+    <div class="divider"></div>
+
+    <h2>8. Data Retention</h2>
+    <p>We retain your account data for as long as your account is active. When you delete your account, all associated personal data — including study history, XP, and profile information — is permanently deleted from our systems within 30 days.</p>
+
+    <div class="divider"></div>
+
+    <h2>9. Children</h2>
+    <p>MedExcel is not intended for children under 16. We do not knowingly collect personal data from children under 16. If we become aware that we have collected data from a child under 16, we will delete it immediately.</p>
+
+    <div class="divider"></div>
+
+    <h2>10. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify you of significant changes via the app or by email. The "Last updated" date at the top of this page will always reflect the most recent revision.</p>
+
+    <div class="contact-box">
+      <p>Privacy questions or data requests? Contact us at <a href="mailto:medexcel.app@gmail.com">medexcel.app@gmail.com</a></p>
+    </div>
+  </main>
+</body>
+</html>
