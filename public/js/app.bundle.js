@@ -2699,7 +2699,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0.75rem; padding-bottom: 1rem;">
                             <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none;">CLAIM XP</button>
-                            <button onclick="window.exitQuizMode(); document.getElementById('interactiveView').style.display='none'; window.openCreateView('Multiple Choice');" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass);">Generate Another MCQ</button>
+                            <button onclick="window.generateAnother('Multiple Choice')" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass);">Generate Another MCQ</button>
                         </div>
                     </div>`;
             } else {
@@ -2718,7 +2718,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0.75rem; padding-bottom: 1rem;">
                             <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none;">CLAIM XP</button>
-                            <button onclick="window.exitQuizMode(); document.getElementById('interactiveView').style.display='none'; window.openCreateView('Flashcards');" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass);">Generate Another Flashcards</button>
+                            <button onclick="window.generateAnother('Flashcards')" style="width: 100%; max-width: 320px; background: transparent; color: var(--text-muted); font-size: 0.9375rem; font-weight: 700; padding: 1rem; border-radius: var(--radius-btn); border: 1px solid var(--border-glass);">Generate Another Flashcard</button>
                         </div>
                     </div>`;
             }
@@ -2734,6 +2734,39 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             window.commitStreakOnAction?.();
             window.goBackToSelection();
             window.updateHomeContinueCard();
+        };
+
+        window.generateAnother = async function(type) {
+            // 1. Claim XP silently — same as claimAndContinue but stays on create
+            try { await window.addXP(window.finalEarnedXP || 0); } catch(e) {}
+            window.commitStreakOnAction?.();
+
+            // 2. Exit quiz mode and clean up interactive view
+            window.exitQuizMode();
+            document.getElementById('interactiveView').style.display = 'none';
+            document.getElementById('interactiveView').innerHTML = '';
+
+            // 3. Full state reset — same as goBackToSelection but opens setupView directly
+            window.selectedFile      = null;
+            window._sourceIsPaste    = false;
+            window._sourceIsYoutube  = false;
+            window._youtubeVideoId   = null;
+
+            const _fi = document.getElementById('fileInput');
+            if (_fi) _fi.value = '';
+            const _icon = document.getElementById('uploadIconInner');
+            if (_icon) { _icon.className = 'fas fa-cloud-upload-alt'; _icon.style.color = ''; _icon.style.animation = ''; }
+            const _title = document.getElementById('uploadTitle');
+            if (_title) _title.textContent = 'Tap to Upload File';
+            const _dz = document.getElementById('dropZone');
+            if (_dz) { _dz.style.borderColor = 'var(--border-glass)'; _dz.classList.remove('file-selected'); }
+            const _cfg = document.getElementById('configSection');
+            if (_cfg) { _cfg.style.opacity = '0.5'; _cfg.style.pointerEvents = 'none'; }
+            const _btn = document.getElementById('generateBtn');
+            if (_btn) { _btn.disabled = true; _btn.style.background = 'var(--bg-surface)'; _btn.style.color = 'var(--text-muted)'; _btn.style.cursor = 'not-allowed'; }
+
+            // 4. Open setup view for the requested type
+            window.openCreateView(type);
         };
 
         window.animateValue = function(id, start, end, duration) {

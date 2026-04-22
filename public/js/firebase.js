@@ -1117,7 +1117,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         'transition:border-color 0.2s,color 0.2s;',
                     ].join('');
                     _leaveBtn.textContent = 'Keep using app';
-                    if (aiLoader) aiLoader.style.position = 'relative';
                     if (aiLoader) aiLoader.appendChild(_leaveBtn);
                 }
                 _leaveBtn.style.display = 'block';
