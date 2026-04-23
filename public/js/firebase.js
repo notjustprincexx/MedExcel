@@ -2152,6 +2152,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 
+                // ── Push notifications for existing users (already past onboarding) ──
+                // New users get initPush called directly from the onboarding reminder step.
+                // For returning users the flag won't be set, so we rely on Firestore data.
+                if (!localStorage.getItem('medexcel_push_pending') && data.reminderEnabled !== false) {
+                    if (window.initPush) window.initPush(user.uid);
+                }
+
                 // ---- REFERRAL SYSTEM INIT ----
                 // 1. Ensure user has a referral code (backfill for existing users)
                 if (!data.referralCode && user.uid) {
@@ -2317,7 +2324,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                if (window.initPush) window.initPush(firebaseUser.uid);
+
+                // ── Push notifications: only request permission if onboarding
+                // set the flag (new users) or Firestore reminderEnabled is true
+                // (existing users). initUserUI handles the Firestore path below.
+                const _pushPending = localStorage.getItem('medexcel_push_pending');
+                if (_pushPending) {
+                    localStorage.removeItem('medexcel_push_pending');
+                    if (window.initPush) window.initPush(firebaseUser.uid);
+                }
 
                 // ── Claim pending referral code from onboarding ───────────────
                 // Set during onboarding if user entered a friend's code.

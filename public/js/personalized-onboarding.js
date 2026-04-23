@@ -452,6 +452,22 @@
                 mainBtn.textContent = 'Set Reminder';
                 mainBtn.style.display = 'block';
 
+                // Override mainBtn for this step to request push permission
+                // when the user confirms they want a reminder.
+                mainBtn.onclick = function() {
+                    if (answers['reminderEnabled'] !== false) {
+                        if (window.initPush && window.currentUser) {
+                            // User already authed — request immediately
+                            window.initPush(window.currentUser.uid);
+                        } else {
+                            // Auth hasn't settled yet — firebase.js picks this up
+                            // in onAuthStateChanged after login completes
+                            localStorage.setItem('medexcel_push_pending', '1');
+                        }
+                    }
+                    handleNext();
+                };
+
                 body.style.opacity = '1';
                 body.style.transform = 'translateY(0)';
                 body.style.transition = 'opacity 0.3s, transform 0.3s';

@@ -262,8 +262,15 @@
         }
 
         // Initialize Router on load
-        window.addEventListener('DOMContentLoaded', initRouter);
-        window.addEventListener('popstate', initRouter);
+        // _routerReady guards against Capacitor WebView firing a synthetic popstate
+        // when navigateTo calls history.pushState on first load, which would cause
+        // a second initRouter() call and a visible homepage double-render glitch.
+        var _routerReady = false;
+        window.addEventListener('DOMContentLoaded', function() {
+            initRouter();
+            setTimeout(function() { _routerReady = true; }, 100);
+        });
+        window.addEventListener('popstate', function() { if (_routerReady) initRouter(); });
 
 
         // --- UTILS & MODALS ---
