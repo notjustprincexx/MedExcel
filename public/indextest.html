@@ -1,1525 +1,392 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Preconnect to external domains for speed -->
-  <link rel="preload" href="doctor.svg" as="image" type="image/svg+xml">
-  <link rel="preload" href="avatar.svg" as="image" type="image/svg+xml">
-  <link rel="preload" href="fire.json" as="fetch" crossorigin>
-  <link rel="preload" href="scan.json" as="fetch" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-  <link rel="dns-prefetch" href="https://js.paystack.co">
+  <script>
+    // Store group join code FIRST before any redirect
+    (function() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const ref = params.get('ref');
+        // Use localStorage so it survives app restarts and browser closes
+        if (ref && ref.length > 0) localStorage.setItem('medexcel_ref_code', ref.toUpperCase());
+        const joinCode = params.get('code');
+        if (joinCode && joinCode.length === 6) sessionStorage.setItem('medexcel_pending_group', joinCode.toUpperCase());
+      } catch(e) {}
+    })();
+
+    // Redirect if already logged in
+    const savedUser = localStorage.getItem("nativeUser");
+    const onboardingDone = localStorage.getItem("medexcel_personalized_onboarding_done");
+    if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+      window.location.replace(onboardingDone ? "homepage.html" : "personalized-onboarding.html");
+    }
+
+  // Theme Sync Logic — defaults to light mode on first visit
+  (function() {
+      const savedTheme = localStorage.getItem('medexcel_theme');
+      // Light mode is the default; only go dark if user explicitly chose dark
+      const isLight = savedTheme !== 'dark';
+      if (isLight) document.documentElement.classList.add('light-mode');
+      else document.documentElement.classList.add('dark-mode');
+
+      // Inject dynamic meta theme-color (replaces static media-query versions below)
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = isLight ? '#f1f5f9' : '#09090b';
+      document.head.appendChild(meta);
+
+      // Sync native status bar: DARK style = dark/black icons (for light bg)
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+          try {
+              const { StatusBar } = window.Capacitor.Plugins;
+              StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+              StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+          } catch(e) {}
+      }
+  })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MedExcel</title>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://us-central1-medxcel.cloudfunctions.net">
-  <!-- Preload Firebase modules so they're ready before the module script runs -->
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
-  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#09090b">
-  <title>MedExcel</title>
-
-  <link rel="preload" href="doctor.svg" as="image" type="image/svg+xml">
-  <link rel="preload" href="avatar.svg" as="image" type="image/svg+xml">
-  <link rel="preload" href="fire.json" as="fetch" crossorigin>
-  <link rel="preload" href="scan.json" as="fetch" crossorigin>
+  <link rel="preload" href="student.svg" as="image" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- CDN Dependencies -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js" defer></script>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
-
-  <!-- App Styles -->
-  <link rel="stylesheet" href="css/app.css">
-
-  <!-- Theme Sync (must be inline — prevents flash of wrong theme) -->
-  <script>
-    // Reusable Capacitor status bar sync helper
-        window.syncStatusBar = function(isLight) {
-            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-                try { const { StatusBar } = window.Capacitor.Plugins; StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' }); StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); } catch(e) {}
-            }
-        };
-        // Check for saved theme — defaults to light mode on first visit
-        (function() {
-            const savedTheme = localStorage.getItem('medexcel_theme');
-            const isLight = savedTheme !== 'dark'; // light unless user explicitly chose dark
-            if (isLight) document.documentElement.classList.add('light-mode');
-            window.syncStatusBar(isLight);
-            // Update meta theme-color to match actual theme
-            const themeMeta = document.querySelector('meta[name="theme-color"]');
-            if (themeMeta) themeMeta.content = isLight ? '#f1f5f9' : '#09090b';
-            // Sync theme to native Android so skeleton loader matches
-            if (window.Android && window.Android.saveTheme) {
-                window.Android.saveTheme(isLight ? 'light' : 'dark');
-            }
-        })();
-
-        // Tailwind Config
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], },
-                    colors: { themebg: '#050A15', cardbg: '#0A1120', }
-                }
-            }
-        };
-        // Group deep link — store pending join if arriving here directly
-        (function() {
-            try {
-                const code = new URLSearchParams(location.search).get('code');
-                if (code && code.length === 6) sessionStorage.setItem('medexcel_pending_group', code.toUpperCase());
-            } catch(e) {}
-        })();
-  </script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
 
-<div id="aiLoader" class="loader-screen" role="status">
-    <div style="text-align: center; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 300px;">
-        <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
-        <div style="color: #ffffff; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.375rem; letter-spacing: -0.01em; margin-top: 1rem;">MedExcel is scanning...</div>
-        <div style="color: #cbd5e1; font-size: 0.875rem; text-align: center; max-width: 80%; line-height: 1.4; transition: opacity 0.3s;" id="loadingText">Preparing to analyze document...</div>
-
-        <!-- Heartbeat line -->
-        <div style="width:100%;margin-top:1.75rem;position:relative;height:48px;">
-            <svg id="heartbeatSvg" viewBox="0 0 300 48" preserveAspectRatio="none"
-                style="width:100%;height:100%;overflow:visible;">
-                <polyline id="heartbeatLine"
-                    points="0,24 40,24 55,24 65,4 75,44 85,14 95,34 105,24 260,24 300,24"
-                    fill="none" stroke="#a78bfa" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round"
-                    style="filter:drop-shadow(0 0 4px rgba(167,139,250,0.7));">
-                    <animate attributeName="stroke-dasharray" from="0,600" to="600,0" dur="1.6s" repeatCount="indefinite"/>
-                    <animate attributeName="stroke-dashoffset" from="600" to="0" dur="1.6s" repeatCount="indefinite"/>
-                </polyline>
-            </svg>
-        </div>
-
-        <!-- Timer pill -->
-        <div style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:9999px;padding:0.375rem 0.875rem;">
-            <i class="fas fa-clock" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
-            <span id="scanElapsedLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.5);">0s</span>
-            <span style="font-size:0.75rem;color:rgba(255,255,255,0.2);">·</span>
-            <span id="scanEstLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.5);">~30s left</span>
-        </div>
-
-        <!-- Hidden bar kept for JS compatibility -->
-        <div style="display:none;">
-            <div id="scanProgressBar" style="width:0%;"></div>
-        </div>
-    </div>
+<div id="signinOverlay" class="signin-overlay">
+  <div class="so-spinner"></div>
+  <div id="signinText" class="so-text">Signing in…</div>
 </div>
 
-    <!-- ===== RICH LIMIT / REFERRAL MODAL (bottom sheet) ===== -->
-    <div id="upgradeModalBackdrop" class="modal-backdrop" style="align-items:flex-end; display:none; opacity:0;">
-        <div id="upgradeModalSheet" style="width:100%;max-width:480px;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);transform:translateY(100%);opacity:0;transition:0.4s cubic-bezier(0.19,1,0.22,1);max-height:90vh;overflow-y:auto;" class="hide-scroll">
+<div id="okBackdrop" class="ok-backdrop">
+  <div class="ok-dialog">
+    <h3 id="okTitle" class="ok-title">Notice</h3>
+    <p  id="okMessage" class="ok-msg">Message goes here</p>
+    <div class="ok-actions">
+      <button id="okCancel" class="ok-cancel">Cancel</button>
+      <button id="okConfirm" class="ok-confirm">OK</button>
+    </div>
+  </div>
+</div>
 
-            <!-- Drag handle -->
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
 
-            <!-- Header -->
-            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
-                <div style="width:40px;height:40px;border-radius:12px;background:rgba(251,191,36,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="fas fa-bolt" style="color:#fbbf24;font-size:1rem;"></i>
+<button class="get-started" id="btnMainCta">Get Started</button>
+
+<div class="viewport" id="vp">
+  
+  <div class="slider-track" id="track">
+
+    <div class="slide" id="slide1">
+      <div class="slide-inner">
+        <div class="headline-wrap">
+          <h1 class="headline">Convert your<br>study materials<br>to flashcards</h1>
+        </div>
+
+        <div class="card-stack">
+          <div class="card card-emerald">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+          </div>
+
+          <div class="card card-wine">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="tags-wrap">
+                <span class="subject-tag hi">Pharmacology</span>
+                <span class="subject-tag">Anatomy</span>
+                <span class="subject-tag">Pathology</span>
+                <span class="subject-tag">Physiology</span>
+                <span class="subject-tag">Biochemistry</span>
+                <span class="subject-tag">Microbiology</span>
+                <span class="subject-tag">Surgery</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-slate">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="stats-wrap">
+                <div>
+                  <div class="stat-label">Today's Progress</div>
+                  <div class="stat-row">
+                    <div class="stat-pill streak-pill"><span class="stat-val streak-val">🔥 14</span><span class="stat-name">Day streak</span></div>
+                    <div class="stat-pill"><span class="stat-val">87%</span><span class="stat-name">Accuracy</span></div>
+                    <div class="stat-pill"><span class="stat-val">124</span><span class="stat-name">Cards done</span></div>
+                  </div>
                 </div>
                 <div>
-                    <h3 style="font-size:1.0625rem;font-weight:800;color:var(--text-main);margin:0 0 2px;">Daily Limit Reached</h3>
-                    <p id="upgModalSubtitle" style="font-size:0.8rem;color:var(--text-muted);margin:0;">You've used all your free generations today.</p>
+                  <div class="stat-label">Daily Goal</div>
+                  <div class="prog-bar-track"><div class="prog-bar-fill"></div></div>
+                  <div class="prog-bar-label"><span>124 / 180 cards</span><span>68%</span></div>
                 </div>
+              </div>
             </div>
+          </div>
 
-            <!-- Usage bar -->
-            <div style="background:var(--bg-body);border-radius:1rem;padding:1rem;margin-bottom:1rem;border:1px solid var(--border-color);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                    <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Today's Usage</span>
-                    <span id="upgUsageLabel" style="font-size:0.8125rem;font-weight:700;color:var(--text-main);">5 / 5</span>
-                </div>
-                <div style="width:100%;height:6px;background:var(--bg-surface);border-radius:100px;overflow:hidden;">
-                    <div id="upgUsageBar" style="height:100%;width:100%;background:#f87171;border-radius:100px;transition:width 0.5s ease;"></div>
-                </div>
-                <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets at midnight. Come back tomorrow or unlock more below.</p>
+          <div class="card card-indigo">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
             </div>
-
-            <!-- Referral section -->
-            <div style="background:var(--bg-body);border-radius:1rem;padding:1rem;margin-bottom:1rem;border:1px solid var(--border-color);">
-                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.875rem;">
-                    <i class="fas fa-users" style="color:var(--accent-btn);font-size:0.875rem;"></i>
-                    <span style="font-size:0.8125rem;font-weight:700;color:var(--text-main);">Earn more by inviting friends</span>
+            <div class="card-inner">
+              <div class="flashcard-preview">
+                <div class="fc-subject">Pharmacology · Card 3 of 24</div>
+                <div class="fc-question">What is the primary mechanism of action of β-blockers in hypertension?</div>
+                <div class="fc-divider"></div>
+                <div class="fc-answer-label">Answer</div>
+                <div class="fc-answer">Block β₁-adrenergic receptors → ↓ heart rate &amp; cardiac output → ↓ BP</div>
+                <div class="fc-footer">
+                  <span class="fc-tap">Tap card to flip</span>
+                  <div class="fc-dots">
+                    <div class="fc-dot on"></div><div class="fc-dot on"></div>
+                    <div class="fc-dot"></div><div class="fc-dot"></div>
+                  </div>
                 </div>
-
-                <!-- Referral tiers -->
-                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.875rem;" id="upgModalTiers">
-                    <!-- rendered by JS -->
-                </div>
-
-                <!-- Referral link copy -->
-                <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:0.75rem;padding:0.625rem 0.75rem;">
-                    <span id="upgReferralLinkDisplay" style="font-size:0.75rem;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loading your link...</span>
-                    <div style="display:flex;gap:0.375rem;flex-shrink:0;">
-                        <button onclick="window.shareReferralLink('upg')" id="upgShareBtn" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
-                            <i class="fas fa-share-alt"></i> Share
-                        </button>
-                        <button onclick="window.copyReferralLink('upg')" id="upgCopyBtn" style="background:transparent;color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:0.2s;">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
+              </div>
             </div>
-
-            <!-- Premium CTA -->
-            <button onclick="navigateTo('view-payment'); window.closeUpgradeModal();" style="width:100%;padding:1rem;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:100px;font-size:0.9375rem;font-weight:800;cursor:pointer;margin-bottom:0.625rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                <i class="fas fa-gem"></i> Upgrade to Premium
-            </button>
-            <button onclick="window.closeUpgradeModal();" style="width:100%;padding:0.875rem;background:transparent;color:var(--text-muted);border:none;border-radius:100px;font-size:0.875rem;font-weight:600;cursor:pointer;">
-                Maybe Later
-            </button>
+          </div>
         </div>
+      </div>
+    </div><div class="slide" id="slide2">
+      <div class="slide-inner">
+
+        <div class="s2-headline-wrap">
+          <h2 class="s2-headline">Test your<br>clinical<br><em>knowledge</em></h2>
+        </div>
+
+        <div class="s2-card-area">
+          <div class="scene">
+            <div class="ghost-card ghost-card-a"></div>
+            <div class="ghost-card ghost-card-b"></div>
+
+            <div class="quiz-card">
+              <div class="c-segs">
+                <div class="cseg cdone"></div>
+                <div class="cseg cactive"></div>
+                <div class="cseg"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#E6A03C;"></span>
+                Your notes
+              </div>
+              <div class="demo-notes-block">
+                <p class="demo-notes-text">"Beta-blockers competitively block β₁-adrenergic receptors, reducing heart rate and cardiac output to lower blood pressure…"</p>
+              </div>
+
+              <div class="demo-transform-row">
+                <div class="demo-tline"></div>
+                <div class="demo-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Smart Quiz
+                </div>
+                <div class="demo-tline"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#9B6DD5;"></span>
+                Generated question
+              </div>
+              <div class="demo-quiz-block">
+                <p class="demo-quiz-text">What is the primary mechanism of action of β-blockers in treating hypertension?</p>
+              </div>
+
+              <div class="demo-features">
+                <div class="demo-feature"><span class="demo-feat-icon">📄</span>Paste any syllabus, textbook, or lecture</div>
+                <div class="demo-feature"><span class="demo-feat-icon">⚡</span>Generate exam-standard questions instantly</div>
+                <div class="demo-feature"><span class="demo-feat-icon">🎯</span>Master active recall and track accuracy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><div class="slide" id="slide3">
+      <div class="slide-inner">
+
+        <div class="s3-student-images-container">
+          <img src="student.svg" alt="Students using MedExcel" class="s3-student-img" />
+        </div>
+
+        <div class="s3-text">
+          <div class="s3-kicker">Built for medical students</div>
+          <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
+          <p class="s3-body">Master active recall without spending hours creating study materials. Generate custom quizzes directly from your notes, identify your knowledge gaps, and walk into every exam fully prepared.</p>
+        </div>
+
+        <div class="s3-buttons">
+          <div class="btn-row">
+            <button class="btn-login"    id="btnLogin">Log in</button>
+            <button class="btn-register" id="btnRegister">Sign up</button>
+          </div>
+          <button class="btn-google" id="btnGoogle">
+            <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <p style="font-size:0.7rem;color:rgba(255,255,255,0.45);text-align:center;margin-top:0.875rem;line-height:1.6;padding:0 0.5rem;">
+            By continuing, you agree to our
+            <a href="javascript:void(0)" onclick="window._showOnboardingTerms()" style="color:rgba(255,255,255,0.75);text-decoration:underline;font-weight:600;">Terms of Service</a>
+            and
+            <a href="javascript:void(0)" onclick="window._showOnboardingPrivacy()" style="color:rgba(255,255,255,0.75);text-decoration:underline;font-weight:600;">Privacy Policy</a>
+          </p>
+        </div>
+
+      </div>
+    </div></div></div><div id="loginModal" class="login-modal">
+  <div class="lm-header">
+    <button class="lm-close" id="lmClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2 id="lmTitle" class="lm-title">Enter your details</h2>
+  </div>
+  <div class="lm-form">
+    <div class="lm-input-group">
+      <div id="nameRow" class="lm-input-row" style="display:none;">
+        <input id="nameInput" type="text" placeholder="Your name or nickname" class="lm-input" autocomplete="name">
+      </div>
+      <div class="lm-input-row">
+        <input id="emailInput" type="email" placeholder="Email address" class="lm-input" autocomplete="email">
+      </div>
+      <div class="lm-input-row">
+        <input id="passInput" type="password" placeholder="Password" class="lm-input" autocomplete="current-password">
+        <button class="lm-toggle-pw" id="togglePwBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
-
-    <div id="loginModalBackdrop" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-icon bg-blue-500/10 text-blue-500"><i class="fas fa-user-lock"></i></div>
-            <h3 class="modal-title">Login Required</h3>
-            <p class="modal-text">You need to log in or create an account to upload files and generate AI materials.</p>
-            <button onclick="window.location.href='index.html#login'" class="modal-btn-primary tap-scale bg-blue-500 text-white">Log In / Sign Up</button>
-            <button onclick="closeGlobalModal('loginModalBackdrop')" class="modal-btn-secondary">Close</button>
-        </div>
+    <button id="signInBtn" class="lm-submit">Sign In</button>
+    <button id="forgotBtn" class="lm-forgot">Forgot Password?</button>
+    <div class="lm-divider">
+      <div class="lm-div-line"></div>
+      <span class="lm-div-text">or</span>
+      <div class="lm-div-line"></div>
     </div>
-
-    <div id="deleteModalBackdrop" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-icon bg-red-500/10 text-red-500"><i class="fas fa-trash-alt"></i></div>
-            <h3 class="modal-title">Delete Deck?</h3>
-            <p class="modal-text">This material will be permanently removed from your library.</p>
-            <div class="flex gap-3">
-                <button onclick="closeGlobalModal('deleteModalBackdrop')" class="flex-1 py-3 rounded-full bg-[var(--bg-body)] border border-[var(--border-color)] text-[var(--text-main)] font-bold">Cancel</button>
-                <button id="confirmDeleteBtn" class="flex-1 py-3 rounded-full bg-red-500 text-white font-bold">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Account Modal -->
-    <div id="accountDeleteBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
-        <div id="accountDeleteSheet" class="bottom-sheet" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
-            <div style="width:52px;height:52px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                <i class="fas fa-trash-alt" style="color:#ef4444;font-size:1.125rem;"></i>
-            </div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.5rem;">Delete Account</h3>
-            <p style="font-size:0.875rem;color:var(--text-muted);text-align:center;line-height:1.6;margin-bottom:1.5rem;">This will permanently delete your account and all your data. This action <strong style="color:var(--text-main);">cannot be undone.</strong></p>
-            <div style="margin-bottom:1.25rem;">
-                <p style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:0.5rem;">Type <strong style="color:#ef4444;">delete account</strong> to confirm</p>
-                <input id="deleteAccountInput" type="text" placeholder="delete account" autocomplete="off" autocorrect="off" spellcheck="false"
-                    oninput="window.checkDeleteInput()"
-                    style="width:100%;padding:0.875rem 1rem;border-radius:0.875rem;border:1.5px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.9375rem;outline:none;transition:border-color 0.2s;box-sizing:border-box;">
-            </div>
-            <button id="confirmAccountDeleteBtn" onclick="window.executeDeleteAccount()" disabled
-                style="width:100%;padding:1rem;background:#ef4444;color:white;border:none;border-radius:9999px;font-size:1rem;font-weight:700;cursor:not-allowed;opacity:0.35;margin-bottom:0.625rem;transition:opacity 0.2s,transform 0.15s;">
-                Delete My Account
-            </button>
-            <button onclick="window.closeDeleteAccountModal()"
-                style="width:100%;padding:1rem;background:transparent;color:var(--text-muted);border:none;border-radius:9999px;font-size:0.9375rem;font-weight:600;cursor:pointer;">
-                Cancel
-            </button>
-        </div>
-    </div>
-
-    <div id="logoutModalBackdrop" class="modal-backdrop" style="align-items:flex-end;">
-        <div class="bottom-sheet" id="logoutSheetInner" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
-            <div style="width:56px;height:56px;border-radius:50%;background:rgba(248,113,113,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                <i class="fas fa-sign-out-alt" style="color:#f87171;font-size:1.25rem;"></i>
-            </div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.375rem;">Log Out?</h3>
-            <p style="font-size:0.875rem;color:var(--text-muted);text-align:center;margin-bottom:1.75rem;line-height:1.5;">You'll need to sign back in to access your account.</p>
-            <button id="confirmLogoutBtn" style="width:100%;padding:1rem;background:#f87171;color:white;border:none;border-radius:9999px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Yes, Log Out</button>
-            <button onclick="closeGlobalModal('logoutModalBackdrop')" style="width:100%;padding:1rem;background:transparent;color:var(--text-muted);border:none;border-radius:9999px;font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
-        </div>
-    </div>
-
-    <div id="streakModalBackdrop" class="modal-backdrop" style="align-items: flex-end;">
-        <div class="streak-dialog" id="streakDialog">
-            <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
-            <div class="text-3xl font-bold text-[var(--text-main)] mb-1 tracking-tight">Day <span id="modalDayCount">1</span></div>
-            <h3 class="text-base font-medium text-[var(--text-muted)] mb-8 leading-relaxed" id="streakDialogTitle">Keep the fire alive<br>check in today!</h3>
-            <div class="calendar-row" id="calendarRow"></div>
-            <!-- Streak freeze -->
-            <div id="streakFreezeRow" style="margin-top:1rem;margin-bottom:0.5rem;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.15);border-radius:1rem;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;">
-                <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(99,179,237,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i id="freezeIcon" class="fas fa-snowflake" style="color:#94a3b8;font-size:1rem;"></i>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:0.8125rem;font-weight:700;color:var(--text-main);" id="freezeTitle">Streak Freeze</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);" id="freezeDesc">Reach a 7-day streak to earn a freeze</div>
-                </div>
-                <button id="freezeBtn" onclick="window.useStreakFreeze()" style="display:none;background:rgba(99,179,237,0.15);border:1px solid rgba(99,179,237,0.3);color:#63b3ed;font-size:0.7rem;font-weight:700;padding:0.375rem 0.75rem;border-radius:9999px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Use Freeze</button>
-            </div>
-            <button id="closeStreakModal" class="modal-btn-primary tap-scale" style="margin-top:0.75rem;">Check in today!</button>
-        </div>
-    </div>
-
-
-    <section id="view-home" class="app-view active">
-        <header class="home-header" style="gap: 0.75rem;">
-            <div id="homeAvatarBtn" onclick="navigateTo('view-profile')" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;cursor:pointer;overflow:hidden;border:2px solid var(--border-color);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:var(--accent-orange);transition:border-color 0.2s;" title="Profile">
-                <span id="homeAvatarInitial">?</span>
-            </div>
-            <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px; font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;"></h1>
-            <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()" style="flex-shrink:0;">
-                <i id="headerFireIcon" class="fas fa-fire"></i>
-                <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
-            </div>
-        </header>
-
-        <main class="home-main hide-scroll">
-            <div class="promo-carousel-wrapper">
-                <div class="promo-carousel hide-scroll" id="promoCarousel">
-                    <!-- SLIDE 1: Today's progress with ring -->
-                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
-                        <div class="promo-bg-shape"></div>
-                        <div class="promo-text-area" style="display:flex;flex-direction:column;justify-content:center;gap:0.375rem;max-width:52%;overflow:hidden;">
-                            <!-- Daily challenge label -->
-                            <div style="font-size:0.5rem;font-weight:800;letter-spacing:0.08em;opacity:0.65;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="promoDayLabel">Daily Challenge</div>
-                            <!-- Ring + text row -->
-                            <div style="display:flex;align-items:center;gap:0.375rem;">
-                                <!-- SVG ring -->
-                                <div style="position:relative;width:44px;height:44px;flex-shrink:0;">
-                                    <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg);">
-                                        <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3"/>
-                                        <circle id="promoRingFill" cx="22" cy="22" r="17" fill="none" stroke="white" stroke-width="3"
-                                            stroke-dasharray="106.8" stroke-dashoffset="106.8"
-                                            stroke-linecap="round" style="transition:stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1);"/>
-                                    </svg>
-                                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                                        <span id="promoTodayNum" style="font-size:1rem;font-weight:900;color:white;line-height:1;">0</span>
-                                    </div>
-                                </div>
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-size:0.8rem;font-weight:800;line-height:1.25;margin-bottom:0.1rem;word-break:break-word;" id="promoTodayChallenge">15 MCQs today</div>
-                                    <div style="font-size:0.65rem;opacity:0.8;line-height:1.3;" id="promoTodayMsg">Start the week strong</div>
-                                </div>
-                            </div>
-                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-4 rounded-full text-xs font-bold backdrop-blur-sm inline-block" style="align-self:flex-start;white-space:nowrap;">Study Now</div>
-                        </div>
-                        <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
-                    </a>
-
-                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
-                        <div class="promo-bg-shape"></div>
-                        <div class="promo-text-area">
-                            <div class="flex items-center gap-1.5 mb-1">
-                                <span class="text-4xl font-bold leading-none">2x</span>
-                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DAILY</span><span>REWARD</span></span>
-                            </div>
-                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Complete 20 flashcards today to earn double XP!</p>
-                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Start Challenge</div>
-                        </div>
-                        <div class="absolute bottom-0 right-[-5%] h-[120%] flex items-center justify-center text-[5.5rem] text-white opacity-85 z-10 pointer-events-none"><i class="fas fa-bolt"></i></div>
-                    </a>
-
-                    <a href="javascript:void(0)" onclick="navigateTo('view-create')" class="promo-consultation-card">
-                        <div class="promo-bg-shape"></div>
-                        <div class="promo-text-area">
-                            <div class="flex items-center gap-1.5 mb-1">
-                                <span class="text-4xl font-bold leading-none">AI</span>
-                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DECK</span><span>BUILDER</span></span>
-                            </div>
-                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Turn your notes into study decks in seconds.</p>
-                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Create Now</div>
-                        </div>
-                        <div class="absolute bottom-0 right-[-5%] h-[120%] flex items-center justify-center text-[5rem] text-white opacity-85 z-10 pointer-events-none"><i class="fas fa-magic"></i></div>
-                    </a>
-                </div>
-                <div class="promo-dots-container" id="carouselIndicators">
-                    <div class="promo-dot active"></div><div class="promo-dot"></div><div class="promo-dot"></div>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Continue Studying</h2>
-                <a href="javascript:void(0)" onclick="window.openContinueStudying()" class="continue-card card-lift">
-                    <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <div id="continueIconBox" class="w-12 h-12 rounded-full bg-[var(--bg-glass)] text-blue-400 flex items-center justify-center text-xl shrink-0 skeleton"><i class="fas fa-layer-group"></i></div>
-                        <div class="flex flex-col justify-center flex-1 min-w-0">
-                            <h3 id="continueTitle" class="font-bold text-[var(--text-main)] text-[15px] truncate mb-1 skeleton" style="width: 130px; height: 16px;"></h3>
-                            <p id="continueMeta" class="text-xs font-medium text-[var(--text-muted)] tracking-wider uppercase skeleton" style="width: 90px; height: 12px;"></p>
-                        </div>
-                    </div>
-                    <div id="continueProgressText" class="bg-blue-500/15 text-blue-500 text-xs font-bold py-1.5 px-2 rounded-md shrink-0 ml-3 flex items-center justify-center skeleton" style="width: 44px; height: 24px;"></div>
-                </a>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">What would you like to study?</h2>
-                <div class="crypto-scroll-container hide-scroll">
-                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Multiple Choice'; navigateTo('view-create');" class="crypto-card card-lift"> 
-                        <div class="mb-4 flex items-start">
-                            <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-lg font-bold text-[var(--text-main)]">MCQ</span>
-                            <span class="text-[15px] text-[var(--text-muted)]">Multiple Choice</span>
-                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">Review</span>
-                        </div>
-                    </a>
-                    <a href="javascript:void(0)" onclick="window._pendingCreateType='Flashcards'; navigateTo('view-create');" class="crypto-card card-lift"> 
-                        <div class="mb-4 flex items-start">
-                            <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-lg font-bold text-[var(--text-main)]">Flashcards</span>
-                            <span class="text-[15px] text-[var(--text-muted)]">Active recall</span>
-                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">Flip &amp; Learn</span>
-                        </div>
-                    </a>
-
-                    <!-- Boss Fight card -->
-                    <a href="javascript:void(0)" onclick="window.openBossFight()" class="crypto-card card-lift" >
-                        <div class="mb-4 flex items-start">
-                            <svg viewBox="0 0 64 64" fill="none" style="width:52px;height:52px;">
-                                <!-- Controller body — purple, no bg square -->
-                                <path d="M8 28 C8 20 14 16 22 16 L42 16 C50 16 56 20 56 28 L56 36 C56 44 50 48 46 48 L42 48 C40 48 38 46 36 44 L28 44 C26 46 24 48 22 48 C18 48 8 44 8 36 Z" fill="#7c3aed"/>
-                                <!-- D-pad -->
-                                <rect x="17" y="27" width="5" height="11" rx="1.5" fill="white" opacity="0.9"/>
-                                <rect x="13" y="31" width="13" height="5" rx="1.5" fill="white" opacity="0.9"/>
-                                <!-- Buttons -->
-                                <circle cx="42" cy="28" r="3" fill="white" opacity="0.9"/>
-                                <circle cx="47.5" cy="33" r="3" fill="white" opacity="0.9"/>
-                                <circle cx="36.5" cy="33" r="3" fill="white" opacity="0.9"/>
-                                <circle cx="42" cy="38" r="3" fill="white" opacity="0.9"/>
-                            </svg>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-lg font-bold text-[var(--text-main)]">Game Mode</span>
-                            <span class="text-[15px] text-[var(--text-muted)]">Boss Fight</span>
-                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">Win XP ⚡</span>
-                        </div>
-                    </a>
-                    <!-- Anki import card -->
-                    <a href="javascript:void(0)" onclick="window.openAnkiImport()" class="crypto-card card-lift">
-                        <div class="mb-4 flex items-start">
-                            <svg viewBox="0 0 64 64" fill="none" style="width:52px;height:52px;"><defs><clipPath id="ac"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#ac)"><rect width="64" height="64" rx="12" fill="#3d3d3d"/><path d="M0 40 Q32 26 64 18 L64 64 L0 64 Z" fill="#1c1c1c"/><rect width="64" height="64" rx="12" fill="none" stroke="#0a0a0a" stroke-width="3"/><polygon points="22.0,23.0 26.7,35.5 40.1,36.1 29.6,44.5 33.2,57.4 22.0,50.0 10.8,57.4 14.4,44.5 3.9,36.1 17.3,35.5" fill="white"/><polygon points="22.0,25.0 26.1,36.3 38.2,36.7 28.7,44.2 32.0,55.8 22.0,49.0 12.0,55.8 15.3,44.2 5.8,36.7 17.9,36.3" fill="#4da6e8"/><polygon points="44.0,9.0 46.6,16.4 54.5,16.6 48.3,21.4 50.5,28.9 44.0,24.5 37.5,28.9 39.7,21.4 33.5,16.6 41.4,16.4" fill="white"/><polygon points="44.0,10.5 46.2,16.9 53.0,17.1 47.6,21.2 49.6,27.7 44.0,23.8 38.4,27.7 40.4,21.2 35.0,17.1 41.8,16.9" fill="#7ec8f0"/></g></svg>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-lg font-bold text-[var(--text-main)]">Anki</span>
-                            <span class="text-[15px] text-[var(--text-muted)]">Import deck</span>
-                            <span class="text-sm font-medium mt-0.5" style="color:#60a5fa;">Upload .apkg</span>
-                        </div>
-                    </a>
-
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Weekly Target</h2>
-                <a href="javascript:void(0)" onclick="navigateTo('view-profile')" class="flex gap-4 p-5 bg-[#8b5cf6]/5 border border-[#8b5cf6]/10 rounded-[var(--radius-card)] items-start">
-                    <div class="w-10 h-10 rounded-full bg-[#8b5cf6]/15 text-[#a78bfa] flex items-center justify-center shrink-0">
-                        <span class="fa-stack" style="font-size:0.6rem;">
-                            <i class="fas fa-bullseye fa-stack-2x"></i>
-                            <i class="fas fa-arrow-right fa-stack-1x" style="transform:rotate(-45deg) translate(2px,-2px); font-size:0.85em; color:#c4b5fd;"></i>
-                        </span>
-                    </div>
-                    <div>
-                        <h4 id="targetTitle" class="text-[15px] font-bold text-[var(--text-main)] mb-1 transition-opacity">Study Consistency</h4>
-                        <p id="targetDesc" class="text-[13px] text-[var(--text-muted)] leading-relaxed transition-opacity">You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal m-0">Recent Decks</h2>
-                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="text-[13px] text-[var(--text-main)] font-semibold">View All <i class="fas fa-chevron-right text-[10px] ml-1"></i></a>
-                </div>
-                <div class="flex flex-col gap-3" id="recentDecksContainer">
-                    <!-- Populated by renderRecentDecks() -->
-                </div>
-            </div>
-
-        </main>
-    </section>
-
-    <section id="view-study" class="app-view">
-        <div class="layout-wrapper">
-            <aside id="libraryPanel" class="sidebar">
-                <div class="sidebar-header">
-                    <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-2xl font-extrabold tracking-tight">Library</h1>
-                    </div>
-                    <div class="tab-scroll hide-scroll">
-                        <button class="tab-btn active" data-filter="all">All</button>
-                        <button class="tab-btn" data-filter="mcqs">MCQs</button>
-                        <button class="tab-btn" data-filter="flashcards">Flashcards</button>
-                        <button class="tab-btn" data-filter="favorites">Favorites</button>
-                    </div>
-                    <div class="search-box">
-                        <i class="fas fa-search absolute left-5 top-4 text-[var(--text-muted)]"></i>
-                        <input type="text" id="librarySearchInput" placeholder="Search" class="search-input">
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-2 px-4 pb-6 flex flex-col gap-2 hide-scroll" id="quizContainer">
-                    </div>
-            </aside>
-
-            <main id="studyPracticePanel" class="practice-panel">
-                <header id="studyPracticeHeader" class="h-[64px] flex items-center gap-3 px-5 shrink-0 border-b border-[var(--border-color)]">
-                    <button onclick="window.closePracticeMobile()" class="w-10 h-10 rounded-full bg-[var(--bg-glass)] flex items-center justify-center text-[var(--text-main)] text-xl lg:hidden"><i class="fas fa-arrow-left"></i></button>
-                </header>
-
-                <div id="studyPracticeArea" class="flex-1 overflow-y-auto p-4 lg:p-8 flex items-center justify-center pb-8 hide-scroll">
-                    <div class="text-center text-[var(--text-muted)] flex flex-col items-center">
-                        <div class="w-20 h-20 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-6 text-3xl text-[var(--accent-btn)]"><i class="fas fa-layer-group"></i></div>
-                        <h3 class="text-xl font-bold text-[var(--text-main)] mb-2">Ready to Study?</h3>
-                        <p class="text-[15px] font-medium">Select a deck from your library to begin.</p>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </section>
-  <section id="view-create" class="app-view">
-        <header class="top-header">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <button id="createBackBtn" onclick="window.goBackToSelection()" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--bg-surface); border: 1px solid var(--border-glass); display: none; align-items: center; justify-content: center; color: var(--text-main); font-size: 1rem; cursor: pointer; transition: 0.2s;">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <h1 id="createHeaderTitle" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;">What to create?</h1>
-            </div>
-            <div id="gensRemainingPill" style="display:flex;align-items:center;gap:0.3rem;background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:9999px;padding:0.25rem 0.625rem;cursor:default;">
-                <i class="fas fa-bolt" style="font-size:0.625rem;color:var(--accent-btn);"></i>
-                <span id="gensRemainingLabel" style="font-size:0.7rem;font-weight:700;color:var(--text-main);">—</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">left</span>
-            </div>
-        </header>
-
-        <main id="createMainContainer" class="create-main hide-scroll">
-            
-            <div id="selectionView" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
-                <a href="javascript:void(0)" onclick="window.openCreateView('Multiple Choice')" style="background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-card); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; cursor: pointer; text-decoration: none;">
-                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
-                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span style="font-size: 1.125rem; font-weight: 700; color: var(--text-main);">Multiple Choice</span>
-                        <span style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.4;">Generate a quiz from your notes to test your knowledge.</span>
-                    </div>
-                </a>
-
-                <a href="javascript:void(0)" onclick="window.openCreateView('Flashcards')" style="background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-card); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; cursor: pointer; text-decoration: none;">
-                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
-                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span style="font-size: 1.125rem; font-weight: 700; color: var(--text-main);">Flashcards</span>
-                        <span style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.4;">Practice active recall with flip cards based on your material.</span>
-                    </div>
-                </a>
-
-                <!-- Divider -->
-                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem;">
-                    <div style="flex:1;height:1px;background:var(--border-glass);"></div>
-                    <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">or</span>
-                    <div style="flex:1;height:1px;background:var(--border-glass);"></div>
-                </div>
-
-                <a href="javascript:void(0)" onclick="window.openManualCreate()" style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:var(--radius-card);padding:1.5rem;display:flex;align-items:center;gap:1.25rem;cursor:pointer;text-decoration:none;">
-                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
-                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;">
-                            <!-- Document body (purple) -->
-                            <rect x="8" y="8" width="36" height="46" rx="6" fill="#8b5cf6"/>
-                            <!-- Short chip line at top -->
-                            <rect x="16" y="17" width="12" height="3.5" rx="1.75" fill="white" opacity="0.9"/>
-                            <!-- Text lines -->
-                            <rect x="14" y="25" width="22" height="3" rx="1.5" fill="white" opacity="0.9"/>
-                            <rect x="14" y="33" width="22" height="3" rx="1.5" fill="white" opacity="0.9"/>
-                            <rect x="14" y="41" width="14" height="3" rx="1.5" fill="white" opacity="0.7"/>
-                            <!-- Pencil (yellow, rotated 45° overlapping bottom-right) -->
-                            <g transform="rotate(45 38 44)">
-                                <rect x="35" y="30" width="6" height="26" rx="2" fill="#fbbf24"/>
-                                <polygon points="35,56 41,56 38,62" fill="#e5a800"/>
-                            </g>
-                        </svg>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:0.25rem;">
-                        <span style="font-size:1.125rem;font-weight:700;color:var(--text-main);">Create manually</span>
-                        <span style="font-size:0.875rem;color:var(--text-muted);line-height:1.4;">Write your own flashcards one by one.</span>
-                    </div>
-                </a>
-            </div>
-
-            <div id="setupView" style="display: none; flex-direction: column; flex: 1; gap: 1.75rem; margin-top:1rem;">
-                <div>
-                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem;">1. Source Material</h2>
-                    <!-- Source Input — Illustrated Icon Buttons -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:0.875rem;">
-
-                        <!-- Upload -->
-                        <button id="tabUpload" onclick="window.switchSourceTab('upload')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--accent-btn);background:var(--bg-surface);color:var(--accent-btn);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
-                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
-                                <rect width="40" height="40" rx="12" fill="#8b5cf6" fill-opacity="0.15"/>
-                                <path d="M20 26V18" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round"/>
-                                <path d="M16 21l4-4 4 4" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <rect x="13" y="27" width="14" height="2.5" rx="1.25" fill="#8b5cf6" fill-opacity="0.5"/>
-                            </svg>
-                            <span style="pointer-events:none;">Upload</span>
-                        </button>
-
-                        <!-- Paste Text -->
-                        <button id="tabPaste" onclick="window.switchSourceTab('paste')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--border-glass);background:var(--bg-surface);color:var(--text-muted);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
-                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
-                                <rect width="40" height="40" rx="12" fill="#64748b" fill-opacity="0.12"/>
-                                <rect x="12" y="13" width="16" height="2" rx="1" fill="#64748b"/>
-                                <rect x="12" y="18" width="16" height="2" rx="1" fill="#64748b"/>
-                                <rect x="12" y="23" width="10" height="2" rx="1" fill="#64748b"/>
-                                <rect x="24" y="21" width="5" height="8" rx="1.5" fill="#64748b" fill-opacity="0.4"/>
-                                <path d="M24 23l2.5-2.5L29 23" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span style="pointer-events:none;">Paste Text</span>
-                        </button>
-
-                        <!-- YouTube -->
-                        <button id="tabYoutube" onclick="window.switchSourceTab('youtube')" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:0.875rem 0.375rem 0.75rem;border-radius:1.125rem;border:2px solid var(--border-glass);background:var(--bg-surface);color:var(--text-muted);font-size:0.6875rem;font-weight:700;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;">
-                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
-                                <rect width="40" height="40" rx="12" fill="#64748b" fill-opacity="0.12"/>
-                                <rect x="9" y="14" width="22" height="13" rx="4" stroke="#64748b" stroke-width="2" fill="none"/>
-                                <path d="M17.5 18l6 3-6 3V18z" fill="#64748b"/>
-                            </svg>
-                            <span style="pointer-events:none;">YouTube</span>
-                        </button>
-
-                    </div>
-
-                    <!-- Upload Zone -->
-                    <style>
-                        @keyframes uploadFloat {
-                            0%, 100% { transform: translateY(0px); }
-                            50% { transform: translateY(-6px); }
-                        }
-                        @keyframes uploadPulse {
-                            0%, 100% { border-color: var(--border-glass); }
-                            50% { border-color: var(--accent-btn); }
-                        }
-                        #dropZone { animation: uploadPulse 2s ease-in-out infinite; }
-                        #uploadIcon { overflow: visible; }
-                        #uploadIconInner { animation: uploadFloat 2s ease-in-out infinite; }
-                        #dropZone.file-selected { animation: none !important; }
-                        #dropZone.file-selected #uploadIconInner { animation: none !important; }
-                    </style>
-                    <div id="dropZone" style="border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
-                        <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
-                        <div style="position:relative;width:4rem;height:4rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;">
-                            <div style="position:absolute;width:4rem;height:4rem;border-radius:50%;background:var(--bg-glass);"></div>
-                            <i class="fas fa-cloud-upload-alt" id="uploadIconInner" style="position:relative;z-index:1;color:var(--text-muted);font-size:1.5rem;"></i>
-                        </div>
-                        <h3 id="uploadTitle" style="font-weight: 700; font-size: 1.0625rem; margin-bottom: 0.375rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Tap to Upload File</h3>
-                        <p id="uploadSubtitle" style="color: var(--text-muted); font-size: 0.8125rem;">PDF, PPTX, DOCX, TXT, or Images</p>
-                    </div>
-
-                    <!-- Paste Text Zone -->
-                    <div id="pasteZone" style="display:none;">
-                        <textarea id="pasteTextarea" placeholder="Paste your notes, textbook excerpt, or any study material here..." style="width:100%;min-height:180px;background:var(--bg-surface);border:2px dashed var(--border-glass);border-radius:var(--radius-card);padding:1rem;color:var(--text-main);font-size:0.9375rem;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;line-height:1.6;transition:border-color 0.2s;" oninput="window.handlePasteInput(this)"></textarea>
-                        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;text-align:center;"><span id="pasteCharCount">0</span> characters</p>
-                    </div>
-
-                    <!-- YouTube Zone -->
-                    <div id="youtubeZone" style="display:none;">
-                        <div style="background:var(--bg-surface);border:2px dashed var(--border-glass);border-radius:var(--radius-card);padding:1.25rem;transition:border-color 0.2s;" id="youtubeInputWrap">
-                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
-                                <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                    <i class="fab fa-youtube" style="color:#ef4444;font-size:1.125rem;"></i>
-                                </div>
-                                <div>
-                                    <p style="font-size:0.875rem;font-weight:700;color:var(--text-main);margin:0;">Paste YouTube URL</p>
-                                    <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">We'll extract the transcript automatically</p>
-                                </div>
-                            </div>
-                            <input type="url" id="youtubeInput" placeholder="https://youtube.com/watch?v=..." style="width:100%;background:var(--bg-body);border:1px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" oninput="window.handleYoutubeInput(this)">
-                            <div id="youtubeFeedback" style="margin-top:0.625rem;font-size:0.75rem;color:var(--text-muted);min-height:1rem;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="configSection" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; gap: 1rem;">
-                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: -0.25rem;">2. Configuration</h2>
-                    <!-- Hidden input keeps firebase.js working without changes -->
-                    <input type="hidden" id="topicFocus" value="direct">
-
-                    <!-- Deck Name -->
-                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
-                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.625rem; display: block;">Deck Name <span style="font-weight:400;text-transform:none;opacity:0.6;">(optional)</span></label>
-                        <input type="text" id="deckNameInput" maxlength="60" placeholder="e.g. Hematology Week 3" autocomplete="off"
-                            style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.75rem 0.875rem;color:var(--text-main);font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;font-family:inherit;"
-                            oninput="this.style.borderColor='var(--accent-btn)'"
-                            onblur="this.style.borderColor='var(--border-glass)'">
-                    </div>
-
-                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
-                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: block;">Question Style</label>
-                        <div id="styleSelector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                            <button type="button" class="style-btn active" data-style="direct" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--accent-btn); background: rgba(167,139,250,0.1); color: var(--accent-btn); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
-                                <i class="fas fa-bullseye" style="font-size: 1rem;"></i>
-                                <span>Direct &amp; key-points </span>
-                            </button>
-                            <button type="button" class="style-btn" data-style="vignette" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
-                                <i class="fas fa-stethoscope" style="font-size: 1rem;"></i>
-                                <span>Clinical Vignette</span>
-                            </button>
-                            <button type="button" class="style-btn" data-style="mechanism" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
-                                <i class="fas fa-atom" style="font-size: 1rem;"></i>
-                                <span>Mechanism Based</span>
-                            </button>
-                            <button type="button" class="style-btn" data-style="mixed" style="padding: 0.75rem 0.5rem; border-radius: 0.75rem; border: 1.5px solid var(--border-glass); background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; pointer-events: auto;">
-                                <i class="fas fa-random" style="font-size: 1rem;"></i>
-                                <span>Mixed</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border-glass);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Amount <span id="maxLimitText" style="font-weight: 500; text-transform: lowercase;">(Max: 15)</span></label>
-                            <span id="sliderValue" style="font-size: 0.875rem; font-weight: 700; background: var(--bg-body); padding: 0.375rem 0.875rem; border-radius: 8px; border: 1px solid var(--border-glass); color: var(--text-main);">5</span>
-                        </div>
-                        <input type="range" id="itemSlider" min="1" max="50" value="5" style="width: 100%; height: 6px; background: var(--bg-body); border-radius: 4px; -webkit-appearance: none; outline: none; cursor: pointer; border: 1px solid var(--border-glass);">
-                    </div>
-                </div>
-
-                <button id="generateBtn" disabled style="width: 100%; padding: 1.125rem; border-radius: var(--radius-btn); font-size: 1.0625rem; font-weight: 700; border: none; background: var(--bg-surface); color: var(--text-muted); cursor: not-allowed; transition: all 0.2s; margin-top: auto; margin-bottom: 1rem;">
-                    Generate Content
-                </button>
-            </div>
-
-            <div id="interactiveView" style="display: none; flex-direction: column; flex: 1; min-height: 0; width: 100%; height: 100%;"></div>
-        </main>
-    </section>
-
-    <section id="view-leaderboard" class="app-view" style="position:relative;">
-        <!-- Header -->
-        <header style="padding:1.5rem 1.25rem 0.75rem;flex-shrink:0;position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-            <div>
-                <h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-main);">Leaderboard</h1>
-                <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-top:2px;">Global Rankings</p>
-            </div>
-            <div class="streak-badge" style="cursor:default;">
-                <i class="fas fa-fire"></i>
-                <span id="currentUserXp" class="skeleton rounded" style="width:35px;height:18px;display:inline-block;"></span>
-            </div>
-        </header>
-
-        <main class="hide-scroll" style="flex:1;overflow-y:auto;padding:1rem 1rem 7rem;-webkit-overflow-scrolling:touch;">
-
-            <!-- Tabs -->
-            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:1.5rem;" class="hide-scroll">
-                <div style="display:inline-flex;background:var(--bg-surface);border-radius:0.875rem;padding:0.25rem;border:1px solid var(--border-color);gap:0.25rem;min-width:max-content;">
-                    <button id="lbTabAllTime" onclick="window.switchLbTab('alltime')" style="padding:0.625rem 1rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:var(--accent-btn);color:var(--btn-text);cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(139,92,246,0.3);white-space:nowrap;">All Time</button>
-                    <button id="lbTabWeek" onclick="window.switchLbTab('week')" style="padding:0.625rem 1rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;white-space:nowrap;">This Week</button>
-                    <button id="lbTabGroups" onclick="window.switchLbTab('groups')" style="padding:0.625rem 1rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;white-space:nowrap;">Groups</button>
-                    <button id="lbTabRanks" onclick="window.switchLbTab('ranks')" style="padding:0.625rem 1rem;font-size:0.875rem;font-weight:700;border-radius:0.625rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;white-space:nowrap;">Ranks</button>
-                </div>
-            </div>
-
-            <!-- Podium -->
-            <section id="podiumContainer" style="display:flex;justify-content:center;align-items:flex-end;gap:0.75rem;padding:0.5rem 0.25rem;margin-bottom:1.5rem;min-height:220px;">
-                <!-- 2nd place -->
-                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;">
-                    <div style="position:relative;margin-bottom:0.5rem;">
-                        <div id="avatarBox2" style="width:56px;height:56px;border-radius:50%;border:3px solid #94a3b8;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;" class="skeleton">
-                            <span style="font-size:1.125rem;font-weight:700;color:var(--text-muted);" id="avatar2">?</span>
-                        </div>
-                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;background:#94a3b8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:white;border:2px solid var(--bg-body);z-index:20;">2</div>
-                    </div>
-                    <h3 id="name2" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;width:60px;height:14px;" class="skeleton rounded"></h3>
-                    <p id="xp2" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;width:35px;height:12px;" class="skeleton rounded"></p>
-                    <div style="width:100%;height:72px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(148,163,184,0.2),rgba(148,163,184,0.05));border-top:2px solid rgba(148,163,184,0.3);"></div>
-                </div>
-
-                <!-- 1st place -->
-                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:2;">
-                    <div style="font-size:1.25rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(250,204,21,0.9));">👑</div>
-                    <div style="position:relative;margin-bottom:0.5rem;">
-                        <div id="avatarBox1" style="width:76px;height:76px;border-radius:50%;border:3px solid #facc15;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;box-shadow:0 0 24px rgba(250,204,21,0.35);" class="skeleton">
-                            <span style="font-size:1.5rem;font-weight:700;color:var(--text-muted);" id="avatar1">?</span>
-                        </div>
-                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:26px;height:26px;background:#facc15;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;color:#1a1a00;border:2px solid var(--bg-body);z-index:20;">1</div>
-                    </div>
-                    <h3 id="name1" style="font-size:0.875rem;font-weight:800;color:var(--text-main);margin-top:0.75rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:80px;height:18px;"></h3>
-                    <p id="xp1" style="font-size:0.75rem;font-weight:700;color:#eab308;margin-top:4px;" class="skeleton rounded" style="width:45px;height:14px;"></p>
-                    <div style="width:100%;height:104px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(234,179,8,0.2),rgba(234,179,8,0.04));border-top:2px solid rgba(234,179,8,0.4);position:relative;overflow:hidden;">
-                        <div style="position:absolute;inset:0;background:url('https://www.transparenttextures.com/patterns/stardust.png');opacity:0.2;"></div>
-                    </div>
-                </div>
-
-                <!-- 3rd place -->
-                <div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative;">
-                    <div style="position:relative;margin-bottom:0.5rem;">
-                        <div id="avatarBox3" style="width:56px;height:56px;border-radius:50%;border:3px solid #f59e0b;background:var(--podium-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:10;" class="skeleton">
-                            <span style="font-size:1.125rem;font-weight:700;color:var(--text-muted);" id="avatar3">?</span>
-                        </div>
-                        <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:white;border:2px solid var(--bg-body);z-index:20;">3</div>
-                    </div>
-                    <h3 id="name3" style="font-size:0.75rem;font-weight:700;color:var(--text-main);margin-top:0.75rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;" class="skeleton rounded" style="width:60px;height:14px;"></h3>
-                    <p id="xp3" style="font-size:0.6875rem;font-weight:700;color:var(--accent-btn);margin-top:4px;" class="skeleton rounded" style="width:35px;height:12px;"></p>
-                    <div style="width:100%;height:56px;margin-top:0.75rem;border-radius:0.75rem 0.75rem 0 0;background:linear-gradient(to top,rgba(245,158,11,0.2),rgba(245,158,11,0.05));border-top:2px solid rgba(245,158,11,0.3);"></div>
-                </div>
-            </section>
-
-            <!-- Ranked List -->
-            <section id="lbRankedSection" style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1.5rem;overflow:hidden;">
-                <div style="padding:0.875rem 1rem 0.5rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;">
-                    <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Top 10</span>
-                    <i class="fas fa-medal" style="color:var(--accent-btn);font-size:0.875rem;"></i>
-                </div>
-                <div id="leaderboardList" class="hide-scroll" style="display:flex;flex-direction:column;gap:0.375rem;padding:0.5rem;max-height:420px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-                    <!-- skeleton rows -->
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
-                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
-                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
-                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
-                            <div class="skeleton rounded" style="width:96px;height:14px;"></div>
-                        </div>
-                        <div class="skeleton rounded" style="width:48px;height:14px;"></div>
-                    </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
-                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
-                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
-                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
-                            <div class="skeleton rounded" style="width:72px;height:14px;"></div>
-                        </div>
-                        <div class="skeleton rounded" style="width:40px;height:14px;"></div>
-                    </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;border-radius:0.875rem;border:1px solid var(--border-color);">
-                        <div style="display:flex;align-items:center;gap:0.875rem;flex:1;">
-                            <div class="skeleton rounded" style="width:16px;height:16px;flex-shrink:0;"></div>
-                            <div class="skeleton" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;"></div>
-                            <div class="skeleton rounded" style="width:80px;height:14px;"></div>
-                        </div>
-                        <div class="skeleton rounded" style="width:44px;height:14px;"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Groups Panel (hidden by default) -->
-            <div id="groupsPanel" style="display:none;flex-direction:column;gap:1rem;">
-                <!-- Action buttons -->
-                <div style="display:flex;gap:0.75rem;">
-                    <button onclick="window.showCreateGroupModal()" style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                        <i class="fas fa-plus"></i> Create Group
-                    </button>
-                    <button onclick="window.showJoinGroupModal()" style="flex:1;padding:0.875rem;border-radius:var(--radius-btn);border:1.5px solid var(--accent-btn);background:transparent;color:var(--accent-btn);font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                        <i class="fas fa-door-open"></i> Join Group
-                    </button>
-                </div>
-                <!-- My Groups list -->
-                <div id="myGroupsList" style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
-                        <i class="fas fa-users" style="font-size:2rem;margin-bottom:0.75rem;display:block;opacity:0.3;"></i>
-                        <p style="font-size:0.9rem;font-weight:600;">No groups yet</p>
-                        <p style="font-size:0.8rem;opacity:0.7;margin-top:0.25rem;">Create or join a group to study together</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ranks Panel -->
-            <div id="ranksPanel" style="display:none;flex-direction:column;gap:0.75rem;">
-                <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1.25rem;padding:1rem 1.125rem;">
-                    <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.875rem;line-height:1.5;">Ranked by <strong style="color:var(--text-main);">monthly XP</strong>. Resets on the 1st. Earn XP this month to climb!</p>
-                    <div id="ranksLeaderboardList" style="display:flex;flex-direction:column;gap:0.25rem;">
-                        <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">Loading...</div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-
-        <!-- Pinned Your Rank Bar -->
-        <div id="yourRankBar" style="display:none;position:absolute;bottom:72px;left:0;right:0;z-index:50;padding:0 1rem 0.5rem;">
-            <div style="background:var(--accent-btn);border-radius:1rem;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.875rem;box-shadow:0 -4px 24px rgba(139,92,246,0.25);">
-                <div id="yourRankAvatarWrap" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:white;overflow:hidden;flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:0.8125rem;font-weight:800;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="yourRankName">You</div>
-                    <div style="font-size:0.7rem;font-weight:600;color:rgba(255,255,255,0.7);" id="yourRankXp"></div>
-                </div>
-                <div style="background:rgba(255,255,255,0.2);border-radius:0.5rem;padding:0.25rem 0.625rem;flex-shrink:0;">
-                    <span style="font-size:0.75rem;font-weight:800;color:white;" id="yourRankNum">#—</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="view-profile" class="app-view">
-        <header class="pt-6 pb-2 px-5 flex items-center shrink-0 sticky top-0 z-40 bg-[var(--bg-body)]">
-            <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)]">Profile</h1>
-        </header>
-
-        <main class="flex-1 overflow-y-auto pb-32 hide-scroll" style="padding:1rem 1rem 8rem;">
-
-            <!-- User Card -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
-                <div style="display:flex;align-items:center;gap:1rem;padding:1.125rem 1.25rem;">
-                    <div style="position:relative;flex-shrink:0;cursor:pointer;" onclick="window.openAvatarPicker()">
-                        <div id="profileAvatarWrap" style="width:56px;height:56px;border-radius:50%;background:rgba(249,115,22,0.1);color:var(--accent-orange);border:2px solid var(--border-color);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.375rem;overflow:hidden;">
-                            <span id="userInitial">?</span>
-                        </div>
-                        <div style="position:absolute;bottom:0;right:0;width:18px;height:18px;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-surface);">
-                            <i class="fas fa-pen" style="font-size:6px;color:white;"></i>
-                        </div>
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
-                            <span id="userName" style="font-size:1rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading...</span>
-                            <span id="profileLevelBadge" style="flex-shrink:0;font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:9999px;background:rgba(167,139,250,0.12);color:var(--accent-btn);letter-spacing:0.05em;white-space:nowrap;">LVL 1</span>
-                            <button id="editNicknameBtn" onclick="window.openNicknameEditor()" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;transition:color 0.15s;" title="Edit nickname">
-                                <i class="fas fa-pen" style="font-size:0.65rem;"></i>
-                            </button>
-                        </div>
-                        <span id="userEmail" style="font-size:0.8rem;color:var(--text-muted);">...</span>
-                    </div>
-                </div>
-                <!-- Subtle XP bar -->
-                <div style="padding:0 1.25rem 1rem;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                        <span style="font-size:0.7rem;color:var(--text-muted);font-weight:600;">XP to next level</span>
-                        <span id="profileXpLabel" style="font-size:0.7rem;color:var(--accent-btn);font-weight:600;">0 / 500</span>
-                    </div>
-                    <div style="width:100%;height:4px;background:var(--bg-body);border-radius:9999px;overflow:hidden;">
-                        <div id="profileXpBar" style="height:100%;border-radius:9999px;background:linear-gradient(90deg,var(--accent-btn),#c084fc);transition:width 0.8s var(--ease-snap);width:0%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-fire" style="color:#f97316;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Study Streak</span>
-                    </div>
-                    <span style="font-size:0.875rem;font-weight:700;color:var(--text-muted);"><span id="profileStreakCount">0</span> Days</span>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-bolt" style="color:#fbbf24;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Total XP</span>
-                    </div>
-                    <span id="studyXpDisplay" style="font-size:0.875rem;font-weight:700;color:var(--text-muted);">0</span>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-calendar-alt" style="color:#34d399;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Member Since</span>
-                    </div>
-                    <span id="memberSince" style="font-size:0.875rem;font-weight:600;color:var(--text-muted);">--</span>
-                </div>
-            </div>
-
-            <!-- Plan & Usage -->
-            <div id="planCard" style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
-
-                <!-- FREE STATE -->
-                <div id="planCardFree" style="padding:1.125rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                        <div style="display:flex;align-items:center;gap:0.625rem;">
-                            <i id="planIcon" class="fas fa-lock" style="color:#64748b;width:16px;"></i>
-                            <div>
-                                <div style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Free Plan</div>
-                                <div style="font-size:0.7rem;color:var(--text-muted);">5 generations/day · max 20 questions</div>
-                            </div>
-                        </div>
-                        <button onclick="navigateTo('view-payment')" style="background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:9999px;padding:0.375rem 0.875rem;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">Upgrade</button>
-                    </div>
-                    <!-- Usage bar -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.375rem;">
-                        <span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);">Today's generations</span>
-                        <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);"><span id="usageCount">0</span> / <span id="maxLimitDisplay">5</span></span>
-                    </div>
-                    <div style="width:100%;height:6px;background:var(--bg-body);border-radius:9999px;overflow:hidden;border:1px solid var(--border-color);">
-                        <div id="usageProgressBar" style="height:100%;border-radius:9999px;background:#94a3b8;transition:width 0.7s ease-out;width:0%;"></div>
-                    </div>
-                </div>
-
-                <!-- PREMIUM STATE -->
-                <div id="planCardPremium" style="display:none;padding:1.125rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;cursor:pointer;" onclick="navigateTo('view-payment')">
-                        <div style="display:flex;align-items:center;gap:0.625rem;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f97316);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fas fa-gem" style="color:white;font-size:0.875rem;"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:0.9375rem;font-weight:800;color:var(--text-main);">Premium</div>
-                                <div id="subscriptionExpiryLabel" style="font-size:0.7rem;color:var(--text-muted);">Active</div>
-                            </div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:0.5rem;">
-                            <div style="font-size:0.7rem;font-weight:600;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:9999px;padding:2px 8px;">Active </div>
-                            <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.7rem;"></i>
-                        </div>
-                    </div>
-                    <!-- Usage bar -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.375rem;">
-                        <span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);">Today's generations</span>
-                        <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);"><span id="usageCountPremium">0</span> / <span id="maxLimitDisplayPremium">30</span></span>
-                    </div>
-                    <div style="width:100%;height:6px;background:var(--bg-body);border-radius:9999px;overflow:hidden;border:1px solid var(--border-color);">
-                        <div id="usageProgressBarPremium" style="height:100%;border-radius:9999px;background:#3b82f6;transition:width 0.7s ease-out;width:0%;"></div>
-                    </div>
-                    <!-- Cancel link -->
-                    <div id="subscriptionManageRow" style="margin-top:0.875rem;padding-top:0.75rem;border-top:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;">
-                        <span style="font-size:0.75rem;color:var(--text-muted);">30 generations · up to 50 questions</span>
-                        <button onclick="window.showCancelSubscriptionSheet()" style="background:none;border:none;font-size:0.72rem;font-weight:600;color:#ef4444;cursor:pointer;padding:0;white-space:nowrap;">Cancel</button>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Rank Card -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1.125rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                    <div style="display:flex;align-items:center;gap:0.625rem;">
-                        <i class="fas fa-shield-halved" style="color:var(--accent-btn);width:16px;text-align:center;"></i>
-                        <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Rank</span>
-                    </div>
-                    <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);background:var(--bg-body);padding:2px 8px;border-radius:9999px;border:1px solid var(--border-color);">Resets monthly</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:1rem;cursor:pointer;" onclick="window.showRankInfo()">
-                    <div style="width:80px;height:96px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                        <div id="profileRankBadge" style="display:flex;align-items:center;justify-content:center;"></div>
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
-                            <div id="profileRankName" style="font-size:1.25rem;font-weight:800;color:#d97706;">Bronze</div>
-                            <i class="fas fa-chevron-right" style="font-size:0.625rem;color:var(--text-muted);"></i>
-                        </div>
-                        <div id="profileRankXpLabel" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">0 / 500 XP to Silver</div>
-                        <div style="height:6px;background:var(--bg-body);border-radius:9999px;overflow:hidden;border:1px solid var(--border-color);">
-                            <div id="profileRankBar" style="height:100%;background:#d97706;border-radius:9999px;width:0%;transition:width 0.8s ease;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Achievements -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1rem 1.125rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                    <div style="display:flex;align-items:center;gap:0.625rem;">
-                        <i class="fas fa-trophy" style="color:#fbbf24;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Achievements</span>
-                    </div>
-                    <span id="achievementCount" style="font-size:0.75rem;font-weight:700;background:rgba(167,139,250,0.12);color:var(--accent-btn);padding:3px 10px;border-radius:9999px;">0 / 12</span>
-                </div>
-                <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem 0;"><div style="width:62px;height:70px;background:var(--bg-body);border-radius:0.5rem;animation:pulse 1.5s infinite;"></div><div style="width:48px;height:8px;background:var(--bg-body);border-radius:9999px;animation:pulse 1.5s infinite;"></div></div>
-                </div>
-            </div>
-
-            <!-- Referral Program Card -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);padding:1.125rem;">
-                <!-- Header -->
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                    <div>
-                        <div style="font-size:0.9375rem;font-weight:700;color:var(--text-main);">Invite Friends</div>
-                        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">You both get rewarded</div>
-                    </div>
-                    <span id="profileReferralCount" style="font-size:0.875rem;font-weight:800;color:var(--accent-btn);">0 <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">referred</span></span>
-                </div>
-
-                <!-- Next reward progress -->
-                <div id="profileReferralTiers" style="margin-bottom:1rem;"></div>
-
-                <!-- Active reward -->
-                <div id="profileActiveReward" style="display:none;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:0.75rem;padding:0.625rem 0.875rem;margin-bottom:1rem;">
-                    <div style="display:flex;align-items:center;gap:0.5rem;">
-                        <i class="fas fa-check-circle" style="color:#34d399;font-size:0.875rem;"></i>
-                        <span id="profileActiveRewardText" style="font-size:0.8rem;font-weight:600;color:var(--text-main);"></span>
-                    </div>
-                </div>
-
-                <!-- Share button — big and obvious -->
-                <button onclick="window.shareReferralLink('profile')" id="profileShareBtn" style="width:100%;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                    <i class="fas fa-share-alt"></i> Share your invite link
-                </button>
-                <!-- Copy fallback -->
-                <button onclick="window.copyReferralLink('profile')" id="profileCopyBtn" style="width:100%;padding:0.5rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.8rem;font-weight:600;cursor:pointer;margin-top:0.375rem;">
-                    <i class="fas fa-copy" style="font-size:0.75rem;"></i> Copy link
-                </button>
-            </div>
-
-            <!-- Preferences -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;" id="themeToggleBtn">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i id="themeIcon" class="fas fa-moon" style="color:#818cf8;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Appearance</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:0.625rem;">
-                        <span id="themeText" style="font-size:0.8125rem;color:var(--text-muted);">Dark Mode</span>
-                        <div id="themeSwitchBg" style="width:44px;height:24px;background:#475569;border-radius:9999px;position:relative;transition:background 0.3s;display:flex;align-items:center;padding:0 3px;">
-                            <div id="themeSwitchKnob" style="width:18px;height:18px;background:white;border-radius:50%;transition:transform 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Account Actions -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid var(--border-color);">
-                <div id="changePasswordRow" style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border-color);" onclick="window.sendPasswordReset()">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-lock" style="color:#94a3b8;width:16px;text-align:center;"></i>
-                        <span id="changePasswordLabel" style="font-size:0.875rem;font-weight:600;color:var(--text-main);">Change Password</span>
-                    </div>
-                    <i id="changePasswordChevron" class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.7rem;"></i>
-                </div>
-                <div style="display:flex;align-items:center;padding:1rem 1.25rem;cursor:pointer;" onclick="window.showLogoutModal()">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-sign-out-alt" style="color:#f87171;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:#f87171;">Log Out</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delete Account -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;margin-bottom:1rem;overflow:hidden;border:1px solid rgba(239,68,68,0.2);">
-                <div style="display:flex;align-items:center;padding:1rem 1.25rem;cursor:pointer;" onclick="window.showDeleteAccountModal()">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <i class="fas fa-trash-alt" style="color:#ef4444;width:16px;text-align:center;"></i>
-                        <span style="font-size:0.875rem;font-weight:600;color:#ef4444;">Delete Account</span>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </section>
-
-    <!-- ===================== PAYMENT VIEW ===================== -->
-
-    <section id="view-payment" class="app-view" style="flex-direction:column;overflow:hidden;">
-        <header style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .5rem;flex-shrink:0;">
-            <button onclick="navigateTo('view-profile')" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;"><i class="fas fa-arrow-left" style="font-size:.875rem;"></i></button>
-            <span style="font-size:.875rem;font-weight:700;color:var(--text-muted);">Upgrade to Premium</span>
-            <div style="width:36px;"></div>
-        </header>
-
-        <div style="flex:1;overflow-y:auto;padding:.75rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);-webkit-overflow-scrolling:touch;">
-
-            <!-- Icon -->
-            <div style="display:flex;justify-content:center;margin-bottom:.875rem;">
-                <div style="width:60px;height:60px;border-radius:18px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-gem" style="font-size:1.5rem;color:var(--accent-btn);"></i>
-                </div>
-            </div>
-
-            <!-- Headline -->
-            <div style="text-align:center;margin-bottom:1.5rem;">
-                <h1 style="font-size:1.625rem;font-weight:900;color:var(--text-main);letter-spacing:-.02em;margin:0 0 .375rem;">Study without limits.</h1>
-                <p style="font-size:.875rem;color:var(--text-muted);margin:0;">Everything you need to ace your exams.</p>
-            </div>
-
-            <!-- Feature card -->
-            <div style="background:var(--bg-surface);border-radius:1.25rem;overflow:hidden;margin-bottom:1.25rem;">
-
-                <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-bolt" style="color:var(--accent-btn);font-size:.875rem;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.9rem;font-weight:700;color:var(--text-main);">30 AI generations per day</div>
-                        <div style="font-size:.775rem;color:var(--text-muted);margin-top:.1rem;">Flashcards &amp; MCQs from your notes</div>
-                    </div>
-                </div>
-
-                <div style="height:1px;background:var(--border-color);margin:0 1rem;"></div>
-
-                <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-wand-magic-sparkles" style="color:#10b981;font-size:.875rem;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.9rem;font-weight:700;color:var(--text-main);">Smarter generation</div>
-                        <div style="font-size:.775rem;color:var(--text-muted);margin-top:.1rem;">Higher quality, more accurate cards</div>
-                    </div>
-                </div>
-
-                <div style="height:1px;background:var(--border-color);margin:0 1rem;"></div>
-
-                <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-layer-group" style="color:#f59e0b;font-size:.875rem;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.9rem;font-weight:700;color:var(--text-main);">Up to 50 questions per deck</div>
-                        <div style="font-size:.775rem;color:var(--text-muted);margin-top:.1rem;">Free users limited to 20 questions</div>
-                    </div>
-                </div>
-
-                <div style="height:1px;background:var(--border-color);margin:0 1rem;"></div>
-
-                <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-users" style="color:#3b82f6;font-size:.875rem;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.9rem;font-weight:700;color:var(--text-main);">Study groups</div>
-                        <div style="font-size:.775rem;color:var(--text-muted);margin-top:.1rem;">Create &amp; share decks with classmates</div>
-                    </div>
-                </div>
-
-                <div style="height:1px;background:var(--border-color);margin:0 1rem;"></div>
-
-                <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-crown" style="color:#f59e0b;font-size:.875rem;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.9rem;font-weight:700;color:var(--text-main);">Gold ring + PRO badge</div>
-                        <div style="font-size:.775rem;color:var(--text-muted);margin-top:.1rem;">Stand out on the leaderboard</div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Trial banner (new users only) -->
-            <div id="pFirstMonthBanner" style="display:none;border-radius:1.25rem;margin-bottom:.75rem;cursor:pointer;overflow:hidden;" onclick="window.switchPayPlan('trial')">
-                <div style="background:linear-gradient(135deg,#f97316,#fbbf24);padding:.875rem 1rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <div style="display:flex;align-items:center;gap:.625rem;">
-                            <div id="pCheckTrial" style="width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:white;">
-                                <div style="width:8px;height:8px;border-radius:50%;background:#f97316;"></div>
-                            </div>
-                            <div>
-                                <div style="font-size:.875rem;font-weight:800;color:white;">Try for one month</div>
-                                <div style="font-size:.7rem;color:rgba(255,255,255,.85);">then <span id="pTrialThen">₦1,999</span>/mo · cancel anytime</div>
-                            </div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div id="pTrialPrice" style="font-size:1.5rem;font-weight:900;color:white;">₦250</div>
-                            <div style="font-size:.6rem;color:rgba(255,255,255,.75);font-weight:600;">first month</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Plan cards: Monthly + Yearly side by side -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:.625rem;">
-
-                <!-- Monthly -->
-                <div id="pCardMonthly" onclick="window.switchPayPlan('monthly')"
-                    style="background:var(--bg-surface);border-radius:1.25rem;padding:1.125rem .875rem;cursor:pointer;border:2px solid var(--border-color);position:relative;transition:border-color .15s;">
-                    <div id="pCheckMonthly" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border-color);margin-bottom:.75rem;transition:all .15s;"></div>
-                    <div style="font-size:1rem;font-weight:700;color:var(--text-main);margin-bottom:.375rem;">Monthly</div>
-                    <div id="pMonthlyPrice" style="font-size:1.375rem;font-weight:900;color:var(--text-main);">₦1,999</div>
-                    <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem;">/month</div>
-                </div>
-
-                <!-- Yearly — active by default -->
-                <div id="pCardYearly" onclick="window.switchPayPlan('yearly')"
-                    style="background:rgba(139,92,246,.08);border-radius:1.25rem;padding:1.125rem .875rem;cursor:pointer;border:2px solid var(--accent-btn);position:relative;transition:border-color .15s;">
-                    <span class="pbadge" style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.6rem;letter-spacing:.04em;">BEST VALUE!</span>
-                    <div id="pCheckYearly" style="width:22px;height:22px;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;">
-                        <i class="fas fa-check" style="color:white;font-size:.5rem;"></i>
-                    </div>
-                    <div style="font-size:1rem;font-weight:700;color:var(--text-main);margin-bottom:.375rem;">Yearly</div>
-                    <div id="pYearlyPrice" style="font-size:1.375rem;font-weight:900;color:var(--text-main);">₦14,999</div>
-                    <div id="pYearlySub" style="font-size:.75rem;color:var(--accent-btn);font-weight:600;margin-top:.25rem;">save 37%</div>
-                </div>
-
-            </div>
-
-            <!-- Exam Season — full width -->
-            <div id="pCardExam" onclick="window.switchPayPlan('exam')"
-                style="background:var(--bg-surface);border-radius:1.25rem;padding:.875rem 1rem;cursor:pointer;border:2px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;position:relative;transition:border-color .15s;">
-                <span class="pbadge" style="position:absolute;top:-11px;left:1rem;white-space:nowrap;font-size:.6rem;background:#8b5cf6;">EXAM SEASON</span>
-                <div style="display:flex;align-items:center;gap:.75rem;">
-                    <div id="pCheckExam" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border-color);flex-shrink:0;transition:all .15s;"></div>
-                    <div>
-                        <div style="font-size:.9375rem;font-weight:700;color:var(--text-main);">3 Months</div>
-                        <div style="font-size:.75rem;color:var(--text-muted);">One-time · no renewal</div>
-                    </div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="display:flex;align-items:baseline;gap:.25rem;justify-content:flex-end;">
-                        <span id="pExamOrig" style="font-size:.75rem;color:var(--text-muted);text-decoration:line-through;"></span>
-                        <span id="pExamPrice" style="font-size:1.125rem;font-weight:900;color:var(--text-main);">₦4,999</span>
-                    </div>
-                    <div id="pExamSub" style="font-size:.7rem;color:#8b5cf6;font-weight:600;">save 17%</div>
-                </div>
-            </div>
-
-            <!-- Hidden compat -->
-            <div style="display:none;">
-                <div id="pYearlyOrig"></div><div id="pDetailName"></div><div id="pDetailBadge"></div>
-                <div id="pDetailSub"></div><div id="pDetailPrice"></div><div id="pDetailPer"></div>
-                <div id="pChipIdleMonthly"></div><div id="pChipActiveMonthly"></div>
-                <div id="pChipIdleYearly"></div><div id="pChipActiveYearly"></div>
-                <div id="pChipIdleExam"></div><div id="pChipActiveExam"></div>
-            </div>
-
-            <!-- CTA -->
-            <button class="pay-btn tap-scale" id="payCTABtn" onclick="window.handlePayCTA()" style="margin-bottom:1rem;">Get Premium — ₦14,999/yr</button>
-
-            <!-- Footer -->
-            <div style="text-align:center;margin-bottom:.5rem;">
-                <button onclick="navigateTo('view-profile')" style="background:none;border:none;font-size:.8125rem;color:var(--text-muted);cursor:pointer;padding:.25rem .5rem;">Maybe later</button>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;gap:.625rem;">
-                <span style="font-size:.65rem;color:var(--text-muted);">Terms</span>
-                <span style="font-size:.5rem;color:var(--border-color);">●</span>
-                <span style="font-size:.65rem;color:var(--text-muted);">Privacy</span>
-                <span style="font-size:.5rem;color:var(--border-color);">●</span>
-                <i class="fas fa-lock" style="font-size:.55rem;color:var(--text-muted);"></i>
-                <span style="font-size:.65rem;color:var(--text-muted);">Paystack secured</span>
-            </div>
-
-        </div>
-    </section>
-
-    <script>
-    // Hide bottom nav when keyboard opens, show when it closes
-    // Uses Capacitor Keyboard plugin (native) with visualViewport fallback for web
+    <button id="lmGoogleBtn" class="lm-google">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+    <p style="font-size:0.7rem;color:var(--text-muted,#94a3b8);text-align:center;margin-top:1rem;line-height:1.6;padding:0 0.5rem;">
+      By continuing, you agree to our
+      <a href="terms.html" style="color:var(--accent-btn,#a78bfa);text-decoration:underline;font-weight:600;">Terms of Service</a>
+      and
+      <a href="privacy.html" style="color:var(--accent-btn,#a78bfa);text-decoration:underline;font-weight:600;">Privacy Policy</a>
+    </p>
+  </div>
+</div>
+
+  <script src="js/onboarding.js"></script>
+  <script src="js/personalized-onboarding.js"></script>
+  <script type="module" src="js/onboarding-firebase.js"></script>
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const nav = document.getElementById('globalBottomNav');
-        if (!nav) return;
 
-        function hideNav() {
-            if (!nav.classList.contains('hidden')) {
-                nav.style.display = 'none';
-            }
-        }
-        function showNav() {
-            if (!nav.classList.contains('hidden')) {
-                nav.style.display = 'flex';
-            }
-        }
+      // Banned user redirect — show message then clear param from URL
+      if (new URLSearchParams(location.search).get('banned') === '1') {
+        setTimeout(function() {
+          showDialog(
+            'Your account has been suspended. Please contact support if you believe this is a mistake.',
+            'Account Suspended',
+            { hideCancel: true, okText: 'OK' }
+          );
+          history.replaceState(null, '', location.pathname);
+        }, 400);
+      }
 
-        // Capacitor native keyboard events — most reliable on Android
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            try {
-                const { Keyboard } = window.Capacitor.Plugins;
-                if (Keyboard) {
-                    Keyboard.addListener('keyboardWillShow', hideNav);
-                    Keyboard.addListener('keyboardDidHide', showNav);
-                }
-            } catch(e) {}
-        }
+      // Returning logged-in user — skip carousel, jump straight to login
+      var savedUser  = localStorage.getItem("nativeUser");
+      var hasAccount = localStorage.getItem("medexcel_has_account");
+      if (hasAccount && !savedUser) {
+        // Has an account but not currently logged in — skip carousel, show login
+        var vp = document.getElementById('vp');
+        var track = document.getElementById('track');
+        var cta = document.getElementById('btnMainCta');
+        if (typeof autoSlideTimer !== 'undefined') clearTimeout(autoSlideTimer);
+        window._blockAutoSlide = true;
+        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
+        if (cta) cta.style.display = 'none';
+        if (vp) vp.style.overflow = 'hidden';
+        setTimeout(function() {
+          if (typeof openLogin === 'function') openLogin(false);
+        }, 300);
+      }
 
-        // visualViewport fallback for non-Capacitor / web preview
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', function() {
-                const keyboardOpen = window.innerHeight - window.visualViewport.height > 100;
-                keyboardOpen ? hideNav() : showNav();
-            });
-        }
+      // Secret admin access — long press the modal title for 7 seconds
+      var secretTrigger = document.getElementById('lmTitle');
+      if (secretTrigger) {
+        var holdTimer;
+        secretTrigger.style.userSelect = 'none';
+        secretTrigger.style.webkitUserSelect = 'none';
+        secretTrigger.addEventListener('touchstart', function(e) {
+          holdTimer = setTimeout(function() {
+            window.location.href = 'admin.html';
+          }, 7000);
+        }, { passive: true });
+        secretTrigger.addEventListener('touchend',    function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchmove',   function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchcancel', function() { clearTimeout(holdTimer); });
+      }
     });
-</script>
-<nav id="globalBottomNav" class="bottom-nav">
-        <a href="javascript:void(0)" onclick="navigateTo('view-home')" id="nav-home" class="nav-item active">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path></svg>
-            <span class="nav-label">Home</span>
-        </a>
-        <a href="javascript:void(0)" onclick="navigateTo('view-study')" id="nav-study" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            <span class="nav-label">Library</span>
-        </a>
-        <a href="javascript:void(0)" onclick="navigateTo('view-create')" id="nav-create" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span class="nav-label">Create</span>
-        </a>
-        <a href="javascript:void(0)" onclick="navigateTo('view-leaderboard')" id="nav-leaderboard" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            <span class="nav-label">Leaders</span>
-        </a>
-        <a href="javascript:void(0)" onclick="navigateTo('view-profile')" id="nav-profile" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <span class="nav-label">Profile</span>
-        </a>
-    </nav>
+  </script>
 
-    <!-- Import Overlays — OUTSIDE all app-views so they work from any screen -->
-    <div id="manualCreateView" style="display:none;"></div>
-    <div id="bossFightView" style="display:none;"></div>
-    <div id="ankiImportView" style="display:none;"></div>
-
-    <!-- Paystack Payment Modal — must be OUTSIDE all app-views to avoid overflow:hidden clipping -->
-    <div id="paymentModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9000;display:none;flex-direction:column;justify-content:flex-end;opacity:0;transition:opacity 0.3s;">
-        <div id="paymentSheet" style="background:#fff;width:100%;height:88vh;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.4);display:flex;flex-direction:column;overflow:hidden;transform:translateY(100%);transition:transform 0.3s ease-out;">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
-                <span style="color:#0f172a;font-weight:700;font-size:1rem;">Complete Subscription</span>
-                <div style="display:flex;align-items:center;gap:.5rem;">
-                    <button id="iframeVerifyBtn" onclick="window.verifyPendingPayment()" style="display:none;padding:.375rem .75rem;background:#10b981;color:#fff;border:none;border-radius:9999px;font-size:.75rem;font-weight:700;cursor:pointer;">&#10003; I've paid &mdash; Activate</button>
-                    <button onclick="window.closePaymentModal()" style="width:32px;height:32px;background:#f1f5f9;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;font-size:0.875rem;"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-            <iframe id="paystackIframe" src="" style="width:100%;flex:1;border:none;background:#f8fafc;"></iframe>
-        </div>
+  <!-- Group Invite Landing Page -->
+  <div id="groupInvitePage" style="display:none;position:fixed;inset:0;z-index:9999;background:#09090b;flex-direction:column;align-items:center;justify-content:center;padding:2rem;">
+    <div style="text-align:center;max-width:340px;width:100%;">
+      <div style="width:80px;height:80px;border-radius:1.5rem;background:rgba(139,92,246,0.15);border:1.5px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+        <i class="fas fa-users" style="color:#8b5cf6;font-size:2rem;"></i>
+      </div>
+      <h1 style="font-size:1.5rem;font-weight:800;color:white;margin-bottom:0.5rem;">You're Invited!</h1>
+      <p style="font-size:0.9rem;color:#94a3b8;margin-bottom:0.5rem;">Join a study group on MedExcel</p>
+      <div id="inviteGroupName" style="font-size:1rem;font-weight:700;color:#a78bfa;margin-bottom:2rem;"></div>
+      <button id="openAppBtn" style="width:100%;padding:1rem;border-radius:9999px;border:none;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.875rem;box-shadow:0 4px 20px rgba(139,92,246,0.4);">
+        <i class="fas fa-mobile-alt" style="margin-right:0.5rem;"></i>Open in MedExcel App
+      </button>
+      <p style="font-size:0.75rem;color:#64748b;">Don't have the app? <a href="https://play.google.com/store/apps/details?id=com.medexcel.app" style="color:#8b5cf6;font-weight:600;">Download it</a></p>
     </div>
+  </div>
 
-    <!-- App Bundle (all views combined = 1 request) -->
-  <script src="js/app.bundle.js"></script>
-
-  <!-- Firebase (module) -->
-  <script type="module" src="js/firebase.js"></script>
-
-    <!-- Nickname Editor Sheet -->
-    <div id="nicknameBackdrop" class="sheet-backdrop" style="display:none;">
-        <div id="nicknameSheet" class="bottom-sheet" style="padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Change Nickname</h3>
-            <p id="nicknameSubtitle" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;">You can change your nickname once every 7 days.</p>
-            <input id="nicknameInput" type="text" maxlength="30" placeholder="Enter new nickname..."
-                style="width:100%;padding:0.875rem 1rem;border-radius:0.875rem;border:1.5px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.9375rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;margin-bottom:1rem;"
-                oninput="this.style.borderColor='var(--accent-btn)'">
-            <button id="saveNicknameBtn" onclick="window.saveNickname()"
-                style="width:100%;padding:1rem;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:9999px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;transition:transform 0.15s;">
-                Save Nickname
-            </button>
-            <button onclick="window.closeNicknameEditor()"
-                style="width:100%;padding:1rem;background:transparent;color:var(--text-muted);border:none;border-radius:9999px;font-size:0.9375rem;font-weight:600;cursor:pointer;">
-                Cancel
-            </button>
-        </div>
-    </div>
-    <!-- ═══════════════════════════════════════
-         ONBOARDING WALKTHROUGH
-    ═══════════════════════════════════════ -->
-    <div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:99998;">
-
-        <!-- Dark backdrop with cutout via SVG clip or box-shadow trick -->
-        <div id="onboardingBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.82);transition:opacity 0.4s ease;"></div>
-
-        <!-- Spotlight cutout (invisible box that punches through backdrop) -->
-        <div id="onboardingSpotlight" style="position:absolute;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,0.82);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);pointer-events:none;z-index:1;"></div>
-
-        <!-- Doctor image -->
-        <img id="onboardingDoctor" src="doctor.svg" alt="Doctor"
-            style="position:absolute;bottom:0;right:0;height:55%;max-height:340px;object-fit:contain;
-                   z-index:3;transform:translateX(100%);transition:transform 0.5s cubic-bezier(0.19,1,0.22,1);pointer-events:none;">
-
-        <!-- Speech bubble / card -->
-        <div id="onboardingCard" style="position:absolute;z-index:4;width:calc(100% - 2.5rem);max-width:380px;
-            background:var(--bg-surface,#1a1a1e);border:1px solid rgba(139,92,246,0.3);
-            border-radius:1.25rem;padding:1.25rem 1.25rem 1rem;
-            box-shadow:0 20px 60px rgba(0,0,0,0.5);
-            transition:all 0.4s cubic-bezier(0.19,1,0.22,1);">
-            <!-- Bubble tail -->
-            <div id="onboardingTail" style="position:absolute;width:16px;height:16px;background:var(--bg-surface,#1a1a1e);
-                border-right:1px solid rgba(139,92,246,0.3);border-bottom:1px solid rgba(139,92,246,0.3);
-                transform:rotate(45deg);bottom:-9px;left:2rem;transition:all 0.3s ease;"></div>
-
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.625rem;">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,0.15);
-                        border:1.5px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-user-md" style="font-size:0.7rem;color:var(--accent-btn,#8b5cf6);"></i>
-                    </div>
-                    <span style="font-size:0.7rem;font-weight:700;color:var(--accent-btn,#8b5cf6);text-transform:uppercase;letter-spacing:0.05em;">MedExcel Guide</span>
-                </div>
-                <button onclick="window.skipOnboarding()" style="background:none;border:none;color:var(--text-muted,#64748b);font-size:0.7rem;cursor:pointer;padding:2px 6px;border-radius:6px;">Skip</button>
-            </div>
-
-            <p id="onboardingText" style="font-size:0.9375rem;font-weight:600;color:var(--text-main,#f8fafc);line-height:1.5;margin-bottom:1rem;min-height:3.5rem;"></p>
-
-            <!-- Step dots -->
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;gap:5px;" id="onboardingDots"></div>
-                <button id="onboardingNextBtn" onclick="window.nextOnboardingStep()"
-                    style="background:var(--accent-btn,#8b5cf6);color:white;border:none;
-                    padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;cursor:pointer;
-                    transition:transform 0.15s ease;">Next →</button>
-            </div>
-        </div>
-    </div>
-    <!-- Create Group Modal -->
-    <div id="createGroupBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
-        <div class="bottom-sheet" id="createGroupSheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Create a Study Group</h3>
-            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Up to 10 members. Share an invite code to let friends join.</p>
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.5rem;">Group Name</label>
-            <input id="createGroupNameInput" type="text" maxlength="30" placeholder="e.g. MBBS Year 3 Squad" autocomplete="off"
-                style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:0.9375rem;outline:none;box-sizing:border-box;font-family:inherit;margin-bottom:1.25rem;">
-            <button onclick="window.createGroup()" id="createGroupBtn" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">Create Group</button>
-            <button onclick="window.closeModal('createGroupBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Join Group Modal -->
-    <div id="joinGroupBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
-        <div class="bottom-sheet" id="joinGroupSheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.5rem;"></div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Join a Study Group</h3>
-            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Enter the 6-digit invite code from your friend.</p>
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.5rem;">Invite Code</label>
-            <input id="joinGroupCodeInput" type="text" maxlength="6" placeholder="e.g. A3X9K2" autocomplete="off"
-                style="width:100%;background:var(--bg-body);border:1.5px solid var(--border-glass);border-radius:0.75rem;padding:0.875rem 1rem;color:var(--text-main);font-size:1.25rem;font-weight:700;letter-spacing:0.2em;text-align:center;text-transform:uppercase;outline:none;box-sizing:border-box;font-family:inherit;margin-bottom:1.25rem;">
-            <div id="joinGroupError" style="font-size:0.8rem;color:#f87171;margin-bottom:0.75rem;min-height:1rem;text-align:center;"></div>
-            <button onclick="window.joinGroup()" id="joinGroupBtn" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">Join Group</button>
-            <button onclick="window.closeModal('joinGroupBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Group Detail Modal (fullscreen) -->
-    <div id="groupDetailBackdrop" style="display:none;position:fixed;inset:0;z-index:300;background:var(--bg-body);overflow-y:auto;" class="hide-scroll">
-        <header style="padding:1rem 1.25rem;display:flex;align-items:center;gap:0.75rem;border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--bg-body);z-index:10;">
-            <button onclick="window.closeGroupDetail()" style="width:2.5rem;height:2.5rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);cursor:pointer;flex-shrink:0;">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <div style="flex:1;min-width:0;">
-                <h2 id="groupDetailName" style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0;truncate;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></h2>
-                <p id="groupDetailMeta" style="font-size:0.75rem;color:var(--text-muted);margin:0;"></p>
-            </div>
-            <button onclick="window.showShareGroupCode()" style="width:2.5rem;height:2.5rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--accent-btn);cursor:pointer;flex-shrink:0;" title="Invite">
-                <i class="fas fa-user-plus"></i>
-            </button>
-            <button id="leaveGroupBtn" onclick="window.leaveGroup()" style="display:none;width:2.5rem;height:2.5rem;border-radius:50%;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);align-items:center;justify-content:center;color:#f87171;cursor:pointer;flex-shrink:0;" title="Leave Group">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
-            <button id="deleteGroupBtn" onclick="window.deleteGroup()" style="display:none;width:2.5rem;height:2.5rem;border-radius:50%;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);align-items:center;justify-content:center;color:#f87171;cursor:pointer;flex-shrink:0;" title="Delete Group">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-        </header>
-
-        <div style="padding:1.25rem;">
-            <!-- Group Leaderboard -->
-            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">This Week</h3>
-            <div id="groupLeaderboard" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
-
-            <!-- Score Feed -->
-            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">Recent Activity</h3>
-            <div id="groupScoreFeed" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
-
-            <!-- Shared Decks -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-                <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0;">Shared Decks</h3>
-                <button onclick="window.showShareDeckToGroup()" style="font-size:0.75rem;font-weight:700;color:var(--accent-btn);background:transparent;border:none;cursor:pointer;padding:0.25rem 0.5rem;">
-                    <i class="fas fa-plus"></i> Share a Deck
-                </button>
-            </div>
-            <div id="groupDecksList" style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem;"></div>
-
-            <!-- Members -->
-            <h3 style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.75rem;">Members</h3>
-            <div id="groupMembersList" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;"></div>
-        </div>
-    </div>
-
-    <!-- Share Deck to Group Modal -->
-    <div id="shareDeckBackdrop" class="modal-backdrop" style="align-items:flex-end;display:none;opacity:0;">
-        <div class="bottom-sheet" style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);">
-            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
-            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin-bottom:0.375rem;">Share a Deck</h3>
-            <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">Choose a deck from your library to share with the group.</p>
-            <div id="shareDeckList" class="hide-scroll" style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;"></div>
-            <button onclick="window.closeModal('shareDeckBackdrop')" style="width:100%;padding:1rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">Cancel</button>
-        </div>
-    </div>
-
+  <script>
+    (function() {
+      const code = new URLSearchParams(location.search).get('code');
+      if (code && code.length === 6) {
+        const page = document.getElementById('groupInvitePage');
+        if (page) {
+          page.style.display = 'flex';
+          // Try to get group name from URL param
+          const name = new URLSearchParams(location.search).get('name');
+          const nameEl = document.getElementById('inviteGroupName');
+          if (nameEl && name) nameEl.textContent = decodeURIComponent(name);
+          // Open app button
+          document.getElementById('openAppBtn').onclick = function() {
+            // Store code in localStorage so it persists across app open
+            localStorage.setItem('medexcel_pending_group', code.toUpperCase());
+            // Fire custom scheme to open app
+            window.location.href = 'medxcel://auth?code=' + code.toUpperCase();
+          };
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
