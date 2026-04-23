@@ -39,14 +39,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
             const savedHasAccount   = localStorage.getItem('medexcel_has_account');
-            const savedPushPending  = localStorage.getItem('medexcel_push_pending');
+            const savedAppVersion   = localStorage.getItem('medexcel_app_version');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
-            if (savedTheme)       localStorage.setItem('medexcel_theme', savedTheme);
-            if (savedCoachMarks)  localStorage.setItem('medexcel_onboarding_v1', savedCoachMarks);
-            if (savedOnboarding)  localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
-            if (savedHasAccount)  localStorage.setItem('medexcel_has_account', savedHasAccount);
-            if (savedPushPending) localStorage.setItem('medexcel_push_pending', savedPushPending);
+            if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
+            if (savedCoachMarks) localStorage.setItem('medexcel_onboarding_v1', savedCoachMarks);
+            if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
+            if (savedHasAccount) localStorage.setItem('medexcel_has_account', savedHasAccount);
+            if (savedAppVersion) localStorage.setItem('medexcel_app_version', savedAppVersion);
             window.location.replace("index.html");
         };
 
@@ -2206,11 +2206,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         if (cfg.forceUpdateVersion && (data.role || '') !== 'admin') {
                             const serverVersion = String(cfg.forceUpdateVersion);
                             const cachedVersion = localStorage.getItem('medexcel_app_version');
-                            if (cachedVersion !== serverVersion) {
-                                // Save version FIRST synchronously, then navigate
-                                // Using href with ?v= prevents the old page from being in history
-                                // and ensures the browser fetches a completely fresh page
-                                localStorage.setItem('medexcel_app_version', serverVersion);
+                            localStorage.setItem('medexcel_app_version', serverVersion);
+                            if (cachedVersion && cachedVersion !== serverVersion) {
                                 window.location.href = 'homepage.html?v=' + serverVersion;
                                 return;
                             }
@@ -2318,10 +2315,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                if (window.initPush && localStorage.getItem('medexcel_push_pending')) {
-                    localStorage.removeItem('medexcel_push_pending');
-                    window.initPush(firebaseUser.uid);
-                }
+                if (window.initPush) window.initPush(firebaseUser.uid);
 
                 // ── Claim pending referral code from onboarding ───────────────
                 // Set during onboarding if user entered a friend's code.
@@ -2352,13 +2346,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
-                const _pushPending    = localStorage.getItem('medexcel_push_pending');
+                const _appVersion     = localStorage.getItem('medexcel_app_version');
                 localStorage.clear();
                 if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
                 if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
                 if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
-                if (_pushPending)    localStorage.setItem('medexcel_push_pending', _pushPending);
+                if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
                 window.location.replace("index.html");
             }
         });
