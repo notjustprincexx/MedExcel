@@ -274,16 +274,16 @@
     <button id="signInBtn" class="lm-submit">Sign In</button>
     <button id="forgotBtn" class="lm-forgot">Forgot Password?</button>
 
-    <!-- Forgot password panel — hidden by default, shown when forgotBtn is tapped -->
     <div id="forgotPanel" style="display:none;">
-      <p style="font-size:0.8rem;color:var(--text-muted,#94a3b8);text-align:center;margin-bottom:1rem;line-height:1.5;">
+      <p style="font-size:0.8rem;color:var(--text-muted,#94a3b8);text-align:center;margin-bottom:1rem;line-height:1.55;">
         Enter your email and we'll send you a reset link.
       </p>
       <div class="lm-input-row" style="margin-bottom:0.75rem;">
         <input id="forgotEmailInput" type="email" placeholder="Email address" class="lm-input" autocomplete="email">
       </div>
-      <button id="sendResetBtn" class="lm-submit" style="margin-bottom:0.75rem;">Send Reset Link</button>
-      <div id="forgotMsg" style="font-size:0.8rem;text-align:center;min-height:1.25rem;"></div>
+      <button id="sendResetBtn" class="lm-submit" style="margin-bottom:0.5rem;">Send Reset Link</button>
+      <button id="resendResetBtn" class="lm-forgot" style="display:none;">Resend link</button>
+      <div id="forgotMsg" style="font-size:0.8rem;text-align:center;margin-top:0.5rem;min-height:1.25rem;font-weight:500;"></div>
       <button id="backToLoginBtn" class="lm-forgot" style="margin-top:0.25rem;">← Back to Sign In</button>
     </div>
     <div class="lm-divider">
@@ -316,19 +316,19 @@
     document.addEventListener('DOMContentLoaded', function() {
 
       // ── Forgot Password ───────────────────────────────────────────────────
-      var forgotBtn     = document.getElementById('forgotBtn');
-      var backToLogin   = document.getElementById('backToLoginBtn');
-      var sendResetBtn  = document.getElementById('sendResetBtn');
-      var forgotPanel   = document.getElementById('forgotPanel');
-      var forgotMsg     = document.getElementById('forgotMsg');
-      var forgotEmail   = document.getElementById('forgotEmailInput');
-
-      // Elements to hide/show when toggling states
-      var loginFields   = document.querySelector('.lm-input-group');
-      var signInBtn     = document.getElementById('signInBtn');
-      var lmDivider     = document.querySelector('.lm-divider');
-      var lmGoogle      = document.querySelector('.lm-google');
-      var lmTitle       = document.getElementById('lmTitle');
+      var forgotBtn    = document.getElementById('forgotBtn');
+      var backToLogin  = document.getElementById('backToLoginBtn');
+      var sendResetBtn = document.getElementById('sendResetBtn');
+      var resendBtn    = document.getElementById('resendResetBtn');
+      var forgotPanel  = document.getElementById('forgotPanel');
+      var forgotMsg    = document.getElementById('forgotMsg');
+      var forgotEmail  = document.getElementById('forgotEmailInput');
+      var loginFields  = document.querySelector('.lm-input-group');
+      var signInBtn    = document.getElementById('signInBtn');
+      var lmDivider    = document.querySelector('.lm-divider');
+      var lmGoogle     = document.querySelector('.lm-google');
+      var lmTitle      = document.getElementById('lmTitle');
+      var resendTimer;
 
       function showForgotState() {
         if (loginFields) loginFields.style.display = 'none';
@@ -337,13 +337,13 @@
         if (lmDivider)   lmDivider.style.display   = 'none';
         if (lmGoogle)    lmGoogle.style.display     = 'none';
         if (forgotPanel) forgotPanel.style.display  = 'block';
-        if (lmTitle)     lmTitle.textContent        = 'Reset Password';
-        // Pre-fill email if already entered
+        if (lmTitle)     lmTitle.textContent        = 'Forgot Password';
         var existingEmail = document.getElementById('emailInput');
-        if (forgotEmail && existingEmail && existingEmail.value) {
-          forgotEmail.value = existingEmail.value;
-        }
-        if (forgotMsg) { forgotMsg.textContent = ''; forgotMsg.style.color = ''; }
+        if (forgotEmail && existingEmail && existingEmail.value) forgotEmail.value = existingEmail.value;
+        if (forgotMsg)   { forgotMsg.textContent = ''; forgotMsg.style.color = ''; }
+        if (resendBtn)     resendBtn.style.display = 'none';
+        if (sendResetBtn)  { sendResetBtn.style.display = 'block'; sendResetBtn.disabled = false; sendResetBtn.textContent = 'Send Reset Link'; }
+        clearTimeout(resendTimer);
       }
 
       function showLoginState() {
@@ -354,55 +354,57 @@
         if (lmGoogle)    lmGoogle.style.display     = '';
         if (forgotPanel) forgotPanel.style.display  = 'none';
         if (lmTitle)     lmTitle.textContent        = 'Enter your details';
+        clearTimeout(resendTimer);
       }
 
       if (forgotBtn)   forgotBtn.onclick   = showForgotState;
       if (backToLogin) backToLogin.onclick = showLoginState;
 
-      if (sendResetBtn) {
-        sendResetBtn.onclick = async function() {
-          var email = forgotEmail ? forgotEmail.value.trim() : '';
-          if (!email) {
-            forgotMsg.style.color = '#f87171';
-            forgotMsg.textContent = 'Please enter your email address.';
-            return;
+      async function sendReset() {
+        var email = forgotEmail ? forgotEmail.value.trim() : '';
+        if (!email) {
+          forgotMsg.style.color = '#f87171';
+          forgotMsg.textContent = 'Please enter your email address.';
+          return;
+        }
+        sendResetBtn.disabled    = true;
+        sendResetBtn.textContent = 'Sending…';
+        if (resendBtn) resendBtn.style.display = 'none';
+        forgotMsg.textContent = '';
+
+        try {
+          var res = await fetch('https://us-central1-medxcel.cloudfunctions.net/sendResetEmail', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ email: email })
+          });
+          if (!res.ok) {
+            var body = await res.json().catch(function() { return {}; });
+            throw new Error(body.error || 'Server error (' + res.status + ')');
           }
-          sendResetBtn.disabled    = true;
-          sendResetBtn.textContent = 'Sending…';
-          forgotMsg.textContent    = '';
-          try {
-            var { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-            var { getAuth, sendPasswordResetEmail, fetchSignInMethodsForEmail } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
-            var firebaseConfig = {
-              apiKey:            "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
-              authDomain:        "medxcel.firebaseapp.com",
-              projectId:         "medxcel",
-              storageBucket:     "medxcel.firebasestorage.app",
-              messagingSenderId: "649180317389",
-              appId:             "1:649180317389:web:f6b9a7053a37853ea04b84"
-            };
-            var app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-            var auth = getAuth(app);
-            await sendPasswordResetEmail(auth, email);
-            forgotMsg.style.color = '#4ade80';
-            forgotMsg.textContent = 'Reset link sent! Check your inbox.';
-            sendResetBtn.textContent = 'Sent ✓';
-          } catch(e) {
-            forgotMsg.style.color = '#f87171';
-            if (e.code === 'auth/user-not-found') {
-              forgotMsg.textContent = 'No account found with this email.';
-            } else if (e.code === 'auth/invalid-email') {
-              forgotMsg.textContent = 'Please enter a valid email address.';
-            } else if (e.code === 'auth/too-many-requests') {
-              forgotMsg.textContent = 'Too many attempts. Try again later.';
-            } else {
-              forgotMsg.textContent = 'Something went wrong. Try again.';
-            }
-            sendResetBtn.disabled    = false;
-            sendResetBtn.textContent = 'Send Reset Link';
-          }
-        };
+          forgotMsg.style.color = '#4ade80';
+          forgotMsg.textContent = 'Reset link sent! Check your inbox.';
+          sendResetBtn.textContent = 'Sent ✓';
+          resendTimer = setTimeout(function() {
+            if (resendBtn) resendBtn.style.display = 'block';
+          }, 10000);
+        } catch(e) {
+          forgotMsg.style.color = '#f87171';
+          forgotMsg.textContent = e.message || 'Something went wrong. Please try again.';
+          sendResetBtn.disabled    = false;
+          sendResetBtn.textContent = 'Send Reset Link';
+        }
       }
+
+      if (sendResetBtn) sendResetBtn.onclick = sendReset;
+      if (resendBtn) resendBtn.onclick = function() {
+        resendBtn.style.display  = 'none';
+        sendResetBtn.disabled    = false;
+        sendResetBtn.textContent = 'Send Reset Link';
+        forgotMsg.textContent    = '';
+        clearTimeout(resendTimer);
+        sendReset();
+      };
       // ─────────────────────────────────────────────────────────────────────
 
       // Banned user redirect — show message then clear param from URL
