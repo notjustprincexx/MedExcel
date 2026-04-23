@@ -1255,15 +1255,19 @@
             var KEY = 'medexcel_onboarding_v1';
             if (localStorage.getItem(KEY)) return;
 
+            // Preload doctor.svg immediately so it's cached before the tour builds
+            var _doctorImg = new Image();
+            _doctorImg.src = 'doctor.svg';
+
             var STEPS = [
-                { target: null,                text: "Hi! I'm your MedExcel guide 👋  Let me show you everything — there's a lot of good stuff here!", btn: "Let's go →" },
-                { target: 'nav-create',        text: "Tap Create to generate AI flashcards & MCQs from your notes, PDFs, slides or YouTube links. You can also import Anki decks here!", btn: "Got it →" },
-                { target: 'studyFocusCard',    text: "Study Focus 🎯  We analyse your study history and tell you exactly what to review next. Tap 'Full Report' anytime for a full breakdown.", btn: "Got it →" },
-                { target: 'nav-study',         text: "Your Library 📚  Every deck you've ever generated lives here — searchable and sorted by date.", btn: "Got it →" },
-                { target: 'headerStreakBadge', text: "Your Streak 🔥  Check in every day to keep it alive and earn XP. Miss a day and it resets!", btn: "Got it →" },
-                { target: 'nav-leaderboard',   text: "The Leaderboard 🏆  Compete All Time, by This Week, or create a private Study Group to compete with friends!", btn: "Got it →" },
-                { target: 'nav-profile',       text: "Your Profile — track your rank & achievements, invite friends for bonus rewards, and upgrade to Premium for unlimited AI generations.", btn: "Got it →" },
-                { target: null,                text: "You're all set! 🎯  One more tip — try Game Mode (Boss Fight) on the home screen for a fun way to earn XP. Consistency beats cramming!", btn: "Start studying!" }
+                { target: null,                text: "Hi! 👋 I'm your MedExcel guide. Let me quickly show you around!", btn: "Let's go →" },
+                { target: 'nav-create',        text: "Generate AI flashcards & MCQs from your notes, PDFs or YouTube links.", btn: "Got it →" },
+                { target: 'studyFocusCard',    text: "Study Focus 🎯 We analyse your history and tell you exactly what to review next.", btn: "Got it →" },
+                { target: 'nav-study',         text: "Your Library 📚 All your generated decks live here — searchable and organised.", btn: "Got it →" },
+                { target: 'headerStreakBadge', text: "Check in daily to keep your streak alive and earn XP 🔥", btn: "Got it →" },
+                { target: 'nav-leaderboard',   text: "See how you rank globally or compete in a Study Group with friends 🏆", btn: "Got it →" },
+                { target: 'nav-profile',       text: "Track achievements, invite friends for rewards, and manage your plan here.", btn: "Got it →" },
+                { target: null,                text: "You're all set! Consistency beats cramming. Let's ace those exams! 🎯", btn: "Start studying!" }
             ];
 
             var cur = 0, ov, canvas, ctx, doc, W, H;
@@ -1463,23 +1467,28 @@
                 if (s.target) {
                     var el = document.getElementById(s.target);
                     if (el) {
-                        var r = el.getBoundingClientRect(), p = 10;
-                        var rect = { x:r.left-p, y:r.top-p, w:r.width+p*2, h:r.height+p*2 };
-                        drawCutout(rect);
-                        makeTooltip(s, rect);
+                        // Scroll element into view first — handles cards below the fold
+                        el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
-                        // Remove old tap zone
-                        var oldZone = ov.querySelector('.ob-tapzone');
-                        if (oldZone) oldZone.remove();
+                        setTimeout(function() {
+                            var r = el.getBoundingClientRect(), p = 10;
+                            var rect = { x:r.left-p, y:r.top-p, w:r.width+p*2, h:r.height+p*2 };
+                            drawCutout(rect);
+                            makeTooltip(s, rect);
 
-                        // Transparent tap zone over the highlighted element
-                        var zone = document.createElement('div');
-                        zone.className = 'ob-tapzone';
-                        zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
-                            'left:' + rect.x + 'px;top:' + rect.y + 'px;' +
-                            'width:' + rect.w + 'px;height:' + rect.h + 'px;';
-                        zone.onclick = advance;
-                        ov.appendChild(zone);
+                            // Remove old tap zone
+                            var oldZone = ov.querySelector('.ob-tapzone');
+                            if (oldZone) oldZone.remove();
+
+                            // Transparent tap zone over the highlighted element
+                            var zone = document.createElement('div');
+                            zone.className = 'ob-tapzone';
+                            zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
+                                'left:' + rect.x + 'px;top:' + rect.y + 'px;' +
+                                'width:' + rect.w + 'px;height:' + rect.h + 'px;';
+                            zone.onclick = advance;
+                            ov.appendChild(zone);
+                        }, 120); // wait for scroll to settle before measuring
                     }
                 } else {
                     // Remove tap zone on non-target steps

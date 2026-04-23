@@ -1801,10 +1801,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 }
             }
 
-            // Fallback: initial
+            // Fallback: initial — restore circle styling so the avatar wrap still looks correct
             if (wrap) {
-                wrap.style.cssText = '';
-                wrap.style.border = '';
+                wrap.style.cssText = 'width:56px;height:56px;border-radius:50%;background:rgba(249,115,22,0.1);color:var(--accent-orange);border:2px solid var(--border-color);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.375rem;overflow:hidden;';
                 wrap.innerHTML = `<span id="userInitial">${storedInitial}</span>`;
                 const gem = wrap.parentElement?.querySelector('#premiumGemBadge');
                 if (gem) gem.remove();
