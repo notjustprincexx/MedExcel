@@ -1256,12 +1256,14 @@
             if (localStorage.getItem(KEY)) return;
 
             var STEPS = [
-                { target: null,                text: "Hi! I'm your MedExcel guide 👋  Let me quickly show you how everything works.", btn: "Let's go →" },
-                { target: 'nav-create',        text: "Tap here to generate MCQs or flashcards from your notes, PDFs or YouTube.", btn: "Got it →" },
-                { target: 'nav-study',         text: "Your Library — all your generated decks live here.", btn: "Got it →" },
-                { target: 'headerStreakBadge', text: "Your Streak 🔥  Check in every day to keep it alive and earn XP.", btn: "Got it →" },
-                { target: 'nav-leaderboard',   text: "The Leaderboard 🏆  See how you rank against other students.", btn: "Got it →" },
-                { target: null,                text: "You're all set! 🎯  Consistency beats cramming. Let's ace those exams!", btn: "Start studying!" }
+                { target: null,                text: "Hi! I'm your MedExcel guide 👋  Let me show you everything — there's a lot of good stuff here!", btn: "Let's go →" },
+                { target: 'nav-create',        text: "Tap Create to generate AI flashcards & MCQs from your notes, PDFs, slides or YouTube links. You can also import Anki decks here!", btn: "Got it →" },
+                { target: 'studyFocusCard',    text: "Study Focus 🎯  We analyse your study history and tell you exactly what to review next. Tap 'Full Report' anytime for a full breakdown.", btn: "Got it →" },
+                { target: 'nav-study',         text: "Your Library 📚  Every deck you've ever generated lives here — searchable and sorted by date.", btn: "Got it →" },
+                { target: 'headerStreakBadge', text: "Your Streak 🔥  Check in every day to keep it alive and earn XP. Miss a day and it resets!", btn: "Got it →" },
+                { target: 'nav-leaderboard',   text: "The Leaderboard 🏆  Compete All Time, by This Week, or create a private Study Group to compete with friends!", btn: "Got it →" },
+                { target: 'nav-profile',       text: "Your Profile — track your rank & achievements, invite friends for bonus rewards, and upgrade to Premium for unlimited AI generations.", btn: "Got it →" },
+                { target: null,                text: "You're all set! 🎯  One more tip — try Game Mode (Boss Fight) on the home screen for a fun way to earn XP. Consistency beats cramming!", btn: "Start studying!" }
             ];
 
             var cur = 0, ov, canvas, ctx, doc, W, H;
