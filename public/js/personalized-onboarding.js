@@ -452,15 +452,12 @@
                 mainBtn.textContent = 'Set Reminder';
                 mainBtn.style.display = 'block';
 
-                // Override click handler for this step only — request push permission
-                // at the exact moment the user confirms they want a daily reminder.
                 mainBtn.onclick = function() {
                     if (answers['reminderEnabled'] !== false) {
-                        if (window.initPush && window.currentUser) {
-                            window.initPush(window.currentUser.uid);
-                        }
-                        // If currentUser isn't ready yet (rare), initUserUI will
-                        // call initPush once onboardingDone is saved to Firestore.
+                        // Flag picked up by firebase.js onAuthStateChanged on the first
+                        // homepage load after onboarding — keeps the permission dialog
+                        // out of the homepage and tied to the user's explicit choice here.
+                        localStorage.setItem('medexcel_push_pending', '1');
                     }
                     handleNext();
                 };

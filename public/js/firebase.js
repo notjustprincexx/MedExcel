@@ -2152,17 +2152,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 
-                // ── Push notifications ────────────────────────────────────────
-                // Gate on localStorage flag (preserved through logout, set by onboarding)
-                // so initPush never fires before the user has seen the reminder step.
-                // window.userProfile.reminderEnabled is already merged from Firestore
-                // + localStorage by line 1983, so it's the correct source of truth.
-                if (localStorage.getItem('medexcel_personalized_onboarding_done') &&
-                    window.userProfile?.reminderEnabled !== false &&
-                    window.initPush) {
-                    window.initPush(user.uid);
-                }
-
                 // ---- REFERRAL SYSTEM INIT ----
                 // 1. Ensure user has a referral code (backfill for existing users)
                 if (!data.referralCode && user.uid) {
@@ -2218,12 +2207,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             const cachedVersion = localStorage.getItem('medexcel_app_version');
                             localStorage.setItem('medexcel_app_version', serverVersion);
                             if (cachedVersion && cachedVersion !== serverVersion) {
-                                // Genuine version bump — reload to pick up new assets
                                 window.location.href = 'homepage.html?v=' + serverVersion;
                                 return;
                             }
-                            // No cachedVersion means first install — just save it silently,
-                            // no reload needed (avoids the double-load glitch on first login)
                         }
                     }
                 } catch(e) {}
@@ -2328,7 +2314,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                // initPush is called from inside initUserUI once reminderEnabled is confirmed
+
+                // initPush is ONLY triggered by the medexcel_push_pending flag,
+                // which is set when the user taps "Set Reminder" in onboarding.
+                // This ensures the permission dialog never appears on homepage load —
+                // only on the first load right after the user explicitly chose reminders.
+                const _pushPending = localStorage.getItem('medexcel_push_pending');
+                if (_pushPending) {
+                    localStorage.removeItem('medexcel_push_pending');
+                    if (window.initPush) window.initPush(firebaseUser.uid);
+                }
 
                 // ── Claim pending referral code from onboarding ───────────────
                 // Set during onboarding if user entered a friend's code.
@@ -2360,12 +2355,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 const _appVersion     = localStorage.getItem('medexcel_app_version');
+                const _pushPending    = localStorage.getItem('medexcel_push_pending');
                 localStorage.clear();
                 if (_authTheme)    localStorage.setItem('medexcel_theme', _authTheme);
                 if (_coachMarks)   localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
                 if (_hasAccount)   localStorage.setItem('medexcel_has_account', _hasAccount);
                 if (_appVersion)   localStorage.setItem('medexcel_app_version', _appVersion);
+                if (_pushPending)  localStorage.setItem('medexcel_push_pending', _pushPending);
                 window.location.replace("index.html");
             }
         });
