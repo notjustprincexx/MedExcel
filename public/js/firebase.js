@@ -2011,6 +2011,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         createdAt: serverTimestamp()
                     };
                     try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
+
+                    // Send welcome email to brand-new users (fire-and-forget)
+                    const _welcomeEmail = user.email
+                        || (localStorage.getItem('nativeUser') ? JSON.parse(localStorage.getItem('nativeUser') || '{}').email : null);
+                    if (_welcomeEmail) {
+                        fetch("https://us-central1-medxcel.cloudfunctions.net/sendWelcomeEmail", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                email: _welcomeEmail,
+                                displayName: user.displayName || savedName || null
+                            })
+                        }).catch(() => {});
+                    }
                 }
 
                 // Store profile globally for rest of app
