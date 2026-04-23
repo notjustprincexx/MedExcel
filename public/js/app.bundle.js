@@ -262,15 +262,8 @@
         }
 
         // Initialize Router on load
-        // _routerReady guards against Capacitor WebView firing a synthetic popstate
-        // when navigateTo calls history.pushState on first load, which would cause
-        // a second initRouter() call and a visible homepage double-render glitch.
-        var _routerReady = false;
-        window.addEventListener('DOMContentLoaded', function() {
-            initRouter();
-            setTimeout(function() { _routerReady = true; }, 100);
-        });
-        window.addEventListener('popstate', function() { if (_routerReady) initRouter(); });
+        window.addEventListener('DOMContentLoaded', initRouter);
+        window.addEventListener('popstate', initRouter);
 
 
         // --- UTILS & MODALS ---
@@ -1513,6 +1506,9 @@
 
             function done() {
                 if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
+                // Reset scroll shifted by scrollIntoView during the tour
+                var homeView = document.getElementById('view-home');
+                if (homeView) homeView.scrollTop = 0;
                 if (typeof navigateTo==='function') navigateTo('view-home');
                 localStorage.setItem(KEY, '1');
                 // Show streak modal now if it was pending
