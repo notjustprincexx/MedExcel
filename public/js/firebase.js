@@ -2152,10 +2152,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 
-                // ── Push notifications for existing users (already past onboarding) ──
-                // New users get initPush called directly from the onboarding reminder step.
-                // For returning users the flag won't be set, so we rely on Firestore data.
-                if (!localStorage.getItem('medexcel_push_pending') && data.reminderEnabled !== false) {
+                // ── Push for returning users ──────────────────────────────────
+                // Only call initPush if the user has fully completed onboarding
+                // (so reminderEnabled has actually been set by them) and they
+                // chose to enable reminders. New users get initPush called from
+                // the "Set Reminder" button in personalized-onboarding.js instead.
+                if (data.onboardingDone && data.reminderEnabled !== false) {
                     if (window.initPush) window.initPush(user.uid);
                 }
 
@@ -2324,15 +2326,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-
-                // ── Push notifications: only request permission if onboarding
-                // set the flag (new users) or Firestore reminderEnabled is true
-                // (existing users). initUserUI handles the Firestore path below.
-                const _pushPending = localStorage.getItem('medexcel_push_pending');
-                if (_pushPending) {
-                    localStorage.removeItem('medexcel_push_pending');
-                    if (window.initPush) window.initPush(firebaseUser.uid);
-                }
+                // initPush is now triggered from two places:
+                //   1. personalized-onboarding.js → "Set Reminder" button (new users)
+                //   2. initUserUI below, only after onboarding is confirmed done (returning users)
+                // Do NOT call it here — this fires before the reminder step for new users.
 
                 // ── Claim pending referral code from onboarding ───────────────
                 // Set during onboarding if user entered a friend's code.
@@ -2363,11 +2360,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _coachMarks     = localStorage.getItem('medexcel_onboarding_v1');
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
+                const _appVersion     = localStorage.getItem('medexcel_app_version');
                 localStorage.clear();
                 if (_authTheme)    localStorage.setItem('medexcel_theme', _authTheme);
                 if (_coachMarks)   localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
                 if (_hasAccount)   localStorage.setItem('medexcel_has_account', _hasAccount);
+                if (_appVersion)   localStorage.setItem('medexcel_app_version', _appVersion);
                 window.location.replace("index.html");
             }
         });
