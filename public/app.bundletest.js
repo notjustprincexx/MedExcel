@@ -66,15 +66,17 @@
                 const pct = count > 0 && attempts > 0 ? Math.round((best / count) * 100) : null;
                 const pctLabel = pct === null ? 'New' : `+${pct}%`;
                 const pctColor = pct === null ? 'var(--accent-btn)' : pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--text-muted)';
-                const icon  = isMCQ ? 'fas fa-clipboard-list' : 'fas fa-layer-group';
-                const color = isMCQ ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400';
+                const isMCQIcon = isMCQ;
                 const label = isMCQ ? 'Questions' : 'Cards';
 
                 return `<a href="javascript:void(0)" onclick="navigateTo('view-study')" 
                     class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
                     <div class="flex items-center min-w-0">
-                        <div class="w-12 h-12 rounded-full ${color} flex items-center justify-center text-xl mr-4 shrink-0">
-                            <i class="${icon}"></i>
+                        <div class="mr-4 shrink-0" style="width:40px;height:40px;">
+                            ${isMCQIcon
+                                ? '<svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A855F7"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient><linearGradient id="rfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7E22CE"/><stop offset="100%" stop-color="#581C87"/></linearGradient><linearGradient id="rw3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient><filter id="rds"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#4C1D95" flood-opacity="0.15"/></filter><filter id="res"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#581C87" flood-opacity="0.3"/></filter></defs><path d="M 140 60 H 300 L 420 180 V 420 Q 420 460 380 460 H 140 Q 100 460 100 420 V 100 Q 100 60 140 60 Z" fill="url(#rdg)" filter="url(#rds)"/><path d="M 300 60 V 140 Q 300 180 340 180 H 420 Z" fill="url(#rfg)"/><path d="M 140 62 H 298 M 102 100 V 420" stroke="#D8B4FE" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/><g filter="url(#res)" fill="url(#rw3)"><circle cx="180" cy="180" r="28"/><rect x="230" y="166" width="110" height="28" rx="14"/><circle cx="180" cy="260" r="28"/><rect x="230" y="246" width="110" height="28" rx="14"/><circle cx="180" cy="340" r="28"/><rect x="230" y="326" width="110" height="28" rx="14"/></g></svg>'
+                                : '<svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>'
+                            }
                         </div>
                         <div class="flex flex-col min-w-0">
                             <span class="text-[15px] font-bold text-[var(--text-main)] mb-0.5 truncate">${window.escapeHTML(quiz.title || 'Untitled')}</span>
@@ -89,6 +91,7 @@
         };
 
         window.updateHomeContinueCard = function() {
+            if (typeof window.renderStudyFocusCard === 'function') window.renderStudyFocusCard();
             const cTitle = document.getElementById('continueTitle');
             const cMeta = document.getElementById('continueMeta');
             const cProgress = document.getElementById('continueProgressText');
@@ -131,8 +134,8 @@
 
                 window._continueQuizId = lastQuiz.id;
                 cIconBox.innerHTML = isMCQ
-                    ? '<i class="fas fa-clipboard-list" style="font-size:1.25rem;"></i>'
-                    : '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
+                    ? '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A855F7"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient><linearGradient id="cfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7E22CE"/><stop offset="100%" stop-color="#581C87"/></linearGradient><linearGradient id="cw3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient><filter id="cds"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#4C1D95" flood-opacity="0.15"/></filter><filter id="ces"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#581C87" flood-opacity="0.25"/></filter></defs><path d="M 140 60 H 300 L 420 180 V 420 Q 420 460 380 460 H 140 Q 100 460 100 420 V 100 Q 100 60 140 60 Z" fill="url(#cdg)" filter="url(#cds)"/><path d="M 300 60 V 140 Q 300 180 340 180 H 420 Z" fill="url(#cfg)"/><path d="M 140 62 H 298 M 102 100 V 420" stroke="#D8B4FE" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/><g filter="url(#ces)" fill="url(#cw3)"><circle cx="180" cy="180" r="28"/><rect x="230" y="166" width="110" height="28" rx="14"/><circle cx="180" cy="260" r="28"/><rect x="230" y="246" width="110" height="28" rx="14"/><circle cx="180" cy="340" r="28"/><rect x="230" y="326" width="110" height="28" rx="14"/></g></svg>'
+                    : '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>';
                 cIconBox.style.color = isMCQ ? '#8b5cf6' : '#60a5fa';
                 cTitle.textContent = lastQuiz.title || 'Untitled';
 
@@ -158,7 +161,7 @@
                     cMeta.innerHTML = `<span>Reviewed ${attempts}×</span> • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
                 }
             } else {
-                cIconBox.innerHTML = '<i class="fas fa-layer-group" style="font-size:1.25rem;"></i>';
+                cIconBox.innerHTML = '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>';
                 cIconBox.style.color = '#60a5fa';
                 cTitle.textContent = 'No recent activity';
                 cProgress.textContent = 'Start';
@@ -1252,13 +1255,19 @@
             var KEY = 'medexcel_onboarding_v1';
             if (localStorage.getItem(KEY)) return;
 
+            // Preload doctor.svg immediately so it's cached before the tour builds
+            var _doctorImg = new Image();
+            _doctorImg.src = 'doctor.svg';
+
             var STEPS = [
-                { target: null,                text: "Hi! I'm your MedExcel guide 👋  Let me quickly show you how everything works.", btn: "Let's go →" },
-                { target: 'nav-create',        text: "Tap here to generate MCQs or flashcards from your notes, PDFs or YouTube.", btn: "Got it →" },
-                { target: 'nav-study',         text: "Your Library — all your generated decks live here.", btn: "Got it →" },
-                { target: 'headerStreakBadge', text: "Your Streak 🔥  Check in every day to keep it alive and earn XP.", btn: "Got it →" },
-                { target: 'nav-leaderboard',   text: "The Leaderboard 🏆  See how you rank against other students.", btn: "Got it →" },
-                { target: null,                text: "You're all set! 🎯  Consistency beats cramming. Let's ace those exams!", btn: "Start studying!" }
+                { target: null,                text: "Hi! 👋 I'm your MedExcel guide. Let me quickly show you around!", btn: "Let's go →" },
+                { target: 'nav-create',        text: "Generate AI flashcards & MCQs from your notes, PDFs or YouTube links.", btn: "Got it →" },
+                { target: 'studyFocusCard',    text: "Study Focus 🎯 We analyse your history and tell you exactly what to review next.", btn: "Got it →" },
+                { target: 'nav-study',         text: "Your Library 📚 All your generated decks live here — searchable and organised.", btn: "Got it →" },
+                { target: 'headerStreakBadge', text: "Check in daily to keep your streak alive and earn XP 🔥", btn: "Got it →" },
+                { target: 'nav-leaderboard',   text: "See how you rank globally or compete in a Study Group with friends 🏆", btn: "Got it →" },
+                { target: 'nav-profile',       text: "Track achievements, invite friends for rewards, and manage your plan here.", btn: "Got it →" },
+                { target: null,                text: "You're all set! Consistency beats cramming. Let's ace those exams! 🎯", btn: "Start studying!" }
             ];
 
             var cur = 0, ov, canvas, ctx, doc, W, H;
@@ -1458,23 +1467,28 @@
                 if (s.target) {
                     var el = document.getElementById(s.target);
                     if (el) {
-                        var r = el.getBoundingClientRect(), p = 10;
-                        var rect = { x:r.left-p, y:r.top-p, w:r.width+p*2, h:r.height+p*2 };
-                        drawCutout(rect);
-                        makeTooltip(s, rect);
+                        // Scroll element into view first — handles cards below the fold
+                        el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
-                        // Remove old tap zone
-                        var oldZone = ov.querySelector('.ob-tapzone');
-                        if (oldZone) oldZone.remove();
+                        setTimeout(function() {
+                            var r = el.getBoundingClientRect(), p = 10;
+                            var rect = { x:r.left-p, y:r.top-p, w:r.width+p*2, h:r.height+p*2 };
+                            drawCutout(rect);
+                            makeTooltip(s, rect);
 
-                        // Transparent tap zone over the highlighted element
-                        var zone = document.createElement('div');
-                        zone.className = 'ob-tapzone';
-                        zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
-                            'left:' + rect.x + 'px;top:' + rect.y + 'px;' +
-                            'width:' + rect.w + 'px;height:' + rect.h + 'px;';
-                        zone.onclick = advance;
-                        ov.appendChild(zone);
+                            // Remove old tap zone
+                            var oldZone = ov.querySelector('.ob-tapzone');
+                            if (oldZone) oldZone.remove();
+
+                            // Transparent tap zone over the highlighted element
+                            var zone = document.createElement('div');
+                            zone.className = 'ob-tapzone';
+                            zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
+                                'left:' + rect.x + 'px;top:' + rect.y + 'px;' +
+                                'width:' + rect.w + 'px;height:' + rect.h + 'px;';
+                            zone.onclick = advance;
+                            ov.appendChild(zone);
+                        }, 120); // wait for scroll to settle before measuring
                     }
                 } else {
                     // Remove tap zone on non-target steps
@@ -1492,6 +1506,8 @@
 
             function done() {
                 if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
+                var homeMain = document.querySelector('.home-main');
+                if (homeMain) homeMain.scrollTop = 0;
                 if (typeof navigateTo==='function') navigateTo('view-home');
                 localStorage.setItem(KEY, '1');
                 // Show streak modal now if it was pending
@@ -1527,25 +1543,7 @@
         })();
 
         // Weekly Target Rotator
-        const targetMessages = [
-            { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
-            { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." },
-            { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
-        ];
-        let currentTargetIdx = 0;
-        setInterval(() => {
-            currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
-            const titleEl = document.getElementById('targetTitle');
-            const descEl = document.getElementById('targetDesc');
-            if(titleEl && descEl) {
-                titleEl.style.opacity = '0'; descEl.style.opacity = '0';
-                setTimeout(() => {
-                    titleEl.textContent = targetMessages[currentTargetIdx].title;
-                    descEl.textContent = targetMessages[currentTargetIdx].desc;
-                    titleEl.style.opacity = '1'; descEl.style.opacity = '1';
-                }, 300);
-            }
-        }, 5000);
+        // Weekly Target replaced by smart Study Focus card — see window.renderStudyFocusCard()
 
         // Streak Calendar UI
         let currentStreakCount = 0;
@@ -2003,6 +2001,20 @@ if (nextBtn) {
             if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
             currentQuiz.stats.lastAttemptedAt = new Date().toISOString();
 
+            // ── Daily study log for 7-day activity chart ─────────────────────
+            try {
+                const _logKey  = 'medexcel_studylog_' + (window.currentUser?.uid || 'guest');
+                const _logDate = new Date().toISOString().split('T')[0];
+                const _log     = JSON.parse(localStorage.getItem(_logKey) || '{}');
+                if (!_log[_logDate]) _log[_logDate] = { questions: 0, sessions: 0 };
+                _log[_logDate].questions += (currentQuiz.questions?.length || 0);
+                _log[_logDate].sessions  += 1;
+                const _trimmed = {};
+                Object.keys(_log).sort().slice(-30).forEach(k => _trimmed[k] = _log[k]);
+                localStorage.setItem(_logKey, JSON.stringify(_trimmed));
+            } catch(_le) {}
+            // ─────────────────────────────────────────────────────────────────
+
             if (window.currentUser) {
                 try {
                     const { updateDoc, doc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -2097,13 +2109,13 @@ if (nextBtn) {
                         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem 1.5rem;min-height:0;">
                             <div style="display:flex;gap:0;align-items:center;justify-content:center;width:100%;height:114px;">
                                 <div id="star1" style="width:60px;height:60px;opacity:0;transform:scale(0) rotate(-20deg);transition:opacity 0.45s cubic-bezier(0.34,1.56,0.64,1),transform 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.1s;margin-right:-6px;flex-shrink:0;">
-                                    <img src="star.svg" style="width:60px;height:60px;display:block;${stars >= 1 ? '' : 'filter:grayscale(1);opacity:0.25;'}">
+                                    ${stars >= 1 ? '<svg width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss1" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs1"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss1" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss1" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss1" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss1" fill="url(#bgs1)" stroke="url(#bgs1)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs1)"><use href="#ss1" fill="url(#tgs1)" stroke="url(#tgs1)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss1d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs1d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss1d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss1d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss1d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss1d" fill="url(#bgs1d)" stroke="url(#bgs1d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs1d)"><use href="#ss1d" fill="url(#tgs1d)" stroke="url(#tgs1d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}
                                 </div>
                                 <div id="star2" style="width:100px;height:100px;opacity:0;transform:scale(0) rotate(0deg);transition:opacity 0.45s cubic-bezier(0.34,1.56,0.64,1),transform 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.25s;z-index:1;margin-top:-14px;flex-shrink:0;">
-                                    <img src="star.svg" style="width:100px;height:100px;display:block;${stars >= 2 ? '' : 'filter:grayscale(1);opacity:0.25;'}">
+                                    ${stars >= 2 ? '<svg width="100" height="100" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss2" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs2"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss2" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss2" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss2" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss2" fill="url(#bgs2)" stroke="url(#bgs2)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs2)"><use href="#ss2" fill="url(#tgs2)" stroke="url(#tgs2)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="100" height="100" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss2d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs2d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs2d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs2d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss2d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss2d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss2d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss2d" fill="url(#bgs2d)" stroke="url(#bgs2d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs2d)"><use href="#ss2d" fill="url(#tgs2d)" stroke="url(#tgs2d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}
                                 </div>
                                 <div id="star3" style="width:60px;height:60px;opacity:0;transform:scale(0) rotate(20deg);transition:opacity 0.45s cubic-bezier(0.34,1.56,0.64,1),transform 0.45s cubic-bezier(0.34,1.56,0.64,1);transition-delay:0.15s;margin-left:-6px;flex-shrink:0;">
-                                    <img src="star.svg" style="width:60px;height:60px;display:block;${stars >= 3 ? '' : 'filter:grayscale(1);opacity:0.25;'}">
+                                    ${stars >= 3 ? '<svg width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss3" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs3"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss3" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss3" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss3" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss3" fill="url(#bgs3)" stroke="url(#bgs3)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs3)"><use href="#ss3" fill="url(#tgs3)" stroke="url(#tgs3)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="ss3d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgs3d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgs3d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chs3d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#ss3d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#ss3d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#ss3d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#ss3d" fill="url(#bgs3d)" stroke="url(#bgs3d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chs3d)"><use href="#ss3d" fill="url(#tgs3d)" stroke="url(#tgs3d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}
                                 </div>
                             </div>
                         </div>
@@ -2681,9 +2693,9 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     <div class="fade-in" style="display: flex; flex-direction: column; align-items: center; height: 100%; width: 100%; padding: 2rem 1rem 1rem;">
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; width: 100%;">
                             <div style="display: flex; align-items: center; gap: 0; justify-content:center; width:100%; margin-bottom: 1.25rem;">
-                                <span style="display:inline-block;margin-right:-6px;"><img src="star.svg" style="width:60px;height:60px;${earnedStars < 1 ? 'filter:grayscale(1);opacity:0.25;' : ''}"></span>
-                                <span style="display:inline-block;transform:translateY(-14px);z-index:1;position:relative;"><img src="star.svg" style="width:100px;height:100px;${earnedStars < 2 ? 'filter:grayscale(1);opacity:0.25;' : ''}"></span>
-                                <span style="display:inline-block;margin-left:-6px;"><img src="star.svg" style="width:60px;height:60px;${earnedStars < 3 ? 'filter:grayscale(1);opacity:0.25;' : ''}"></span>
+                                <span style="display:inline-block;margin-right:-6px;">${earnedStars >= 1 ? '<svg width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc1" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc1"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc1" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc1" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc1" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc1" fill="url(#bgc1)" stroke="url(#bgc1)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc1)"><use href="#sc1" fill="url(#tgc1)" stroke="url(#tgc1)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc1d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc1d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc1d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc1d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc1d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc1d" fill="url(#bgc1d)" stroke="url(#bgc1d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc1d)"><use href="#sc1d" fill="url(#tgc1d)" stroke="url(#tgc1d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}</span>
+                                <span style="display:inline-block;transform:translateY(-14px);z-index:1;position:relative;">${earnedStars >= 2 ? '<svg width="100" height="100" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc2" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc2"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc2" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc2" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc2" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc2" fill="url(#bgc2)" stroke="url(#bgc2)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc2)"><use href="#sc2" fill="url(#tgc2)" stroke="url(#tgc2)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="100" height="100" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc2d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc2d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc2d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc2d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc2d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc2d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc2d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc2d" fill="url(#bgc2d)" stroke="url(#bgc2d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc2d)"><use href="#sc2d" fill="url(#tgc2d)" stroke="url(#tgc2d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}</span>
+                                <span style="display:inline-block;margin-left:-6px;">${earnedStars >= 3 ? '<svg width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc3" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc3"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc3" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc3" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc3" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc3" fill="url(#bgc3)" stroke="url(#bgc3)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc3)"><use href="#sc3" fill="url(#tgc3)" stroke="url(#tgc3)" stroke-width="28" stroke-linejoin="round"/></g></svg>' : '<svg style="filter:grayscale(1);opacity:0.25;" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><path id="sc3d" d="M 256,80 L 295,170 L 420,185 L 325,260 L 355,380 L 256,320 L 157,380 L 187,260 L 92,185 L 217,170 Z"/><linearGradient id="tgc3d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFF9C4"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient><linearGradient id="bgc3d" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFA726"/><stop offset="100%" stop-color="#EF6C00"/></linearGradient><clipPath id="chc3d"><path d="M 0,0 L 512,0 L 512,235 Q 256,255 0,235 Z"/></clipPath></defs><use href="#sc3d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round" transform="translate(0,4)"/><use href="#sc3d" fill="#3E1700" stroke="#3E1700" stroke-width="48" stroke-linejoin="round"/><use href="#sc3d" fill="none" stroke="#D84315" stroke-width="38" stroke-linejoin="round"/><use href="#sc3d" fill="url(#bgc3d)" stroke="url(#bgc3d)" stroke-width="28" stroke-linejoin="round"/><g clip-path="url(#chc3d)"><use href="#sc3d" fill="url(#tgc3d)" stroke="url(#tgc3d)" stroke-width="28" stroke-linejoin="round"/></g></svg>'}</span>
                             </div>
                             <h2 style="color: var(--accent-yellow); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-align: center;">Quiz Complete!</h2>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center;">
@@ -2781,6 +2793,415 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 obj.textContent = current;
             }, stepTime);
         }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDY FOCUS CARD + PROGRESS SHEET
+// ══════════════════════════════════════════════════════════════════════════════
+
+window.renderStudyFocusCard = function() {
+    const card = document.getElementById('studyFocusCard');
+    if (!card) return;
+
+    const quizzes = (window.quizzes || []).filter(function(q) { return !q._pending && q.questions && q.questions.length > 0; });
+    const DAY_MS  = 86400000;
+    const now     = Date.now();
+
+    if (quizzes.length === 0) {
+        card.innerHTML =
+            '<div style="display:flex;gap:14px;padding:16px;background:rgba(139,92,246,0.05);' +
+            'border:1px solid rgba(139,92,246,0.1);border-radius:var(--radius-card);align-items:center;">' +
+                '<div style="width:42px;height:42px;border-radius:50%;background:rgba(139,92,246,0.15);' +
+                    'color:#a78bfa;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                    '<i class="fas fa-seedling" style="font-size:0.9rem;"></i>' +
+                '</div>' +
+                '<div style="flex:1;">' +
+                    '<div style="font-size:0.9375rem;font-weight:700;color:var(--text-main);margin-bottom:3px;">No study history yet</div>' +
+                    '<div style="font-size:0.8rem;color:var(--text-muted);">Generate your first quiz to start tracking your progress.</div>' +
+                '</div>' +
+                '<i class="fas fa-chevron-right" style="font-size:0.75rem;color:var(--text-muted);"></i>' +
+            '</div>';
+        return;
+    }
+
+    var attempted = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
+    var scored = attempted.map(function(q) {
+        var total   = q.questions.length;
+        var pct     = total > 0 ? Math.round((q.stats.bestScore / total) * 100) : 0;
+        var lastMs  = q.stats.lastAttemptedAt ? new Date(q.stats.lastAttemptedAt).getTime() : 0;
+        var daysAgo = lastMs ? Math.floor((now - lastMs) / DAY_MS) : null;
+        return { q: q, pct: pct, daysAgo: daysAgo };
+    });
+
+    var weak  = scored.filter(function(s) { return s.pct < 60; }).sort(function(a, b) { return a.pct - b.pct; });
+    var stale = scored.filter(function(s) { return s.daysAgo !== null && s.daysAgo >= 5; }).sort(function(a, b) { return b.daysAgo - a.daysAgo; });
+
+    var icon, color, badge, title, sub;
+    if (weak.length > 0) {
+        icon = 'fa-book-medical'; color = '#8b5cf6'; badge = 'Needs work';
+        title = window.escapeHTML(weak[0].q.title || 'Untitled');
+        sub   = 'Best score ' + weak[0].pct + '%' + (weak[0].daysAgo !== null ? ' · ' + (weak[0].daysAgo === 0 ? 'today' : weak[0].daysAgo + 'd ago') : '');
+    } else if (stale.length > 0) {
+        icon = 'fa-rotate-left'; color = '#8b5cf6'; badge = 'Due for review';
+        title = window.escapeHTML(stale[0].q.title || 'Untitled');
+        sub   = 'Not studied in ' + stale[0].daysAgo + ' day' + (stale[0].daysAgo !== 1 ? 's' : '') + ' · ' + stale[0].pct + '% best';
+    } else {
+        icon = 'fa-chart-line'; color = '#34d399'; badge = 'On track';
+        title = 'All decks looking good';
+        sub   = 'Tap to see your full progress report';
+    }
+
+    card.innerHTML =
+        '<div style="display:flex;gap:14px;padding:16px;background:rgba(139,92,246,0.05);' +
+        'border:1px solid rgba(139,92,246,0.1);border-radius:var(--radius-card);align-items:center;">' +
+            '<div style="width:44px;height:44px;flex-shrink:0;border-radius:11px;overflow:hidden;">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="44" height="44">' +
+                    '<defs>' +
+                        '<clipPath id="sfm2"><rect x="30" y="30" width="340" height="340" rx="60" ry="60"/></clipPath>' +
+                        '<filter id="sfsh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.1"/></filter>' +
+                    '</defs>' +
+                    '<g clip-path="url(#sfm2)">' +
+                        '<rect x="0" y="0" width="400" height="400" fill="#2D51CA"/>' +
+                        '<g transform="translate(130,160) rotate(-15)"><rect x="-45" y="-60" width="90" height="120" rx="8" fill="#F8F9FA" filter="url(#sfsh)"/><rect x="-25" y="-35" width="50" height="6" rx="3" fill="#E2E5EA"/><rect x="-25" y="-15" width="30" height="6" rx="3" fill="#E2E5EA"/><rect x="-25" y="5" width="40" height="6" rx="3" fill="#E2E5EA"/></g>' +
+                        '<g transform="translate(190,140) rotate(-5)"><rect x="-55" y="-65" width="110" height="130" rx="8" fill="#FFFFFF" filter="url(#sfsh)"/><rect x="-35" y="-40" width="70" height="6" rx="3" fill="#E2E5EA"/><rect x="-35" y="-20" width="50" height="6" rx="3" fill="#E2E5EA"/><rect x="-35" y="0" width="80" height="6" rx="3" fill="#E2E5EA"/><rect x="-35" y="20" width="40" height="6" rx="3" fill="#E2E5EA"/></g>' +
+                        '<g transform="translate(260,160) rotate(10)"><rect x="-50" y="-60" width="100" height="120" rx="8" fill="#F0F2F6" filter="url(#sfsh)"/><rect x="-30" y="-35" width="60" height="6" rx="3" fill="#D8DCE4"/><rect x="-30" y="-15" width="40" height="6" rx="3" fill="#D8DCE4"/></g>' +
+                        '<path d="M 0,220 C 150,160 250,130 400,180 L 400,400 L 0,400 Z" fill="#7582FA"/>' +
+                        '<path d="M 0,240 C 100,210 220,250 400,280 L 400,400 L 0,400 Z" fill="#F8C747"/>' +
+                    '</g>' +
+                '</svg>' +
+            '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
+                    '<span style="font-size:0.9375rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + title + '</span>' +
+                    '<span style="font-size:0.6rem;font-weight:700;color:' + color + ';background:' + color + '18;padding:2px 7px;border-radius:9999px;white-space:nowrap;flex-shrink:0;">' + badge + '</span>' +
+                '</div>' +
+                '<div style="font-size:0.8rem;color:var(--text-muted);">' + sub + '</div>' +
+            '</div>' +
+            '<i class="fas fa-chevron-right" style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;"></i>' +
+        '</div>';
+};
+
+window.openProgressSheet = function() {
+    var existing = document.getElementById('_progressPage');
+    if (existing) { existing.remove(); }
+
+    var quizzes  = (window.quizzes || []).filter(function(q) { return !q._pending && q.questions && q.questions.length > 0; });
+    var DAY_MS   = 86400000;
+    var now      = Date.now();
+    var logKey   = 'medexcel_studylog_' + (window.currentUser ? window.currentUser.uid : 'guest');
+    var log      = JSON.parse(localStorage.getItem(logKey) || '{}');
+
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    var attempted    = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
+    var totalSessions = Object.values(log).reduce(function(s, d) { return s + (d.sessions || 0); }, 0);
+    var totalQs      = Object.values(log).reduce(function(s, d) { return s + (d.questions || 0); }, 0);
+    var avgScore     = attempted.length > 0
+        ? Math.round(attempted.reduce(function(s, q) { return s + (q.questions.length > 0 ? (q.stats.bestScore / q.questions.length) * 100 : 0); }, 0) / attempted.length)
+        : null;
+
+    // ── Ring chart (avg score or 0) ───────────────────────────────────────────
+    var ringPct   = avgScore !== null ? avgScore : 0;
+    var R         = 54;
+    var circ      = 2 * Math.PI * R;
+    var dashArr   = (ringPct / 100 * circ).toFixed(1) + ' ' + circ.toFixed(1);
+    var ringColor = ringPct >= 80 ? '#34d399' : ringPct >= 60 ? '#fbbf24' : ringPct >= 40 ? '#fb923c' : '#8b5cf6';
+    var ringLabel = avgScore !== null ? avgScore + '%' : '—';
+    var ringDesc  = avgScore !== null ? 'Avg score' : 'No attempts yet';
+
+    // ── 7-day chart ───────────────────────────────────────────────────────────
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+        var d   = new Date(now - i * DAY_MS);
+        var key = d.toISOString().split('T')[0];
+        var lbl = d.toLocaleDateString(undefined, { weekday: 'short' });
+        days.push({ label: lbl, val: (log[key] && log[key].questions) || 0, isToday: i === 0 });
+    }
+    var maxVal = Math.max.apply(null, days.map(function(d) { return d.val; }).concat([20])); // floor at 20 so small values don't look disproportionate
+    var bars   = days.map(function(d) {
+        var h   = Math.max(4, Math.round((d.val / maxVal) * 100));
+        var col = d.isToday ? '#8b5cf6' : d.val > 0 ? 'rgba(139,92,246,0.4)' : 'var(--border-glass)';
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;">' +
+            '<div style="width:100%;display:flex;align-items:flex-end;justify-content:center;height:100px;">' +
+                '<div style="width:clamp(8px,60%,26px);height:' + h + 'px;background:' + col + ';border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>' +
+            '</div>' +
+            '<span style="font-size:0.625rem;font-weight:' + (d.isToday ? '700' : '600') + ';color:' + (d.isToday ? '#8b5cf6' : 'var(--text-muted)') + ';">' + d.label + '</span>' +
+            (d.val > 0 ? '<span style="font-size:0.55rem;color:var(--text-muted);">' + d.val + '</span>' : '<span style="font-size:0.55rem;color:transparent;">0</span>') +
+        '</div>';
+    }).join('');
+
+    // ── Deck rows ─────────────────────────────────────────────────────────────
+    var deckRows = quizzes.map(function(q) {
+        var total   = q.questions.length;
+        var pct     = (q.stats && q.stats.attempts > 0) ? Math.round((q.stats.bestScore / total) * 100) : null;
+        var lastMs  = (q.stats && q.stats.lastAttemptedAt) ? new Date(q.stats.lastAttemptedAt).getTime() : 0;
+        var daysAgo = lastMs ? Math.floor((now - lastMs) / DAY_MS) : null;
+        var col     = pct === null ? 'var(--text-muted)' : pct >= 80 ? '#34d399' : pct >= 60 ? '#fbbf24' : '#f87171';
+        var pctTxt  = pct === null ? 'New' : pct + '%';
+        var when    = daysAgo === null ? 'Never' : daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + 'd ago';
+        var isMCQ   = q.type && q.type.includes('Multiple');
+        return { q: q, pct: pct === null ? -1 : pct, col: col, pctTxt: pctTxt, when: when, total: total, isMCQ: isMCQ };
+    }).sort(function(a, b) { return a.pct - b.pct; });
+
+    var deckHTML = deckRows.length === 0
+        ? '<p style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:2rem 0;">Generate your first quiz to see it here</p>'
+        : deckRows.map(function(r) {
+            var barW = r.pct < 0 ? 0 : r.pct;
+            var _rid = String(r.q.id);
+            return '<div style="padding:14px 0;border-bottom:1px solid var(--border-glass);cursor:pointer;" onclick="window._openProgressDeck(\''+_rid+'\')">' +
+                '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
+                    '<div style="width:36px;height:36px;border-radius:10px;background:' + r.col + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                        (r.isMCQ ? '<svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mbg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7B2CF3"/><stop offset="100%" stop-color="#4B0F9B"/></linearGradient><linearGradient id="mwp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E2E9"/></linearGradient><linearGradient id="mbp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6976F3"/><stop offset="100%" stop-color="#515CE4"/></linearGradient><linearGradient id="mpp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#B27BFF"/><stop offset="100%" stop-color="#884CFF"/></linearGradient><filter id="mps2"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#2D0A66" flood-opacity="0.85"/></filter></defs><rect x="42" y="42" width="428" height="428" rx="100" fill="#F3F3F6"/><rect x="48" y="48" width="416" height="416" rx="96" fill="url(#mbg2)"/><rect x="116" y="116" width="280" height="280" rx="56" fill="url(#mwp2)" filter="url(#mps2)"/><rect x="152" y="152" width="164" height="36" rx="18" fill="url(#mbp2)"/><rect x="210" y="210" width="150" height="36" rx="18" fill="url(#mpp2)"/><rect x="152" y="268" width="164" height="36" rx="18" fill="url(#mbp2)"/><rect x="210" y="326" width="150" height="36" rx="18" fill="url(#mpp2)"/></svg>' : '<svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>') +
+                    '</div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window.escapeHTML(r.q.title || 'Untitled') + '</div>' +
+                        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + r.total + ' items · ' + r.when + '</div>' +
+                    '</div>' +
+                    '<span style="font-size:1rem;font-weight:800;color:' + r.col + ';flex-shrink:0;">' + r.pctTxt + '</span>' +
+                '</div>' +
+                '<div style="width:100%;height:4px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">' +
+                    '<div style="height:100%;width:' + barW + '%;background:' + r.col + ';border-radius:9999px;transition:width 0.6s ease;"></div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+    // ── Suggestion ────────────────────────────────────────────────────────────
+    var sugg = deckRows.find(function(d) { return d.pct >= 0 && d.pct < 60; })
+        || deckRows.find(function(d) { return d.q.stats && d.q.stats.lastAttemptedAt && Math.floor((now - new Date(d.q.stats.lastAttemptedAt).getTime()) / DAY_MS) >= 5; })
+        || (deckRows.length > 0 ? deckRows[deckRows.length - 1] : null);
+
+    var suggSection = sugg ? (
+        '<div style="margin-bottom:2rem;">' +
+            '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Suggested Next</h3>' +
+            '<div onclick="window._openProgressDeck(\''+ String(sugg.q.id) +'\')" style="display:flex;align-items:center;gap:14px;padding:16px;' +
+                'background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(139,92,246,0.05));' +
+                'border:1px solid rgba(139,92,246,0.25);border-radius:16px;cursor:pointer;">' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:0.7rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Study Now</div>' +
+                    '<div style="font-size:1rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window.escapeHTML(sugg.q.title || 'Untitled') + '</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">' + (sugg.pct < 0 ? 'Not attempted yet' : 'Best score ' + sugg.pctTxt) + '</div>' +
+                '</div>' +
+                '<div style="width:44px;height:44px;border-radius:50%;background:#8b5cf6;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(139,92,246,0.4);">' +
+                    '<i class="fas fa-play" style="font-size:0.875rem;color:white;margin-left:3px;"></i>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    ) : '';
+
+    // ── Build page ────────────────────────────────────────────────────────────
+    var page = document.createElement('div');
+    page.id = '_progressPage';
+    page.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg-body);overflow-y:auto;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.19,1,0.22,1);';
+    page.className = 'hide-scroll';
+
+    page.innerHTML =
+        // Header
+        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);border-bottom:1px solid var(--border-glass);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
+            '<div style="display:flex;align-items:center;gap:12px;">' +
+                '<button onclick="window._closeProgressPage()" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">' +
+                    '<i class="fas fa-arrow-left"></i>' +
+                '</button>' +
+                '<h1 style="font-size:1.125rem;font-weight:800;color:var(--text-main);margin:0;letter-spacing:-0.02em;">Progress</h1>' +
+            '</div>' +
+        '</div>' +
+
+        '<div style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 2rem);">' +
+
+            // Ring chart hero
+            '<div style="display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;margin-bottom:1.75rem;">' +
+                '<div style="position:relative;width:140px;height:140px;">' +
+                    '<svg width="140" height="140" style="transform:rotate(-90deg);">' +
+                        '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="var(--border-glass)" stroke-width="10"/>' +
+                        '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + ringColor + '" stroke-width="10" stroke-linecap="round" ' +
+                            'stroke-dasharray="' + dashArr + '" style="transition:stroke-dasharray 0.8s ease;"/>' +
+                    '</svg>' +
+                    '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+                        '<span style="font-size:2rem;font-weight:800;color:var(--text-main);line-height:1;">' + ringLabel + '</span>' +
+                        '<span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);margin-top:4px;">' + ringDesc + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:1rem;text-align:center;">Performance Overview</p>' +
+            '</div>' +
+
+            // Stats row
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:2rem;">' +
+                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
+                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + totalSessions + '</div>' +
+                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Sessions</div>' +
+                '</div>' +
+                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
+                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + totalQs + '</div>' +
+                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Questions</div>' +
+                '</div>' +
+                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
+                    '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + (avgScore !== null ? avgScore + '%' : '—') + '</div>' +
+                    '<div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Avg Score</div>' +
+                '</div>' +
+            '</div>' +
+
+            // 7-day chart
+            '<div style="margin-bottom:2rem;">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+                    '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Learning Statistics</h3>' +
+                    '<span style="font-size:0.72rem;font-weight:600;color:var(--accent-btn);">This Week</span>' +
+                '</div>' +
+                '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:20px 16px 14px;">' +
+                    '<div style="display:flex;gap:6px;align-items:flex-end;height:120px;">' + bars + '</div>' +
+                    '<div style="margin-top:10px;font-size:0.7rem;color:var(--text-muted);text-align:center;letter-spacing:0.02em;">Questions studied per day</div>' +
+                '</div>' +
+            '</div>' +
+
+            // Suggested next
+            suggSection +
+
+            // ── Subject Breakdown ─────────────────────────────────────────
+            (function() {
+                // Group quizzes by subject, compute avg best score per group
+                var subjectMap = {};
+                quizzes.forEach(function(q) {
+                    var subj = (q.subject || 'General').toUpperCase().trim();
+                    if (!subjectMap[subj]) subjectMap[subj] = { total: 0, scoreSum: 0, count: 0, attempts: 0 };
+                    subjectMap[subj].count++;
+                    if (q.stats && q.stats.attempts > 0) {
+                        subjectMap[subj].attempts++;
+                        var pct = q.questions.length > 0 ? Math.round((q.stats.bestScore / q.questions.length) * 100) : 0;
+                        subjectMap[subj].scoreSum += pct;
+                    }
+                });
+                var subjects = Object.keys(subjectMap).sort(function(a, b) {
+                    var pa = subjectMap[a].attempts > 0 ? subjectMap[a].scoreSum / subjectMap[a].attempts : 101;
+                    var pb = subjectMap[b].attempts > 0 ? subjectMap[b].scoreSum / subjectMap[b].attempts : 101;
+                    return pa - pb; // weakest first
+                });
+                if (subjects.length === 0) return '';
+                var rows = subjects.map(function(subj) {
+                    var s   = subjectMap[subj];
+                    var avg = s.attempts > 0 ? Math.round(s.scoreSum / s.attempts) : null;
+                    var col = avg === null ? 'var(--text-muted)' : avg >= 80 ? '#34d399' : avg >= 60 ? '#fbbf24' : '#f87171';
+                    var bar = avg !== null ? avg : 0;
+                    var lbl = avg !== null ? avg + '%' : 'Not attempted';
+                    var sub = s.count + ' deck' + (s.count !== 1 ? 's' : '') + (s.attempts > 0 ? ' · ' + s.attempts + ' attempted' : '');
+                    return '<div style="margin-bottom:14px;">' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+                            '<div>' +
+                                '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);">' + subj + '</div>' +
+                                '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + sub + '</div>' +
+                            '</div>' +
+                            '<span style="font-size:0.9375rem;font-weight:800;color:' + col + ';flex-shrink:0;margin-left:12px;">' + lbl + '</span>' +
+                        '</div>' +
+                        '<div style="width:100%;height:6px;background:var(--border-glass);border-radius:9999px;overflow:hidden;">' +
+                            '<div style="height:100%;width:' + bar + '%;background:' + col + ';border-radius:9999px;transition:width 0.6s ease;"></div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                return '<div style="margin-bottom:2rem;">' +
+                    '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Subject Breakdown</h3>' +
+                    '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:18px 16px;">' +
+                        rows +
+                    '</div>' +
+                '</div>';
+            })() +
+
+            // ── Streak Calendar ───────────────────────────────────────────────
+            (function() {
+                var uid        = window.currentUser ? window.currentUser.uid : 'guest';
+                var history    = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
+                var historySet = new Set(history);
+                var streak     = (window.userStats && window.userStats.count) || 0;
+                var consistency = 0;
+                if (history.length > 0) {
+                    // Count days studied in last 14 days
+                    var studied14 = 0;
+                    for (var i = 0; i < 14; i++) {
+                        var d14 = new Date(now - i * DAY_MS);
+                        if (historySet.has(d14.toDateString())) studied14++;
+                    }
+                    consistency = Math.round((studied14 / 14) * 100);
+                }
+
+                // Build 4-week calendar grid (28 days, newest = bottom-right)
+                var cells = [];
+                for (var w = 27; w >= 0; w--) {
+                    var dc = new Date(now - w * DAY_MS);
+                    var isToday  = w === 0;
+                    var studied  = historySet.has(dc.toDateString());
+                    var isFuture = w < 0;
+                    var col;
+                    if (isToday && studied)   col = '#8b5cf6';
+                    else if (isToday)         col = 'rgba(139,92,246,0.25)';
+                    else if (studied)         col = 'rgba(139,92,246,0.6)';
+                    else                      col = 'var(--border-glass)';
+                    cells.push('<div style="width:28px;height:28px;border-radius:6px;background:' + col + ';flex-shrink:0;" title="' + dc.toDateString() + '"></div>');
+                }
+
+                // Arrange into 4 rows of 7
+                var rows4 = '';
+                var dayLabels = '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
+                    ['M','T','W','T','F','S','S'].map(function(l) {
+                        return '<div style="width:28px;text-align:center;font-size:0.6rem;font-weight:700;color:var(--text-muted);">' + l + '</div>';
+                    }).join('') + '</div>';
+                for (var row = 0; row < 4; row++) {
+                    rows4 += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
+                    for (var col2 = 0; col2 < 7; col2++) {
+                        rows4 += cells[row * 7 + col2] || '<div style="width:28px;height:28px;"></div>';
+                    }
+                    rows4 += '</div>';
+                }
+
+                var consistencyColor = consistency >= 70 ? '#34d399' : consistency >= 40 ? '#fbbf24' : '#f87171';
+
+                return '<div style="margin-bottom:2rem;">' +
+                    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+                        '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Study Calendar</h3>' +
+                        '<div style="display:flex;align-items:center;gap:6px;">' +
+                            '<i class="fas fa-fire" style="font-size:0.75rem;color:#fb923c;"></i>' +
+                            '<span style="font-size:0.8rem;font-weight:700;color:var(--text-main);">' + streak + ' day streak</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:18px 16px;">' +
+                        dayLabels + rows4 +
+                        '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-glass);display:flex;align-items:center;justify-content:space-between;">' +
+                            '<div>' +
+                                '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">14-Day Consistency</div>' +
+                                '<div style="font-size:1.25rem;font-weight:800;color:' + consistencyColor + ';margin-top:2px;">' + consistency + '%</div>' +
+                            '</div>' +
+                            '<div style="display:flex;align-items:center;gap:8px;">' +
+                                '<div style="display:flex;align-items:center;gap:4px;">' +
+                                    '<div style="width:10px;height:10px;border-radius:3px;background:rgba(139,92,246,0.6);"></div>' +
+                                    '<span style="font-size:0.65rem;color:var(--text-muted);">Studied</span>' +
+                                '</div>' +
+                                '<div style="display:flex;align-items:center;gap:4px;">' +
+                                    '<div style="width:10px;height:10px;border-radius:3px;background:var(--border-glass);"></div>' +
+                                    '<span style="font-size:0.65rem;color:var(--text-muted);">Missed</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            })() +
+
+        '</div>';
+
+    document.body.appendChild(page);
+    requestAnimationFrame(function() { page.style.transform = 'translateX(0)'; });
+};
+
+window._closeProgressPage = function() {
+    var page = document.getElementById('_progressPage');
+    if (!page) return;
+    page.style.transform = 'translateX(100%)';
+    setTimeout(function() { page.remove(); }, 320);
+};
+
+window._openProgressDeck = function(quizId) {
+    window._closeProgressPage();
+    var quiz = (window.quizzes || []).find(function(q) { return String(q.id) === String(quizId); });
+    if (quiz) {
+        window.currentQuiz = quiz;
+        window.navigateTo('view-study');
+    }
+};
+
+
+
 
 /* ── payment.js ── */
 // Payment View
@@ -3994,8 +4415,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
     <!-- FILE TAB -->
     <label for="ankiFileInput"
       style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2.5rem 1.5rem;border-radius:var(--radius-card);border:2px dashed var(--border-glass);background:var(--bg-surface);cursor:pointer;text-align:center;">
-      <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;">
-        <i class="fas fa-file-import" style="font-size:1.375rem;color:var(--accent-btn);"></i>
+      <div style="width:3.5rem;height:4.75rem;display:flex;align-items:center;justify-content:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="52" height="69"><defs><linearGradient id="abg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#8c8c8c"/><stop offset="100%" stop-color="#383838"/></linearGradient><linearGradient id="agl" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.0"/></linearGradient><linearGradient id="asg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#a3dffc"/><stop offset="100%" stop-color="#147cd6"/></linearGradient><clipPath id="arc"><rect x="20" y="20" width="260" height="360" rx="55"/></clipPath><path id="ast" d="M 0,-50 L 11.2,-15.5 L 47.6,-15.5 L 18.2,5.9 L 29.4,40.5 L 0,19.1 L -29.4,40.5 L -18.2,5.9 L -47.6,-15.5 L -11.2,-15.5 Z"/></defs><rect x="15" y="15" width="270" height="370" rx="60" fill="url(#abg)" stroke="#000000" stroke-width="18"/><path d="M 0,0 L 300,0 L 300,240 C 200,160 100,120 0,130 Z" fill="url(#agl)" clip-path="url(#arc)"/><use href="#ast" transform="translate(135,260) scale(1.65) rotate(-12)" fill="url(#asg)" stroke="#ffffff" stroke-width="6" stroke-linejoin="round"/><use href="#ast" transform="translate(205,115) scale(0.8) rotate(15)" fill="url(#asg)" stroke="#ffffff" stroke-width="11" stroke-linejoin="round"/></svg>
       </div>
       <div>
         <p style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0 0 0.25rem;">Select .apkg file</p>
@@ -4473,8 +4894,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 ontouchstart="this.style.borderColor='var(--accent-btn)';this.style.transform='scale(0.98)'"
                 ontouchend="this.style.borderColor='var(--border-glass)';this.style.transform=''">
                 <!-- Deck icon -->
-                <div style="width:44px;height:44px;border-radius:.75rem;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <i class="fas fa-layer-group" style="color:white;font-size:1rem;"></i>
+                <div style="width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                  ${(q.type && q.type.includes('Multiple')) ? '<svg width="36" height="36" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A855F7"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient><linearGradient id="bfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7E22CE"/><stop offset="100%" stop-color="#581C87"/></linearGradient><linearGradient id="bw3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient><filter id="bds"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#4C1D95" flood-opacity="0.2"/></filter><filter id="bes"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#581C87" flood-opacity="0.25"/></filter></defs><path d="M 140 60 H 300 L 420 180 V 420 Q 420 460 380 460 H 140 Q 100 460 100 420 V 100 Q 100 60 140 60 Z" fill="url(#bdg)" filter="url(#bds)"/><path d="M 300 60 V 140 Q 300 180 340 180 H 420 Z" fill="url(#bfg)"/><path d="M 140 62 H 298 M 102 100 V 420" stroke="#D8B4FE" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/><g filter="url(#bes)" fill="url(#bw3)"><circle cx="180" cy="180" r="28"/><rect x="230" y="166" width="110" height="28" rx="14"/><circle cx="180" cy="260" r="28"/><rect x="230" y="246" width="110" height="28" rx="14"/><circle cx="180" cy="340" r="28"/><rect x="230" y="326" width="110" height="28" rx="14"/></g></svg>' : '<svg width="36" height="36" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>'}
                 </div>
                 <div style="flex:1;min-width:0;">
                   <div style="font-size:.9375rem;font-weight:700;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(q.title)}</div>

@@ -2218,6 +2218,59 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             } catch(e) { console.warn("Init Error:", e); }
         };
 
+        // ── Announcement Banner ──────────────────────────────────────────
+        window.showAnnouncement = function(ann) {
+            if (document.getElementById('_medxAnnOverlay')) return; // already showing
+            const typeEmoji = { info: 'ℹ️', update: '🚀', maintenance: '🔧', promo: '🎁' };
+            const typeColor = { info: '#60a5fa', update: '#34d399', maintenance: '#fb923c', promo: '#a78bfa' };
+            const emoji = typeEmoji[ann.type] || '📢';
+            const color = typeColor[ann.type] || '#a78bfa';
+
+            const overlay = document.createElement('div');
+            overlay.id = '_medxAnnOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);padding:1rem;';
+
+            overlay.innerHTML = `
+                <div id="_medxAnnSheet" style="width:100%;max-width:480px;background:#0d0d1f;border:1px solid rgba(139,92,246,0.22);border-radius:20px 20px 16px 16px;padding:1.5rem 1.5rem 2rem;transform:translateY(120%);transition:transform .38s cubic-bezier(.19,1,.22,1);box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
+                    <div style="width:36px;height:4px;background:rgba(255,255,255,0.12);border-radius:100px;margin:0 auto 1.25rem;"></div>
+                    <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.875rem;">
+                        <span style="font-size:1.5rem;line-height:1;">${emoji}</span>
+                        <span style="font-size:1rem;font-weight:800;color:#f1f5f9;letter-spacing:-.02em;flex:1;">${ann.title || ''}</span>
+                    </div>
+                    <p style="font-size:.875rem;color:#94a3b8;line-height:1.65;margin-bottom:1.25rem;">${ann.body || ''}</p>
+                    <button onclick="document.getElementById('_medxAnnOverlay').remove()" style="width:100%;padding:.9rem;border-radius:12px;border:none;background:${color};color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:-.01em;">Got it</button>
+                </div>`;
+
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                const sheet = document.getElementById('_medxAnnSheet');
+                if (sheet) sheet.style.transform = 'translateY(0)';
+            }));
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        };
+
+        // ── Maintenance Banner ───────────────────────────────────────────
+        window.showMaintenanceBanner = function() {
+            if (document.getElementById('_medxMaintOverlay')) return; // already showing
+            const overlay = document.createElement('div');
+            overlay.id = '_medxMaintOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(6,6,17,0.96);backdrop-filter:blur(12px);padding:1.5rem;';
+
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:360px;text-align:center;">
+                    <div style="font-size:3rem;margin-bottom:1rem;">🔧</div>
+                    <h2 style="font-size:1.375rem;font-weight:800;color:#f1f5f9;letter-spacing:-.02em;margin-bottom:.625rem;">Under Maintenance</h2>
+                    <p style="font-size:.875rem;color:#64748b;line-height:1.65;margin-bottom:1.5rem;">MedExcel is currently being updated. We'll be back shortly — thanks for your patience!</p>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#fb923c;animation:_maintPulse 1.4s ease-in-out infinite;"></span>
+                        <span style="font-family:monospace;font-size:.75rem;font-weight:700;color:#fb923c;letter-spacing:.05em;text-transform:uppercase;">Maintenance in progress</span>
+                    </div>
+                    <style>@keyframes _maintPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}</style>
+                </div>`;
+
+            document.body.appendChild(overlay);
+        };
+
         // ── Nickname Editor ──────────────────────────────────────────────
         window.openNicknameEditor = async function() {
             const backdrop = document.getElementById('nicknameBackdrop');
