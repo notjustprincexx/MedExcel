@@ -2152,13 +2152,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 
-                // ── Push for returning users ──────────────────────────────────
-                // Only call initPush if the user has fully completed onboarding
-                // (so reminderEnabled has actually been set by them) and they
-                // chose to enable reminders. New users get initPush called from
-                // the "Set Reminder" button in personalized-onboarding.js instead.
-                if (data.onboardingDone && data.reminderEnabled !== false) {
-                    if (window.initPush) window.initPush(user.uid);
+                // ── Push notifications ────────────────────────────────────────
+                // Gate on localStorage flag (preserved through logout, set by onboarding)
+                // so initPush never fires before the user has seen the reminder step.
+                // window.userProfile.reminderEnabled is already merged from Firestore
+                // + localStorage by line 1983, so it's the correct source of truth.
+                if (localStorage.getItem('medexcel_personalized_onboarding_done') &&
+                    window.userProfile?.reminderEnabled !== false &&
+                    window.initPush) {
+                    window.initPush(user.uid);
                 }
 
                 // ---- REFERRAL SYSTEM INIT ----
@@ -2214,14 +2216,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         if (cfg.forceUpdateVersion && (data.role || '') !== 'admin') {
                             const serverVersion = String(cfg.forceUpdateVersion);
                             const cachedVersion = localStorage.getItem('medexcel_app_version');
-                            if (cachedVersion !== serverVersion) {
-                                // Save version FIRST synchronously, then navigate
-                                // Using href with ?v= prevents the old page from being in history
-                                // and ensures the browser fetches a completely fresh page
-                                localStorage.setItem('medexcel_app_version', serverVersion);
+                            localStorage.setItem('medexcel_app_version', serverVersion);
+                            if (cachedVersion && cachedVersion !== serverVersion) {
+                                // Genuine version bump — reload to pick up new assets
                                 window.location.href = 'homepage.html?v=' + serverVersion;
                                 return;
                             }
+                            // No cachedVersion means first install — just save it silently,
+                            // no reload needed (avoids the double-load glitch on first login)
                         }
                     }
                 } catch(e) {}
@@ -2326,10 +2328,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.currentUser = firebaseUser;
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
-                // initPush is now triggered from two places:
-                //   1. personalized-onboarding.js → "Set Reminder" button (new users)
-                //   2. initUserUI below, only after onboarding is confirmed done (returning users)
-                // Do NOT call it here — this fires before the reminder step for new users.
+                // initPush is called from inside initUserUI once reminderEnabled is confirmed
 
                 // ── Claim pending referral code from onboarding ───────────────
                 // Set during onboarding if user entered a friend's code.
