@@ -1340,7 +1340,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     await uploadBytes(storageReference, _capturedFile);
                     
                     const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
-                    const response = await generateQuizFunction({ filePath: securePath, fileName: _capturedFileName, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems });
+
+                    // ── Get device ID for free-account abuse prevention ───────
+                    let _deviceId = '';
+                    try {
+                        _deviceId = localStorage.getItem('medexcel_device_id') || '';
+                        if (!_deviceId) {
+                            // Generate a stable random ID and persist it
+                            _deviceId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+                            localStorage.setItem('medexcel_device_id', _deviceId);
+                        }
+                        // Prefer Capacitor's native device ID if available (more stable)
+                        if (window.Capacitor?.Plugins?.Device) {
+                            const info = await window.Capacitor.Plugins.Device.getId();
+                            if (info?.identifier) {
+                                _deviceId = info.identifier;
+                                localStorage.setItem('medexcel_device_id', _deviceId);
+                            }
+                        }
+                    } catch(_de) {}
+                    // ─────────────────────────────────────────────────────────
+
+                    const response = await generateQuizFunction({ filePath: securePath, fileName: _capturedFileName, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems, deviceId: _deviceId });
                     
                     const payload = response.data;
                     const cards = payload.cards || payload.flashcards || payload.items || payload.questions;

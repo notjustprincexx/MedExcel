@@ -743,6 +743,46 @@ code{background:var(--hover);padding:2px 6px;border-radius:4px;color:var(--purpl
         </button>
       </div>
     </div>
+
+    <div class="sec">Device Whitelist</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;line-height:1.6;">
+        Whitelist a UID so that account is never blocked by device fingerprinting — regardless of how many devices or accounts share the same phone.
+      </p>
+      <input class="finp" id="whitelistUid" placeholder="User UID to whitelist…" style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="addDeviceWhitelist()">
+          <i class="fas fa-shield-check"></i> Add to Whitelist
+        </button>
+        <button class="mbtn mbtn-muted" style="margin-top:0;flex:1;" onclick="removeDeviceWhitelist()">
+          <i class="fas fa-ban"></i> Remove
+        </button>
+      </div>
+      <div id="whitelistStatus" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;"></div>
+
+      <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.875rem;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.625rem;">Current Whitelist</div>
+        <div id="whitelistList"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="sec">Device Registry</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;line-height:1.6;">
+        Look up which UID a device ID is registered to, or clear a device registration to unblock an account.
+      </p>
+      <input class="finp" id="deviceLookupId" placeholder="Device ID…" style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="lookupDevice()">
+          <i class="fas fa-search"></i> Look Up
+        </button>
+        <button class="mbtn mbtn-red" style="margin-top:0;flex:1;" onclick="clearDevice()">
+          <i class="fas fa-trash"></i> Clear Registration
+        </button>
+      </div>
+      <div id="deviceLookupResult" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;color:var(--text);"></div>
+    </div>
+
   </div>
 </div>
 
@@ -1563,6 +1603,84 @@ window.loadInsights = async function() {
     console.error('[Insights]', e);
   }
 };
+
+// ── DEVICE WHITELIST ──────────────────────────────────────────────────────────
+async function loadWhitelistPanel() {
+  const el = document.getElementById('whitelistList');
+  if (!el) return;
+  try {
+    const snap = await getDocs(collection(db, 'deviceWhitelist'));
+    if (snap.empty) { el.innerHTML = '<div class="empty">No UIDs whitelisted yet</div>'; return; }
+    el.innerHTML = snap.docs.map(d => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.78rem;">
+        <code style="color:var(--text);word-break:break-all;">${d.id}</code>
+        <button onclick="removeDeviceWhitelistById('${d.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem;padding:.25rem .5rem;flex-shrink:0;">Remove</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty" style="color:var(--red);">Error: ${e.message}</div>`; }
+}
+
+window.addDeviceWhitelist = async function() {
+  const uid = document.getElementById('whitelistUid').value.trim();
+  const status = document.getElementById('whitelistStatus');
+  if (!uid) { status.style.color = 'var(--red)'; status.textContent = 'Enter a UID first.'; return; }
+  try {
+    await setDoc(doc(db, 'deviceWhitelist', uid), { addedAt: new Date().toISOString(), addedBy: 'admin' });
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ ' + uid + ' whitelisted — device check bypassed for this account.';
+    document.getElementById('whitelistUid').value = '';
+    loadWhitelistPanel();
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = 'Error: ' + e.message; }
+};
+
+window.removeDeviceWhitelist = async function() {
+  const uid = document.getElementById('whitelistUid').value.trim();
+  if (!uid) { document.getElementById('whitelistStatus').textContent = 'Enter a UID first.'; return; }
+  await removeDeviceWhitelistById(uid);
+};
+
+window.removeDeviceWhitelistById = async function(uid) {
+  const status = document.getElementById('whitelistStatus');
+  try {
+    await deleteDoc(doc(db, 'deviceWhitelist', uid));
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Removed ' + uid + ' from whitelist.';
+    loadWhitelistPanel();
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = 'Error: ' + e.message; }
+};
+
+window.lookupDevice = async function() {
+  const deviceId = document.getElementById('deviceLookupId').value.trim();
+  const result   = document.getElementById('deviceLookupResult');
+  if (!deviceId) { result.textContent = 'Enter a device ID.'; return; }
+  try {
+    const snap = await getDoc(doc(db, 'deviceRegistry', deviceId));
+    if (!snap.exists()) { result.style.color = 'var(--muted)'; result.textContent = 'Device not found in registry.'; return; }
+    const d = snap.data();
+    const first = d.firstSeen ? new Date(d.firstSeen).toLocaleString() : '—';
+    const last  = d.lastSeen  ? new Date(d.lastSeen).toLocaleString()  : '—';
+    result.style.color = 'var(--text)';
+    result.innerHTML = '<b>UID:</b> ' + d.uid + '<br><b>First seen:</b> ' + first + '<br><b>Last seen:</b> ' + last;
+  } catch(e) { result.style.color = 'var(--red)'; result.textContent = 'Error: ' + e.message; }
+};
+
+window.clearDevice = async function() {
+  const deviceId = document.getElementById('deviceLookupId').value.trim();
+  const result   = document.getElementById('deviceLookupResult');
+  if (!deviceId) { result.textContent = 'Enter a device ID first.'; return; }
+  if (!confirm('Clear registration for device: ' + deviceId + '?')) return;
+  try {
+    await deleteDoc(doc(db, 'deviceRegistry', deviceId));
+    result.style.color = 'var(--green)';
+    result.textContent = '✓ Device registration cleared.';
+  } catch(e) { result.style.color = 'var(--red)'; result.textContent = 'Error: ' + e.message; }
+};
+
+const _origSwitch = window.switchTab;
+window.switchTab = function(tab) {
+  _origSwitch(tab);
+  if (tab === 'team') loadWhitelistPanel();
+};
+
 
 </script>
 </body>
