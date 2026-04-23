@@ -454,18 +454,13 @@
 
                 mainBtn.onclick = async function() {
                     if (answers['reminderEnabled'] !== false) {
-                        // Always set the pending flag — firebase.js consumes it on homepage
-                        // to register the FCM token (silent, no dialog once granted).
-                        localStorage.setItem('medexcel_push_pending', '1');
-                        // Await the system dialog so it fully resolves before we move on.
-                        // Capacitor injects all plugins into every WebView page natively.
                         try {
-                            var _cap = window.Capacitor;
-                            if (_cap && _cap.isNativePlatform && _cap.isNativePlatform() &&
-                                _cap.Plugins && _cap.Plugins.PushNotifications) {
-                                await _cap.Plugins.PushNotifications.requestPermissions();
-                            }
+                            var _pn = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+                            if (_pn) await _pn.requestPermissions();
                         } catch(e) {}
+                        // Flag tells firebase.js to call initPush on homepage
+                        // to register the FCM token (silent — permission already granted above)
+                        localStorage.setItem('medexcel_push_pending', '1');
                     }
                     handleNext();
                 };
