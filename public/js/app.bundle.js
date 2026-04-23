@@ -1506,7 +1506,6 @@
 
             function done() {
                 if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
-                // Reset scroll shifted by scrollIntoView during the tour
                 var homeView = document.getElementById('view-home');
                 if (homeView) homeView.scrollTop = 0;
                 if (typeof navigateTo==='function') navigateTo('view-home');
