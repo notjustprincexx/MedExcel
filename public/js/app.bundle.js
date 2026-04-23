@@ -1506,8 +1506,8 @@
 
             function done() {
                 if (ov) { ov.style.opacity='0'; setTimeout(function(){ ov.remove(); },350); }
-                var homeView = document.getElementById('view-home');
-                if (homeView) homeView.scrollTop = 0;
+                var homeMain = document.querySelector('.home-main');
+                if (homeMain) homeMain.scrollTop = 0;
                 if (typeof navigateTo==='function') navigateTo('view-home');
                 localStorage.setItem(KEY, '1');
                 // Show streak modal now if it was pending
