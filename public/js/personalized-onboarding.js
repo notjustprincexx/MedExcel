@@ -454,18 +454,12 @@
 
                 mainBtn.onclick = function() {
                     if (answers['reminderEnabled'] !== false) {
-                        // Capacitor plugins are injected into every WebView page by the Android
-                        // bridge — we don't need app_bundletest.js to request the permission.
-                        // Calling it here shows the dialog at the exact moment the user
-                        // confirms they want reminders, not on the homepage.
                         try {
                             var _cap = window.Capacitor;
                             if (_cap && _cap.Plugins && _cap.Plugins.PushNotifications) {
                                 _cap.Plugins.PushNotifications.requestPermissions();
                             }
                         } catch(e) {}
-                        // push_pending tells firebase.js to register the FCM token
-                        // (initPush) silently on the first homepage load — no second dialog.
                         localStorage.setItem('medexcel_push_pending', '1');
                     }
                     handleNext();

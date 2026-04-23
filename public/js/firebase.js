@@ -1938,6 +1938,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // Sync onboardingDone from Firestore — prevents re-showing after reinstall
                     if (data.onboardingDone) {
                         localStorage.setItem('medexcel_personalized_onboarding_done', '1');
+                        // If push has never been initialized on this install (reinstall scenario),
+                        // set a flag so onAuthStateChanged calls initPush once after login.
+                        // Onboarding won't show again (Firestore already marks it done),
+                        // so this is the only path to re-register the FCM token.
+                        if (!localStorage.getItem('medexcel_push_initialized')) {
+                            localStorage.setItem('medexcel_push_reinstall', '1');
+                        }
                     }
 
                     // Check for pending avatar from onboarding
@@ -2315,12 +2322,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
 
-                // Permission dialog is shown during onboarding (personalized-onboarding.js)
-                // via Capacitor directly. Here we only register the FCM token — silent,
-                // no dialog — and only when the onboarding reminder step set the flag.
-                const _pushPending = localStorage.getItem('medexcel_push_pending');
-                if (_pushPending) {
+                // ── Push registration ─────────────────────────────────────────
+                // Path A: new user tapped "Set Reminder" in onboarding
+                // Path B: reinstall — Firestore restored onboardingDone but push
+                //         was never initialized on this install (set by initUserUI above)
+                // In both cases we register once, set push_initialized so it never
+                // fires again on subsequent logins until the next reinstall.
+                const _pushPending   = localStorage.getItem('medexcel_push_pending');
+                const _pushReinstall = localStorage.getItem('medexcel_push_reinstall');
+                if (_pushPending || _pushReinstall) {
                     localStorage.removeItem('medexcel_push_pending');
+                    localStorage.removeItem('medexcel_push_reinstall');
+                    localStorage.setItem('medexcel_push_initialized', '1');
                     if (window.initPush) window.initPush(firebaseUser.uid);
                 }
 
@@ -2355,6 +2368,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 const _appVersion     = localStorage.getItem('medexcel_app_version');
                 const _pushPendingOut = localStorage.getItem('medexcel_push_pending');
+                const _pushInited     = localStorage.getItem('medexcel_push_initialized');
                 localStorage.clear();
                 if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
                 if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
@@ -2362,6 +2376,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
                 if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
                 if (_pushPendingOut) localStorage.setItem('medexcel_push_pending', _pushPendingOut);
+                if (_pushInited)     localStorage.setItem('medexcel_push_initialized', _pushInited);
                 window.location.replace("index.html");
             }
         });

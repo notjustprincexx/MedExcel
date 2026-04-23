@@ -800,7 +800,7 @@ code{background:var(--hover);padding:2px 6px;border-radius:4px;color:var(--purpl
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit, addDoc, serverTimestamp }
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit, addDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1530,9 +1530,10 @@ window.loadInsights = async function() {
   refEl.textContent   = '…';
 
   try {
-    const snap = await db.collection('users')
-      .where('onboardingDone', '==', true)
-      .get();
+    const snap = await getDocs(query(
+      collection(db, 'users'),
+      where('onboardingDone', '==', true)
+    ));
 
     const users = snap.docs.map(d => d.data());
     totalEl.textContent = users.length;
