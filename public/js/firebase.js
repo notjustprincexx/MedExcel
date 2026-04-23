@@ -2315,13 +2315,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
 
-                // initPush is ONLY triggered by the medexcel_push_pending flag,
-                // which is set when the user taps "Set Reminder" in onboarding.
-                // This ensures the permission dialog never appears on homepage load —
-                // only on the first load right after the user explicitly chose reminders.
+                // ── Push notification registration ────────────────────────────
+                // Path A — new user: onboarding "Set Reminder" sets push_pending.
+                //           Consumed here on first homepage load after onboarding.
+                // Path B — reinstall / existing user: fires once per install
+                //           (push_initialized absent = fresh install or reinstall).
+                //           No _obDone gate so reinstall always re-requests permission
+                //           even if the user skips onboarding on the new install.
                 const _pushPending = localStorage.getItem('medexcel_push_pending');
+                const _pushInited  = localStorage.getItem('medexcel_push_initialized');
+
                 if (_pushPending) {
                     localStorage.removeItem('medexcel_push_pending');
+                    localStorage.setItem('medexcel_push_initialized', '1');
+                    if (window.initPush) window.initPush(firebaseUser.uid);
+                } else if (!_pushInited) {
+                    localStorage.setItem('medexcel_push_initialized', '1');
                     if (window.initPush) window.initPush(firebaseUser.uid);
                 }
 
@@ -2355,14 +2364,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 const _appVersion     = localStorage.getItem('medexcel_app_version');
-                const _pushPending    = localStorage.getItem('medexcel_push_pending');
+                const _pushPendingOut = localStorage.getItem('medexcel_push_pending');
                 localStorage.clear();
-                if (_authTheme)    localStorage.setItem('medexcel_theme', _authTheme);
-                if (_coachMarks)   localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
+                if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
+                if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
                 if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
-                if (_hasAccount)   localStorage.setItem('medexcel_has_account', _hasAccount);
-                if (_appVersion)   localStorage.setItem('medexcel_app_version', _appVersion);
-                if (_pushPending)  localStorage.setItem('medexcel_push_pending', _pushPending);
+                if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
+                if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
+                if (_pushPendingOut) localStorage.setItem('medexcel_push_pending', _pushPendingOut);
+                // push_initialized intentionally NOT preserved — clears on logout so the
+                // token re-registers on next login (silent, no dialog since permission persists)
                 window.location.replace("index.html");
             }
         });
