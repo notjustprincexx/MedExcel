@@ -2315,22 +2315,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
 
-                // ── Push notification registration ────────────────────────────
-                // Path A — new user: onboarding "Set Reminder" sets push_pending.
-                //           Consumed here on first homepage load after onboarding.
-                // Path B — reinstall / existing user: fires once per install
-                //           (push_initialized absent = fresh install or reinstall).
-                //           No _obDone gate so reinstall always re-requests permission
-                //           even if the user skips onboarding on the new install.
+                // Permission dialog is shown during onboarding (personalized-onboarding.js)
+                // via Capacitor directly. Here we only register the FCM token — silent,
+                // no dialog — and only when the onboarding reminder step set the flag.
                 const _pushPending = localStorage.getItem('medexcel_push_pending');
-                const _pushInited  = localStorage.getItem('medexcel_push_initialized');
-
                 if (_pushPending) {
                     localStorage.removeItem('medexcel_push_pending');
-                    localStorage.setItem('medexcel_push_initialized', '1');
-                    if (window.initPush) window.initPush(firebaseUser.uid);
-                } else if (!_pushInited) {
-                    localStorage.setItem('medexcel_push_initialized', '1');
                     if (window.initPush) window.initPush(firebaseUser.uid);
                 }
 
@@ -2372,8 +2362,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
                 if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
                 if (_pushPendingOut) localStorage.setItem('medexcel_push_pending', _pushPendingOut);
-                // push_initialized intentionally NOT preserved — clears on logout so the
-                // token re-registers on next login (silent, no dialog since permission persists)
                 window.location.replace("index.html");
             }
         });
