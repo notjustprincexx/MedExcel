@@ -154,8 +154,6 @@ import {
   /* ── Forgot Password ── */
   document.getElementById('forgotBtn').addEventListener('click', async () => {
     const email = document.getElementById('emailInput').value.trim();
-    if (!email)
-      return showDialog('Enter your email address in the field above first.', 'Missing Email', { hideCancel: true });
     try {
       await sendPasswordResetEmail(auth, email);
       showDialog('A reset link has been sent to your inbox.', 'Check Your Email', { hideCancel: true });
