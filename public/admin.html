@@ -540,6 +540,7 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
     <button class="tab-btn"         onclick="switchTab('insights')"><i class="fas fa-chart-pie"></i> Insights</button>
     <button class="tab-btn"         onclick="switchTab('broadcast')"><i class="fas fa-bullhorn"></i> Broadcast</button>
     <button class="tab-btn"         onclick="switchTab('team')"><i class="fas fa-shield-halved"></i> Team</button>
+    <button class="tab-btn"         onclick="switchTab('analytics')"><i class="fas fa-chart-column"></i> Analytics</button>
   </div>
 
   <!-- ══ AMBASSADOR DASHBOARD ══ -->
@@ -898,6 +899,59 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
       </div>
       <div id="deviceLookupResult" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;color:var(--text);"></div>
     </div>
+
+
+  <!-- ══ ANALYTICS ══ -->
+  <div class="tab-page" id="tab-analytics">
+    <div class="welcome-hero" style="margin-bottom:.875rem;">
+      <div class="wh-greeting">Live Data</div>
+      <div class="wh-name" style="font-size:1.2rem;">Firebase Analytics</div>
+      <div class="wh-badges">
+        <span style="font-size:.62rem;color:rgba(255,255,255,.55);">Powered by Looker Studio · Updates every 24h</span>
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden;margin-bottom:.75rem;">
+      <div style="position:relative;width:100%;padding-top:130%;">
+        <iframe
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+          src="https://datastudio.google.com/embed/reporting/bf08ab17-d3e4-4136-8713-1f2bb00ec032/page/xMNwF"
+          frameborder="0"
+          allowfullscreen
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+        </iframe>
+      </div>
+    </div>
+
+    <div class="card" style="padding:1rem;">
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Key Metrics Explained</div>
+      <div style="display:flex;flex-direction:column;gap:.625rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:.8rem;font-weight:600;color:var(--text);">Active Users</span>
+          <span style="font-size:.75rem;color:var(--muted);">Unique users who opened app</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:.8rem;font-weight:600;color:var(--text);">Avg Session Duration</span>
+          <span style="font-size:.75rem;color:var(--muted);">Time spent per session</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:.8rem;font-weight:600;color:var(--text);">Engaged Sessions</span>
+          <span style="font-size:.75rem;color:var(--muted);">Sessions with real interaction</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+          <span style="font-size:.8rem;font-weight:600;color:var(--text);">New Users</span>
+          <span style="font-size:.75rem;color:var(--muted);">First-time app installs</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:.75rem 0;">
+      <a href="https://lookerstudio.google.com" target="_blank"
+        style="font-size:.78rem;font-weight:700;color:var(--purple);text-decoration:none;">
+        <i class="fas fa-arrow-up-right-from-square" style="margin-right:.375rem;"></i>Edit in Looker Studio
+      </a>
+    </div>
+  </div>
 
   </div>
 </div>
