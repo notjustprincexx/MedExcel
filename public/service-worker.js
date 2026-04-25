@@ -1,25 +1,15 @@
 const CACHE_NAME = "medexcel-cache-v4";
 
-// 🔥 CORE FILES + IMPORTANT JSON
+// Core files that are guaranteed to exist
 const APP_SHELL = [
   "/",
   "/index.html",
   "/homepage.html",
-  "/offline.html",
-  
-  // 🔥 IMPORTANT JSON (add your main ones here)
   "/fire.json",
   "/Loader.json",
   "/scan.json",
   "/trophy.json",
-  "/crown.json",
-  "/YayJump.json",
-  "/WonderThings.json",
-  "/Blue Working Cat Animation.json",
-  "/Walkinganddrinking.json",
-  "/profile.json",
-  "/library.json",
-  "/create.json"
+  "/Crown.json",
 ];
 
 // ==============================
@@ -28,7 +18,8 @@ const APP_SHELL = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log("Caching core files + main JSON...");
+      console.log("Caching core files...");
+      // addAll is all-or-nothing — only include files guaranteed to exist
       return cache.addAll(APP_SHELL);
     })
   );
@@ -74,7 +65,7 @@ self.addEventListener("fetch", event => {
               return res;
             });
           })
-          .catch(() => caches.match("/offline.html"))
+          .catch(() => caches.match("/index.html"))
         );
       })
     );

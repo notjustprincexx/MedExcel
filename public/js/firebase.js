@@ -71,9 +71,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (chevron) chevron.className = 'fas fa-spinner fa-spin';
 
             try {
+                const token = await window.currentUser.getIdToken();
                 const res = await fetch("https://us-central1-medxcel.cloudfunctions.net/sendResetEmail", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
                     body: JSON.stringify({ email })
                 });
 
@@ -126,7 +127,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         }
 
         window.addXP = async function(amount) {
-            if (amount <= 0) return;
+            if (amount === 0) return;
+
+            // XP deduction (e.g. boss fight loss / quit)
+            if (amount < 0) {
+                window.userStats.xp = Math.max(0, (window.userStats.xp || 0) + amount);
+                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+                if (window.currentUser) {
+                    try {
+                        await setDoc(doc(db, "users", window.currentUser.uid), {
+                            xp: window.userStats.xp
+                        }, { merge: true });
+                    } catch(e) { console.error("Failed to sync XP deduction", e); }
+                }
+                const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
+                const uiXP2 = document.getElementById('currentUserXp'); if(uiXP2) uiXP2.textContent = window.formatXP(window.userStats.xp);
+                window.updateProfileXP?.(window.userStats.xp);
+                return;
+            }
             window.userStats.xp += amount;
 
             // Weekly XP — reset each Monday
@@ -585,9 +603,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                 ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
                             </div>
                             <div class="flex-1 min-w-0 py-1">
-                                <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${quiz.title}</h3>
+                                <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${window.escapeHTML(quiz.title || 'Untitled')}</h3>
                                 <div class="flex items-center gap-2 text-[var(--text-muted)] text-[12px] font-semibold">
-                                    <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${quiz.subject || 'General'}</span>
+                                    <span class="bg-[var(--bg-body)] border border-[var(--border-color)] px-2 py-0.5 rounded-md truncate max-w-[110px]">${window.escapeHTML(quiz.subject || 'General')}</span>
                                     <span class="shrink-0">${qLength} ${itemLabel}</span>
                                 </div>
                             </div>
@@ -609,10 +627,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             area.innerHTML = `
                 <div class="card-panel fade-in w-full max-w-2xl">
                     <div class="flex justify-between items-start mb-4">
-                        <span class="bg-[var(--bg-glass)] text-[var(--accent-btn)] text-xs font-extrabold px-3 py-1.5 rounded-md uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
+                        <span class="bg-[var(--bg-glass)] text-[var(--accent-btn)] text-xs font-extrabold px-3 py-1.5 rounded-md uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-tag"></i> ${window.escapeHTML(currentQuiz.subject || 'General')}</span>
                         <button onclick="window.toggleFavoriteCurrent()" class="text-xl p-2 -m-2 transition-colors ${currentQuiz.favorite ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)] hover:text-[var(--accent-yellow)]'}"><i class="fas fa-star"></i></button>
                     </div>
-                    <h2 class="text-3xl font-bold text-[var(--text-main)] mb-2 tracking-tight">${currentQuiz.title}</h2>
+                    <h2 class="text-3xl font-bold text-[var(--text-main)] mb-2 tracking-tight">${window.escapeHTML(currentQuiz.title || 'Untitled')}</h2>
                     <p class="text-[15px] font-medium text-[var(--text-muted)] mb-8"><i class="fas fa-layer-group mr-1.5"></i>${qLength} ${itemLabel}</p>
                     <div class="grid grid-cols-2 gap-3 mb-8">
                         <div class="bg-[var(--bg-body)] p-5 rounded-2xl border border-[var(--border-color)]">
@@ -798,7 +816,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);width:18px;text-align:center;">${i+1}</span>
                     ${avatar}
                     <div style="flex:1;min-width:0;">
-                        <div style="font-size:0.8125rem;font-weight:700;color:${isMe?'var(--accent-btn)':'var(--text-main)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName}${isMe?' <span style="font-size:0.6rem;background:var(--accent-btn);color:white;padding:1px 5px;border-radius:9999px;vertical-align:middle;">YOU</span>':''}</div>
+                        <div style="font-size:0.8125rem;font-weight:700;color:${isMe?'var(--accent-btn)':'var(--text-main)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHTML(user.displayName || '?')}${isMe?' <span style="font-size:0.6rem;background:var(--accent-btn);color:white;padding:1px 5px;border-radius:9999px;vertical-align:middle;">YOU</span>':''}</div>
                         <div style="font-size:0.7rem;color:var(--text-muted);">${window.formatXP(user.monthlyRankXp||0)} this month</div>
                     </div>
                 </div>`;
@@ -915,7 +933,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
                                 <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                    ${user.displayName}${proPill}
+                                    ${window.escapeHTML(user.displayName || '?')}${proPill}
                                     ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:var(--btn-text);border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
                                 </div>
                             </div>
@@ -1002,8 +1020,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             function renderPage(extra) {
                 const studyLine = (extra && extra.studyProgram)
                     ? ('<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">'
-                        + ({mbbs:'MBBS',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy',other:'Other'}[extra.studyProgram] || extra.studyProgram)
-                        + (extra.studyLevel ? ' · ' + ({
+                        + window.escapeHTML({mbbs:'MBBS',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy',other:'Other'}[extra.studyProgram] || extra.studyProgram)
+                        + (extra.studyLevel ? ' · ' + window.escapeHTML({
                             '1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year',
                             '4th':'4th Year','final':'Final Year','postgrad':'Post-grad'
                           }[extra.studyLevel] || extra.studyLevel) : '')
@@ -1967,9 +1985,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             || (localStorage.getItem('nativeUser') ? JSON.parse(localStorage.getItem('nativeUser')||'{}').email : null);
                         if (_emailToNotify) {
                             try {
+                                const _loginToken = await user.getIdToken();
                                 fetch("https://us-central1-medxcel.cloudfunctions.net/sendLoginEmail", {
                                     method: "POST",
-                                    headers: { "Content-Type": "application/json" },
+                                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _loginToken },
                                     body: JSON.stringify({
                                         email: _emailToNotify,
                                         displayName: user.displayName || data.displayName || null,
@@ -2016,13 +2035,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     const _welcomeEmail = user.email
                         || (localStorage.getItem('nativeUser') ? JSON.parse(localStorage.getItem('nativeUser') || '{}').email : null);
                     if (_welcomeEmail) {
-                        fetch("https://us-central1-medxcel.cloudfunctions.net/sendWelcomeEmail", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                email: _welcomeEmail,
-                                displayName: user.displayName || savedName || null
-                            })
+                        user.getIdToken().then(function(_wToken) {
+                            fetch("https://us-central1-medxcel.cloudfunctions.net/sendWelcomeEmail", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _wToken },
+                                body: JSON.stringify({
+                                    email: _welcomeEmail,
+                                    displayName: user.displayName || savedName || null
+                                })
+                            }).catch(() => {});
                         }).catch(() => {});
                     }
                 }
@@ -2235,9 +2256,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     <div style="width:36px;height:4px;background:rgba(255,255,255,0.12);border-radius:100px;margin:0 auto 1.25rem;"></div>
                     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.875rem;">
                         <span style="font-size:1.5rem;line-height:1;">${emoji}</span>
-                        <span style="font-size:1rem;font-weight:800;color:#f1f5f9;letter-spacing:-.02em;flex:1;">${ann.title || ''}</span>
+                        <span style="font-size:1rem;font-weight:800;color:#f1f5f9;letter-spacing:-.02em;flex:1;">${window.escapeHTML(ann.title || '')}</span>
                     </div>
-                    <p style="font-size:.875rem;color:#94a3b8;line-height:1.65;margin-bottom:1.25rem;">${ann.body || ''}</p>
+                    <p style="font-size:.875rem;color:#94a3b8;line-height:1.65;margin-bottom:1.25rem;">${window.escapeHTML(ann.body || '')}</p>
                     <button onclick="document.getElementById('_medxAnnOverlay').remove()" style="width:100%;padding:.9rem;border-radius:12px;border:none;background:${color};color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:-.01em;">Got it</button>
                 </div>`;
 

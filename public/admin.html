@@ -1277,7 +1277,7 @@ window.sendBroadcast = async function() {
     const prev = document.getElementById('bcPreview');
     const typeLabels = { info:'ℹ️', update:'🚀', maintenance:'🔧', promo:'🎁' };
     prev.style.display = 'block';
-    prev.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.375rem;"><span style="font-size:.9rem;">${typeLabels[type]||'📢'}</span><strong style="color:var(--text);font-size:.875rem;">${title}</strong></div><div style="color:var(--soft);font-size:.8rem;line-height:1.6;">${body}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.5rem;font-family:var(--mono);">Sent just now · ${type}</div>`;
+    prev.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.375rem;"><span style="font-size:.9rem;">${typeLabels[type]||'📢'}</span><strong style="color:var(--text);font-size:.875rem;">${esc(title)}</strong></div><div style="color:var(--soft);font-size:.8rem;line-height:1.6;">${esc(body)}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.5rem;font-family:var(--mono);">Sent just now · ${esc(type)}</div>`;
 
     document.getElementById('bcTitle').value = '';
     document.getElementById('bcBody').value  = '';
@@ -1308,11 +1308,11 @@ async function loadActiveAnnouncement() {
     const ann = snap.data();
     const typeLabels = { info:'ℹ️', update:'🚀', maintenance:'🔧', promo:'🎁' };
     if (ann.cancelled) {
-      contentEl.innerHTML = `<span style="text-decoration:line-through;opacity:.5;">${ann.title}</span> <span style="font-size:.7rem;color:var(--red);">— retracted</span>`;
+      contentEl.innerHTML = `<span style="text-decoration:line-through;opacity:.5;">${esc(ann.title)}</span> <span style="font-size:.7rem;color:var(--red);">— retracted</span>`;
       retractBtn.style.display = 'none';
       if (statusEl) { statusEl.textContent = 'Retracted'; statusEl.style.background='rgba(248,113,113,.08)'; statusEl.style.color='var(--red)'; statusEl.style.borderColor='rgba(248,113,113,.2)'; }
     } else {
-      contentEl.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.3rem;"><span>${typeLabels[ann.type]||'📢'}</span><strong style="color:var(--text);font-size:.85rem;">${ann.title}</strong></div><div style="color:var(--muted);font-size:.78rem;line-height:1.5;">${ann.body||''}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.4rem;font-family:var(--mono);">Sent ${ann.sentAt ? new Date(ann.sentAt).toLocaleString() : '—'}</div>`;
+      contentEl.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.3rem;"><span>${typeLabels[ann.type]||'📢'}</span><strong style="color:var(--text);font-size:.85rem;">${esc(ann.title)}</strong></div><div style="color:var(--muted);font-size:.78rem;line-height:1.5;">${esc(ann.body||'')}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.4rem;font-family:var(--mono);">Sent ${ann.sentAt ? new Date(ann.sentAt).toLocaleString() : '—'}</div>`;
       retractBtn.style.display = 'block';
       if (statusEl) { statusEl.textContent = 'Live'; statusEl.style.background='rgba(52,211,153,.1)'; statusEl.style.color='var(--green)'; statusEl.style.borderColor='rgba(52,211,153,.2)'; }
     }
@@ -1348,11 +1348,11 @@ async function loadBroadcastHistory() {
       ? msgs.slice(0,10).map(m=>`
           <div class="urow">
             <div style="flex:1;min-width:0;">
-              <div class="uname">${m.title}</div>
-              <div class="uemail">${m.body?.substring(0,60)}${m.body?.length>60?'…':''}</div>
+              <div class="uname">${esc(m.title)}</div>
+              <div class="uemail">${esc((m.body||'').substring(0,60))}${(m.body||'').length>60?'…':''}</div>
             </div>
             <div class="umeta">
-              <span class="pill pill-free">${m.type||'info'}</span>
+              <span class="pill pill-free">${esc(m.type||'info')}</span>
               <div class="udate">${m.sentAt?new Date(m.sentAt).toLocaleDateString():''}</div>
             </div>
           </div>`).join('')
@@ -1444,14 +1444,14 @@ function uRowHTML(u, clickable=false) {
   const isPrem = u.plan==='premium';
   const click  = clickable ? `onclick="openUserModal('${u.uid}')"` : '';
   return `<div class="urow${clickable?' click':''}${u.banned?' banned':''}" ${click}>
-    <div class="uav">${init}</div>
+    <div class="uav">${esc(init)}</div>
     <div style="min-width:0;flex:1;">
-      <div class="uname">${name}
+      <div class="uname">${esc(name)}
         ${u.role==='admin'?'<span class="role-badge badge-admin" style="font-size:.45rem;">admin</span>':''}
         ${u.role==='ambassador'?'<span class="role-badge badge-ambassador" style="font-size:.45rem;">amb</span>':''}
         ${u.banned?'<span class="pill pill-ban">banned</span>':''}
       </div>
-      <div class="uemail">${u.email||'—'}</div>
+      <div class="uemail">${esc(u.email||'—')}</div>
     </div>
     <div class="umeta">
       <span class="pill ${isPrem?'pill-prem':'pill-free'}">${isPrem?'💎 Pro':'Free'}</span>
@@ -1467,10 +1467,10 @@ function rankHTML(u, rank, meta) {
   const showEmail = currentRole !== 'ambassador';
   return `<div class="urow">
     <div class="rank-n">${rank}</div>
-    <div class="uav">${name.charAt(0).toUpperCase()}</div>
+    <div class="uav">${esc(name.charAt(0).toUpperCase())}</div>
     <div style="min-width:0;flex:1;">
-      <div class="uname">${name}</div>
-      ${showEmail ? `<div class="uemail">${u.email || '—'}</div>` : ''}
+      <div class="uname">${esc(name)}</div>
+      ${showEmail ? `<div class="uemail">${esc(u.email || '—')}</div>` : ''}
     </div>
     <div class="umeta"><span class="pill ${isPrem ? 'pill-prem' : 'pill-free'}">${isPrem ? '💎' : 'Free'}</span><div class="uxp">${meta}</div></div>
   </div>`;
@@ -1495,27 +1495,27 @@ window.openUserModal = function(uid) {
     };
     const val = labels[k][u[k]] || u[k];
     const key = {studyProgram:'Programme',studyLevel:'Year',studyGoal:'Goal',studyTime:'Study Time',dailyTarget:'Daily Target'}[k];
-    return `<div class="mrow"><span class="mrow-l">${key}</span><span class="mrow-r">${val}</span></div>`;
+    return `<div class="mrow"><span class="mrow-l">${esc(key)}</span><span class="mrow-r">${esc(val)}</span></div>`;
   }).join('');
 
   document.getElementById('modalBody').innerHTML = `
     <div style="font-size:.9375rem;font-weight:800;color:var(--text);margin-bottom:.875rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-      ${name}
+      ${esc(name)}
       ${u.role==='admin'?'<span class="role-badge badge-admin">admin</span>':''}
       ${u.role==='ambassador'?'<span class="role-badge badge-ambassador">ambassador</span>':''}
       ${isBan?'<span class="pill pill-ban">banned</span>':''}
     </div>
-    <div class="mrow"><span class="mrow-l">Email</span><span class="mrow-r">${u.email||'—'}</span></div>
+    <div class="mrow"><span class="mrow-l">Email</span><span class="mrow-r">${esc(u.email||'—')}</span></div>
     <div class="mrow" onclick="copyText('${u.uid}')" style="cursor:pointer;">
       <span class="mrow-l">UID <small style="opacity:.5">(tap to copy)</small></span>
-      <span class="mrow-r" style="font-size:.65rem;max-width:140px;">${u.uid}</span>
+      <span class="mrow-r" style="font-size:.65rem;max-width:140px;">${esc(u.uid)}</span>
     </div>
     <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${isPrem?'💎 Premium':'Free'}</span></div>
     <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)}</span></div>
     <div class="mrow"><span class="mrow-l">Weekly XP</span><span class="mrow-r">${fmt(u.weeklyXp||0)}</span></div>
     <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
     <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem?30:5}</span></div>
-    <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${u.role||'user'}</span></div>
+    <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${esc(u.role||'user')}</span></div>
     <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
     ${profileRows}
 
@@ -1627,6 +1627,7 @@ function ts2ms(ts) {
   if(ts.toDate) return ts.toDate().getTime();
   return new Date(ts).getTime();
 }
+function esc(str) { return String(str || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t])); }
 function fmtDate(ts) {
   if(!ts) return '—';
   const d = ts.toDate?ts.toDate():new Date(ts);

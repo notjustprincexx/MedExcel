@@ -8,13 +8,15 @@
                 const sheet    = document.getElementById('upgradeModalSheet');
                 if (!backdrop || !sheet) { resolve(true); return; }
 
-                // Populate usage bar
+                // Populate usage bar — only meaningful when daily cap is hit
                 const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
                 const cap  = window.userPlan === 'premium' ? 30 : maxAllowed || 5;
                 document.getElementById('upgUsageLabel').textContent = `${used} / ${cap}`;
-                document.getElementById('upgUsageBar').style.width = '100%';
+                document.getElementById('upgUsageBar').style.width = cap > 0 ? `${Math.min(100, Math.round((used / cap) * 100))}%` : '100%';
                 document.getElementById('upgModalSubtitle').textContent =
-                    `You've used all ${cap} free generations today.`;
+                    used >= cap
+                        ? `You've used all ${cap} free generations today.`
+                        : `Upgrade to unlock more cards per deck and higher daily limits.`;
 
                 // Referral tiers
                 const count = parseInt(document.getElementById('profileReferralCount')?.textContent || '0');

@@ -47,15 +47,21 @@ import {
           lastDailyReset:    new Date().toISOString().split('T')[0],
           createdAt:         serverTimestamp(),
           referralCode:      user.uid.substring(0, 8).toUpperCase(),
-          referredBy:        refCode,
           referralCount:     0,
           referralProcessed: false,
           ...extra
         }, { merge: true });
-        if (refCode) localStorage.removeItem('medexcel_ref_code');
+
+        // Route via claimReferral Cloud Function (not direct Firestore write) so
+        // the referrer gets properly credited. Writing referredBy here marks the
+        // user as "already claimed" and blocks the Cloud Function from running.
+        if (refCode) {
+          localStorage.setItem('medexcel_pending_referral_code', refCode);
+          localStorage.removeItem('medexcel_ref_code');
+        }
       } else if (refCode && !snap.data().referredBy && !snap.data().referralProcessed) {
-        // Existing user who tapped a referral link — attribute them now
-        await setDoc(ref, { referredBy: refCode, referralProcessed: false }, { merge: true });
+        // Existing user who tapped a referral link — route through Cloud Function
+        localStorage.setItem('medexcel_pending_referral_code', refCode);
         localStorage.removeItem('medexcel_ref_code');
       }
     } catch(e) { console.warn('Firestore sync skipped:', e); }

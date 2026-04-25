@@ -64,7 +64,7 @@
             const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
 
             const safeQuestion = window.escapeHTML(q.text || q.front || q.question || "No question");
-            const safeAnswer   = window.escapeHTML(q.back  || q.answer || "");
+            const safeAnswer   = window.escapeHTML(q.back  || q.answer || (q.options && q.correct !== undefined ? q.options[q.correct] : '') || '');
 
             let contentHTML = '';
 
@@ -202,12 +202,18 @@ if (nextBtn) {
         window.finishStudyQuiz = async function() {
             const isMCQSession = currentQuiz.type && currentQuiz.type.includes("Multiple");
             const totalXP = isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20);
-            window.addXP(totalXP);
+            await window.addXP(totalXP);
 
             if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
             currentQuiz.stats.attempts++;
             currentQuiz.stats.lastScore = examScore;
-            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            if (isMCQSession) {
+                if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            } else {
+                // Flashcard session — treat completing the deck as full score
+                const total = currentQuiz.questions ? currentQuiz.questions.length : 0;
+                if (total > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = total;
+            }
 
             if (window.currentUser) {
                 try {

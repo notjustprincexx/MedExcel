@@ -232,7 +232,10 @@
         window.applyReferralBoost = function(userData) {
             const boostExpiry = userData.referralBoostExpiry;
             const boostType   = userData.referralBoostType;
-            if (!boostExpiry || new Date(boostExpiry) <= new Date()) return; // expired or none
+            const isPermanent = boostExpiry === 'permanent';
+            // Skip if no expiry, or expired (invalid date comparisons evaluate false, so "permanent" passes)
+            if (!boostExpiry) return;
+            if (!isPermanent && new Date(boostExpiry) <= new Date()) return;
 
             if (boostType === 'limit_2x' && window.userPlan === 'free') {
                 window.allowedMaxItems = 30; // 2× of 15
@@ -243,6 +246,10 @@
                 window.allowedMaxItems = 30;
                 const maxText = document.getElementById('maxLimitText');
                 if (maxText) maxText.textContent = '(Max: 30 — Referral Reward)';
+            } else if (boostType === 'ambassador') {
+                window.allowedMaxItems = 50;
+                const maxText = document.getElementById('maxLimitText');
+                if (maxText) maxText.textContent = '(Max: 50 — Ambassador)';
             }
         };
 

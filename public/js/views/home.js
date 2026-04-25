@@ -72,7 +72,8 @@
             { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
         ];
         let currentTargetIdx = 0;
-        setInterval(() => {
+        if (_targetRotatorInterval) clearInterval(_targetRotatorInterval);
+        _targetRotatorInterval = setInterval(() => {
             currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
             const titleEl = document.getElementById('targetTitle');
             const descEl = document.getElementById('targetDesc');
@@ -100,16 +101,37 @@
                 const d = new Date(today); d.setDate(today.getDate() - currentDayIndex + i); dates.push(d.getDate());
             }
 
+            // Only mark past days if user has an active streak ending today or yesterday
+            const _todayStr = new Date().toDateString();
+            const _yest = new Date(); _yest.setDate(_yest.getDate() - 1);
+            const _lastDate = window.userStats ? window.userStats.lastDate : null;
+            const _hasActivePast = _lastDate === _todayStr || _lastDate === _yest.toDateString();
+
             let html = '';
             for(let i=0; i<7; i++) {
                 let circleClass = "day-circle";
                 let content = dates[i];
-                if (i < currentDayIndex) { circleClass += " done"; content = '<i class="fas fa-check"></i>'; } 
-                else if (i === currentDayIndex) { circleClass += " active"; if (hasCheckedInToday) content = '<i class="fas fa-check"></i>'; }
+
+                if (i === currentDayIndex) {
+                    circleClass += " active";
+                    if (hasCheckedInToday) content = '<i class="fas fa-check"></i>';
+                } else if (i < currentDayIndex && _hasActivePast && currentStreakCount > 0) {
+                    const daysAgo = currentDayIndex - i;
+                    // hasCheckedInToday: streak includes today, cover daysAgo 1..(count-1)
+                    // not checked in yet: streak ends yesterday, cover daysAgo 1..(count-1) where count = localStreak.count+1
+                    const streakCoversThisDay = daysAgo < currentStreakCount;
+                    if (streakCoversThisDay) {
+                        circleClass += " done";
+                        content = '<i class="fas fa-check"></i>';
+                    }
+                }
                 html += `<div class="day-col"><span class="day-label text-xs font-bold text-[var(--text-muted)]">${labels[i]}</span><div class="${circleClass}">${content}</div></div>`;
             }
             return html;
         }
+
+        // Weekly Target Rotator interval ref — stored so it can be cleared if needed
+        var _targetRotatorInterval = null;
 
         // Variable to hold the animation so it doesn't duplicate
         var fireLottieAnim = null;
@@ -155,8 +177,10 @@
             document.getElementById('streakModalBackdrop').classList.add('show');
         };
 
-        document.getElementById('closeStreakModal').onclick = () => {
+        const _closeStreakBtn = document.getElementById('closeStreakModal');
+        if (_closeStreakBtn) _closeStreakBtn.onclick = () => {
             if (!hasCheckedInToday && window.currentUser) {
+                window.userStats.streak = currentStreakCount;
                 window.userStats.count = currentStreakCount;
                 window.userStats.lastDate = new Date().toDateString();
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));

@@ -270,6 +270,19 @@
                 if (window.currentUser?.uid && window._deleteDoc && window._doc) {
                     try { await window._deleteDoc(window._doc(window.db, "users", window.currentUser.uid)); } catch(e) {}
                 }
+                // Delete the Firebase Auth account itself (required for full account deletion)
+                if (window.currentUser) {
+                    try {
+                        await window.currentUser.delete();
+                    } catch(e) {
+                        if (e.code === 'auth/requires-recent-login') {
+                            if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1'; }
+                            alert("For security, please sign out and sign back in before deleting your account.");
+                            return;
+                        }
+                        throw e;
+                    }
+                }
                 try { if (window._signOut && window.auth) await window._signOut(window.auth); } catch(e) {}
                 const _delTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();

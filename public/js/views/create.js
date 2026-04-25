@@ -97,6 +97,7 @@
             }
         });
         const sliderValue = document.getElementById('sliderValue');
+        const itemSlider  = document.getElementById('itemSlider');
         if(itemSlider && sliderValue) {
             itemSlider.addEventListener('input', (e) => {
                 let val = parseInt(e.target.value, 10);

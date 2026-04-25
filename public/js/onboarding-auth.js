@@ -45,12 +45,16 @@ import {
           lastDailyReset:    new Date().toISOString().split('T')[0],
           createdAt:         serverTimestamp(),
           referralCode:      user.uid.substring(0, 8).toUpperCase(),
-          referredBy:        refCode,
           referralCount:     0,
           referralProcessed: false,
           ...extra
         }, { merge: true });
-        if (refCode) sessionStorage.removeItem('medexcel_ref_code');
+        // Route through claimReferral Cloud Function — writing referredBy directly
+        // marks the user as "already claimed" and blocks the Cloud Function from crediting the referrer
+        if (refCode) {
+          localStorage.setItem('medexcel_pending_referral_code', refCode);
+          sessionStorage.removeItem('medexcel_ref_code');
+        }
       }
     } catch(e) { console.warn('Firestore sync skipped:', e); }
   }
