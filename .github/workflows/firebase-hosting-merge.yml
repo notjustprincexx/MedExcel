@@ -16,7 +16,7 @@ jobs:
       - name: Install function dependencies
         run: cd functions && npm install
       - name: Write service account key
-        run: echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > /tmp/sa.json
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEDXCEL }}' > /tmp/sa.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
