@@ -3507,31 +3507,19 @@ window._openProgressDeck = function(quizId) {
             var lastName  = nameParts.slice(1).join(" ") || ".";
             var email     = window.currentUser.email || "";
 
-            const p = window._geoPrice || DEFAULT_GEO;
-
-            // ── Always charge in NGN (Paystack account currency) ─────────────
-            // Non-NGN prices are converted to NGN at a fixed rate so foreign
-            // cards still work — the user's bank handles the final FX conversion.
-            // Sending any other currency causes "Currency not supported" errors.
-            const NGN_RATES = { NGN:1, USD:1600, GBP:2050, GHS:110, KES:12, ZAR:85 };
-            const rate = NGN_RATES[p.currency] || 1600;
-
-            function toNGNKobo(kobo) {
-                if (p.currency === 'NGN') return kobo;
-                // kobo here is in the foreign currency's smallest unit (e.g. cents)
-                // convert: kobo/100 = display amount in foreign currency
-                // × rate = NGN amount, × 100 = NGN kobo
-                return Math.round((kobo / 100) * rate * 100);
+            // ── Map MedXcel plan names → Paystack plan codes ─────────────────
+            // Price and billing cycle are controlled by the Paystack plan itself.
+            const PLAN_CODES = {
+                'premium':         'PLN_jcgt20vstjvnf0p', // ₦1,999/month
+                'premium_yearly':  'PLN_kjs8v6kzn39cjnp', // ₦14,999/year
+                'premium_trial':   'PLN_yegmmewhvf8dw5p', // ₦250 one-time trial
+                'premium_exam':    'PLN_zkdzu95bbxthyn2', // ₦4,999/quarter
+            };
+            const planCode = PLAN_CODES[plan];
+            if (!planCode) {
+                console.error('[Payment] Unknown plan:', plan);
+                return;
             }
-
-            const trialAmt = toNGNKobo(p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.132));
-            const examAmt  = toNGNKobo(p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5));
-
-            var amount   = plan === 'premium_yearly' ? toNGNKobo(p.yearlyKobo)
-                         : plan === 'premium_trial'  ? trialAmt
-                         : plan === 'premium_exam'   ? examAmt
-                         : toNGNKobo(p.monthlyKobo);
-            var currency = 'NGN'; // always NGN — Paystack account only supports NGN
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
@@ -3549,8 +3537,7 @@ window._openProgressDeck = function(quizId) {
                     email:      email,
                     first_name: firstName,
                     last_name:  lastName,
-                    amount:     amount,
-                    currency:   currency,
+                    plan:       planCode,
                     ref:        ref,
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },

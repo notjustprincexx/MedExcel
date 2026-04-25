@@ -77,47 +77,73 @@
             var lastName  = nameParts.slice(1).join(" ") || ".";
             var email     = window.currentUser.email || "";
 
-            var amounts = {
-                premium:         199900,
-                premium_monthly: 199900,
-                premium_yearly:  1499900,
-                elite:           299900
+            // ── Map MedXcel plan names → Paystack plan codes ─────────────────
+            // Price and billing cycle are controlled by the Paystack plan itself.
+            var PLAN_CODES = {
+                'premium':         'PLN_jcgt20vstjvnf0p', // ₦1,999/month
+                'premium_monthly': 'PLN_jcgt20vstjvnf0p', // ₦1,999/month (alias)
+                'premium_yearly':  'PLN_kjs8v6kzn39cjnp', // ₦14,999/year
+                'premium_trial':   'PLN_yegmmewhvf8dw5p', // ₦250 one-time trial
+                'premium_exam':    'PLN_zkdzu95bbxthyn2', // ₦4,999/quarter
             };
-            var amount = amounts[plan];
-            if (!amount) return;
+            var planCode = PLAN_CODES[plan];
+            if (!planCode) {
+                console.error('[Payment] Unknown plan:', plan);
+                return;
+            }
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
+            // ── Store pending ref so we can recover if the app restarts mid-payment ──
+            window._pendingPayRef  = ref;
+            window._pendingPayPlan = plan;
+            try { localStorage.setItem('medx_pending_ref', ref); localStorage.setItem('medx_pending_plan', plan); } catch(_) {}
+
             try {
+                if (typeof PaystackPop === 'undefined') throw new Error('PaystackPop not loaded');
                 var handler = PaystackPop.setup({
                     key:        "pk_live_8d46f32e2edd6f6605c6c0e513e77baabb856dda",
                     email:      email,
                     first_name: firstName,
                     last_name:  lastName,
-                    amount:     amount,
-                    currency:   "NGN",
+                    plan:       planCode,
                     ref:        ref,
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },
-                    onSuccess: function(transaction) {
+                    onSuccess: async function(transaction) {
+                        // ── Always verify server-side — never trust the client callback alone ──
+                        // Firestore rules block direct plan writes from the client anyway.
                         try {
-                            if (window.db && window.currentUser && window.currentUser.uid) {
-                                var newPlan = (plan === "premium_yearly") ? "premium" : plan.replace("_monthly", "");
-                                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js")
-                                    .then(function(m) {
-                                        m.updateDoc(m.doc(window.db, "users", window.currentUser.uid), {
-                                            plan: newPlan, planRef: transaction.reference, planUpdatedAt: new Date().toISOString()
-                                        }).catch(function(){});
-                                    }).catch(function(){});
-                                window.userPlan = newPlan;
-                                window.updatePlanIcon(window.userPlan);
+                            if (typeof window._activatePremium === 'function') {
+                                // app.bundletest.js already defines this — reuse it
+                                await window._activatePremium(transaction.reference);
+                            } else {
+                                // Standalone fallback: call the Cloud Function directly
+                                const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                                const fns    = getFunctions(window.auth?.app || window.firebaseApp, "us-central1");
+                                const verify = httpsCallable(fns, "verifySubscriptionPayment");
+                                const result = await verify({ reference: transaction.reference });
+                                if (result.data?.success) {
+                                    try { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); } catch(_) {}
+                                    window._pendingPayRef  = null;
+                                    window._pendingPayPlan = null;
+                                    const newPlan = result.data.plan;
+                                    window.userPlan = newPlan;
+                                    if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(newPlan);
+                                    if (typeof window.applyAvatar    === 'function') window.applyAvatar();
+                                    var btn = document.getElementById('payCTABtn');
+                                    if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "var(--accent-green, #22c55e)"; btn.style.color = "#000"; }
+                                    setTimeout(function() { if (typeof navigateTo === 'function') navigateTo('view-home'); }, 1800);
+                                }
                             }
-                        } catch(e) {}
-                        var btn = document.getElementById('payCTABtn');
-                        if (btn) { btn.textContent = "✓ You're Premium!"; btn.style.background = "var(--accent-green)"; btn.style.color = "#000"; }
-                        setTimeout(function() { navigateTo('view-home'); }, 1800);
+                        } catch(e) {
+                            console.error('[Payment] Verification failed:', e);
+                            // Don't clear pending ref — auto-recovery on next load will retry
+                        }
                     },
-                    onCancel: function() {}
+                    onCancel: function() {
+                        // Don't clear pending ref — user may re-open and complete payment
+                    }
                 });
                 handler.openIframe();
             } catch(err) {
