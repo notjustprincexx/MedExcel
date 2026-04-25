@@ -10,7 +10,8 @@
       {
         "source": "**/*.html",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+          { "key": "Content-Security-Policy", "value": "frame-src 'self' https://lookerstudio.google.com https://datastudio.google.com;" }
         ]
       },
       {
