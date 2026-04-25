@@ -69,7 +69,7 @@
                 const isMCQIcon = isMCQ;
                 const label = isMCQ ? 'Questions' : 'Cards';
 
-                return `<a href="javascript:void(0)" onclick="(function(){var q=window.quizzes&&window.quizzes.find(function(x){return x.id===${JSON.stringify(quiz.id)};});if(q){if(window.setCurrentQuiz)window.setCurrentQuiz(q);else window.currentQuiz=q;navigateTo('view-study');if(window.openPracticeMobile)window.openPracticeMobile();}})()" 
+                return `<a href="javascript:void(0)" onclick="(function(){navigateTo('view-study');setTimeout(function(){if(window.loadQuizOverview)window.loadQuizOverview(${JSON.stringify(quiz.id)});},80);})()" 
                     class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
                     <div class="flex items-center min-w-0">
                         <div class="mr-4 shrink-0" style="width:40px;height:40px;">
@@ -3012,7 +3012,7 @@ window.openProgressSheet = function() {
 
     page.innerHTML =
         // Header
-        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);border-bottom:1px solid var(--border-glass);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
+        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
             '<div style="display:flex;align-items:center;gap:12px;">' +
                 '<button onclick="window._closeProgressPage()" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">' +
                     '<i class="fas fa-arrow-left"></i>' +
