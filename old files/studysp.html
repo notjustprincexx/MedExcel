@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MedExcel — Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+  :root {
+    --bg1:     #F2EDE4;
+    --bg2:     #EBE6F5;
+    --bg3:     #0A090F;
+    --ink:     #0E0B07;
+    --emerald: #224034;
+    --wine:    #7A1F44;
+    --slate:   #101015;
+    --indigo:  #160D42;
+    --ivory:   #F2EDE4;
+    --ease:    cubic-bezier(0.76, 0, 0.24, 1);
+    --dur:     0.62s;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ══ SINGLE TOP LOADER LINE ══
+     Lives in the viewport, above the sliding track.
+     Width jumps from 33% → 66% → 100% as you navigate. */
+  .top-loader {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: rgba(14,11,7,0.1);
+    z-index: 9999;
+    overflow: hidden;
+  }
+  /* on dark slide (slide 3) the rail shows as faint white */
+  .viewport.pg3 .top-loader { background: rgba(255,255,255,0.1); }
+
+  .top-loader-fill {
+    height: 100%;
+    width: 33.333%;
+    background: var(--wine);
+    border-radius: 0 2px 2px 0;
+    transition: width var(--dur) var(--ease),
+                background var(--dur) var(--ease);
+  }
+  .top-loader-fill.p2 { width: 66.666%; }
+  .top-loader-fill.p3 { width: 100%; background: #B5F55A; /* lime payoff on dark */ }
+
+  /* ══ VIEWPORT ══ */
+  .viewport {
+    width: 100%; height: 100dvh;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg1);
+    transition: background var(--dur) var(--ease);
+  }
+  .viewport.pg2 { background: var(--bg2); }
+  .viewport.pg3 { background: var(--bg3); }
+
+  /* ══ TRACK: 3 slides side by side (300% wide) ══ */
+  .track {
+    display: flex;
+    width: 300%;
+    height: 100%;
+    will-change: transform;
+    transition: transform var(--dur) var(--ease);
+  }
+  .track.pg2 { transform: translateX(-33.333%); }
+  .track.pg3 { transform: translateX(-66.666%); }
+
+  /* ══ SLIDES ══ */
+  .slide {
+    width: 33.333%;
+    flex-shrink: 0;
+    height: 100%;
+    position: relative;
+  }
+  .slide-inner {
+    width: 100%; max-width: 430px;
+    height: 100%; margin: 0 auto;
+    position: relative;
+  }
+
+  /* ════════════════════════════
+     SLIDE 1
+  ════════════════════════════ */
+  #slide1 .slide-inner { background: var(--bg1); }
+
+  .headline-wrap {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 68px 30px 0;
+    opacity: 0; transform: translateY(-10px);
+    animation: fadeDown 0.5s ease 0.08s forwards;
+    z-index: 10;
+  }
+  .headline {
+    font-size: clamp(34px, 9.5vw, 44px);
+    font-weight: 900; line-height: 1.0;
+    letter-spacing: -0.01em; text-transform: uppercase;
+    color: var(--ink);
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  @keyframes fadeDown { to { opacity:1; transform:translateY(0); } }
+
+  .card-stack {
+    position: absolute; bottom:0; left:0; right:0; top:36%;
+  }
+  .card {
+    position: absolute; bottom: 0;
+    border-radius: 28px 28px 0 0;
+    transform: translateX(-110%);
+    will-change: transform; overflow: hidden;
+  }
+  .card-emerald { background:var(--emerald); left:-28px; right:78px; top:0;   animation: slideIn 1.1s cubic-bezier(.16,1,.3,1) 0.46s forwards; }
+  .card-wine    { background:var(--wine);    left:-28px; right:42px; top:10%; animation: slideIn 1.1s cubic-bezier(.16,1,.3,1) 0.32s forwards; }
+  .card-slate   { background:var(--slate);   left:-28px; right:14px; top:20%; animation: slideIn 1.1s cubic-bezier(.16,1,.3,1) 0.20s forwards; }
+  .card-indigo  { background:var(--indigo);  left:-28px; right:0;    top:30%; animation: slideIn 1.1s cubic-bezier(.16,1,.3,1) 0.08s forwards; }
+  @keyframes slideIn { from{transform:translateX(-110%)} to{transform:translateX(0)} }
+
+  .arrow-btn {
+    position:absolute; width:48px; height:48px; border-radius:50%;
+    background:rgba(255,255,255,0.92);
+    display:flex; align-items:center; justify-content:center;
+    top:20px; right:20px; flex-shrink:0;
+  }
+  .arrow-btn svg { width:19px; height:19px; }
+
+  .card-inner {
+    position:absolute; top:0; bottom:0; left:56px; right:22px;
+    display:flex; flex-direction:column; padding-top:20px;
+  }
+  .card-indigo .card-inner { bottom:100px; }
+
+  .flashcard-preview {
+    background:rgba(255,255,255,0.07); border-radius:16px;
+    padding:18px 18px 16px; margin-top:60px;
+    border:1px solid rgba(255,255,255,0.1);
+  }
+  .fc-subject { font-size:9.5px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:10px; }
+  .fc-question { font-size:14.5px; font-weight:700; color:#fff; line-height:1.5; margin-bottom:15px; }
+  .fc-divider  { height:1px; background:rgba(255,255,255,0.1); margin-bottom:12px; }
+  .fc-answer-label { font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:6px; }
+  .fc-answer { font-size:13px; font-weight:600; color:rgba(255,255,255,0.85); line-height:1.55; }
+  .fc-footer { display:flex; align-items:center; justify-content:space-between; margin-top:14px; }
+  .fc-tap  { font-size:10.5px; color:rgba(255,255,255,0.28); font-style:italic; }
+  .fc-dots { display:flex; gap:5px; }
+  .fc-dot     { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.2); }
+  .fc-dot.on  { background:rgba(255,255,255,0.75); }
+
+  .stats-wrap { margin-top:62px; display:flex; flex-direction:column; gap:13px; }
+  .stat-label { font-size:9.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:6px; }
+  .stat-row   { display:flex; gap:10px; }
+  .stat-pill  { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:11px 13px; display:flex; flex-direction:column; gap:3px; flex:1; }
+  .stat-val   { font-size:20px; font-weight:800; color:#fff; line-height:1; }
+  .stat-name  { font-size:10px; color:rgba(255,255,255,0.38); font-weight:500; }
+  .streak-pill { background:rgba(230,160,60,0.1); border-color:rgba(230,160,60,0.18); }
+  .streak-val  { color:#E6A03C; }
+  .prog-bar-track { height:4px; background:rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; }
+  .prog-bar-fill  { height:100%; width:68%; background:rgba(255,255,255,0.5); border-radius:10px; }
+  .prog-bar-label { display:flex; justify-content:space-between; margin-top:5px; font-size:10px; color:rgba(255,255,255,0.32); }
+
+  .tags-wrap { margin-top:62px; display:flex; flex-wrap:wrap; gap:7px; max-width:270px; }
+  .subject-tag    { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12); border-radius:100px; padding:6px 13px; font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.65); white-space:nowrap; }
+  .subject-tag.hi { background:rgba(255,255,255,0.9); color:var(--wine); border-color:transparent; }
+
+  .get-started {
+    position:absolute; bottom:36px; left:54px; right:24px;
+    padding:19px; background:#fff; border:none; border-radius:100px;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:800;
+    color:var(--indigo); cursor:pointer;
+    opacity:0; animation: fadeIn 0.4s ease 0.92s forwards;
+    transition:transform 0.15s ease;
+  }
+  .get-started:active { transform:scale(0.97); }
+  @keyframes fadeIn { to { opacity:1; } }
+
+  /* ════════════════════════════
+     SLIDE 2
+  ════════════════════════════ */
+  #slide2 .slide-inner {
+    background:transparent;
+    display:flex; flex-direction:column;
+  }
+  .s2-headline-wrap {
+    padding:68px 30px 0; flex-shrink:0;
+    opacity:0; transform:translateY(-10px);
+  }
+  .s2-headline-wrap.visible { animation:fadeDown 0.45s ease forwards; }
+
+  .s2-eyebrow {
+    font-size:11px; font-weight:700; letter-spacing:0.16em;
+    text-transform:uppercase; color:rgba(14,11,7,0.35);
+    margin-bottom:10px; font-family:'Plus Jakarta Sans',sans-serif;
+  }
+  .s2-headline {
+    font-size:clamp(34px,9.5vw,44px); font-weight:900; line-height:1.0;
+    letter-spacing:-0.01em; text-transform:uppercase; color:var(--ink);
+    font-family:'Barlow Condensed',sans-serif;
+  }
+  .s2-headline em { color:var(--wine); font-style:normal; }
+
+  .s2-card-area {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:20px 22px 28px;
+  }
+  .scene { position:relative; width:100%; max-width:340px; }
+  .ghost-card {
+    position:absolute; width:100%; border-radius:22px; background:#fff;
+    box-shadow:0 6px 24px rgba(14,11,7,0.1); top:0; left:0;
+  }
+  .ghost-card-a { height:100%; transform:rotate(-4deg) translate(-6px,-10px); opacity:0.25; }
+  .ghost-card-b { height:100%; transform:rotate(-2deg) translate(-3px,-5px);  opacity:0.55; }
+
+  .quiz-card {
+    position:relative; z-index:2; background:#FAFAF7; border-radius:22px;
+    padding:22px 20px 20px;
+    box-shadow:0 18px 52px rgba(14,11,7,0.14), 0 4px 14px rgba(14,11,7,0.08);
+    opacity:0; transform:translateY(18px) scale(0.97);
+  }
+  .quiz-card.visible { animation:cardUp 0.5s cubic-bezier(.16,1,.3,1) 0.22s forwards; }
+  @keyframes cardUp { to { opacity:1; transform:translateY(0) scale(1); } }
+
+  .c-segs  { display:flex; gap:5px; margin-bottom:18px; }
+  .cseg    { height:3px; flex:1; border-radius:2px; background:#E8E3DA; }
+  .cseg.cdone   { background:var(--wine); }
+  .cseg.cactive { background:linear-gradient(90deg,var(--wine) 50%,#E8E3DA 50%); }
+
+  .q-num { font-size:10.5px; font-weight:700; letter-spacing:0.1em; color:#B5ADA2; margin-bottom:8px; font-family:'Plus Jakarta Sans',sans-serif; }
+  .q-text { font-size:16px; font-weight:700; color:#0E0B07; line-height:1.42; margin-bottom:14px; font-family:'Plus Jakarta Sans',sans-serif; }
+  .select-hint { font-size:9px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#C8C0B5; margin-bottom:10px; font-family:'Plus Jakarta Sans',sans-serif; }
+
+  .option {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:13px; margin-bottom:7px;
+    cursor:pointer; border:1.5px solid #EAE5DC; background:#fff;
+    transition:background 0.18s ease, border-color 0.18s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .option:last-of-type { margin-bottom:0; }
+  .option:active { transform:scale(0.985); }
+  .option.sel { background:#F4EFF8; border-color:var(--wine); }
+  .radio-ring {
+    width:22px; height:22px; border-radius:50%; border:2px solid #DDD8D0;
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    transition:background 0.18s ease, border-color 0.18s ease;
+  }
+  .option.sel .radio-ring { background:var(--indigo); border-color:var(--indigo); }
+  .chk { display:none; }
+  .option.sel .chk { display:block; }
+  .opt-text { font-size:13.5px; font-weight:500; color:#1A1714; line-height:1.4; font-family:'Plus Jakarta Sans',sans-serif; }
+  .option.sel .opt-text { font-weight:600; }
+
+  .card-nav { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+  .btn-back { font-size:14px; font-weight:600; color:#B5ADA2; background:none; border:none; cursor:pointer; padding:10px 4px; font-family:'Plus Jakarta Sans',sans-serif; }
+  .btn-next-quiz {
+    background:var(--ink); color:#fff; border:none; border-radius:100px;
+    padding:13px 30px; font-size:14px; font-weight:700; cursor:pointer;
+    font-family:'Plus Jakarta Sans',sans-serif;
+    box-shadow:0 4px 12px rgba(14,11,7,0.2);
+    transition:transform 0.14s ease;
+  }
+  .btn-next-quiz:active { transform:scale(0.96); }
+
+  /* ════════════════════════════
+     SLIDE 3 — DARK FINISH
+  ════════════════════════════ */
+  #slide3 .slide-inner {
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;   /* content anchors to bottom like Wise */
+    padding: 0 28px 44px;
+  }
+
+  /* ── glow blobs ── */
+  .s3-glow {
+    position: absolute; border-radius: 50%;
+    filter: blur(90px); pointer-events: none;
+  }
+  .s3-glow-a {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(122,31,68,0.45) 0%, transparent 70%);
+    top: 5%; left: -60px;
+  }
+  .s3-glow-b {
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(22,13,66,0.7) 0%, rgba(80,50,180,0.3) 50%, transparent 70%);
+    bottom: 15%; right: -50px;
+  }
+
+  /* ── floating visual ── */
+  .s3-visual {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    /* centers the visual in the upper 60% */
+    height: 60%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+  }
+  .s3-visual.visible { animation: fadeIn 0.6s ease 0.25s forwards; }
+
+  /* orbiting card scene */
+  .orbit-scene {
+    position: relative;
+    width: 200px; height: 200px;
+  }
+
+  /* central glowing circle */
+  .orb {
+    position: absolute; top: 50%; left: 50%;
+    width: 90px; height: 90px;
+    transform: translate(-50%,-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #3a1a6e, #160D42);
+    box-shadow: 0 0 60px rgba(122,31,68,0.5), 0 0 120px rgba(22,13,66,0.4);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .orb-icon {
+    font-size: 36px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+    animation: bobOrb 3.5s ease-in-out infinite;
+  }
+  @keyframes bobOrb {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+
+  /* orbiting achievement pills */
+  .orbit-ring {
+    position: absolute; top:50%; left:50%;
+    width: 170px; height: 170px;
+    transform: translate(-50%,-50%);
+    animation: spinRing 12s linear infinite;
+  }
+  .orbit-pill {
+    position: absolute;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 100px;
+    padding: 5px 11px;
+    font-size: 11px; font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    white-space: nowrap;
+    /* counter-rotate so pills stay upright */
+    animation: counterSpin 12s linear infinite;
+  }
+  .op-1 { top: -14px; left: 50%; transform: translateX(-50%); }
+  .op-2 { top: 50%; right: -22px; transform: translateY(-50%); }
+  .op-3 { bottom: -14px; left: 50%; transform: translateX(-50%); }
+  .op-4 { top: 50%; left: -22px; transform: translateY(-50%); }
+
+  @keyframes spinRing    { to { transform: translate(-50%,-50%) rotate(360deg); } }
+  @keyframes counterSpin { to { transform: rotate(-360deg); }  }
+  /* pills 2 & 4 need combined counter + offset */
+  .op-2 { animation: counterSpin2 12s linear infinite; }
+  .op-4 { animation: counterSpin4 12s linear infinite; }
+  @keyframes counterSpin2 { to { transform: translateY(-50%) rotate(-360deg); } }
+  @keyframes counterSpin4 { to { transform: translateY(-50%) rotate(-360deg); } }
+
+  /* ── headline block ── */
+  .s3-text {
+    margin-bottom: 36px;
+    opacity: 0;
+  }
+  .s3-text.visible { animation: fadeUp 0.55s cubic-bezier(.16,1,.3,1) 0.35s forwards; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  .s3-kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .s3-headline {
+    font-size: clamp(38px, 11vw, 52px);
+    font-weight: 900; line-height: 0.95;
+    letter-spacing: -0.01em; text-transform: uppercase; color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  .s3-headline span { color: var(--wine); }
+
+  /* ── buttons ── */
+  .s3-buttons { opacity:0; }
+  .s3-buttons.visible { animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) 0.5s forwards; }
+
+  .btn-row {
+    display: flex; gap: 12px; margin-bottom: 12px;
+  }
+  .btn-login, .btn-register {
+    flex: 1; padding: 18px 0;
+    border-radius: 100px; border: none; cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px; font-weight: 700;
+    transition: transform 0.14s ease, opacity 0.14s ease;
+  }
+  .btn-login:active, .btn-register:active { transform: scale(0.97); }
+  .btn-login    { background: var(--ivory); color: var(--indigo); }
+  .btn-register {
+    background: transparent; color: var(--ivory);
+    border: 1.5px solid rgba(242,237,228,0.35);
+  }
+  .btn-google {
+    width: 100%; padding: 17px 0;
+    background: #fff; border: none; border-radius: 100px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px; font-weight: 600; color: #1A1714;
+    transition: transform 0.14s ease;
+  }
+  .btn-google:active { transform: scale(0.97); }
+
+  /* Google G SVG */
+  .g-icon { width:20px; height:20px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div class="viewport" id="vp">
+
+  <!-- ══ SINGLE TOP LOADER LINE ══ -->
+  <div class="top-loader">
+    <div class="top-loader-fill" id="loaderFill"></div>
+  </div>
+
+  <!-- ══ SLIDING TRACK (300% wide) ══ -->
+  <div class="track" id="track">
+
+    <!-- ─────────── SLIDE 1 ─────────── -->
+    <div class="slide" id="slide1">
+      <div class="slide-inner">
+        <div class="headline-wrap">
+          <h1 class="headline">Convert your<br>study materials<br>to flashcards</h1>
+        </div>
+
+        <div class="card-stack">
+          <div class="card card-emerald">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+          </div>
+
+          <div class="card card-wine">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="tags-wrap">
+                <span class="subject-tag hi">Pharmacology</span>
+                <span class="subject-tag">Anatomy</span>
+                <span class="subject-tag">Pathology</span>
+                <span class="subject-tag">Physiology</span>
+                <span class="subject-tag">Biochemistry</span>
+                <span class="subject-tag">Microbiology</span>
+                <span class="subject-tag">Surgery</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-slate">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="stats-wrap">
+                <div>
+                  <div class="stat-label">Today's Progress</div>
+                  <div class="stat-row">
+                    <div class="stat-pill streak-pill"><span class="stat-val streak-val">🔥 14</span><span class="stat-name">Day streak</span></div>
+                    <div class="stat-pill"><span class="stat-val">87%</span><span class="stat-name">Accuracy</span></div>
+                    <div class="stat-pill"><span class="stat-val">124</span><span class="stat-name">Cards done</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="stat-label">Daily Goal</div>
+                  <div class="prog-bar-track"><div class="prog-bar-fill"></div></div>
+                  <div class="prog-bar-label"><span>124 / 180 cards</span><span>68%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-indigo">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="flashcard-preview">
+                <div class="fc-subject">Pharmacology · Card 3 of 24</div>
+                <div class="fc-question">What is the primary mechanism of action of β-blockers in hypertension?</div>
+                <div class="fc-divider"></div>
+                <div class="fc-answer-label">Answer</div>
+                <div class="fc-answer">Block β₁-adrenergic receptors → ↓ heart rate &amp; cardiac output → ↓ BP</div>
+                <div class="fc-footer">
+                  <span class="fc-tap">Tap card to flip</span>
+                  <div class="fc-dots">
+                    <div class="fc-dot on"></div><div class="fc-dot on"></div>
+                    <div class="fc-dot"></div><div class="fc-dot"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="get-started" id="btnTo2">Get Started</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /slide1 -->
+
+
+    <!-- ─────────── SLIDE 2 ─────────── -->
+    <div class="slide" id="slide2">
+      <div class="slide-inner">
+        <div class="s2-headline-wrap" id="s2Head">
+          <div class="s2-eyebrow">Quick question</div>
+          <h2 class="s2-headline">Let's <em>personalise</em><br>your journey</h2>
+        </div>
+
+        <div class="s2-card-area">
+          <div class="scene">
+            <div class="ghost-card ghost-card-a"></div>
+            <div class="ghost-card ghost-card-b"></div>
+
+            <div class="quiz-card" id="quizCard">
+              <div class="c-segs">
+                <div class="cseg cdone"></div>
+                <div class="cseg cactive"></div>
+                <div class="cseg"></div>
+              </div>
+              <div class="q-num">Q.02</div>
+              <div class="q-text">What's your biggest challenge when studying for exams?</div>
+              <div class="select-hint">Select only 1</div>
+
+              <div class="option" data-v="forget">
+                <div class="radio-ring"><svg class="chk" width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 3.5L4 6.5L10 1" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="opt-text">I forget things quickly after reading</span>
+              </div>
+              <div class="option" data-v="questions">
+                <div class="radio-ring"><svg class="chk" width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 3.5L4 6.5L10 1" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="opt-text">Hard to find quality practice questions</span>
+              </div>
+              <div class="option" data-v="consistent">
+                <div class="radio-ring"><svg class="chk" width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 3.5L4 6.5L10 1" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="opt-text">Staying consistent with my study schedule</span>
+              </div>
+              <div class="option" data-v="all">
+                <div class="radio-ring"><svg class="chk" width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 3.5L4 6.5L10 1" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="opt-text">Honestly? All of the above 😅</span>
+              </div>
+
+              <div class="card-nav">
+                <button class="btn-back" id="btnTo1">Back</button>
+                <button class="btn-next-quiz" id="btnTo3">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /slide2 -->
+
+
+    <!-- ─────────── SLIDE 3 ─────────── -->
+    <div class="slide" id="slide3">
+      <div class="slide-inner">
+
+        <!-- bg glows -->
+        <div class="s3-glow s3-glow-a"></div>
+        <div class="s3-glow s3-glow-b"></div>
+
+        <!-- ── VISUAL: orbiting achievements around a central orb ── -->
+        <div class="s3-visual" id="s3Visual">
+          <div class="orbit-scene">
+            <!-- central orb -->
+            <div class="orb">
+              <span class="orb-icon">🩺</span>
+            </div>
+            <!-- orbit ring with pills -->
+            <div class="orbit-ring">
+              <div class="orbit-pill op-1">🔥 14-day streak</div>
+              <div class="orbit-pill op-2">⭐ 2,400 XP</div>
+              <div class="orbit-pill op-3">📊 87% accuracy</div>
+              <div class="orbit-pill op-4">📚 1,200 cards</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── HEADLINE ── -->
+        <div class="s3-text" id="s3Text">
+          <div class="s3-kicker">MedExcel · Built for Nigerian med students</div>
+          <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
+        </div>
+
+        <!-- ── BUTTONS ── -->
+        <div class="s3-buttons" id="s3Btns">
+          <div class="btn-row">
+            <button class="btn-login">Log in</button>
+            <button class="btn-register">Register</button>
+          </div>
+          <button class="btn-google">
+            <!-- Google G SVG -->
+            <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+        </div>
+
+      </div>
+    </div><!-- /slide3 -->
+
+  </div><!-- /track -->
+</div><!-- /viewport -->
+
+<script>
+  const vp    = document.getElementById('vp');
+  const track = document.getElementById('track');
+  const fill  = document.getElementById('loaderFill');
+
+  // Slide 2 elements
+  const s2Head   = document.getElementById('s2Head');
+  const quizCard = document.getElementById('quizCard');
+  // Slide 3 elements
+  const s3Visual = document.getElementById('s3Visual');
+  const s3Text   = document.getElementById('s3Text');
+  const s3Btns   = document.getElementById('s3Btns');
+
+  let page = 1;
+
+  function goTo(n) {
+    if (n === page) return;
+    const prev = page;
+    page = n;
+
+    // ── 1. Slide the track ──
+    track.classList.remove('pg2','pg3');
+    if (n === 2) track.classList.add('pg2');
+    if (n === 3) track.classList.add('pg3');
+
+    // ── 2. Morph background ──
+    vp.classList.remove('pg2','pg3');
+    if (n === 2) vp.classList.add('pg2');
+    if (n === 3) vp.classList.add('pg3');
+
+    // ── 3. Advance loader fill ──
+    fill.classList.remove('p2','p3');
+    if (n === 2) fill.classList.add('p2');
+    if (n === 3) fill.classList.add('p3');
+
+    // ── 4. Trigger content entrance on arrival ──
+    const DELAY = 310; // half of transition, so content enters as slide lands
+
+    if (n === 2) {
+      setTimeout(() => {
+        s2Head.classList.add('visible');
+        quizCard.classList.add('visible');
+      }, DELAY);
+    }
+    if (n === 3) {
+      setTimeout(() => {
+        s3Visual.classList.add('visible');
+        s3Text.classList.add('visible');
+        s3Btns.classList.add('visible');
+      }, DELAY);
+    }
+
+    // ── 5. Reset entrance when leaving a slide ──
+    if (prev === 2 && n !== 2) {
+      setTimeout(() => {
+        s2Head.classList.remove('visible');
+        quizCard.classList.remove('visible');
+      }, 620);
+    }
+    if (prev === 3 && n !== 3) {
+      setTimeout(() => {
+        s3Visual.classList.remove('visible');
+        s3Text.classList.remove('visible');
+        s3Btns.classList.remove('visible');
+      }, 620);
+    }
+  }
+
+  document.getElementById('btnTo2').addEventListener('click', () => goTo(2));
+  document.getElementById('btnTo1').addEventListener('click', () => goTo(1));
+  document.getElementById('btnTo3').addEventListener('click', () => {
+    const sel = document.querySelector('.option.sel');
+    if (!sel) {
+      document.querySelectorAll('.option').forEach(o => {
+        o.style.transition = 'transform 0.08s';
+        o.style.transform  = 'scale(0.98)';
+        setTimeout(() => o.style.transform = '', 120);
+      });
+      return;
+    }
+    goTo(3);
+  });
+
+  // Single-select options
+  document.querySelectorAll('.option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.option').forEach(o => o.classList.remove('sel'));
+      opt.classList.add('sel');
+    });
+  });
+
+  // Slide 3 button actions (wire up your auth logic here)
+  document.querySelector('.btn-login').addEventListener('click',    () => alert('→ Log in'));
+  document.querySelector('.btn-register').addEventListener('click', () => alert('→ Register'));
+  document.querySelector('.btn-google').addEventListener('click',   () => alert('→ Google Sign-in'));
+</script>
+</body>
+</html>

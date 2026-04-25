@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aurora - User Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        // Check for saved theme preference to prevent flickering
+        (function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+
+        // Auth Gatekeeper
+        (function () {
+            const saved = localStorage.getItem("nativeUser");
+            if (saved && saved !== "undefined" && saved !== "null") {
+                try { window.currentUser = JSON.parse(saved); } catch (e) {}
+            }
+        })();
+    </script>
+
+    <style>
+        :root {
+            /* DARK MODE (Default matching screenshot) */
+            --bg-body: #09090b;
+            --bg-surface: #18181b;
+            --bg-hover: #27272a;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --border-color: rgba(255, 255, 255, 0.06);
+            
+            --accent-btn: #a78bfa; 
+            
+            --nav-bg: var(--bg-body);
+            --nav-item: #71717a;
+            --nav-active: var(--accent-btn);
+        }
+
+        .light-mode {
+            /* LIGHT MODE */
+            --bg-body: #f1f5f9; 
+            --bg-surface: #ffffff;
+            --bg-hover: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.06);
+            
+            --accent-btn: #8b5cf6; 
+            
+            --nav-bg: #ffffff;
+            --nav-item: #94a3b8;
+            --nav-active: var(--accent-btn);
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
+        /* Grouped List Layout Styles */
+        .group-container {
+            background: var(--bg-surface);
+            border-radius: 1.25rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.125rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .list-item:not(:last-child) {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-item:active {
+            background: var(--bg-hover);
+        }
+
+        /* Search Bar */
+        .search-box {
+            background: var(--bg-surface);
+            border-radius: 1rem;
+            padding: 0.875rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* Modals */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+        .modal-backdrop.show { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; width: 100%; max-width: 320px; transform: scale(0.95); transition: 0.3s; text-align: center; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
+        
+        .modal-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: #ef4444; font-size: 1.5rem; }
+        .modal-title { font-size: 1.125rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
+        .modal-btn-primary { width: 100%; padding: 0.875rem; background: #ef4444; color: white; border: none; border-radius: 100px; font-weight: 600; cursor: pointer; margin-bottom: 0.5rem; transition: 0.2s; }
+        .modal-btn-primary:active { transform: scale(0.96); }
+        .modal-btn-secondary { width: 100%; padding: 0.875rem; background: transparent; color: var(--text-muted); border: none; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .modal-btn-secondary:active { background: var(--bg-hover); }
+
+        /* Navigation (No top border) */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: var(--nav-bg); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+            transition: background-color 0.3s ease;
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem;
+            color: var(--nav-item); transition: color 0.2s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; flex: 1; text-decoration: none;
+        }
+        .nav-item.active { color: var(--nav-active); }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { 
+            width: 24px; height: 24px; 
+            display: block; 
+            stroke: currentColor; 
+            stroke-width: 2.25; 
+            stroke-linecap: round; 
+            stroke-linejoin: round;
+        }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden relative">
+
+    <div id="logoutModalBackdrop" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-icon"><i class="fas fa-sign-out-alt"></i></div>
+            <h3 class="modal-title">Log Out</h3>
+            <p class="modal-text">Are you sure you want to sign out of your account?</p>
+            <button id="confirmLogoutBtn" class="modal-btn-primary">Yes, Log Out</button>
+            <button id="cancelLogoutBtn" class="modal-btn-secondary">Cancel</button>
+        </div>
+    </div>
+
+    <header class="pt-6 pb-2 px-5 flex items-center shrink-0 sticky top-0 z-40 bg-[var(--bg-body)]">
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)]">Profile</h1>
+    </header>
+
+    <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll" style="-webkit-overflow-scrolling: touch;">
+
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <span class="text-sm">Search</span>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item">
+                <div class="flex items-center gap-4">
+                   <div id="avatarContainer" class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border border-orange-200 flex items-center justify-center font-bold text-2xl shrink-0">
+                       <span id="userInitial">?</span>
+                   </div>
+                   <div class="flex flex-col">
+                       <span id="userName" class="font-bold text-[var(--text-main)] text-lg leading-tight">Loading...</span>
+                       <span id="userEmail" class="text-sm text-[var(--text-muted)] mt-0.5">...</span>
+                   </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" onclick="window.location.href='payment.html'">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-layer-group text-blue-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Current Plan</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="planBadgeText" class="text-sm font-bold text-[var(--text-muted)]">Loading...</span>
+                </div>
+            </div>
+            
+            <div class="list-item flex-col items-start gap-3">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-bolt text-yellow-500 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Daily Generations</span>
+                    </div>
+                    <span class="text-sm font-bold text-[var(--text-muted)]"><span id="usageCount">0</span> used</span>
+                </div>
+                <div class="w-full h-2 bg-[var(--bg-body)] rounded-full overflow-hidden border border-[var(--border-color)]">
+                    <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-700 ease-out" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-fire text-orange-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Study Streak</span>
+                </div>
+                <span class="text-sm font-bold text-[var(--text-muted)]"><span id="streakCount">0</span> Days</span>
+            </div>
+            <div class="list-item">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-calendar-alt text-emerald-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Member Since</span>
+                </div>
+                <span id="memberSince" class="text-sm font-medium text-[var(--text-muted)]">--</span>
+            </div>
+        </div>
+
+        <div class="group-container p-4">
+            <div class="flex items-center gap-3 mb-4 px-1">
+                <div class="w-6 flex justify-center"><i class="fas fa-trophy text-yellow-500 text-lg"></i></div>
+                <span class="text-[var(--text-main)] font-medium">Achievements</span>
+            </div>
+            <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+                <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div>
+                    <div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div>
+                    <div class="w-16 h-1.5 bg-[var(--bg-surface)] rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" id="themeToggleBtn">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i id="themeIcon" class="fas fa-moon text-indigo-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Appearance</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="themeText" class="text-sm font-medium text-[var(--text-muted)]">Dark Mode</span>
+                    <div id="themeSwitchBg" class="w-11 h-6 bg-slate-600 rounded-full relative transition-colors duration-300 flex items-center p-1">
+                        <div id="themeSwitchKnob" class="w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0 shadow-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" id="btnResetPassword">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-lock text-slate-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Change Password</span>
+                </div>
+            </div>
+            <div class="list-item" id="btnLogout">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-sign-out-alt text-red-400 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Log Out</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="group-container">
+            <div class="list-item" id="btnDeleteAccount">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 flex justify-center"><i class="fas fa-trash text-red-500 text-lg"></i></div>
+                    <span class="text-red-500 font-medium">Delete Account</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="homepage.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path>
+            </svg>
+            <span class="nav-label">Home</span>
+        </a>
+        
+        <a href="study.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-label">Library</span>
+        </a>
+        
+        <a href="create.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span class="nav-label">Create</span>
+        </a>
+        
+        <a href="leaderboard.html" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="nav-label">Leaders</span>
+        </a>
+        
+        <a href="profile.html" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- CAPACITOR STATUS BAR SYNC ---
+        async function updateStatusBar() {
+            if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+                try {
+                    const { StatusBar, Style } = Capacitor.Plugins;
+                    const isLight = document.documentElement.classList.contains('light-mode');
+                    
+                    const bgColor = isLight ? '#f1f5f9' : '#09090b';
+                    await StatusBar.setBackgroundColor({ color: bgColor });
+                    
+                    await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
+                } catch (error) {
+                    console.warn("Failed to update status bar:", error);
+                }
+            }
+        }
+
+        // --- THEME TOGGLE LOGIC WITH SWITCH ANIMATION ---
+        function updateThemeUI() {
+            const isLight = document.documentElement.classList.contains('light-mode');
+            document.getElementById('themeText').innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            document.getElementById('themeIcon').className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
+            
+            const switchBg = document.getElementById('themeSwitchBg');
+            const switchKnob = document.getElementById('themeSwitchKnob');
+            
+            if (isLight) {
+                switchBg.classList.remove('bg-slate-600');
+                switchBg.classList.add('bg-blue-500');
+                switchKnob.style.transform = 'translateX(20px)'; // Slide to the right
+            } else {
+                switchBg.classList.add('bg-slate-600');
+                switchBg.classList.remove('bg-blue-500');
+                switchKnob.style.transform = 'translateX(0)'; // Slide to the left
+            }
+
+            // Keep the native status bar synced up on page load!
+            updateStatusBar();
+        }
+        
+        // Initial setup on load
+        updateThemeUI();
+
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {
+            const isLight = document.documentElement.classList.toggle('light-mode');
+            localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
+            updateThemeUI();
+        });
+        // -------------------------
+
+        const MASTER_ACHIEVEMENTS = [
+            { id: "first_quiz", title: "First Steps", desc: "First set", icon: "fa-seedling" },
+            { id: "streak_3", title: "On Fire", desc: "3 day streak", icon: "fa-fire" },
+            { id: "accuracy_80", title: "Sharpshooter", desc: "80%+ accuracy", icon: "fa-bullseye" },
+            { id: "mcq_100", title: "Century", desc: "100 MCQs", icon: "fa-check-double" },
+            { id: "elite_member", title: "Elite", desc: "Subscribed", icon: "fa-crown" },
+            { id: "night_owl", title: "Night Owl", desc: "Late study", icon: "fa-moon" }
+        ];
+
+        function renderAchievements(unlockedIds) {
+            const grid = document.getElementById('achievementsGrid');
+            grid.innerHTML = "";
+            MASTER_ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = unlockedIds.includes(ach.id);
+                // Updated to use CSS variables for theme support
+                const stateClass = isUnlocked ? "border-[var(--accent-btn)] bg-[var(--bg-body)] shadow-[0_0_15px_rgba(167,139,250,0.1)]" : "border-[var(--border-color)] bg-[var(--bg-body)] opacity-50 grayscale";
+                const iconColor = isUnlocked ? "text-[var(--accent-btn)]" : "text-[var(--text-muted)]";
+                
+                grid.innerHTML += `
+                    <div class="${stateClass} border rounded-2xl p-3 flex flex-col items-center text-center transition-all relative overflow-hidden">
+                        ${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-surface)]/50"><i class="fas fa-lock text-[var(--text-muted)]"></i></div>` : ''}
+                        <div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center mb-1.5 ${iconColor}">
+                            <i class="fas ${ach.icon} text-sm"></i>
+                        </div>
+                        <h4 class="text-[10px] font-bold text-[var(--text-main)] mb-0.5">${ach.title}</h4>
+                        <p class="text-[8px] text-[var(--text-muted)] leading-tight">${ach.desc}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function setDefaultUI() {
+            document.getElementById("planBadgeText").textContent = "Free";
+            document.getElementById("planBadgeText").className = "text-sm font-bold text-[var(--text-muted)]";
+            document.getElementById("streakCount").textContent = "0";
+            document.getElementById("memberSince").textContent = "--";
+            
+            document.getElementById("usageCount").textContent = "0";
+            document.getElementById("usageProgressBar").style.width = "0%";
+            
+            renderAchievements([]);
+        }
+
+        const savedUserStr = localStorage.getItem("nativeUser");
+        let nativeUserObj = null;
+        try { 
+            if (savedUserStr && savedUserStr !== "undefined" && savedUserStr !== "null") {
+                nativeUserObj = JSON.parse(savedUserStr); 
+            }
+        } catch(e) {}
+
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            let activeUser = null;
+
+            if (firebaseUser && !firebaseUser.isAnonymous) {
+                activeUser = firebaseUser;
+                const userData = { email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName };
+                localStorage.setItem("nativeUser", JSON.stringify(userData));
+                nativeUserObj = userData;
+            } 
+            else if (nativeUserObj && nativeUserObj.uid) {
+                activeUser = nativeUserObj;
+                if (!firebaseUser) {
+                    try { await signInAnonymously(auth); } catch (e) {}
+                }
+            }
+
+            if (activeUser) {
+                window.currentUser = activeUser;
+
+                const email = activeUser.email || "";
+                const name = activeUser.displayName || email.split("@")[0] || "User";
+                
+                document.getElementById("userName").textContent = name;
+                document.getElementById("userEmail").textContent = email;
+                document.getElementById("userInitial").textContent = email ? email.charAt(0).toUpperCase() : "?";
+
+                try {
+                    let userRef = doc(db, "users", activeUser.uid);
+                    let userDoc = await getDoc(userRef);
+
+                    if (!userDoc.exists() && activeUser.email) {
+                        userRef = doc(db, "users", activeUser.email);
+                        userDoc = await getDoc(userRef);
+                    }
+
+                    if (!userDoc.exists()) {
+                        setDefaultUI();
+                        return;
+                    }
+
+                    const userData = userDoc.data();
+                    
+                    document.getElementById("streakCount").textContent = userData.streak || 0;
+
+                    if (userData.createdAt) {
+                        const dateObj = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                        document.getElementById("memberSince").textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                    }
+
+                    const plan = userData.plan || "free";
+                    const today = new Date().toISOString().split("T")[0];
+                    const isToday = userData.lastDailyReset === today;
+                    const dailyUsage = isToday ? (userData.dailyUsage || 0) : 0;
+                    
+                    const unlockedIds = userData.achievements || [];
+
+                    const badgeText = document.getElementById('planBadgeText');
+                    if (plan === "elite") {
+                        badgeText.textContent = "Elite";
+                        badgeText.className = "text-sm font-bold text-yellow-500";
+                    } else if (plan === "premium") {
+                        badgeText.textContent = "Premium";
+                        badgeText.className = "text-sm font-bold text-blue-500";
+                    } else {
+                        badgeText.textContent = "Free";
+                        badgeText.className = "text-sm font-bold text-[var(--text-muted)]";
+                    }
+
+                    const usageCountEl = document.getElementById('usageCount');
+                    const barEl = document.getElementById('usageProgressBar');
+                    
+                    usageCountEl.textContent = dailyUsage;
+
+                    if (plan === "elite") {
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`;
+                        barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out";
+                    } else if (plan === "premium") {
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 30) * 100)}%`;
+                        barEl.className = "h-full bg-blue-500 transition-all duration-700 ease-out";
+                    } else {
+                        barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`;
+                        barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out";
+                    }
+
+                    renderAchievements(unlockedIds);
+
+                } catch (e) {
+                    console.warn("Firestore Error. Defaulting to free UI.", e);
+                    setDefaultUI();
+                }
+            } else {
+                localStorage.clear();
+                window.location.replace("index.html");
+            }
+        });
+
+        // --- BUTTON HANDLERS ---
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            document.getElementById('logoutModalBackdrop').classList.add('show');
+        });
+
+        document.getElementById('cancelLogoutBtn').addEventListener('click', () => {
+            document.getElementById('logoutModalBackdrop').classList.remove('show');
+        });
+
+        document.getElementById('confirmLogoutBtn').onclick = async () => {
+            try { await signOut(auth); } catch(e) {}
+            localStorage.clear();
+            window.location.replace("index.html");
+        };
+
+        document.getElementById('btnResetPassword').addEventListener('click', () => {
+            alert("Action requires email verification. Please check your inbox or contact support.");
+        });
+
+        document.getElementById('btnDeleteAccount').addEventListener('click', async () => {
+            if(confirm("DANGER: Are you sure you want to delete your account? All data will be lost.")) {
+                try { await signOut(auth); } catch(e) {}
+                localStorage.clear();
+                window.location.replace("index.html");
+            }
+        });
+    </script>
+</body>
+</html>

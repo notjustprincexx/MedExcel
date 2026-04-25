@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Store group join code FIRST before any redirect
+    (function() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const ref = params.get('ref');
+        // Use localStorage so it survives app restarts and browser closes
+        if (ref && ref.length > 0) localStorage.setItem('medexcel_ref_code', ref.toUpperCase());
+        const joinCode = params.get('code');
+        if (joinCode && joinCode.length === 6) sessionStorage.setItem('medexcel_pending_group', joinCode.toUpperCase());
+      } catch(e) {}
+    })();
+
+    // Redirect if already logged in
+    const savedUser = localStorage.getItem("nativeUser");
+    const onboardingDone = localStorage.getItem("medexcel_personalized_onboarding_done");
+    if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+      window.location.replace(onboardingDone ? "homepage.html" : "personalized-onboarding.html");
+    }
+
+  // Theme Sync Logic — defaults to light mode on first visit
+  (function() {
+      const savedTheme = localStorage.getItem('medexcel_theme');
+      // Light mode is the default; only go dark if user explicitly chose dark
+      const isLight = savedTheme !== 'dark';
+      if (isLight) document.documentElement.classList.add('light-mode');
+      else document.documentElement.classList.add('dark-mode');
+
+      // Inject dynamic meta theme-color (replaces static media-query versions below)
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = isLight ? '#f1f5f9' : '#09090b';
+      document.head.appendChild(meta);
+
+      // Sync native status bar: DARK style = dark/black icons (for light bg)
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+          try {
+              const { StatusBar } = window.Capacitor.Plugins;
+              StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+              StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+          } catch(e) {}
+      }
+  })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MedExcel</title>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://us-central1-medxcel.cloudfunctions.net">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js">
+  <link rel="preload" href="student.svg" as="image" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+<div id="signinOverlay" class="signin-overlay">
+  <div class="so-spinner"></div>
+  <div id="signinText" class="so-text">Signing in…</div>
+</div>
+
+<div id="okBackdrop" class="ok-backdrop">
+  <div class="ok-dialog">
+    <h3 id="okTitle" class="ok-title">Notice</h3>
+    <p  id="okMessage" class="ok-msg">Message goes here</p>
+    <div class="ok-actions">
+      <button id="okCancel" class="ok-cancel">Cancel</button>
+      <button id="okConfirm" class="ok-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+
+<button class="get-started" id="btnMainCta">Get Started</button>
+
+<div class="viewport" id="vp">
+  
+  <div class="slider-track" id="track">
+
+    <div class="slide" id="slide1">
+      <div class="slide-inner">
+        <div class="headline-wrap">
+          <h1 class="headline">Convert your<br>study materials<br>to flashcards</h1>
+        </div>
+
+        <div class="card-stack">
+          <div class="card card-emerald">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+          </div>
+
+          <div class="card card-wine">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="tags-wrap">
+                <span class="subject-tag hi">Pharmacology</span>
+                <span class="subject-tag">Anatomy</span>
+                <span class="subject-tag">Pathology</span>
+                <span class="subject-tag">Physiology</span>
+                <span class="subject-tag">Biochemistry</span>
+                <span class="subject-tag">Microbiology</span>
+                <span class="subject-tag">Surgery</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-slate">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="stats-wrap">
+                <div>
+                  <div class="stat-label">Today's Progress</div>
+                  <div class="stat-row">
+                    <div class="stat-pill streak-pill"><span class="stat-val streak-val">🔥 14</span><span class="stat-name">Day streak</span></div>
+                    <div class="stat-pill"><span class="stat-val">87%</span><span class="stat-name">Accuracy</span></div>
+                    <div class="stat-pill"><span class="stat-val">124</span><span class="stat-name">Cards done</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="stat-label">Daily Goal</div>
+                  <div class="prog-bar-track"><div class="prog-bar-fill"></div></div>
+                  <div class="prog-bar-label"><span>124 / 180 cards</span><span>68%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-indigo">
+            <div class="arrow-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+            <div class="card-inner">
+              <div class="flashcard-preview">
+                <div class="fc-subject">Pharmacology · Card 3 of 24</div>
+                <div class="fc-question">What is the primary mechanism of action of β-blockers in hypertension?</div>
+                <div class="fc-divider"></div>
+                <div class="fc-answer-label">Answer</div>
+                <div class="fc-answer">Block β₁-adrenergic receptors → ↓ heart rate &amp; cardiac output → ↓ BP</div>
+                <div class="fc-footer">
+                  <span class="fc-tap">Tap card to flip</span>
+                  <div class="fc-dots">
+                    <div class="fc-dot on"></div><div class="fc-dot on"></div>
+                    <div class="fc-dot"></div><div class="fc-dot"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><div class="slide" id="slide2">
+      <div class="slide-inner">
+
+        <div class="s2-headline-wrap">
+          <h2 class="s2-headline">Test your<br>clinical<br><em>knowledge</em></h2>
+        </div>
+
+        <div class="s2-card-area">
+          <div class="scene">
+            <div class="ghost-card ghost-card-a"></div>
+            <div class="ghost-card ghost-card-b"></div>
+
+            <div class="quiz-card">
+              <div class="c-segs">
+                <div class="cseg cdone"></div>
+                <div class="cseg cactive"></div>
+                <div class="cseg"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#E6A03C;"></span>
+                Your notes
+              </div>
+              <div class="demo-notes-block">
+                <p class="demo-notes-text">"Beta-blockers competitively block β₁-adrenergic receptors, reducing heart rate and cardiac output to lower blood pressure…"</p>
+              </div>
+
+              <div class="demo-transform-row">
+                <div class="demo-tline"></div>
+                <div class="demo-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Smart Quiz
+                </div>
+                <div class="demo-tline"></div>
+              </div>
+
+              <div class="demo-label">
+                <span class="demo-dot" style="background:#9B6DD5;"></span>
+                Generated question
+              </div>
+              <div class="demo-quiz-block">
+                <p class="demo-quiz-text">What is the primary mechanism of action of β-blockers in treating hypertension?</p>
+              </div>
+
+              <div class="demo-features">
+                <div class="demo-feature"><span class="demo-feat-icon">📄</span>Paste any syllabus, textbook, or lecture</div>
+                <div class="demo-feature"><span class="demo-feat-icon">⚡</span>Generate exam-standard questions instantly</div>
+                <div class="demo-feature"><span class="demo-feat-icon">🎯</span>Master active recall and track accuracy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><div class="slide" id="slide3">
+      <div class="slide-inner">
+
+        <div class="s3-student-images-container">
+          <img src="student.svg" alt="Students using MedExcel" class="s3-student-img" />
+        </div>
+
+        <div class="s3-text">
+          <div class="s3-kicker">Built for medical students</div>
+          <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
+          <p class="s3-body">Master active recall without spending hours creating study materials. Generate custom quizzes directly from your notes, identify your knowledge gaps, and walk into every exam fully prepared.</p>
+        </div>
+
+        <div class="s3-buttons">
+          <div class="btn-row">
+            <button class="btn-login"    id="btnLogin">Log in</button>
+            <button class="btn-register" id="btnRegister">Sign up</button>
+          </div>
+          <button class="btn-google" id="btnGoogle">
+            <svg class="g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <p style="font-size:0.7rem;color:rgba(255,255,255,0.45);text-align:center;margin-top:0.875rem;line-height:1.6;padding:0 0.5rem;">
+            By continuing, you agree to our
+            <a href="javascript:void(0)" onclick="window._showOnboardingTerms()" style="color:rgba(255,255,255,0.75);text-decoration:underline;font-weight:600;">Terms of Service</a>
+            and
+            <a href="javascript:void(0)" onclick="window._showOnboardingPrivacy()" style="color:rgba(255,255,255,0.75);text-decoration:underline;font-weight:600;">Privacy Policy</a>
+          </p>
+        </div>
+
+      </div>
+    </div></div></div><div id="loginModal" class="login-modal">
+  <div class="lm-header">
+    <button class="lm-close" id="lmClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2 id="lmTitle" class="lm-title">Enter your details</h2>
+  </div>
+  <div class="lm-form">
+    <div class="lm-input-group">
+      <div id="nameRow" class="lm-input-row" style="display:none;">
+        <input id="nameInput" type="text" placeholder="Your name or nickname" class="lm-input" autocomplete="name">
+      </div>
+      <div class="lm-input-row">
+        <input id="emailInput" type="email" placeholder="Email address" class="lm-input" autocomplete="email">
+      </div>
+      <div class="lm-input-row">
+        <input id="passInput" type="password" placeholder="Password" class="lm-input" autocomplete="current-password">
+        <button class="lm-toggle-pw" id="togglePwBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button id="signInBtn" class="lm-submit">Sign In</button>
+    <button id="forgotBtn" class="lm-forgot">Forgot Password?</button>
+    <div class="lm-divider">
+      <div class="lm-div-line"></div>
+      <span class="lm-div-text">or</span>
+      <div class="lm-div-line"></div>
+    </div>
+    <button id="lmGoogleBtn" class="lm-google">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+    <p style="font-size:0.7rem;color:var(--text-muted,#94a3b8);text-align:center;margin-top:1rem;line-height:1.6;padding:0 0.5rem;">
+      By continuing, you agree to our
+      <a href="terms.html" style="color:var(--accent-btn,#a78bfa);text-decoration:underline;font-weight:600;">Terms of Service</a>
+      and
+      <a href="privacy.html" style="color:var(--accent-btn,#a78bfa);text-decoration:underline;font-weight:600;">Privacy Policy</a>
+    </p>
+  </div>
+</div>
+
+  <script src="js/onboarding.js"></script>
+  <script src="js/personalized-onboarding.js"></script>
+  <script type="module" src="js/onboarding-firebase.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // Banned user redirect — show message then clear param from URL
+      if (new URLSearchParams(location.search).get('banned') === '1') {
+        setTimeout(function() {
+          showDialog(
+            'Your account has been suspended. Please contact support if you believe this is a mistake.',
+            'Account Suspended',
+            { hideCancel: true, okText: 'OK' }
+          );
+          history.replaceState(null, '', location.pathname);
+        }, 400);
+      }
+
+      // Returning logged-in user — skip carousel, jump straight to login
+      var savedUser  = localStorage.getItem("nativeUser");
+      var hasAccount = localStorage.getItem("medexcel_has_account");
+      if (hasAccount && !savedUser) {
+        // Has an account but not currently logged in — skip carousel, show login
+        var vp = document.getElementById('vp');
+        var track = document.getElementById('track');
+        var cta = document.getElementById('btnMainCta');
+        if (typeof autoSlideTimer !== 'undefined') clearTimeout(autoSlideTimer);
+        window._blockAutoSlide = true;
+        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
+        if (cta) cta.style.display = 'none';
+        if (vp) vp.style.overflow = 'hidden';
+        setTimeout(function() {
+          if (typeof openLogin === 'function') openLogin(false);
+        }, 300);
+      }
+
+      // Secret admin access — long press the modal title for 7 seconds
+      var secretTrigger = document.getElementById('lmTitle');
+      if (secretTrigger) {
+        var holdTimer;
+        secretTrigger.style.userSelect = 'none';
+        secretTrigger.style.webkitUserSelect = 'none';
+        secretTrigger.addEventListener('touchstart', function(e) {
+          holdTimer = setTimeout(function() {
+            window.location.href = 'admin.html';
+          }, 7000);
+        }, { passive: true });
+        secretTrigger.addEventListener('touchend',    function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchmove',   function() { clearTimeout(holdTimer); });
+        secretTrigger.addEventListener('touchcancel', function() { clearTimeout(holdTimer); });
+      }
+    });
+  </script>
+
+  <!-- Group Invite Landing Page -->
+  <div id="groupInvitePage" style="display:none;position:fixed;inset:0;z-index:9999;background:#09090b;flex-direction:column;align-items:center;justify-content:center;padding:2rem;">
+    <div style="text-align:center;max-width:340px;width:100%;">
+      <div style="width:80px;height:80px;border-radius:1.5rem;background:rgba(139,92,246,0.15);border:1.5px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+        <i class="fas fa-users" style="color:#8b5cf6;font-size:2rem;"></i>
+      </div>
+      <h1 style="font-size:1.5rem;font-weight:800;color:white;margin-bottom:0.5rem;">You're Invited!</h1>
+      <p style="font-size:0.9rem;color:#94a3b8;margin-bottom:0.5rem;">Join a study group on MedExcel</p>
+      <div id="inviteGroupName" style="font-size:1rem;font-weight:700;color:#a78bfa;margin-bottom:2rem;"></div>
+      <button id="openAppBtn" style="width:100%;padding:1rem;border-radius:9999px;border:none;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:0.875rem;box-shadow:0 4px 20px rgba(139,92,246,0.4);">
+        <i class="fas fa-mobile-alt" style="margin-right:0.5rem;"></i>Open in MedExcel App
+      </button>
+      <p style="font-size:0.75rem;color:#64748b;">Don't have the app? <a href="https://play.google.com/store/apps/details?id=com.medexcel.app" style="color:#8b5cf6;font-weight:600;">Download it</a></p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const code = new URLSearchParams(location.search).get('code');
+      if (code && code.length === 6) {
+        const page = document.getElementById('groupInvitePage');
+        if (page) {
+          page.style.display = 'flex';
+          // Try to get group name from URL param
+          const name = new URLSearchParams(location.search).get('name');
+          const nameEl = document.getElementById('inviteGroupName');
+          if (nameEl && name) nameEl.textContent = decodeURIComponent(name);
+          // Open app button
+          document.getElementById('openAppBtn').onclick = function() {
+            // Store code in localStorage so it persists across app open
+            localStorage.setItem('medexcel_pending_group', code.toUpperCase());
+            // Fire custom scheme to open app
+            window.location.href = 'medxcel://auth?code=' + code.toUpperCase();
+          };
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

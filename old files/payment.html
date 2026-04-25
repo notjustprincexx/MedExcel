@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - Subscription</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], },
+                    colors: {
+                        themebg: '#050A15',
+                        cardbg: '#0A1120',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050A15;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col relative selection:bg-blue-500/30 bg-themebg">
+
+    <header class="w-full flex items-center justify-between p-6 z-20">
+        <a href="homepage.html" class="w-10 h-10 rounded-full bg-cardbg border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-colors cursor-pointer">
+            <i class="fas fa-times text-lg"></i>
+        </a>
+        <div class="w-10"></div>
+    </header>
+
+    <main class="flex-grow flex flex-col relative z-10 w-full max-w-md mx-auto overflow-hidden px-6 pb-12">
+        
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold tracking-tight mb-2 text-white">
+                Subscription
+            </h1>
+            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-4">
+                Compare Plans
+            </p>
+        </div>
+
+        <div id="pricingContainer" class="flex flex-col gap-6 w-full">
+
+            <div id="premiumCard" class="w-full bg-cardbg border-2 border-blue-600/50 rounded-2xl p-6 flex flex-col relative transition-all shadow-[0_0_20px_rgba(37,99,235,0.1)] mt-3">
+                
+                <div class="absolute -top-3.5 left-5 bg-gradient-to-r from-blue-600 to-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg border border-blue-400/30">
+                    Recommended
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold text-white mb-1">Premium</h3>
+                    <div class="flex items-baseline gap-1 mt-2">
+                        <span class="text-2xl font-bold text-white">₦3,500</span>
+                        <span class="text-slate-500 text-xs font-medium">/mo</span>
+                    </div>
+                </div>
+                
+                <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>100 AI generations / month</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>Max 25k chars / upload</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span class="font-medium text-white">AI voice explanation mode</span></li>
+                </ul>
+
+                <button onclick="startPayment('premium')" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold tracking-wide transition-colors shadow-lg shadow-blue-900/20">
+                    Try Premium for ₦3,500
+                </button>
+            </div>
+
+            <div class="w-full bg-cardbg border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-yellow-500/50">
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold text-white mb-1">Elite</h3>
+                    <div class="flex items-baseline gap-1 mt-2">
+                        <span class="text-2xl font-bold text-white">₦7,000</span>
+                        <span class="text-slate-500 text-xs font-medium">/mo</span>
+                    </div>
+                </div>
+                
+                <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Unlimited AI generations</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span>Max 30k chars / upload</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Advanced AI Tutor Mode</span></li>
+                </ul>
+
+                <button onclick="startPayment('elite')" class="w-full py-3.5 bg-themebg border border-slate-700 hover:border-yellow-500/50 text-yellow-500 rounded-xl text-sm font-bold tracking-wide transition-colors">
+                    Try Elite for ₦7,000
+                </button>
+            </div>
+
+            <div class="w-full bg-cardbg border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-slate-600">
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold text-white mb-1">Basic Access</h3>
+                    <div class="flex items-baseline gap-1 mt-2">
+                        <span class="text-2xl font-bold text-white">₦0</span>
+                        <span class="text-slate-500 text-xs font-medium">/mo</span>
+                    </div>
+                </div>
+                
+                <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>1 AI generation / day</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Max 5 items / generation</span></li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Manual flashcard builder</span></li>
+                </ul>
+
+                <button onclick="startPayment('free')" class="w-full py-3.5 bg-themebg border border-slate-700 hover:border-slate-500 text-slate-300 rounded-xl text-sm font-bold tracking-wide transition-colors">
+                    Continue Free
+                </button>
+            </div>
+
+        </div>
+
+        <div class="mt-8 flex items-center justify-center opacity-50">
+            <p class="text-[10px] text-slate-400 flex items-center gap-1.5 font-medium tracking-wide">
+                <i class="fas fa-lock text-slate-500"></i> Secure payments processed by Paystack
+            </p>
+        </div>
+    </main>
+
+    <div id="paymentModal" class="fixed inset-0 bg-black/80 z-[100] hidden opacity-0 transition-opacity duration-300 flex-col justify-end">
+        <div id="paymentSheet" class="bg-white w-full h-[85vh] md:h-[90vh] md:max-w-md md:mx-auto md:rounded-t-3xl rounded-t-2xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col overflow-hidden relative">
+            
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white z-10">
+                <h2 class="text-slate-800 font-bold text-lg">Complete Subscription</h2>
+                <button onclick="closePaymentModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <iframe id="paystackIframe" src="" class="w-full h-full border-none flex-grow bg-slate-50"></iframe>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84",
+            measurementId: "G-6VQYKEBMSX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+            } else {
+                currentUser = null;
+            }
+        });
+
+        // Function to open the slide-up modal
+        window.openPaymentModal = function(url) {
+            const modal = document.getElementById('paymentModal');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+
+            // Set the Paystack link
+            iframe.src = url;
+
+            // Make modal visible in the DOM
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Small delay to allow CSS transitions to trigger
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        // Function to close the slide-up modal
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModal');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+
+            // Slide down and fade out
+            modal.classList.add('opacity-0');
+            sheet.classList.add('translate-y-full');
+
+            // Wait for animation to finish before hiding from DOM
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                iframe.src = ""; // Clear the iframe
+            }, 300);
+        };
+
+        window.startPayment = function(plan) {
+            if (!currentUser) {
+                alert("Please sign in first.");
+                window.location.href = "index.html?action=signup";
+                return;
+            }
+
+            if (plan === "free") {
+                window.location.href = "homepage.html";
+                return;
+            }
+
+            if (plan === "premium") {
+                // Open the modal instead of redirecting the page
+                openPaymentModal("https://paystack.shop/pay/5wqjry1l0a");
+                return;
+            }
+
+            if (plan === "elite") {
+                // Open the modal instead of redirecting the page
+                openPaymentModal("https://paystack.shop/pay/lw17s2ggpj");
+                return;
+            }
+        };
+    </script>
+</body>
+</html>

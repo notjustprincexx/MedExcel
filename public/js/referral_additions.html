@@ -1,0 +1,148 @@
+// ============================================================
+// REFERRAL ADDITIONS
+// Two separate blocks — instructions show where each goes.
+// ============================================================
+
+
+// ── BLOCK 1: Add to firebase.js ──────────────────────────────
+// Paste this ONCE at the very top of firebase.js (before the
+// onAuthStateChanged block), so the ?ref= code is captured
+// before the user even logs in.
+
+(function captureReferralParam() {
+    try {
+        const ref = new URLSearchParams(window.location.search).get('ref');
+        if (ref && ref.length >= 4) {
+            localStorage.setItem('medexcel_pending_ref', ref.trim().toUpperCase());
+            // Clean the URL so the code doesn't persist visibly
+            const clean = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, '', clean);
+        }
+    } catch(e) {}
+})();
+
+
+// ── BLOCK 2: Add to firebase.js ──────────────────────────────
+// Paste this INSIDE the new-user block, right after setDoc()
+// creates the user document (after line 1629 in your current file).
+// It auto-claims any pending referral code silently.
+
+async function autoClaimPendingReferral(user) {
+    const pendingCode = localStorage.getItem('medexcel_pending_ref');
+    if (!pendingCode) return;
+    try {
+        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+        const fns   = getFunctions(user.app, "us-central1");
+        const claim = httpsCallable(fns, "claimReferral");
+        const res   = await claim({ code: pendingCode });
+        if (res.data?.success && !res.data?.alreadyClaimed) {
+            localStorage.removeItem('medexcel_pending_ref');
+            // Give the new user 100 XP welcome bonus feedback
+            setTimeout(() => {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('🎉 Referral applied! +100 XP welcome bonus');
+                }
+            }, 3000);
+        }
+    } catch(e) {
+        // Invalid or already used — clear it so it doesn't block future attempts
+        if (e.code === 'functions/not-found' || e.code === 'functions/invalid-argument') {
+            localStorage.removeItem('medexcel_pending_ref');
+        }
+        console.warn('[Referral] Auto-claim failed:', e.message);
+    }
+}
+
+// Call it right after the new user setDoc in the existing-user/new-user branch:
+// autoClaimPendingReferral(user);  ← add this line after line 1629
+
+
+// ── BLOCK 3: Add to app_bundle.js ────────────────────────────
+// This adds a "Have a referral code?" button + sheet to the
+// profile page. Wire it to whatever "Referral" section already
+// exists in your profile HTML by calling showReferralCodeInput().
+
+window.showReferralCodeInput = function() {
+    if (window._cachedUserData?.referredBy) {
+        if (typeof window.showToast === 'function') window.showToast('You have already used a referral code.');
+        return;
+    }
+
+    const sheetId = 'referralInputSheet';
+    if (document.getElementById(sheetId)) return;
+
+    const sheet = document.createElement('div');
+    sheet.id = sheetId;
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+    sheet.innerHTML = `
+        <div style="width:100%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);">
+            <div style="width:36px;height:4px;border-radius:9999px;background:var(--border-color);margin:0 auto 1.25rem;"></div>
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(139,92,246,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fas fa-ticket" style="color:var(--accent-btn);font-size:1.25rem;"></i>
+            </div>
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--text-main);text-align:center;margin-bottom:0.375rem;">Enter Referral Code</h3>
+            <p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;margin-bottom:1.25rem;">Got a code from a friend? Enter it here to get +100 XP.</p>
+            <input id="referralCodeInput"
+                maxlength="8"
+                placeholder="e.g. A3F9B2C1"
+                oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+                style="width:100%;padding:0.875rem 1rem;border-radius:0.875rem;border:2px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:1rem;font-weight:700;letter-spacing:0.15em;text-align:center;outline:none;box-sizing:border-box;margin-bottom:0.875rem;font-family:monospace;"
+            />
+            <button id="referralCodeSubmitBtn"
+                onclick="window.submitReferralCode()"
+                style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:0.625rem;">
+                Apply Code
+            </button>
+            <button onclick="document.getElementById('referralInputSheet')?.remove()"
+                style="width:100%;padding:0.9375rem;border-radius:9999px;border:none;background:var(--bg-body);color:var(--text-muted);font-size:0.9375rem;font-weight:600;cursor:pointer;">
+                Cancel
+            </button>
+        </div>`;
+    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
+    setTimeout(() => document.getElementById('referralCodeInput')?.focus(), 300);
+};
+
+window.submitReferralCode = async function() {
+    const input = document.getElementById('referralCodeInput');
+    const btn   = document.getElementById('referralCodeSubmitBtn');
+    const code  = input?.value?.trim().toUpperCase();
+
+    if (!code || code.length < 4) {
+        if (input) { input.style.borderColor = '#ef4444'; setTimeout(() => input.style.borderColor = 'var(--border-color)', 2000); }
+        return;
+    }
+
+    btn.textContent = 'Applying…';
+    btn.disabled = true;
+
+    try {
+        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+        const fns   = getFunctions(window.auth?.app, "us-central1");
+        const claim = httpsCallable(fns, "claimReferral");
+        const res   = await claim({ code });
+
+        if (res.data?.alreadyClaimed) {
+            btn.textContent = 'Apply Code';
+            btn.disabled = false;
+            if (input) input.style.borderColor = '#f59e0b';
+            if (typeof window.showToast === 'function') window.showToast('You have already used a referral code.');
+            return;
+        }
+
+        if (res.data?.success) {
+            document.getElementById('referralInputSheet')?.remove();
+            if (typeof window.showToast === 'function') window.showToast('🎉 Referral applied! +100 XP added to your account.');
+            // Update cached data so the button hides correctly
+            if (window._cachedUserData) window._cachedUserData.referredBy = 'claimed';
+        }
+    } catch(e) {
+        btn.textContent = 'Apply Code';
+        btn.disabled = false;
+        if (input) { input.style.borderColor = '#ef4444'; setTimeout(() => input.style.borderColor = 'var(--border-color)', 2500); }
+        const msg = e.code === 'functions/not-found'       ? 'Code not found. Check and try again.'
+                  : e.code === 'functions/invalid-argument' ? 'That looks like your own code!'
+                  : 'Something went wrong — try again.';
+        if (typeof window.showToast === 'function') window.showToast(msg);
+    }
+};

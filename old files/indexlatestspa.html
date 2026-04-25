@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+    const savedUser = localStorage.getItem("nativeUser");
+    if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+        window.location.replace("homepage.html");
+    }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#121212">
+    <title>MedExcel - Welcome</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-main: #121212; 
+            --bg-card: #1E1E1E; 
+            --text-main: #ffffff; 
+            --text-muted: #888888; 
+            --accent-teal: #2DF5A7; 
+            --accent-phantom: #A996FF; 
+            --border-color: rgba(255, 255, 255, 0.1); 
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none !important; }
+        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; -webkit-user-select: none; user-select: none; position: relative; }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
+
+        /* Screens */
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; z-index: 50; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; pointer-events: none; transform: scale(0.98); background: var(--bg-main); padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom)); }
+        .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        /* Shared Header */
+        .top-header { display: flex; justify-content: center; align-items: center; width: 100%; padding-top: 1rem; flex-shrink: 0; }
+        .brand-logo { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.05em; margin: 0; }
+        .brand-white { color: #ffffff; }
+        .brand-teal { color: var(--accent-teal); }
+
+        /* Screen 1: Intro Layout */
+        .intro-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 2rem 0; }
+        .graphic-circle { width: 260px; height: 260px; background: #1A1A1A; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 2rem; }
+        .laurel-branch { position: absolute; height: 160px; width: 40px; opacity: 0.9; }
+        .laurel-branch.left { left: 20px; }
+        .laurel-branch.right { right: 20px; }
+        .center-m { font-size: 5.5rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.05em; }
+        
+        .hero-text { text-align: center; }
+        .trusted-text { color: var(--text-muted); font-size: 1rem; font-weight: 500; margin-bottom: 0.75rem; }
+        .main-headline { font-size: 2.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main); padding: 0 0.5rem; }
+
+        /* Screen 2: Auth Selection Layout */
+        .auth-content { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; width: 100%; }
+        .terms-text { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; text-align: center; }
+        .terms-text a { color: var(--accent-phantom); text-decoration: none; font-weight: 600; }
+
+        /* Buttons */
+        .bottom-actions { width: 100%; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+        .btn-primary { width: 100%; background: var(--accent-phantom); color: #121212; font-weight: 700; padding: 1.125rem; border-radius: 16px; font-size: 1.125rem; transition: transform 0.1s, opacity 0.2s; margin-bottom: 1rem; }
+        .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+        .btn-secondary { width: 100%; color: var(--text-main); font-weight: 600; font-size: 1.0625rem; padding: 1.125rem; transition: opacity 0.2s; }
+        .btn-secondary:active { opacity: 0.7; }
+
+        /* Loader & Dialogs */
+        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; visibility: hidden; opacity: 0; transition: opacity 0.3s; }
+        .loading-text { color: var(--accent-teal); font-size: 0.875rem; font-weight: 700; letter-spacing: 0.1em; }
+        
+        /* Login Modal */
+        .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
+        .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .login-header { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
+        .btn-close { color: var(--text-main); font-size: 1.5rem; padding: 0.5rem; margin-left: -0.5rem; }
+        .login-title { font-weight: 700; font-size: 1.25rem; flex: 1; text-align: center; margin-right: 1.5rem; }
+        .login-form { width: 100%; max-width: 24rem; margin: 0 auto; }
+        .input-group { background: var(--bg-card); border-radius: 16px; margin-bottom: 1.5rem; overflow: hidden; border: 1px solid var(--border-color); }
+        .input-row { position: relative; border-bottom: 1px solid var(--border-color); }
+        .input-row:last-child { border-bottom: none; }
+        .input-field { width: 100%; padding: 1.125rem; font-size: 1rem; }
+        .btn-signin { width: 100%; background: var(--accent-phantom); color: #121212; font-weight: 700; font-size: 1.125rem; padding: 1.125rem; border-radius: 16px; margin-bottom: 1.5rem; }
+        .btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 1rem; color: var(--text-main); font-weight: 600; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div id="introScreen" class="screen active">
+        <header class="top-header">
+            <h1 class="brand-logo"><span class="brand-white">Med</span><span class="brand-teal">Excel</span></h1>
+        </header>
+
+        <div class="intro-content">
+            <div class="graphic-circle">
+                <svg class="laurel-branch left" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M80,190 C40,150 20,90 40,20 C30,40 20,60 30,80 C10,70 10,50 20,30 C5,50 5,70 15,90 C0,80 0,60 10,40" fill="none" stroke="var(--accent-teal)" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M40,20 Q60,40 50,60 M30,80 Q50,90 45,110 M15,90 Q30,110 30,130" stroke="var(--accent-teal)" stroke-width="5" fill="none" stroke-linecap="round"/>
+                </svg>
+                
+                <div class="center-m">M</div>
+
+                <svg class="laurel-branch right" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20,190 C60,150 80,90 60,20 C70,40 80,60 70,80 C90,70 90,50 80,30 C95,50 95,70 85,90 C100,80 100,60 90,40" fill="none" stroke="var(--accent-teal)" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M60,20 Q40,40 50,60 M70,80 Q50,90 55,110 M85,90 Q70,110 70,130" stroke="var(--accent-teal)" stroke-width="5" fill="none" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <div class="hero-text">
+                <p class="trusted-text">Trusted by top medical students</p>
+                <h2 class="main-headline">Your intelligent companion for medical excellence.</h2>
+            </div>
+        </div>
+
+        <div class="bottom-actions">
+            <button class="btn-primary" onclick="goToAuth()">Get Started</button>
+        </div>
+    </div>
+
+    <div id="authSelectionScreen" class="screen">
+        <header class="top-header">
+            <h1 class="brand-logo"><span class="brand-white">Med</span><span class="brand-teal">Excel</span></h1>
+        </header>
+
+        <div class="auth-content">
+            <p class="terms-text">By continuing, you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></p>
+            
+            <div class="bottom-actions">
+                <button class="btn-primary" onclick="toggleLogin(true, true)">Create a New Account</button>
+                <button class="btn-secondary" onclick="toggleLogin(true, false)">I Already Have an Account</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginScreen" class="login-modal">
+        <div class="login-header">
+            <button onclick="toggleLogin(false)" class="btn-close"><i class="fas fa-times"></i></button>
+            <h2 id="loginHeading" class="login-title">Enter your details</h2>
+        </div>
+        <div class="login-form">
+            <div class="input-group">
+                <div id="nameRow" class="input-row" style="display: none;">
+                    <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="loginPassword" type="password" placeholder="Password" class="input-field">
+                </div>
+            </div>
+            <button id="signInBtn" class="btn-signin">Sign In</button>
+            
+            <button onclick="startGoogleLogin()" class="btn-google">
+                <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+            </button>
+        </div>
+    </div>
+
+    <div id="loaderScreen" class="loader-screen">
+        <div class="loading-text">LOADING...</div>
+    </div>
+
+    <script>
+        // Screen Navigation
+        function goToAuth() {
+            document.getElementById('introScreen').classList.remove('active');
+            document.getElementById('authSelectionScreen').classList.add('active');
+        }
+
+        // Login Modal Logic
+        window.isSignupMode = false;
+        function toggleLogin(show, signup = false) {
+            const login = document.getElementById('loginScreen');
+            const titleEl = document.getElementById('loginHeading');
+            const signInBtn = document.getElementById('signInBtn');
+            const nameRow = document.getElementById('nameRow'); 
+            window.isSignupMode = !!signup;
+
+            if (show) {
+                titleEl.textContent = window.isSignupMode ? 'Create your account' : 'Enter your details';
+                signInBtn.textContent = window.isSignupMode ? 'Sign Up' : 'Sign In';
+                nameRow.style.display = window.isSignupMode ? 'block' : 'none';
+                login.classList.add('show');
+            } else {
+                login.classList.remove('show');
+                setTimeout(() => { nameRow.style.display = 'none'; }, 300);
+            }
+        }
+
+        // Native Login
+        window.startGoogleLogin = function() {
+            if (window.Android && window.Android.startGoogleSignIn) {
+                document.getElementById('loaderScreen').style.visibility = 'visible';
+                document.getElementById('loaderScreen').style.opacity = '1';
+                window.Android.startGoogleSignIn();
+            } else {
+                alert("Native login not available. Please use the mobile app.");
+            }
+        };
+    </script>
+</body>
+</html>

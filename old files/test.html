@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#09090b">
+    <title>MedExcel - SPA</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js"></script>
+    
+    <script>
+        // Check for saved theme preference to prevent flickering
+        (function() {
+            const savedTheme = localStorage.getItem('medexcel_theme');
+            if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
+            // Sync Capacitor status bar on load
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const { StatusBar } = window.Capacitor.Plugins;
+                    const isLight = savedTheme === 'light';
+                    StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+                    // 'LIGHT' = dark/black icons (use on light backgrounds)
+                    // 'DARK'  = light/white icons (use on dark backgrounds)
+                    StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+                } catch(e) {}
+            }
+        })();
+
+        // Tailwind Config
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], },
+                    colors: { themebg: '#050A15', cardbg: '#0A1120', }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* =========================================
+           1. UNIFIED GLOBAL CSS VARIABLES
+           ========================================= */
+        :root {
+            --bg-body: #09090b; --bg-surface: #121216; --bg-hover: #1a1a20; --bg-glass: rgba(255, 255, 255, 0.05);
+            --text-main: #ffffff; --text-muted: #94a3b8; --text-light: #cbd5e1;
+            --accent-btn: #a78bfa; --btn-text: #000000;
+            --accent-blue: #3b82f6; --accent-green: #34d399; --accent-orange: #f97316; --accent-red: #f87171; --accent-yellow: #fbbf24;
+            --border-color: rgba(255, 255, 255, 0.06); --border-glass: rgba(255, 255, 255, 0.06); --border-active: rgba(167, 139, 250, 0.5);
+            --header-bg: rgba(9, 9, 11, 0.95); --nav-bg: #09090b; --nav-icon: #71717a; --nav-active: var(--accent-btn);
+            --day-circle: #27272a; --podium-bg: #1e293b;
+            --radius-btn: 100px; --radius-md: 16px; --radius-lg: 20px; --radius-card: 24px;
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .light-mode {
+            --bg-body: #f1f5f9; --bg-surface: #ffffff; --bg-hover: #f8fafc; --bg-glass: rgba(0, 0, 0, 0.05);
+            --text-main: #0f172a; --text-muted: #64748b; --text-light: #475569;
+            --accent-btn: #8b5cf6; --btn-text: #ffffff;
+            --accent-blue: #2563eb; --accent-green: #10b981; --accent-orange: #ea580c; --accent-red: #ef4444; --accent-yellow: #d97706;
+            --border-color: rgba(0, 0, 0, 0.06); --border-glass: rgba(0, 0, 0, 0.06); --border-active: rgba(139, 92, 246, 0.5);
+            --header-bg: rgba(241, 245, 249, 0.95); --nav-bg: #ffffff; --nav-icon: #94a3b8; --nav-active: var(--accent-btn);
+            --day-circle: #e2e8f0; --podium-bg: #f1f5f9;
+        }
+
+        /* =========================================
+           2. CORE SPA LAYOUT & ROUTING
+           ========================================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        body {
+            background-color: var(--bg-body); color: var(--text-main);
+            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; position: relative;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        /* SPA VIEW TOGGLING */
+        .app-view {
+            display: none; flex-direction: column; width: 100%; height: 100%;
+            overflow: hidden; position: absolute; inset: 0; z-index: 10;
+        }
+        .app-view.active { display: flex; }
+
+        /* General Utilities */
+        .fade-in { animation: fadeIn 0.4s var(--ease-snap) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .skeleton {
+            background: linear-gradient(90deg, rgba(128, 128, 128, 0.1) 25%, rgba(128, 128, 128, 0.2) 50%, rgba(128, 128, 128, 0.1) 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite linear;
+            color: transparent !important; border-color: transparent !important; pointer-events: none; overflow: hidden;
+        }
+        .skeleton * { visibility: hidden; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Global Modals */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; }
+        .modal-backdrop.show { display: flex; opacity: 1; }
+        .modal-content { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card); padding: 1.5rem; width: 100%; max-width: 320px; transform: scale(0.95); transition: 0.3s; text-align: center; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
+        .modal-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; }
+        .modal-title { font-size: 1.125rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+        .modal-text { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5; }
+        .modal-btn-primary { width: 100%; padding: 0.875rem; background: var(--accent-btn); color: var(--btn-text); border: none; border-radius: var(--radius-btn); font-weight: 700; cursor: pointer; margin-bottom: 0.5rem; transition: 0.2s; }
+        .modal-btn-primary:active { transform: scale(0.96); }
+        .modal-btn-secondary { width: 100%; padding: 0.875rem; background: transparent; color: var(--text-muted); border: none; border-radius: var(--radius-btn); font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .modal-btn-secondary:active { background: var(--bg-hover); }
+
+        /* Global Bottom Nav */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); 
+            padding: 0.75rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); 
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; 
+            transition: background-color 0.3s ease, transform 0.4s var(--ease-snap);
+        }
+        .bottom-nav.hidden { transform: translateY(100%); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem; color: var(--nav-icon); transition: color 0.2s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; flex: 1; text-decoration: none; }
+        .nav-item.active { color: var(--nav-active); }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item svg { width: 24px; height: 24px; display: block; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+        .nav-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.02em; }
+        @media (min-width: 1024px) { .bottom-nav { display: none; } }
+
+        /* =========================================
+           3. VIEW-SPECIFIC STYLES
+           ========================================= */
+
+        /* --- HOME --- */
+        .home-header { padding: 1.5rem 1.25rem 1rem; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: sticky; top: 0; background: var(--header-bg); backdrop-filter: blur(16px); }
+        .greeting-title { font-size: 1.15rem; font-weight: 700; flex: 1; white-space: nowrap; color: var(--text-main); margin: 0; display: flex; align-items: center; }
+        .streak-badge { display: flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: 9999px; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.15); color: var(--accent-orange); font-size: 0.9375rem; font-weight: 700; cursor: pointer; }
+        .home-main { flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; gap: 1.75rem; }
+        
+        .promo-carousel-wrapper { margin-bottom: 0.5rem; position: relative; width: 100%; }
+        .promo-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding-bottom: 0.25rem; }
+        .promo-consultation-card { min-width: 100%; scroll-snap-align: center; background: #4A1D96; border-radius: 1.5rem; padding: 1.5rem; display: flex; align-items: center; position: relative; overflow: hidden; min-height: 160px; text-decoration: none;}
+        .promo-bg-shape { position: absolute; top: 0; right: 0; bottom: 0; left: 40%; background: #6D28D9; transform: skewX(-15deg); transform-origin: bottom; z-index: 1; }
+        .promo-text-area { position: relative; z-index: 2; width: 60%; color: #ffffff; }
+        .promo-doctor-img { position: absolute; bottom: 0; right: -5%; height: 120%; max-height: 190px; z-index: 2; object-fit: contain; pointer-events: none; }
+        .promo-dots-container { display: flex; justify-content: center; gap: 6px; margin-top: 0.75rem; }
+        .promo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-glass); transition: 0.3s; }
+        .promo-dot.active { width: 16px; border-radius: 100px; background: var(--accent-btn); }
+        
+        .continue-card { padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-glass); }
+        .crypto-scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 0.75rem; padding-bottom: 0.75rem; scroll-snap-type: x mandatory; }
+        .crypto-card { width: 160px; flex-shrink: 0; scroll-snap-align: center; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; background: var(--bg-surface); border-radius: var(--radius-card); min-height: 140px; }
+
+        /* Streak Modal Dialog */
+        .streak-dialog { width: 100%; max-width: 100%; background: var(--bg-surface); border-radius: var(--radius-card) var(--radius-card) 0 0; padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem); transform: translateY(100%); opacity: 0; transition: 0.4s var(--ease-snap); text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .modal-backdrop.show .streak-dialog { transform: translateY(0); opacity: 1; }
+        .calendar-row { display: flex; justify-content: center; gap: 0.5rem; width: 100%; margin-bottom: 2.5rem; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .day-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--day-circle); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: #71717a; }
+        .day-circle.active { background: rgba(249, 115, 22, 0.1); color: var(--accent-orange); }
+        .day-circle.done { background: transparent; color: var(--accent-orange); font-size: 1.125rem; }
+
+        /* --- STUDY / LIBRARY --- */
+        .layout-wrapper { flex: 1; display: flex; width: 100%; height: 100%; overflow: hidden; padding-bottom: 80px; position: relative; z-index: 10; }
+        .sidebar { width: 100%; background: var(--bg-body); display: flex; flex-direction: column; height: 100%; z-index: 20; }
+        @media (min-width: 1024px) { .sidebar { width: 420px; } .layout-wrapper{ padding-bottom: 0;} }
+        .sidebar-header { padding: 2rem 1.25rem 0.5rem; flex-shrink: 0; background: var(--header-bg); }
+        .tab-scroll { display: flex; overflow-x: auto; gap: 0.625rem; margin-bottom: 1.5rem; padding-bottom: 0.25rem; }
+        .tab-btn { padding: 0.5rem 1.25rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+        .tab-btn.active { background-color: var(--accent-btn); border-color: var(--accent-btn); color: var(--btn-text); }
+        .search-box { position: relative; margin-bottom: 0.5rem; }
+        .search-input { width: 100%; background: var(--bg-surface); font-size: 0.9375rem; border-radius: 1rem; padding: 1rem 1rem 1rem 3rem; outline: none; color: var(--text-main); border: 1px solid var(--border-color); }
+        
+        .quiz-item { display: flex; align-items: center; gap: 1rem; padding: 0.875rem; border-radius: 1.25rem; background: var(--bg-surface); cursor: pointer; border: 1px solid transparent; transition: background 0.2s;}
+        .quiz-item:active { transform: scale(0.97); }
+        .btn-delete { padding: 0.625rem; color: var(--text-muted); background: transparent; border: none; cursor: pointer; }
+        
+        .practice-panel { display: none; width: 100%; flex-direction: column; position: absolute; inset: 0; background: var(--bg-body); z-index: 30; height: 100%; }
+        .practice-panel.active { display: flex; }
+        @media (min-width: 1024px) { .practice-panel { display: flex; flex: 1; position: relative; } }
+        .card-panel { width: 100%; max-width: 42rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; position: relative; overflow: hidden; }
+        
+        .quiz-wrapper { width: 100%; max-width: 48rem; display: flex; flex-direction: column; height: 100%; padding: 0.5rem 0; }
+        .question-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
+        .option-btn { width: 100%; text-align: left; padding: 1rem; border-radius: 1rem; background: var(--bg-body); border: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 1rem; cursor: pointer; color: var(--text-main); margin-bottom: 0.75rem;}
+        .option-btn.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+        .option-btn.wrong { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+        .option-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- CREATE --- */
+        .top-header { padding: 1.5rem 1.25rem 1rem; flex-shrink: 0; z-index: 40; width: 100%; display: flex; align-items: center; justify-content: space-between; background: var(--header-bg); backdrop-filter: blur(16px); position: sticky; top: 0; }
+        .create-main { flex: 1; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; width: 100%; }
+        .selection-card { background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-card); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; cursor: pointer; margin-bottom: 1rem;}
+        .upload-zone { border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative; }
+        .upload-zone.active { border-color: var(--border-active); background: rgba(139, 92, 246, 0.05); }
+        .file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        
+        .loader-screen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); z-index: 10000; opacity: 0; transition: 0.3s; }
+        .loader-screen.show { display: flex; opacity: 1; }
+        
+        .interactive-view { display: none; flex-direction: column; flex: 1; min-height: 0; width: 100%; height: 100%; }
+        .interactive-view.active { display: flex; }
+        
+        .flashcard-wrapper { flex: 1; position: relative; perspective: 1000px; cursor: pointer; min-height: 0; width: 100%; }
+        .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s var(--ease-snap); border-radius: var(--radius-card); }
+        .flashcard-wrapper.flipped .flip-inner { transform: rotateY(180deg); }
+        .flashcard-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: var(--radius-card); padding: 1.5rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; }
+        .flashcard-front { background: var(--bg-surface); z-index: 2; transform: rotateY(0deg); }
+        .flashcard-back { background: var(--accent-btn); transform: rotateY(180deg); color: var(--btn-text); z-index: 1; }
+        
+        /* Interactive Results */
+        .results-fullscreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; position: relative; z-index: 10; padding: 1rem; }
+        .stat-panel { flex: 1; min-width: 110px; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center; transform: scale(0); animation: popIn 0.5s var(--ease-snap) forwards; }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+        /* --- LEADERBOARD --- */
+        .podium-container { display: flex; justify-content: center; align-items: flex-end; height: 16rem; margin-top: 1.5rem; margin-bottom: 2.5rem; gap: 0.75rem; padding: 0 0.5rem; }
+        
+        /* --- PROFILE --- */
+        .group-container { background: var(--bg-surface); border-radius: 1.25rem; margin-bottom: 1rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 1.125rem 1.25rem; cursor: pointer; }
+        .list-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+        
+        /* --- PAYMENT --- */
+        #paymentModal { display: none; opacity: 0; }
+        #paymentModal.show { display: flex; opacity: 1; }
+    </style>
+</head>
+<body>
+
+  <div id="aiLoader" class="loader-screen hidden" role="status">
+    <div style="text-align: center; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 300px;">
+        <div id="lottieLoaderContainer" style="width: 150px; height: 150px;"></div>
+        <div style="color: #ffffff; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.375rem; letter-spacing: -0.01em; margin-top: 1rem;">MedExcel is scanning...</div>
+        <div style="color: #cbd5e1; font-size: 0.875rem; text-align: center; max-width: 80%; line-height: 1.4; transition: opacity 0.3s;" id="loadingText">Preparing to analyze document...</div>
+        <div style="width: 100%; margin-top: 1.5rem;">
+            <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.12); border-radius: 100px; overflow: hidden;">
+                <div id="scanProgressBar" style="height: 100%; width: 0%; background: var(--accent-btn); border-radius: 100px; transition: width 1s linear;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                <span id="scanElapsedLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">0s elapsed</span>
+                <span id="scanEstLabel" style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">~30s remaining</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div id="upgradeModalBackdrop" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-icon bg-yellow-500/10 text-yellow-500"><i class="fas fa-crown"></i></div>
+            <h3 class="modal-title">Unlock More Items</h3>
+            <p class="modal-text">Your current plan limits you to <span id="modalLimitSpan" class="font-bold text-yellow-500"></span> items per generation. Upgrade to generate more.</p>
+            <button onclick="navigateTo('view-payment'); closeGlobalModal('upgradeModalBackdrop')" class="modal-btn-primary">Upgrade Now</button>
+            <button onclick="closeGlobalModal('upgradeModalBackdrop')" class="modal-btn-secondary">Maybe Later</button>
+        </div>
+    </div>
+
+    <div id="loginModalBackdrop" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-icon bg-blue-500/10 text-blue-500"><i class="fas fa-user-lock"></i></div>
+            <h3 class="modal-title">Login Required</h3>
+            <p class="modal-text">You need to log in or create an account to upload files and generate AI materials.</p>
+            <button onclick="window.location.href='index.html#login'" class="modal-btn-primary bg-blue-500 text-white">Log In / Sign Up</button>
+            <button onclick="closeGlobalModal('loginModalBackdrop')" class="modal-btn-secondary">Close</button>
+        </div>
+    </div>
+
+    <div id="deleteModalBackdrop" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-icon bg-red-500/10 text-red-500"><i class="fas fa-trash-alt"></i></div>
+            <h3 class="modal-title">Delete Deck?</h3>
+            <p class="modal-text">This material will be permanently removed from your library.</p>
+            <div class="flex gap-3">
+                <button onclick="closeGlobalModal('deleteModalBackdrop')" class="flex-1 py-3 rounded-full bg-[var(--bg-body)] border border-[var(--border-color)] text-[var(--text-main)] font-bold">Cancel</button>
+                <button id="confirmDeleteBtn" class="flex-1 py-3 rounded-full bg-red-500 text-white font-bold">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="logoutModalBackdrop" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-icon bg-red-500/10 text-red-500"><i class="fas fa-sign-out-alt"></i></div>
+            <h3 class="modal-title">Log Out</h3>
+            <p class="modal-text">Are you sure you want to sign out of your account?</p>
+            <button id="confirmLogoutBtn" class="modal-btn-primary bg-red-500 text-white">Yes, Log Out</button>
+            <button onclick="closeGlobalModal('logoutModalBackdrop')" class="modal-btn-secondary">Cancel</button>
+        </div>
+    </div>
+
+    <div id="streakModalBackdrop" class="modal-backdrop" style="align-items: flex-end;">
+        <div class="streak-dialog" id="streakDialog">
+            <div id="modalStreakLottie" style="width: 80px; height: 80px; margin-bottom: 0.5rem;"></div>
+            <div class="text-3xl font-bold text-[var(--text-main)] mb-1 tracking-tight">Day <span id="modalDayCount">1</span></div>
+            <h3 class="text-base font-medium text-[var(--text-muted)] mb-8 leading-relaxed" id="streakDialogTitle">Keep the fire alive<br>check in today!</h3>
+            <div class="calendar-row" id="calendarRow"></div>
+            <button id="closeStreakModal" class="modal-btn-primary">Check in today!</button>
+        </div>
+    </div>
+
+
+    <section id="view-home" class="app-view active">
+        <header class="home-header">
+            <h1 id="greetingTitle" class="greeting-title skeleton" style="width: 140px; height: 22px; border-radius: 6px;"></h1>
+            <div class="streak-badge" id="headerStreakBadge" onclick="openStreakModal()">
+                <i id="headerFireIcon" class="fas fa-fire"></i>
+                <span id="headerStreakDisplay" class="skeleton" style="width: 16px; height: 18px; border-radius: 4px; display: inline-block;"></span>
+            </div>
+        </header>
+
+        <main class="home-main hide-scroll">
+            <div class="promo-carousel-wrapper">
+                <div class="promo-carousel hide-scroll" id="promoCarousel">
+                    <a href="javascript:void(0)" onclick="navigateTo('view-payment')" class="promo-consultation-card">
+                        <div class="promo-bg-shape"></div>
+                        <div class="promo-text-area">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-4xl font-bold leading-none">50%</span>
+                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>STUDY</span><span>SPEED</span></span>
+                            </div>
+                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Improve exam score <br>with active recall</p>
+                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Study Now</div>
+                        </div>
+                        <img src="doctor.svg" alt="Doctor" class="promo-doctor-img">
+                    </a>
+
+                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
+                        <div class="promo-bg-shape"></div>
+                        <div class="promo-text-area">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-4xl font-bold leading-none">2x</span>
+                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DAILY</span><span>REWARD</span></span>
+                            </div>
+                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Complete 20 flashcards today to earn double XP!</p>
+                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Start Challenge</div>
+                        </div>
+                        <div class="absolute bottom-0 right-[-5%] h-[120%] flex items-center justify-center text-[5.5rem] text-white opacity-85 z-10 pointer-events-none"><i class="fas fa-bolt"></i></div>
+                    </a>
+
+                    <a href="javascript:void(0)" onclick="navigateTo('view-create')" class="promo-consultation-card">
+                        <div class="promo-bg-shape"></div>
+                        <div class="promo-text-area">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-4xl font-bold leading-none">AI</span>
+                                <span class="flex flex-col text-[10px] font-bold leading-tight opacity-90 tracking-wide"><span>DECK</span><span>BUILDER</span></span>
+                            </div>
+                            <p class="text-sm opacity-95 mb-4 max-w-[95%]">Turn your notes into study decks in seconds.</p>
+                            <div class="bg-white/20 border border-white/10 text-white py-1.5 px-5 rounded-full text-xs font-bold backdrop-blur-sm inline-block">Create Now</div>
+                        </div>
+                        <div class="absolute bottom-0 right-[-5%] h-[120%] flex items-center justify-center text-[5rem] text-white opacity-85 z-10 pointer-events-none"><i class="fas fa-magic"></i></div>
+                    </a>
+                </div>
+                <div class="promo-dots-container" id="carouselIndicators">
+                    <div class="promo-dot active"></div><div class="promo-dot"></div><div class="promo-dot"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Continue Studying</h2>
+                <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="continue-card">
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div id="continueIconBox" class="w-12 h-12 rounded-full bg-[var(--bg-glass)] text-blue-400 flex items-center justify-center text-xl shrink-0 skeleton"><i class="fas fa-layer-group"></i></div>
+                        <div class="flex flex-col justify-center flex-1 min-w-0">
+                            <h3 id="continueTitle" class="font-bold text-[var(--text-main)] text-[15px] truncate mb-1 skeleton" style="width: 130px; height: 16px;"></h3>
+                            <p id="continueMeta" class="text-xs font-medium text-[var(--text-muted)] tracking-wider uppercase skeleton" style="width: 90px; height: 12px;"></p>
+                        </div>
+                    </div>
+                    <div id="continueProgressText" class="bg-blue-500/15 text-blue-500 text-xs font-bold py-1.5 px-2 rounded-md shrink-0 ml-3 flex items-center justify-center skeleton" style="width: 44px; height: 24px;"></div>
+                </a>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">What would you like to study?</h2>
+                <div class="crypto-scroll-container hide-scroll">
+                    <a href="javascript:void(0)" onclick="navigateTo('view-create'); setTimeout(()=>window.openCreateView('Multiple Choice'), 100);" class="crypto-card"> 
+                        <div class="mb-4 flex items-start">
+                            <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-lg font-bold text-[var(--text-main)]">MCQ</span>
+                            <span class="text-[15px] text-[var(--text-muted)]">Multiple Choice</span>
+                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">+ Review</span>
+                        </div>
+                    </a>
+                    <a href="javascript:void(0)" onclick="navigateTo('view-create'); setTimeout(()=>window.openCreateView('Flashcards'), 100);" class="crypto-card"> 
+                        <div class="mb-4 flex items-start">
+                            <svg viewBox="0 0 64 64" fill="none" style="width: 52px; height: 52px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-lg font-bold text-[var(--text-main)]">Flashcards</span>
+                            <span class="text-[15px] text-[var(--text-muted)]">Active recall</span>
+                            <span class="text-sm font-medium text-[var(--accent-green)] mt-0.5">+ Flip & Learn</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal">Weekly Target</h2>
+                <a href="javascript:void(0)" onclick="navigateTo('view-profile')" class="flex gap-4 p-5 bg-[#8b5cf6]/5 border border-[#8b5cf6]/10 rounded-[var(--radius-card)] items-start">
+                    <div class="w-10 h-10 rounded-full bg-[#8b5cf6]/15 text-[#a78bfa] flex items-center justify-center shrink-0">
+                        <span class="fa-stack" style="font-size:0.6rem;">
+                            <i class="fas fa-bullseye fa-stack-2x"></i>
+                            <i class="fas fa-arrow-right fa-stack-1x" style="transform:rotate(-45deg) translate(2px,-2px); font-size:0.85em; color:#c4b5fd;"></i>
+                        </span>
+                    </div>
+                    <div>
+                        <h4 id="targetTitle" class="text-[15px] font-bold text-[var(--text-main)] mb-1 transition-opacity">Study Consistency</h4>
+                        <p id="targetDesc" class="text-[13px] text-[var(--text-muted)] leading-relaxed transition-opacity">You're on track to hit your goals. Keep reviewing materials daily to build long-term retention.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-bold text-[var(--text-muted)] text-sm tracking-normal m-0">Recent Decks</h2>
+                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="text-[13px] text-[var(--text-main)] font-semibold">View All <i class="fas fa-chevron-right text-[10px] ml-1"></i></a>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl mr-4 shrink-0"><i class="fas fa-heartbeat"></i></div>
+                            <div class="flex flex-col">
+                                <span class="text-[15px] font-bold text-[var(--text-main)] mb-0.5">Cardiology 101</span>
+                                <span class="text-[12px] text-[var(--text-muted)]">45 Cards • Anatomy</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[12px] text-[var(--text-muted)] font-medium mb-1">Just now</span>
+                            <span class="text-[14px] font-bold text-[var(--accent-green)]">+92%</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </section>
+
+    <section id="view-study" class="app-view">
+        <div class="layout-wrapper">
+            <aside id="libraryPanel" class="sidebar">
+                <div class="sidebar-header">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-extrabold tracking-tight">Library</h1>
+                    </div>
+                    <div class="tab-scroll hide-scroll">
+                        <button class="tab-btn active" data-filter="all">All</button>
+                        <button class="tab-btn" data-filter="mcqs">MCQs</button>
+                        <button class="tab-btn" data-filter="flashcards">Flashcards</button>
+                        <button class="tab-btn" data-filter="favorites">Favorites</button>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search absolute left-5 top-4 text-[var(--text-muted)]"></i>
+                        <input type="text" id="librarySearchInput" placeholder="Search" class="search-input">
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-2 px-4 pb-6 flex flex-col gap-2 hide-scroll" id="quizContainer">
+                    </div>
+            </aside>
+
+            <main id="studyPracticePanel" class="practice-panel">
+                <header class="h-[72px] lg:h-[88px] flex items-center justify-between px-5 lg:px-8 shrink-0 border-b border-[var(--border-color)]">
+                    <div class="flex items-center gap-4 w-full lg:w-auto">
+                        <button onclick="window.closePracticeMobile()" class="w-10 h-10 rounded-full bg-[var(--bg-glass)] flex items-center justify-center text-[var(--text-main)] text-xl lg:hidden"><i class="fas fa-arrow-left"></i></button>
+                        <div class="flex gap-3">
+                            <div class="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-sm font-bold bg-[var(--bg-glass)] text-[var(--accent-yellow)]">
+                                <i class="fas fa-bolt"></i> <span id="studyXpDisplay">0 XP</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-sm font-bold bg-[var(--bg-glass)] text-[var(--accent-orange)]">
+                                <i class="fas fa-fire"></i> <span id="studyStreakDisplay">0 Day</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div id="studyPracticeArea" class="flex-1 overflow-y-auto p-4 lg:p-8 flex items-center justify-center pb-8 hide-scroll">
+                    <div class="text-center text-[var(--text-muted)] flex flex-col items-center">
+                        <div class="w-20 h-20 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-6 text-3xl text-[var(--accent-btn)]"><i class="fas fa-layer-group"></i></div>
+                        <h3 class="text-xl font-bold text-[var(--text-main)] mb-2">Ready to Study?</h3>
+                        <p class="text-[15px] font-medium">Select a deck from your library to begin.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+  <section id="view-create" class="app-view">
+        <header class="top-header">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button id="createBackBtn" onclick="window.goBackToSelection()" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--bg-surface); border: 1px solid var(--border-glass); display: none; align-items: center; justify-content: center; color: var(--text-main); font-size: 1rem; cursor: pointer; transition: 0.2s;">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 id="createHeaderTitle" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;">What to create?</h1>
+            </div>
+        </header>
+
+        <main id="createMainContainer" class="create-main hide-scroll" style="flex: 1; overflow-y: auto; padding: 0.5rem 1.25rem 8rem; display: flex; flex-direction: column; min-height: 0; width: 100%;">
+            
+            <div id="selectionView" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                <a href="javascript:void(0)" onclick="window.openCreateView('Multiple Choice')" style="background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-card); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; cursor: pointer; text-decoration: none;">
+                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
+                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;"><rect x="12" y="10" width="40" height="48" rx="6" fill="#8b5cf6"/><rect x="24" y="6" width="16" height="8" rx="2" fill="#fbbf24"/><circle cx="32" cy="7" r="3" fill="#fbbf24"/><path d="M22 28L26 32L34 24" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><path d="M22 42L26 46L34 38" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/><rect x="38" y="27" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/><rect x="38" y="41" width="10" height="3" rx="1.5" fill="white" opacity="0.3"/></svg>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span style="font-size: 1.125rem; font-weight: 700; color: var(--text-main);">Multiple Choice</span>
+                        <span style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.4;">Generate a quiz from your notes to test your knowledge.</span>
+                    </div>
+                </a>
+
+                <a href="javascript:void(0)" onclick="window.openCreateView('Flashcards')" style="background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: var(--radius-card); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; cursor: pointer; text-decoration: none;">
+                    <div style="width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-body); border: 1px solid var(--border-glass);">
+                        <svg viewBox="0 0 64 64" fill="none" style="width: 40px; height: 40px;"><rect x="8" y="18" width="28" height="38" rx="4" transform="rotate(-15 8 18)" fill="#ec4899"/><rect x="20" y="14" width="28" height="38" rx="4" transform="rotate(-5 20 14)" fill="#facc15"/><rect x="30" y="12" width="28" height="38" rx="4" transform="rotate(10 30 12)" fill="#8b5cf6"/><rect x="38" y="24" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 24)"/><rect x="38" y="32" width="12" height="3" rx="1.5" fill="white" opacity="0.4" transform="rotate(10 38 32)"/></svg>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span style="font-size: 1.125rem; font-weight: 700; color: var(--text-main);">Flashcards</span>
+                        <span style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.4;">Practice active recall with flip cards based on your material.</span>
+                    </div>
+                </a>
+            </div>
+
+            <div id="setupView" style="display: none; flex-direction: column; flex: 1; gap: 1.75rem; margin-top:1rem;">
+                <div>
+                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem;">1. Source Material</h2>
+                    <div id="dropZone" style="border: 2px dashed var(--border-glass); border-radius: var(--radius-card); padding: 2.5rem 1.5rem; background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; position: relative;">
+                        <input type="file" id="fileInput" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,image/*" />
+                        <div id="uploadIcon" style="width: 4rem; height: 4rem; border-radius: 50%; background: var(--bg-glass); display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; color: var(--text-muted); font-size: 1.5rem;">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3 id="uploadTitle" style="font-weight: 700; font-size: 1.0625rem; margin-bottom: 0.375rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Tap to Upload File</h3>
+                        <p id="uploadSubtitle" style="color: var(--text-muted); font-size: 0.8125rem;">PDF, PPTX, DOCX, TXT, or Images (Max 10MB)</p>
+                    </div>
+                </div>
+
+                <div id="configSection" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; gap: 1rem;">
+                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: -0.25rem;">2. Configuration</h2>
+                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.125rem; border: 1px solid var(--border-glass);">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">Topic Focus (Optional)</label>
+                        <input type="text" id="topicFocus" placeholder="e.g., Mechanism of Action" style="width: 100%; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 0.9375rem; font-weight: 500;">
+                    </div>
+
+                    <div style="background: var(--bg-surface); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border-glass);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Amount <span id="maxLimitText" style="font-weight: 500; text-transform: lowercase;">(Max: 15)</span></label>
+                            <span id="sliderValue" style="font-size: 0.875rem; font-weight: 700; background: var(--bg-body); padding: 0.375rem 0.875rem; border-radius: 8px; border: 1px solid var(--border-glass); color: var(--text-main);">5</span>
+                        </div>
+                        <input type="range" id="itemSlider" min="1" max="40" value="5" style="width: 100%; height: 6px; background: var(--bg-body); border-radius: 4px; -webkit-appearance: none; outline: none; cursor: pointer; border: 1px solid var(--border-glass);">
+                    </div>
+                </div>
+
+                <button id="generateBtn" disabled style="width: 100%; padding: 1.125rem; border-radius: var(--radius-btn); font-size: 1.0625rem; font-weight: 700; border: none; background: var(--bg-surface); color: var(--text-muted); cursor: not-allowed; transition: all 0.2s; margin-top: auto; margin-bottom: 1rem;">
+                    Generate AI Content
+                </button>
+            </div>
+
+            <div id="interactiveView" style="display: none; flex-direction: column; flex: 1; min-height: 0; width: 100%; height: 100%;"></div>
+        </main>
+    </section>
+
+    <section id="view-leaderboard" class="app-view">
+        <header class="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 sticky top-0 z-40 bg-[var(--bg-body)] bg-opacity-95 backdrop-blur-md transition-colors duration-300">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">Leaderboard</h1>
+                <p class="text-xs text-[var(--text-muted)] font-bold uppercase tracking-widest mt-1">Global Rankings</p>
+            </div>
+            <div class="border border-[var(--border-color)] bg-[var(--bg-surface)] px-3 py-1.5 rounded-full flex items-center gap-2 min-h-[32px] min-w-[70px] justify-center transition-colors duration-300">
+                <i class="fas fa-fire text-orange-500"></i>
+                <span class="text-xs font-bold text-[var(--text-main)] skeleton rounded" id="currentUserXp" style="width: 35px; height: 16px;"></span>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll" style="-webkit-overflow-scrolling: touch;">
+            <div class="flex bg-[var(--bg-surface)] rounded-xl p-1 border border-[var(--border-color)] mb-8 mx-2 transition-colors duration-300">
+                <button class="flex-1 py-2 text-sm font-bold rounded-lg bg-[var(--accent-btn)] text-[var(--btn-text)] shadow-md transition-all">All Time</button>
+                <button class="flex-1 py-2 text-sm font-bold rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">This Week</button>
+            </div>
+
+            <section class="flex justify-center items-end h-64 mt-6 mb-10 gap-3 px-2" id="podiumContainer">
+                <div class="flex flex-col items-center w-1/3 relative z-10">
+                    <div class="relative mb-2">
+                        <div class="w-14 h-14 rounded-full border-4 border-slate-300 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative skeleton transition-colors duration-300" id="avatarBox2">
+                            <span class="text-lg font-bold text-[var(--text-muted)]" id="avatar2">?</span>
+                        </div>
+                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-xs border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">2</div>
+                    </div>
+                    <h3 class="text-xs font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name2" style="width: 60px; height: 14px;"></h3>
+                    <p class="text-[10px] text-[var(--accent-btn)] font-bold mt-1 skeleton rounded" id="xp2" style="width: 35px; height: 12px;"></p>
+                    <div class="w-full h-20 bg-gradient-to-t from-slate-400/20 to-slate-400/5 mt-3 rounded-t-xl border-t border-slate-400/30"></div>
+                </div>
+
+                <div class="flex flex-col items-center w-1/3 relative z-20">
+                    <i class="fas fa-crown text-yellow-400 text-xl mb-1 filter drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"></i>
+                    <div class="relative mb-2">
+                        <div class="w-20 h-20 rounded-full border-4 border-yellow-400 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative shadow-[0_0_20px_rgba(250,204,21,0.3)] skeleton transition-colors duration-300" id="avatarBox1">
+                            <span class="text-2xl font-bold text-[var(--text-muted)]" id="avatar1">?</span>
+                        </div>
+                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-sm border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">1</div>
+                    </div>
+                    <h3 class="text-sm font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name1" style="width: 80px; height: 18px;"></h3>
+                    <p class="text-[11px] text-yellow-500 font-bold mt-1 skeleton rounded" id="xp1" style="width: 45px; height: 14px;"></p>
+                    <div class="w-full h-28 bg-gradient-to-t from-yellow-500/20 to-yellow-500/5 mt-3 rounded-t-xl border-t border-yellow-500/40 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center w-1/3 relative z-10">
+                    <div class="relative mb-2">
+                        <div class="w-14 h-14 rounded-full border-4 border-amber-500 bg-[var(--podium-bg)] flex items-center justify-center overflow-hidden z-10 relative skeleton transition-colors duration-300" id="avatarBox3">
+                            <span class="text-lg font-bold text-[var(--text-muted)]" id="avatar3">?</span>
+                        </div>
+                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-[var(--bg-body)] font-black text-xs border-2 border-[var(--bg-body)] z-20 transition-colors duration-300">3</div>
+                    </div>
+                    <h3 class="text-xs font-bold text-[var(--text-main)] truncate text-center skeleton rounded mt-1" id="name3" style="width: 60px; height: 14px;"></h3>
+                    <p class="text-[10px] text-[var(--accent-btn)] font-bold mt-1 skeleton rounded" id="xp3" style="width: 35px; height: 12px;"></p>
+                    <div class="w-full h-16 bg-gradient-to-t from-amber-500/20 to-amber-500/5 mt-3 rounded-t-xl border-t border-amber-500/30"></div>
+                </div>
+            </section>
+
+            <section class="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl p-4">
+                <div id="leaderboardList" class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-4 h-4 skeleton rounded shrink-0"></div>
+                            <div class="w-10 h-10 rounded-full skeleton shrink-0"></div>
+                            <div class="w-24 h-4 rounded skeleton"></div>
+                        </div>
+                        <div class="w-12 h-4 rounded skeleton shrink-0"></div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-4 h-4 skeleton rounded shrink-0"></div>
+                            <div class="w-10 h-10 rounded-full skeleton shrink-0"></div>
+                            <div class="w-20 h-4 rounded skeleton"></div>
+                        </div>
+                        <div class="w-10 h-4 rounded skeleton shrink-0"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </section>
+
+    <section id="view-profile" class="app-view">
+        <header class="pt-6 pb-2 px-5 flex items-center shrink-0 sticky top-0 z-40 bg-[var(--bg-body)]">
+            <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)]">Profile</h1>
+        </header>
+
+        <main class="flex-1 overflow-y-auto pb-32 px-4 pt-4 hide-scroll">
+            <div class="bg-[var(--bg-surface)] rounded-[1rem] p-[0.875rem] px-5 flex items-center gap-3 text-[var(--text-muted)] mb-6 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+                <i class="fas fa-search"></i>
+                <span class="text-sm">Search</span>
+            </div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div class="flex items-center justify-between p-[1.125rem] px-5">
+                    <div class="flex items-center gap-4">
+                       <div class="w-14 h-14 rounded-full bg-orange-100 text-orange-500 border border-orange-200 flex items-center justify-center font-bold text-2xl shrink-0">
+                           <span id="userInitial">?</span>
+                       </div>
+                       <div class="flex flex-col">
+                           <span id="userName" class="font-bold text-[var(--text-main)] text-lg leading-tight">Loading...</span>
+                           <span id="userEmail" class="text-sm text-[var(--text-muted)] mt-0.5">...</span>
+                       </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
+                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)] border-b border-[var(--border-color)]" onclick="navigateTo('view-payment')">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-layer-group text-blue-500 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Current Plan</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="planBadgeText" class="text-sm font-bold text-[var(--text-muted)]">Loading...</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start gap-3 p-[1.125rem] px-5">
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 flex justify-center"><i class="fas fa-bolt text-yellow-500 text-lg"></i></div>
+                            <span class="text-[var(--text-main)] font-medium">Daily Generations</span>
+                        </div>
+                        <span class="text-sm font-bold text-[var(--text-muted)]"><span id="usageCount">0</span> used</span>
+                    </div>
+                    <div class="w-full h-2 bg-[var(--bg-body)] rounded-full overflow-hidden border border-[var(--border-color)]">
+                        <div id="usageProgressBar" class="h-full bg-blue-500 transition-all duration-700 ease-out" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
+                <div class="flex items-center justify-between p-[1.125rem] px-5 border-b border-[var(--border-color)]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-fire text-orange-500 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Study Streak</span>
+                    </div>
+                    <span class="text-sm font-bold text-[var(--text-muted)]"><span id="profileStreakCount">0</span> Days</span>
+                </div>
+                <div class="flex items-center justify-between p-[1.125rem] px-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-calendar-alt text-emerald-500 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Member Since</span>
+                    </div>
+                    <span id="memberSince" class="text-sm font-medium text-[var(--text-muted)]">--</span>
+                </div>
+            </div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] p-4 px-5">
+                <div class="flex items-center gap-3 mb-4 px-1">
+                    <div class="w-6 flex justify-center"><i class="fas fa-trophy text-yellow-500 text-lg"></i></div>
+                    <span class="text-[var(--text-main)] font-medium">Achievements</span>
+                </div>
+                <div id="achievementsGrid" class="grid grid-cols-3 gap-2">
+                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
+                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
+                    <div class="border border-[var(--border-color)] bg-[var(--bg-body)] rounded-2xl p-3 flex flex-col items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] mb-1.5"></div><div class="w-12 h-2 bg-[var(--bg-surface)] rounded mb-1"></div></div>
+                </div>
+            </div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" id="themeToggleBtn">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i id="themeIcon" class="fas fa-moon text-indigo-400 text-lg"></i></div>
+                        <span class="text-[var(--text-main)] font-medium">Appearance</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="themeText" class="text-sm font-medium text-[var(--text-muted)]">Dark Mode</span>
+                        <div id="themeSwitchBg" class="w-11 h-6 bg-slate-600 rounded-full relative transition-colors duration-300 flex items-center p-1">
+                            <div id="themeSwitchKnob" class="w-4 h-4 bg-white rounded-full transition-transform duration-300 transform shadow-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+           <div class="bg-[var(--bg-surface)] rounded-[1.25rem] mb-4 overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-col">
+    <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)] border-b border-[var(--border-color)]" onclick="window.sendPasswordReset();">
+        <div class="flex items-center gap-3">
+            <div class="w-6 flex justify-center"><i class="fas fa-lock text-slate-400 text-lg"></i></div>
+            <span class="text-[var(--text-main)] font-medium">Change Password</span>
+        </div>
+    </div>
+    <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" onclick="window.showLogoutModal()">
+        <div class="flex items-center gap-3">
+            <div class="w-6 flex justify-center"><i class="fas fa-sign-out-alt text-red-400 text-lg"></i></div>
+            <span class="text-[var(--text-main)] font-medium">Log Out</span>
+        </div>
+    </div>
+</div>
+
+            <div class="bg-[var(--bg-surface)] rounded-[1.25rem] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div class="flex items-center justify-between p-[1.125rem] px-5 cursor-pointer hover:bg-[var(--bg-hover)]" onclick="window.confirmDeleteAccount()">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 flex justify-center"><i class="fas fa-trash text-red-500 text-lg"></i></div>
+                        <span class="text-red-500 font-medium">Delete Account</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="view-payment" class="app-view bg-themebg" style="background-color: #050A15;">
+        <header class="w-full flex items-center justify-between p-6 z-20">
+            <button onclick="navigateTo('view-profile')" class="w-10 h-10 rounded-full bg-[#0A1120] border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </button>
+            <div class="w-10"></div>
+        </header>
+
+        <main class="flex-grow flex flex-col relative z-10 w-full max-w-md mx-auto overflow-y-auto px-6 pb-20 hide-scroll">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold tracking-tight mb-2 text-white">Subscription</h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-4">Compare Plans</p>
+            </div>
+
+            <div class="flex flex-col gap-6 w-full">
+                <div class="w-full bg-[#0A1120] border-2 border-blue-600/50 rounded-2xl p-6 flex flex-col relative transition-all shadow-[0_0_20px_rgba(37,99,235,0.1)] mt-3">
+                    <div class="absolute -top-3.5 left-5 bg-gradient-to-r from-blue-600 to-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg border border-blue-400/30">Recommended</div>
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold text-white mb-1">Premium</h3>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-2xl font-bold text-white">₦3,500</span><span class="text-slate-500 text-xs font-medium">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>100 AI generations / month</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span>Max 25k chars / upload</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-blue-500"></i><span class="font-medium text-white">AI voice explanation mode</span></li>
+                    </ul>
+                    <button onclick="window.startPayment('premium')" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold tracking-wide transition-colors shadow-lg shadow-blue-900/20">Try Premium for ₦3,500</button>
+                </div>
+
+                <div class="w-full bg-[#0A1120] border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-yellow-500/50">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold text-white mb-1">Elite</h3>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-2xl font-bold text-white">₦7,000</span><span class="text-slate-500 text-xs font-medium">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Unlimited AI generations</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span>Max 30k chars / upload</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-yellow-500"></i><span class="text-white font-medium">Advanced AI Tutor Mode</span></li>
+                    </ul>
+                    <button onclick="window.startPayment('elite')" class="w-full py-3.5 bg-[#050A15] border border-slate-700 hover:border-yellow-500/50 text-yellow-500 rounded-xl text-sm font-bold tracking-wide transition-colors">Try Elite for ₦7,000</button>
+                </div>
+
+                <div class="w-full bg-[#0A1120] border border-slate-800 rounded-2xl p-6 flex flex-col transition-all hover:border-slate-600">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold text-white mb-1">Basic Access</h3>
+                        <div class="flex items-baseline gap-1 mt-2">
+                            <span class="text-2xl font-bold text-white">₦0</span><span class="text-slate-500 text-xs font-medium">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 flex-grow text-sm text-slate-300">
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>1 AI generation / day</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Max 5 items / generation</span></li>
+                        <li class="flex items-center gap-3"><i class="fas fa-check text-slate-500"></i><span>Manual flashcard builder</span></li>
+                    </ul>
+                    <button onclick="navigateTo('view-home')" class="w-full py-3.5 bg-[#050A15] border border-slate-700 hover:border-slate-500 text-slate-300 rounded-xl text-sm font-bold tracking-wide transition-colors">Continue Free</button>
+                </div>
+            </div>
+            <div class="mt-8 flex items-center justify-center opacity-50">
+                <p class="text-[10px] text-slate-400 flex items-center gap-1.5 font-medium tracking-wide"><i class="fas fa-lock text-slate-500"></i> Secure payments processed by Paystack</p>
+            </div>
+        </main>
+        
+        <div id="paymentModalOverlay" class="fixed inset-0 bg-black/80 z-[100] hidden opacity-0 transition-opacity duration-300 flex-col justify-end">
+            <div id="paymentSheet" class="bg-white w-full h-[85vh] md:h-[90vh] md:max-w-md md:mx-auto md:rounded-t-3xl rounded-t-2xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col overflow-hidden relative">
+                <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white z-10">
+                    <h2 class="text-slate-800 font-bold text-lg">Complete Subscription</h2>
+                    <button onclick="window.closePaymentModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <iframe id="paystackIframe" src="" class="w-full h-full border-none flex-grow bg-slate-50"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <nav id="globalBottomNav" class="bottom-nav">
+        <a href="javascript:void(0)" onclick="navigateTo('view-home')" id="nav-home" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-8h-2v8H5a2 2 0 0 1-2-2z"></path></svg>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('view-study')" id="nav-study" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span class="nav-label">Library</span>
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('view-create')" id="nav-create" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span class="nav-label">Create</span>
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('view-leaderboard')" id="nav-leaderboard" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span class="nav-label">Leaders</span>
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('view-profile')" id="nav-profile" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+
+    <script>
+        // --- GLOBAL VARIABLES & STATE ---
+        window.userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { xp: 0, level: 1, streak: 0, count: 0, lastDate: null };
+        window.quizzes = [];
+        window.userPlan = "free";
+        window.allowedMaxItems = 15;
+        
+        // Study & Create State
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let isExamMode = false;
+        let examScore = 0;
+        window.quizToDelete = null;
+
+        window.globalQuizType = "Flashcards";
+        window.selectedFile = null;
+        let generatedCards = [];
+        let currentCardIndex = 0;
+        let isMCQMode = false;
+        let sessionScore = 0;
+        window.updateHomeContinueCard = function() {
+            const cTitle = document.getElementById('continueTitle');
+            const cMeta = document.getElementById('continueMeta');
+            const cProgress = document.getElementById('continueProgressText');
+            const cIconBox = document.getElementById('continueIconBox');
+
+            if(!cTitle) return;
+
+            cTitle.classList.remove('skeleton'); cTitle.style.width = 'auto'; cTitle.style.height = 'auto';
+            cMeta.classList.remove('skeleton'); cMeta.style.width = 'auto'; cMeta.style.height = 'auto';
+            cProgress.classList.remove('skeleton'); cProgress.style.width = 'auto'; cProgress.style.height = 'auto';
+            cIconBox.classList.remove('skeleton');
+            
+            if (window.quizzes && window.quizzes.length > 0) {
+                const lastQuiz = window.quizzes[window.quizzes.length - 1]; 
+                const totalQs = lastQuiz.questions ? lastQuiz.questions.length : 0;
+                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
+                let progress = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
+                
+                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cProgress.textContent = `+${progress}%`; 
+                cMeta.innerHTML = `<span>${totalQs}</span> items • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
+            } else {
+                cTitle.textContent = "No recent activity";
+                cProgress.textContent = "0%";
+                cProgress.style.background = "rgba(128,128,128,0.1)"; cProgress.style.color = "var(--text-muted)";
+                cMeta.innerHTML = "<span>0 items</span> • <span>GET STARTED</span>";
+            }
+        };
+
+        // --- BULLETPROOF ROUTER LOGIC ---
+        function navigateTo(targetViewId) {
+            console.log("Navigating to: " + targetViewId); // Debugging line
+
+            // 1. Hide all views securely
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.classList.remove('active');
+                view.style.display = 'none';
+            });
+            
+            // 2. Show the requested view
+            const target = document.getElementById(targetViewId);
+            if (target) { 
+                target.classList.add('active'); 
+                target.style.display = 'flex'; 
+            } else {
+                console.error("View not found: " + targetViewId);
+            }
+
+            // 3. Update bottom navigation icons
+            const nav = document.getElementById('globalBottomNav');
+            if (nav) {
+                if (targetViewId === 'view-payment') {
+                    nav.classList.add('hidden');
+                } else { 
+                    nav.classList.remove('hidden'); 
+                    updateNavIcons(targetViewId); 
+                }
+            }
+            
+            // 4. Safe Initializations (wrapped in try/catch so they don't break routing)
+            try {
+                if (targetViewId === 'view-study' && typeof window.renderLibrary === 'function') window.renderLibrary();
+                if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
+                if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
+            } catch(e) { console.warn("View init skipped:", e); }
+            
+            // 5. Update URL
+            window.scrollTo(0, 0);
+            try { history.pushState(null, null, '#' + targetViewId.replace('view-', '')); } 
+            catch(e) { window.location.hash = targetViewId.replace('view-', ''); }
+        }
+
+        // Expose function globally so inline HTML clicks can reach it
+        window.navigateTo = navigateTo;
+
+        function updateNavIcons(activeViewId) {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+                const svg = el.querySelector('svg');
+                if(svg) svg.setAttribute('fill', 'none');
+            });
+            
+            const mapping = { 'view-home': 'nav-home', 'view-study': 'nav-study', 'view-create': 'nav-create', 'view-leaderboard': 'nav-leaderboard', 'view-profile': 'nav-profile' };
+            const activeNav = document.getElementById(mapping[activeViewId]);
+            if (activeNav) {
+                activeNav.classList.add('active');
+                if(activeViewId !== 'view-create' && activeViewId !== 'view-leaderboard') {
+                    const activeSvg = activeNav.querySelector('svg');
+                    if(activeSvg) activeSvg.setAttribute('fill', 'currentColor');
+                }
+            }
+        }
+
+        function initRouter() {
+            let hash = window.location.hash.replace('#', '');
+            if (!hash) hash = 'home';
+            const viewId = 'view-' + hash;
+            
+            const validViews = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile', 'view-payment'];
+            if (validViews.includes(viewId)) {
+                navigateTo(viewId); 
+            } else { 
+                navigateTo('view-home'); 
+            }
+        }
+
+        // Initialize Router on load
+        window.addEventListener('DOMContentLoaded', initRouter);
+        window.addEventListener('popstate', initRouter);
+
+
+        // --- UTILS & MODALS ---
+        window.closeGlobalModal = function(id) {
+            const modal = document.getElementById(id);
+            if(modal) modal.classList.remove('show');
+        };
+        window.showLoginModal = function() { document.getElementById('loginModalBackdrop').classList.add('show'); };
+        window.showLogoutModal = function() { document.getElementById('logoutModalBackdrop').classList.add('show'); };
+        
+        window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
+        window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
+        window.escapeHTML = function(str) { return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+        window.getTimeEmoji = function() { const hour = new Date().getHours(); if (hour < 12) return '⛅'; if (hour < 18) return '☀️'; return '🌙'; }
+
+        // Theme Setup
+        window.updateThemeUI = function() {
+            const isLight = document.documentElement.classList.contains('light-mode');
+            const themeText = document.getElementById('themeText');
+            const themeIcon = document.getElementById('themeIcon');
+            const switchBg = document.getElementById('themeSwitchBg');
+            const switchKnob = document.getElementById('themeSwitchKnob');
+            
+            if(themeText) themeText.innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            if(themeIcon) themeIcon.className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
+            
+            if(switchBg && switchKnob) {
+                if (isLight) { switchBg.classList.replace('bg-slate-600', 'bg-blue-500'); switchKnob.style.transform = 'translateX(20px)'; } 
+                else { switchBg.classList.replace('bg-blue-500', 'bg-slate-600'); switchKnob.style.transform = 'translateX(0)'; }
+            }
+        };
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                const isLight = document.documentElement.classList.toggle('light-mode');
+                localStorage.setItem('medexcel_theme', isLight ? 'light' : 'dark');
+                window.updateThemeUI();
+                // Sync Capacitor status bar on theme change
+                if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                    try {
+                        const { StatusBar } = window.Capacitor.Plugins;
+                        StatusBar.setBackgroundColor({ color: isLight ? '#f1f5f9' : '#09090b' });
+                        // 'LIGHT' = dark/black icons (use on light backgrounds)
+                        // 'DARK'  = light/white icons (use on dark backgrounds)
+                        StatusBar.setStyle({ style: isLight ? 'LIGHT' : 'DARK' });
+                    } catch(e) {}
+                }
+            });
+        }
+
+
+        // --- HOME UI LOGIC ---
+        // Carousel Sync
+        const carousel = document.getElementById('promoCarousel');
+        const indicators = document.querySelectorAll('.promo-dot');
+        if(carousel && indicators.length > 0) {
+            carousel.addEventListener('scroll', () => {
+                const scrollPosition = carousel.scrollLeft;
+                const cardWidth = carousel.offsetWidth;
+                const activeIndex = Math.round(scrollPosition / cardWidth);
+                indicators.forEach((dot, index) => {
+                    if (index === activeIndex) dot.classList.add('active'); else dot.classList.remove('active');
+                });
+            });
+        }
+
+        // Weekly Target Rotator
+        const targetMessages = [
+            { title: "Study Consistency", desc: "You're on track to hit your goals. Keep reviewing materials daily to build long-term retention." },
+            { title: "Daily Streak", desc: "Consistency is key! Complete a quick review today to keep your streak alive." },
+            { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
+        ];
+        let currentTargetIdx = 0;
+        setInterval(() => {
+            currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
+            const titleEl = document.getElementById('targetTitle');
+            const descEl = document.getElementById('targetDesc');
+            if(titleEl && descEl) {
+                titleEl.style.opacity = '0'; descEl.style.opacity = '0';
+                setTimeout(() => {
+                    titleEl.textContent = targetMessages[currentTargetIdx].title;
+                    descEl.textContent = targetMessages[currentTargetIdx].desc;
+                    titleEl.style.opacity = '1'; descEl.style.opacity = '1';
+                }, 300);
+            }
+        }, 5000);
+
+        // Streak Calendar UI
+        let currentStreakCount = 0;
+        let hasCheckedInToday = false;
+
+        function buildCalendarRow() {
+            const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            const dates = [];
+            const today = new Date();
+            const currentDayIndex = (today.getDay() + 6) % 7; 
+            
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today); d.setDate(today.getDate() - currentDayIndex + i); dates.push(d.getDate());
+            }
+
+            let html = '';
+            for(let i=0; i<7; i++) {
+                let circleClass = "day-circle";
+                let content = dates[i];
+                if (i < currentDayIndex) { circleClass += " done"; content = '<i class="fas fa-check"></i>'; } 
+                else if (i === currentDayIndex) { circleClass += " active"; if (hasCheckedInToday) content = '<i class="fas fa-check"></i>'; }
+                html += `<div class="day-col"><span class="day-label text-xs font-bold text-[var(--text-muted)]">${labels[i]}</span><div class="${circleClass}">${content}</div></div>`;
+            }
+            return html;
+        }
+
+        // Variable to hold the animation so it doesn't duplicate
+        var fireLottieAnim = null;
+
+        window.openStreakModal = function() {
+            document.getElementById('calendarRow').innerHTML = buildCalendarRow();
+            const btn = document.getElementById('closeStreakModal');
+            document.getElementById('modalDayCount').textContent = currentStreakCount;
+            btn.textContent = hasCheckedInToday ? "Awesome!" : "Check in today!";
+            
+            if (!fireLottieAnim) {
+                fireLottieAnim = lottie.loadAnimation({
+                    container: document.getElementById('modalStreakLottie'),
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: 'fire.json'
+                });
+            } else {
+                fireLottieAnim.play();
+            }
+            
+            document.getElementById('streakModalBackdrop').classList.add('show');
+        };
+
+        document.getElementById('closeStreakModal').onclick = () => {
+            if (!hasCheckedInToday && window.currentUser) {
+                window.userStats.count = currentStreakCount;
+                window.userStats.lastDate = new Date().toDateString();
+                localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+                hasCheckedInToday = true;
+                if (window.syncUserStreak) window.syncUserStreak(window.currentUser.uid, currentStreakCount, window.userStats.lastDate);
+            }
+            window.closeGlobalModal('streakModalBackdrop');
+            const hDisplay = document.getElementById('headerStreakDisplay');
+            if(hDisplay) hDisplay.textContent = currentStreakCount;
+            const hIcon = document.getElementById('headerFireIcon');
+            if(hIcon) hIcon.style.opacity = '1';
+        };
+
+        // --- STUDY UI LOGIC ---
+        window.openPracticeMobile = function() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.add('hidden');
+                document.getElementById('studyPracticePanel').classList.add('active');
+            }
+        }
+
+        window.closePracticeMobile = function() {
+            if (window.innerWidth < 1024) {
+                document.getElementById('libraryPanel').classList.remove('hidden');
+                document.getElementById('studyPracticePanel').classList.remove('active');
+            }
+            document.getElementById('studyPracticeArea').innerHTML = `
+                <div class="text-center text-[var(--text-muted)] flex flex-col items-center fade-in">
+                    <div class="w-20 h-20 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center mb-6 text-3xl text-[var(--accent-btn)]"><i class="fas fa-layer-group"></i></div>
+                    <h3 class="text-xl font-bold text-[var(--text-main)] mb-2">Ready to Study?</h3>
+                    <p class="text-[15px] font-medium">Select a deck from your library to begin.</p>
+                </div>
+            `;
+            currentQuiz = null;
+        }
+
+        window.promptDelete = function(e, id) { e.stopPropagation(); window.quizToDelete = id; document.getElementById('deleteModalBackdrop').classList.add('show'); };
+        window.startPractice = function(exam) { isExamMode = exam; currentQuestionIndex = 0; examScore = 0; window.renderStudyQuestion(); }
+
+        window.renderStudyQuestion = function() {
+            if (!currentQuiz || !currentQuiz.questions) return;
+            if (currentQuestionIndex >= currentQuiz.questions.length) { window.finishStudyQuiz(); return; }
+
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const area = document.getElementById('studyPracticeArea');
+            const progress = ((currentQuestionIndex) / currentQuiz.questions.length) * 100;
+
+            let optionsHtml = q.options.map((opt, idx) => `
+                <button onclick="window.selectStudyAnswer(${idx})" class="option-btn group transition-all w-full text-left p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-body)] flex gap-3 hover:border-[var(--accent-btn)]">
+                    <span class="font-bold text-[var(--text-muted)] shrink-0">${String.fromCharCode(65 + idx)}</span>
+                    <span class="text-[15px]">${opt}</span>
+                </button>
+            `).join('');
+
+            area.innerHTML = `
+                <div class="w-full max-w-3xl flex flex-col h-full py-2 fade-in">
+                    <div class="mb-6 shrink-0">
+                        <div class="flex justify-between text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-3">
+                            <span>Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-[var(--bg-glass)] rounded-full overflow-hidden"><div class="h-full bg-[var(--accent-btn)] rounded-full transition-all" style="width: ${progress}%"></div></div>
+                    </div>
+                    <div class="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col flex-1 overflow-y-auto">
+                        <h3 class="text-lg font-bold text-[var(--text-main)] mb-6">${q.text}</h3>
+                        <div class="flex flex-col gap-3" id="studyOptionsContainer">${optionsHtml}</div>
+                        <div id="studyExplanationArea" class="hidden flex-col gap-3 mt-6 pt-6 border-t border-[var(--border-color)]"></div>
+                    </div>
+                    <div class="mt-4 flex justify-end shrink-0">
+                        <button id="studyNextBtn" onclick="window.renderStudyQuestion()" class="hidden w-full lg:w-auto bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 px-8 rounded-full">
+                            ${currentQuestionIndex === currentQuiz.questions.length - 1 ? 'Finish Session' : 'Continue'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.selectStudyAnswer = function(selectedIndex) {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            const container = document.getElementById('studyOptionsContainer');
+            const explanationArea = document.getElementById('studyExplanationArea');
+            const nextBtn = document.getElementById('studyNextBtn');
+
+            if (isCorrect) { examScore++; window.addXP(10); }
+
+            Array.from(container.children).forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === q.correct) { btn.classList.add('bg-green-500/10', 'border-green-500/30', 'text-green-500'); } 
+                else if (idx === selectedIndex && !isCorrect) { btn.classList.add('bg-red-500/10', 'border-red-500/30', 'text-red-500'); } 
+                else { btn.classList.add('opacity-50'); }
+            });
+
+            explanationArea.innerHTML = `
+                <div class="font-bold mb-1">${isCorrect ? '<span class="text-green-500">Correct!</span>' : '<span class="text-red-500">Incorrect</span>'}</div>
+                ${q.explanation ? `<div class="text-sm text-[var(--text-light)]">${q.explanation}</div>` : ''}
+            `;
+            
+            explanationArea.classList.remove('hidden'); explanationArea.classList.add('flex');
+            nextBtn.classList.remove('hidden'); nextBtn.classList.add('block');
+            currentQuestionIndex++;
+        }
+
+        window.finishStudyQuiz = async function() {
+            window.addXP(50);
+            if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
+            currentQuiz.stats.attempts++; currentQuiz.stats.lastScore = examScore;
+            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            
+            if (window.currentUser) {
+                try {
+                    const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                    await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
+                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                } catch(e) { console.error("Cloud stats sync failed", e); }
+            }
+            
+            const area = document.getElementById('studyPracticeArea');
+            const percentage = Math.round((examScore / currentQuiz.questions.length) * 100);
+            
+            area.innerHTML = `
+                <div class="w-full max-w-md text-center bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-8 fade-in">
+                    <h2 class="text-2xl font-bold text-[var(--text-main)] mb-2">Session Complete!</h2>
+                    <div class="bg-[var(--bg-body)] rounded-xl p-6 mb-6 mt-6 border border-[var(--border-color)]">
+                        <p class="text-xs text-[var(--text-muted)] uppercase font-bold mb-2">Final Score</p>
+                        <p class="text-4xl font-extrabold text-[var(--text-main)]">${examScore} / ${currentQuiz.questions.length}</p>
+                    </div>
+                    <button onclick="window.closePracticeMobile()" class="w-full bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 rounded-full">Return to Library</button>
+                </div>
+            `;
+        }
+
+        // --- CREATE UI LOGIC ---
+        window.showCustomUpgradeModal = function(limit) {
+            return new Promise((resolve) => {
+                const backdrop = document.getElementById('upgradeModalBackdrop');
+                document.getElementById('modalLimitSpan').textContent = limit;
+                backdrop.classList.add('show');
+                const closeAndResolve = (result) => { backdrop.classList.remove('show'); setTimeout(() => resolve(result), 300); };
+                document.querySelector('#upgradeModalBackdrop .modal-btn-primary').onclick = () => closeAndResolve(true);
+                document.querySelector('#upgradeModalBackdrop .modal-btn-secondary').onclick = () => closeAndResolve(false);
+            });
+        }
+
+        window.openCreateView = function(type) {
+            window.globalQuizType = type;
+            document.getElementById('selectionView').style.display = 'none';
+            document.getElementById('setupView').style.display = 'flex';
+            document.getElementById('createHeaderTitle').textContent = `Create ${type}`;
+            document.getElementById('createBackBtn').style.display = 'flex';
+        };
+
+        window.enterQuizMode = function() {
+            document.getElementById('globalBottomNav').style.transform = 'translateY(100%)';
+            const header = document.querySelector('#view-create .top-header');
+            if (header) header.style.display = 'none';
+            const iv = document.getElementById('interactiveView');
+            iv.style.position = 'fixed';
+            iv.style.inset = '0';
+            iv.style.zIndex = '200';
+            iv.style.background = 'var(--bg-body)';
+            iv.style.padding = '0';
+            iv.style.overflowY = 'auto';
+        };
+
+        window.exitQuizMode = function() {
+            document.getElementById('globalBottomNav').style.transform = '';
+            const header = document.querySelector('#view-create .top-header');
+            if (header) header.style.display = '';
+            const iv = document.getElementById('interactiveView');
+            iv.style.position = '';
+            iv.style.inset = '';
+            iv.style.zIndex = '';
+            iv.style.background = '';
+            iv.style.padding = '';
+            iv.style.overflowY = '';
+        };
+
+        window.goBackToSelection = function() {
+            window.exitQuizMode();
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('selectionView').style.display = 'flex';
+            document.getElementById('createHeaderTitle').textContent = "What to create?";
+            document.getElementById('createBackBtn').style.display = 'none';
+            
+            // Reset state
+            window.selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-cloud-upload-alt"></i>`;
+            document.getElementById('uploadTitle').textContent = "Tap to Upload File";
+            document.getElementById('dropZone').style.borderColor = 'var(--border-glass)';
+            
+            document.getElementById('configSection').style.opacity = '0.5';
+            document.getElementById('configSection').style.pointerEvents = 'none';
+            
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.style.background = 'var(--bg-surface)';
+            btn.style.color = 'var(--text-muted)';
+            btn.style.cursor = 'not-allowed';
+            
+            document.getElementById('interactiveView').style.display = 'none';
+        };
+
+        const itemSlider = document.getElementById('itemSlider');
+        const sliderValue = document.getElementById('sliderValue');
+        if(itemSlider && sliderValue) {
+            itemSlider.addEventListener('input', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (val > window.allowedMaxItems) {
+                    sliderValue.innerHTML = `${val} <i class="fas fa-lock" style="font-size: 10px;"></i>`;
+                    sliderValue.style.color = 'var(--accent-yellow)';
+                    sliderValue.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+                } else {
+                    sliderValue.textContent = val;
+                    sliderValue.style.color = 'var(--text-main)';
+                    sliderValue.style.borderColor = 'var(--border-glass)';
+                }
+            });
+            itemSlider.addEventListener('change', async (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (val > window.allowedMaxItems) {
+                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
+                    if (wantToUpgrade) window.navigateTo('view-payment');
+                    else { 
+                        e.target.value = window.allowedMaxItems; 
+                        sliderValue.textContent = window.allowedMaxItems; 
+                        sliderValue.style.color = 'var(--text-main)';
+                        sliderValue.style.borderColor = 'var(--border-glass)';
+                    }
+                }
+            });
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        if(fileInput) {
+            fileInput.addEventListener('click', (e) => { if (!window.currentUser) { e.preventDefault(); window.showLoginModal(); } });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (file.size > 10 * 1024 * 1024) { alert("File is too large. Maximum size is 10MB."); fileInput.value = ''; return; }
+                    window.selectedFile = file;
+                    document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-file-check" style="color: var(--accent-btn);"></i>`;
+                    document.getElementById('uploadTitle').innerHTML = `<span style="color: var(--accent-btn);">${window.escapeHTML(file.name)}</span>`;
+                    
+                    document.getElementById('dropZone').style.borderColor = 'var(--border-active)';
+                    document.getElementById('configSection').style.opacity = '1';
+                    document.getElementById('configSection').style.pointerEvents = 'auto';
+                    
+                    const btn = document.getElementById('generateBtn');
+                    btn.disabled = false;
+                    btn.style.background = 'var(--accent-btn)';
+                    btn.style.color = 'var(--btn-text)';
+                    btn.style.cursor = 'pointer';
+                }
+            });
+        }
+//// --- NEW INTERACTIVE RENDERER LOGIC (CREATE VIEW) ---
+
+window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
+    if (!correctAnswer) return false;
+    const ans = String(correctAnswer).trim().toLowerCase();
+    const k = String(selectedKey).trim().toLowerCase();
+    const v = String(selectedValue).trim().toLowerCase();
+    return ans === k || ans === v || ans === `${k}. ${v}` || ans.startsWith(k + '.') || ans.startsWith(k + ')');
+};
+
+window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
+            if (cardData.answered) return; cardData.answered = true;
+            const selectedKey = selectedBtn.dataset.key; let selectedIsCorrect = false;
+            const answer = cardData.back || cardData.answer || "No answer provided";
+
+            allButtons.forEach(btn => {
+                const key = btn.dataset.key; const value = btn.dataset.value; 
+                const isThisCorrect = (String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase()));
+                btn.disabled = true; btn.style.opacity = '0.5';
+                if (isThisCorrect) { 
+                    btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1'; 
+                    if (key === selectedKey) { selectedIsCorrect = true; sessionScore++; } 
+                } 
+                else if (key === selectedKey) { 
+                    btn.style.background = 'rgba(239, 68, 68, 0.1)'; btn.style.borderColor = 'rgba(239, 68, 68, 0.3)'; btn.style.color = 'var(--accent-red)'; btn.style.opacity = '1'; 
+                }
+            });
+
+            const explArea = document.getElementById('createExplanationArea');
+            explArea.innerHTML = `<div style="margin-bottom: 0.5rem; font-size: 0.8125rem;">${selectedIsCorrect ? '<span style="color: var(--accent-green); font-weight: 700;"><i class="fas fa-check-circle"></i> Correct</span>' : `<span style="color: var(--accent-red); font-weight: 700;"><i class="fas fa-times-circle"></i> Incorrect</span> <span style="margin-left: 0.5rem; color: var(--text-muted); font-size: 0.75rem;">Answer: <b style="color: var(--text-main);">${window.escapeHTML(answer)}</b></span>`}</div>${cardData.explanation ? `<div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); color: var(--text-main); font-size: 0.875rem; line-height: 1.5;"><span style="font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.375rem; font-size: 0.75rem; text-transform: uppercase;">Explanation</span> ${window.escapeHTML(cardData.explanation)}</div>` : ''}`;
+            explArea.style.display = 'flex'; explArea.classList.add('fade-in');
+            setTimeout(() => { explArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+            document.getElementById('createNextBtn').disabled = false; document.getElementById('createNextBtn').style.opacity = '1'; document.getElementById('createNextBtn').style.cursor = 'pointer';
+        }
+
+        window.renderCreateCurrentCard = function() {
+            const card = generatedCards[currentCardIndex];
+            const safeQuestion = window.escapeHTML(card.front || card.question || "No question provided");
+            const safeAnswer = window.escapeHTML(card.back || card.answer || "No answer provided");
+            const progressPercent = ((currentCardIndex + 1) / generatedCards.length) * 100;
+            const viewContainer = document.getElementById('interactiveView');
+
+            let html = `
+                <div style="display: flex; flex-direction: column; height: 100%; min-height: 100vh; padding: 1.25rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.5rem); box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-shrink: 0;">
+                    <button onclick="window.goBackToSelection()" style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--bg-surface); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; color: var(--text-main); font-size: 0.875rem; cursor: pointer; flex-shrink: 0; transition: 0.2s;" ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform=''"><i class="fas fa-arrow-left"></i></button>
+                    <h2 style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; flex: 1;">${isMCQMode ? 'Quiz Mode' : 'Flashcards'}</h2>
+                    <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-main);">${currentCardIndex + 1} / ${generatedCards.length}</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: var(--bg-body); border-radius: 100px; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--border-glass); flex-shrink: 0;"><div style="height: 100%; background: var(--accent-btn); border-radius: 100px; transition: width 0.4s var(--ease-snap); width: ${progressPercent}%;"></div></div>
+            `;
+
+            if (isMCQMode) {
+                let optionsHTML = '<div style="display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; width: 100%;">';
+                if (card.options && typeof card.options === 'object') {
+                    for (const [key, value] of Object.entries(card.options)) {
+                        optionsHTML += `<button class="create-mcq-option" data-key="${window.escapeHTML(key)}" data-value="${window.escapeHTML(value)}" style="width: 100%; text-align: left; padding: 0.75rem 0.875rem; border-radius: var(--radius-md); background: var(--bg-body); border: 1px solid var(--border-glass); display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; color: var(--text-main);"><span style="font-weight: 600; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border-glass); width: 1.625rem; height: 1.625rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.75rem; flex-shrink: 0; margin-top: 0.125rem;">${window.escapeHTML(key)}</span><span style="flex: 1; font-size: 0.875rem; line-height: 1.4; padding-top: 0.125rem; font-weight: 500;">${window.escapeHTML(value)}</span></button>`;
+                    }
+                }
+                optionsHTML += '</div>';
+
+                html += `<div style="flex: 1; background: var(--bg-surface); border-radius: var(--radius-card); padding: 1rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;"><div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; padding-right: 0.25rem;" class="hide-scroll"><h3 style="font-weight: 700; color: var(--text-main); font-size: 0.9375rem; line-height: 1.5; margin-bottom: 0.875rem; flex-shrink: 0;">${safeQuestion}</h3>${optionsHTML}<div id="createExplanationArea" style="display: none; flex-direction: column; flex-shrink: 0; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-glass);"></div></div></div>`;
+            } else {
+                html += `
+                    <div id="flashcardElement" style="flex: 1; position: relative; perspective: 1000px; cursor: pointer; min-height: 0; width: 100%;">
+                        <div id="flipInner" style="position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s var(--ease-snap); border-radius: var(--radius-card);">
+                            <div style="position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: var(--radius-card); padding: 1.5rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; background: var(--bg-surface); z-index: 2; transform: rotateY(0deg);">
+                                <span style="position: absolute; top: 1.5rem; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Question</span>
+                                <h3 style="font-weight: 600; font-size: 1.125rem; line-height: 1.5; margin-top: 1rem; color: var(--text-main);">${safeQuestion}</h3>
+                                <p style="position: absolute; bottom: 1.25rem; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 0.375rem; color: var(--text-muted);"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                            <div style="position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: var(--radius-card); padding: 1.5rem; border: 1px solid var(--border-glass); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-y: auto; background: var(--accent-btn); transform: rotateY(180deg); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); z-index: 1;">
+                                <span style="position: absolute; top: 1.5rem; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--btn-text); opacity: 0.7;">Answer</span>
+                                <p style="font-weight: 600; font-size: 1.125rem; line-height: 1.5; margin-top: 1rem; color: var(--btn-text);">${safeAnswer}</p>
+                                <p style="position: absolute; bottom: 1.25rem; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 0.375rem; color: var(--btn-text); opacity: 0.8;"><i class="fas fa-sync-alt"></i> Tap to flip</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            html += `
+                <div style="display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; flex-shrink: 0;">
+                    <button id="createPrevBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border-glass); background: var(--bg-surface); color: var(--text-main);" ${currentCardIndex === 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>Previous</button>
+                    <button id="createNextBtn" style="flex: 1; padding: 1rem; border-radius: var(--radius-btn); font-size: 0.9375rem; font-weight: 700; cursor: pointer; border: none; background: var(--accent-btn); color: var(--btn-text);" ${(isMCQMode && !card.answered) ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>${currentCardIndex === generatedCards.length - 1 ? 'Finish' : 'Next'}</button>
+                </div>
+                </div>
+            `;
+            viewContainer.innerHTML = html;
+
+            if (isMCQMode) {
+                const buttons = viewContainer.querySelectorAll('.create-mcq-option');
+                buttons.forEach(btn => btn.addEventListener('click', () => window.handleCreateMCQSelection(btn, card, buttons)));
+            } else {
+                const fc = document.getElementById('flashcardElement');
+                fc.addEventListener('click', () => { const inner = document.getElementById('flipInner'); inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)'; });
+            }
+            document.getElementById('createPrevBtn').addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; window.renderCreateCurrentCard(); } });
+            document.getElementById('createNextBtn').addEventListener('click', () => { if (currentCardIndex < generatedCards.length - 1) { currentCardIndex++; window.renderCreateCurrentCard(); } else { window.showCreateResults(); } });
+        }
+
+        window.showCreateResults = function() {
+            const percentage = generatedCards.length > 0 ? Math.round((sessionScore / generatedCards.length) * 100) : 100;
+            const viewContainer = document.getElementById('interactiveView');
+            let html = '';
+
+            if (isMCQMode) {
+                window.finalEarnedXP = sessionScore * 10;
+                let earnedStars = 1; if (percentage >= 80) earnedStars = 3; else if (percentage >= 50) earnedStars = 2;
+                html = `
+                    <div class="fade-in" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; padding: 2rem 1rem 1rem;">
+                        <div style="display: flex; gap: 0.5rem; font-size: 3.5rem; margin-bottom: 1rem;">
+                            <i class="fas fa-star" style="color: ${earnedStars >= 1 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                            <i class="fas fa-star" style="transform: translateY(-10px); color: ${earnedStars >= 2 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                            <i class="fas fa-star" style="color: ${earnedStars >= 3 ? 'var(--accent-yellow)' : 'var(--bg-surface)'};"></i>
+                        </div>
+                        <h2 style="color: var(--accent-yellow); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-align: center;">Quiz Complete!</h2>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem;">
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">TOTAL XP</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bolt" style="color: var(--accent-yellow);"></i> <span id="animatedXP">0</span></div>
+                            </div>
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">AMAZING</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bullseye" style="color: var(--accent-green);"></i> <span id="animatedAcc">0</span>%</div>
+                            </div>
+                        </div>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                    </div>`;
+            } else {
+                window.finalEarnedXP = generatedCards.length * 5;
+                html = `
+                    <div class="fade-in" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; padding: 2rem 1rem 1rem;">
+                        <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 4px solid var(--accent-green); color: var(--accent-green); font-size: 3.5rem;"><i class="fas fa-check"></i></div>
+                        <h2 style="color: var(--accent-green); font-size: 2rem; font-weight: 800; margin-bottom: 2rem; text-align: center;">Review Complete!</h2>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 2.5rem;">
+                            <div style="flex: 1; border-radius: var(--radius-card); border: 1px solid var(--border-glass); background: var(--bg-surface); padding: 1.5rem 0.5rem; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">TOTAL XP</div>
+                                <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);"><i class="fas fa-bolt" style="color: var(--accent-yellow);"></i> <span id="animatedXP">0</span></div>
+                            </div>
+                        </div>
+                        <button onclick="window.claimAndContinue()" class="btn-claim-xp" style="width: 100%; max-width: 320px; background: var(--accent-btn); color: var(--btn-text); font-size: 1.125rem; font-weight: 800; padding: 1.25rem; border-radius: var(--radius-btn); border: none; margin-top: auto; margin-bottom: 2rem;">CLAIM XP</button>
+                    </div>`;
+            }
+            viewContainer.innerHTML = html;
+            window.animateValue("animatedXP", 0, window.finalEarnedXP, 1500);
+            if (isMCQMode) window.animateValue("animatedAcc", 0, percentage, 1500);
+        }
+        
+        window.claimAndContinue = async function() {
+            const btn = document.querySelector('.btn-claim-xp');
+            btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7';
+            try { await window.addXP(window.finalEarnedXP); } catch(e) {}
+            window.goBackToSelection();
+            window.navigateTo('view-home');
+            window.updateHomeContinueCard();
+        }
+
+        window.animateValue = function(id, start, end, duration) {
+            if (start === end) { document.getElementById(id).textContent = end; return; }
+            let current = start; let increment = end > start ? 1 : -1;
+            let stepTime = Math.abs(Math.floor(duration / Math.max(end - start, 1)));
+            if (stepTime < 10) { stepTime = 10; increment = Math.ceil((end - start) / (duration / stepTime)); }
+            let obj = document.getElementById(id);
+            let timer = setInterval(function() {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) { current = end; clearInterval(timer); }
+                obj.textContent = current;
+            }, stepTime);
+        }
+    
+   
+        // --- PAYMENT UI LOGIC ---
+        window.openPaymentModal = function(url) {
+            const modal = document.getElementById('paymentModalOverlay');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+            iframe.src = url;
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            setTimeout(() => { modal.classList.remove('opacity-0'); sheet.classList.remove('translate-y-full'); }, 10);
+        };
+
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModalOverlay');
+            const sheet = document.getElementById('paymentSheet');
+            const iframe = document.getElementById('paystackIframe');
+            modal.classList.add('opacity-0'); sheet.classList.add('translate-y-full');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); iframe.src = ""; }, 300);
+        };
+        
+        window.startPayment = function(plan) {
+            if (!window.currentUser) { window.showLoginModal(); return; }
+            if (plan === "free") { navigateTo("view-home"); return; }
+            if (plan === "premium") { window.openPaymentModal("https://paystack.shop/pay/5wqjry1l0a"); return; }
+            if (plan === "elite") { window.openPaymentModal("https://paystack.shop/pay/lw17s2ggpj"); return; }
+        };
+    </script>
+
+   <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84" 
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const functions = getFunctions(app, "us-central1");
+
+        window.db = db;
+        
+        // Expose critical Firebase functions
+        window.logoutUser = async function() {
+            try { await signOut(auth); } catch (e) {}
+            localStorage.clear(); window.location.replace("index.html");
+        };
+
+        window.sendPasswordReset = async function() {
+            if (!window.currentUser || !window.currentUser.email) {
+                alert("No email associated with this account.");
+                return;
+            }
+            try {
+                const { sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                await sendPasswordResetEmail(auth, window.currentUser.email);
+                alert("Password reset email sent! Please check your inbox.");
+            } catch(e) {
+                alert("Error sending reset email: " + e.message);
+            }
+        };
+
+        window.confirmDeleteAccount = async function() {
+            if(confirm("DANGER: Are you sure you want to delete your account? All data will be lost.")) {
+                try { await signOut(auth); } catch(e) {}
+                localStorage.clear(); window.location.replace("index.html");
+            }
+        };
+
+        document.getElementById('confirmLogoutBtn').onclick = window.logoutUser;
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (window.quizToDelete !== null && window.currentUser) {
+                try {
+                    await deleteDoc(doc(db, "users", window.currentUser.uid, "quizzes", window.quizToDelete.toString()));
+                    window.quizzes = window.quizzes.filter(q => q.id !== window.quizToDelete);
+                    localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                    const activeTab = document.querySelector('.tab-btn.active').dataset.filter;
+                    window.renderLibrary(activeTab, document.getElementById('librarySearchInput').value);
+                    window.closeGlobalModal('deleteModalBackdrop');
+                    if (currentQuiz && currentQuiz.id === window.quizToDelete) { window.closePracticeMobile(); }
+                    window.quizToDelete = null;
+                } catch(e) { console.error("Could not delete from cloud", e); }
+            }
+        });
+
+        window.addXP = async function(amount) {
+            if (amount <= 0) return;
+            window.userStats.xp += amount;
+            localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+            if (window.currentUser) {
+                try {
+                    let dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : "User");
+                    await setDoc(doc(db, "users", window.currentUser.uid), { uid: window.currentUser.uid, xp: window.userStats.xp, displayName: dName }, { merge: true });
+                } catch (e) { console.error("Failed to sync XP", e); }
+            }
+            // Update UI elements
+            const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
+            const uiXP2 = document.getElementById('currentUserXp'); if(uiXP2) uiXP2.textContent = window.formatXP(window.userStats.xp);
+        };
+
+        window.syncUserStreak = async function(uid, streakCount, lastDate) {
+            try {
+                const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                await updateDoc(doc(window.db, "users", uid), {
+                    streak: streakCount,
+                    lastCheckIn: lastDate
+                });
+            } catch(e) { 
+                console.error("Failed to sync streak to cloud", e); 
+            }
+        };
+
+        // Render Achievements Logic
+        const MASTER_ACHIEVEMENTS = [
+            { id: "first_quiz", title: "First Steps", desc: "First set", icon: "fa-seedling" }, { id: "streak_3", title: "On Fire", desc: "3 day streak", icon: "fa-fire" },
+            { id: "accuracy_80", title: "Sharpshooter", desc: "80%+ accuracy", icon: "fa-bullseye" }, { id: "mcq_100", title: "Century", desc: "100 MCQs", icon: "fa-check-double" },
+            { id: "elite_member", title: "Elite", desc: "Subscribed", icon: "fa-crown" }, { id: "night_owl", title: "Night Owl", desc: "Late study", icon: "fa-moon" }
+        ];
+
+        window.renderAchievements = function(unlockedIds) {
+            const grid = document.getElementById('achievementsGrid'); if(!grid) return;
+            grid.innerHTML = "";
+            MASTER_ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = unlockedIds.includes(ach.id);
+                const stateClass = isUnlocked ? "border-[var(--accent-btn)] bg-[var(--bg-body)] shadow-[0_0_15px_rgba(167,139,250,0.1)]" : "border-[var(--border-color)] bg-[var(--bg-body)] opacity-50 grayscale";
+                const iconColor = isUnlocked ? "text-[var(--accent-btn)]" : "text-[var(--text-muted)]";
+                grid.innerHTML += `<div class="${stateClass} border rounded-2xl p-3 flex flex-col items-center text-center transition-all relative overflow-hidden">${!isUnlocked ? `<div class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-surface)]/50"><i class="fas fa-lock text-[var(--text-muted)]"></i></div>` : ''}<div class="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center mb-1.5 ${iconColor}"><i class="fas ${ach.icon} text-sm"></i></div><h4 class="text-[10px] font-bold text-[var(--text-main)] mb-0.5">${ach.title}</h4><p class="text-[8px] text-[var(--text-muted)] leading-tight">${ach.desc}</p></div>`;
+            });
+        };
+
+        // Render Library Logic
+        window.renderLibrary = function(filter = 'all', searchQuery = '') {
+            const container = document.getElementById('quizContainer'); if(!container) return;
+            container.innerHTML = ''; 
+            let filtered = window.quizzes.filter(q => q.title && q.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            if (filter === 'favorites') filtered = filtered.filter(q => q.favorite);
+            else if (filter === 'mcqs') filtered = filtered.filter(q => q.type && q.type.includes("Multiple"));
+            else if (filter === 'flashcards') filtered = filtered.filter(q => !q.type || !q.type.includes("Multiple"));
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 fade-in"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[var(--bg-surface)] flex items-center justify-center"><i class="fas fa-box-open text-2xl text-[var(--text-muted)]"></i></div><p class="text-sm font-medium text-[var(--text-muted)]">No sets found.</p></div>`;
+                return;
+            }
+
+            filtered.slice().reverse().forEach(quiz => {
+                const qLength = quiz.questions ? quiz.questions.length : 0;
+                const isMCQ = quiz.type && quiz.type.includes("Multiple");
+                const iconClass = isMCQ ? "fas fa-list-ol" : "fas fa-clone";
+                const iconColor = isMCQ ? "var(--accent-blue)" : "var(--accent-btn)";
+                const itemLabel = isMCQ ? "Questions" : "Cards";
+                
+                container.innerHTML += `
+                    <div class="quiz-item fade-in group" onclick="window.loadQuizOverview(${quiz.id})">
+                        <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0">
+                            <i class="${iconClass}" style="color: ${iconColor}; font-size: 1.25rem;"></i>
+                            ${quiz.favorite ? '<div class="absolute top-0 right-0 w-3 h-3 bg-[var(--accent-yellow)] rounded-bl-lg"></div>' : ''}
+                        </div>
+                        <div class="flex-1 min-w-0 py-1">
+                            <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1">${quiz.title}</h3>
+                            <div class="flex items-center gap-1.5 text-[var(--text-muted)] text-[13px] font-medium uppercase tracking-wide">
+                                <span class="truncate max-w-[100px]">${quiz.subject}</span><span>•</span><span>${qLength} ${itemLabel}</span>
+                            </div>
+                        </div>
+                        <button onclick="window.promptDelete(event, ${quiz.id})" class="p-2.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 lg:opacity-60"><i class="fas fa-trash-alt"></i></button>
+                    </div>`;
+            });
+        };
+
+        window.loadQuizOverview = function(id) {
+            currentQuiz = window.quizzes.find(q => q.id === id); window.openPracticeMobile();
+            const area = document.getElementById('studyPracticeArea');
+            const qLength = currentQuiz.questions ? currentQuiz.questions.length : 0;
+            const bScore = currentQuiz.stats ? currentQuiz.stats.bestScore : 0;
+            const attempts = currentQuiz.stats ? currentQuiz.stats.attempts : 0;
+            const isMCQ = currentQuiz.type && currentQuiz.type.includes("Multiple");
+            const itemLabel = isMCQ ? "Questions" : "Cards";
+
+            area.innerHTML = `
+                <div class="card-panel fade-in w-full max-w-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="bg-[var(--bg-glass)] text-[var(--accent-btn)] text-xs font-extrabold px-3 py-1.5 rounded-md uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-tag"></i> ${currentQuiz.subject}</span>
+                        <button onclick="window.toggleFavoriteCurrent()" class="text-xl p-2 -m-2 transition-colors ${currentQuiz.favorite ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)] hover:text-[var(--accent-yellow)]'}"><i class="fas fa-star"></i></button>
+                    </div>
+                    <h2 class="text-3xl font-bold text-[var(--text-main)] mb-2 tracking-tight">${currentQuiz.title}</h2>
+                    <p class="text-[15px] font-medium text-[var(--text-muted)] mb-8"><i class="fas fa-layer-group mr-1.5"></i>${qLength} ${itemLabel}</p>
+                    <div class="grid grid-cols-2 gap-3 mb-8">
+                        <div class="bg-[var(--bg-body)] p-5 rounded-2xl border border-[var(--border-color)]">
+                            <p class="text-[11px] text-[var(--text-muted)] uppercase font-extrabold tracking-widest mb-1">Previous Best</p>
+                            <p class="text-2xl font-bold text-[var(--text-main)]">${bScore} <span class="text-sm text-[var(--text-muted)] font-medium">/ ${qLength}</span></p>
+                        </div>
+                        <div class="bg-[var(--bg-body)] p-5 rounded-2xl border border-[var(--border-color)]">
+                            <p class="text-[11px] text-[var(--text-muted)] uppercase font-extrabold tracking-widest mb-1">Total Attempts</p>
+                            <p class="text-2xl font-bold text-[var(--text-main)]">${attempts}</p>
+                        </div>
+                    </div>
+                    <button onclick="window.startPractice(false)" class="w-full bg-[var(--accent-btn)] text-[var(--btn-text)] font-bold py-3.5 rounded-full border-none cursor-pointer transition-transform active:scale-95 text-[17px] flex items-center justify-center gap-2"><i class="fas fa-play text-sm"></i> Begin Session</button>
+                </div>`;
+        };
+
+        window.toggleFavoriteCurrent = async function() {
+            if (currentQuiz && window.currentUser) {
+                currentQuiz.favorite = !currentQuiz.favorite;
+                try { await updateDoc(doc(db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { favorite: currentQuiz.favorite }); localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes)); } catch(e) {}
+                window.loadQuizOverview(currentQuiz.id);
+                const activeTab = document.querySelector('.tab-btn.active').dataset.filter; window.renderLibrary(activeTab, document.getElementById('librarySearchInput').value);
+            }
+        };
+
+        // Leaderboard Logic
+        window.loadLeaderboard = async function(currentUserId) {
+            try {
+                const uiXP = document.getElementById('currentUserXp');
+                if(uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.width = 'auto'; uiXP.style.height = 'auto'; uiXP.textContent = window.formatXP(window.userStats.xp); }
+                const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
+                const querySnapshot = await getDocs(q);
+                let fetchedUsers = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data(); if(data.xp && data.xp > 0) fetchedUsers.push({ uid: doc.id, displayName: data.displayName || data.email?.split('@')[0] || "User", xp: data.xp });
+                });
+                window.renderLeaderboardDOM(fetchedUsers, currentUserId);
+            } catch(e) { 
+                const listContainer = document.getElementById('leaderboardList');
+                if(listContainer) {
+                    if(e.message.includes("index")) listContainer.innerHTML = `<div class="text-center text-yellow-500 py-6 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i> Firebase requires an Index.</div>`;
+                    else listContainer.innerHTML = `<div class="text-center text-[var(--text-muted)] py-6 text-sm">Failed to load leaderboard.</div>`;
+                }
+            }
+        };
+
+        window.renderLeaderboardDOM = function(users, currentUserId) {
+            const listContainer = document.getElementById('leaderboardList');
+            const skeletons = ['name1', 'xp1', 'avatarBox1', 'name2', 'xp2', 'avatarBox2', 'name3', 'xp3', 'avatarBox3'];
+            skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width = 'auto'; el.style.height = 'auto'; } });
+
+            if (users.length === 0) { listContainer.innerHTML = '<div class="text-center text-[var(--text-muted)] py-6 text-sm font-medium">No users have earned XP yet! Go study to be #1!</div>'; return; }
+            listContainer.innerHTML = '';
+
+            if(users[0]) { document.getElementById('name1').textContent = users[0].displayName; document.getElementById('xp1').textContent = window.formatXP(users[0].xp); document.getElementById('avatar1').textContent = window.getInitial(users[0].displayName); }
+            if(users[1]) { document.getElementById('name2').textContent = users[1].displayName; document.getElementById('xp2').textContent = window.formatXP(users[1].xp); document.getElementById('avatar2').textContent = window.getInitial(users[1].displayName); } else { document.getElementById('name2').textContent = "---"; }
+            if(users[2]) { document.getElementById('name3').textContent = users[2].displayName; document.getElementById('xp3').textContent = window.formatXP(users[2].xp); document.getElementById('avatar3').textContent = window.getInitial(users[2].displayName); } else { document.getElementById('name3').textContent = "---"; }
+
+            users.slice(3).forEach((user, index) => {
+                const rank = index + 4; const isCurrentUser = user.uid === currentUserId;
+                const bgClass = isCurrentUser ? "bg-[var(--accent-btn)]/10 border-[var(--accent-btn)]" : "bg-[var(--bg-surface)] border-[var(--border-color)]";
+                const textColor = isCurrentUser ? "text-[var(--accent-btn)]" : "text-[var(--text-main)]";
+                listContainer.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-xl border ${bgClass} transition-colors" style="animation: fadeIn 0.3s ease-out forwards; opacity: 0; animation-delay: ${index * 0.05}s;">
+                        <div class="flex items-center gap-4"><span class="text-sm font-bold text-[var(--text-muted)] w-4 text-center">${rank}</span><div class="w-10 h-10 rounded-full bg-[var(--podium-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] font-bold shadow-inner">${window.getInitial(user.displayName)}</div><div><h4 class="text-sm font-bold ${textColor}">${user.displayName} ${isCurrentUser ? '<span class="text-[10px] ml-2 px-2 py-0.5 bg-[var(--accent-btn)] text-[var(--btn-text)] rounded-full">YOU</span>' : ''}</h4></div></div><div class="text-right"><span class="text-xs font-bold text-[var(--text-muted)]">${window.formatXP(user.xp)}</span></div>
+                    </div>`;
+            });
+        };
+        
+        // Create Generation API Logic
+        const generateBtn = document.getElementById('generateBtn');
+        const aiLoader = document.getElementById('aiLoader');
+        const loadingText = document.getElementById('loadingText');
+        const loadingMessages = ["Analyzing document structure...", "Extracting key concepts...", "Formulating questions...", "Reviewing accuracy...", "Almost there..."];
+        let messageInterval = null;
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', async () => {
+                if (!window.selectedFile) return;
+                if (!window.currentUser) { window.showLoginModal(); return; }
+                
+                const requestedItems = parseInt(document.getElementById('itemSlider').value, 10);
+                if (requestedItems > window.allowedMaxItems) {
+                    const wantToUpgrade = await window.showCustomUpgradeModal(window.allowedMaxItems);
+                    if (wantToUpgrade) window.navigateTo('view-payment'); return;
+                }
+
+                generateBtn.disabled = true; 
+                generateBtn.style.background = 'var(--bg-surface)'; generateBtn.style.color = 'var(--text-muted)';
+                aiLoader.classList.remove('hidden'); aiLoader.classList.add('show');
+                document.getElementById('createBackBtn').style.display = 'none';
+                if (window.lottieAnimation) window.lottieAnimation.play();
+                
+                // NEW PROGRESS BAR LOGIC
+                const ESTIMATED_SECS = 30;
+                let scanElapsed = 0;
+                const scanProgressBar = document.getElementById('scanProgressBar');
+                const scanElapsedLabel = document.getElementById('scanElapsedLabel');
+                const scanEstLabel = document.getElementById('scanEstLabel');
+                if(scanProgressBar) {
+                    scanProgressBar.style.transition = 'none';
+                    scanProgressBar.style.width = '0%';
+                }
+                if(scanElapsedLabel) scanElapsedLabel.textContent = '0s elapsed';
+                if(scanEstLabel) scanEstLabel.textContent = `~${ESTIMATED_SECS}s remaining`;
+                setTimeout(() => { if(scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
+                
+                window.scanProgressInterval = setInterval(() => {
+                    scanElapsed++;
+                    const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
+                    if(scanProgressBar) scanProgressBar.style.width = progress + '%';
+                    if(scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s elapsed`;
+                    const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
+                    if(scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s remaining` : 'Almost done...';
+                }, 1000);
+                
+                let msgIndex = 0; if(loadingText) loadingText.style.opacity = 0;
+                setTimeout(() => { if(loadingText) { loadingText.textContent = loadingMessages[0]; loadingText.style.opacity = 1; } }, 300);
+                messageInterval = setInterval(() => { if(loadingText) { loadingText.style.opacity = 0; setTimeout(() => { msgIndex = (msgIndex + 1) % loadingMessages.length; loadingText.textContent = loadingMessages[msgIndex]; loadingText.style.opacity = 1; }, 300); } }, 3500); 
+
+                try {
+                    const uniqueFileName = Date.now() + '_' + window.selectedFile.name;
+                    const securePath = `uploads/${window.currentUser.email || window.currentUser.uid}/${uniqueFileName}`;
+                    const storageReference = ref(storage, securePath);
+                    await uploadBytes(storageReference, window.selectedFile);
+                    
+                    const generateQuizFunction = httpsCallable(functions, 'generateQuizFromFile');
+                    const response = await generateQuizFunction({ filePath: securePath, fileName: window.selectedFile.name, quizType: window.globalQuizType, topicFocus: document.getElementById('topicFocus').value, numberOfItems: requestedItems });
+                    
+                    const payload = response.data;
+                    const cards = payload.cards || payload.flashcards || payload.items || payload.questions;
+                    if (!cards || !Array.isArray(cards) || cards.length === 0) throw new Error("Generation returned empty data.");
+
+                    // ADDED SAFETY FILTER HERE to ignore blank/undefined cards from the AI
+                    generatedCards = cards.filter(card => card != null && typeof card === 'object').map(card => {
+                        let frontText = card.front || card.question || ""; let backText = card.back || card.answer || "No answer provided";
+                        if (card.options) {
+                            const cleanBack = String(backText).trim().toUpperCase();
+                            if (Array.isArray(card.options)) { if (cleanBack.length === 1 && /^[A-E]$/.test(cleanBack)) { const idx = cleanBack.charCodeAt(0) - 65; if (card.options[idx]) backText = card.options[idx]; } }
+                            else if (typeof card.options === 'object') { if (cleanBack.length <= 2 && card.options[cleanBack]) backText = card.options[cleanBack]; else { for (const [key, value] of Object.entries(card.options)) { if (String(key).trim().toUpperCase() === cleanBack || String(key).trim() === cleanBack) { backText = value; break; } } } }
+                        }
+                        return { ...card, front: frontText, back: backText, answer: backText, answered: false };
+                    });
+                    window.generatedCards = generatedCards;
+
+                    if (generatedCards.length === 0) throw new Error("AI returned invalid card formats.");
+
+                    currentCardIndex = 0; window.currentCardIndex = 0; sessionScore = 0; isMCQMode = window.globalQuizType === "Multiple Choice"; window.isMCQMode = isMCQMode;
+                    const subjectName = document.getElementById('topicFocus').value || "General Subject";
+                    const newQuiz = {
+                        id: Date.now(), title: window.selectedFile.name.split('.')[0] + " Quiz", subject: subjectName, favorite: false, stats: { bestScore: 0, attempts: 0, lastScore: 0 },
+                        questions: generatedCards.map(card => {
+                            let optionsArr = [], correctIdx = 0; const question = card.front || card.question || ""; const answer = card.back || card.answer || "No answer provided";
+                            if (card.options && typeof card.options === 'object') { const keys = Object.keys(card.options); optionsArr = Object.values(card.options); for (let i = 0; i < keys.length; i++) { if (window.checkAnswerMatch(keys[i], optionsArr[i], answer)) { correctIdx = i; break; } } } 
+                            else { optionsArr = [answer !== "No answer provided" ? answer : "True", "False"]; }
+                            return { text: question, options: optionsArr, correct: correctIdx, explanation: card.explanation || "" };
+                        }), type: window.globalQuizType
+                    };
+
+                    try { await setDoc(doc(db, "users", window.currentUser.uid, "quizzes", newQuiz.id.toString()), newQuiz); } catch(e) {}
+                    let existingQuizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + window.currentUser.uid)) || [];
+                    existingQuizzes.push(newQuiz); localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(existingQuizzes));
+                    window.quizzes = existingQuizzes;
+
+                    if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
+                    aiLoader.classList.remove('show'); aiLoader.classList.add('hidden');
+                    document.getElementById('setupView').style.display = 'none';
+                    document.getElementById('interactiveView').style.display = 'flex';
+                    window.enterQuizMode();
+                    window.renderCreateCurrentCard();
+                    
+                } catch (error) {
+                    console.error("Error generating quiz:", error);
+                    if (window.lottieAnimation) window.lottieAnimation.stop(); clearInterval(messageInterval); clearInterval(window.scanProgressInterval);
+                    alert("Generation Error: " + error.message);
+                    aiLoader.classList.remove('show'); aiLoader.classList.add('hidden');
+                    generateBtn.disabled = false; generateBtn.style.background = 'var(--accent-btn)'; generateBtn.style.color = 'var(--btn-text)';
+                    document.getElementById('createBackBtn').style.display = 'flex';
+                }
+            });
+        }
+
+        
+
+        // Initialize User Data (Master Hub)
+        window.initUserUI = async function(user) {
+            try {
+                let savedName = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+                
+                // Set Profile texts
+                const uNameEl = document.getElementById("userName"); if(uNameEl) uNameEl.textContent = savedName;
+                const uEmailEl = document.getElementById("userEmail"); if(uEmailEl) uEmailEl.textContent = user.email || "";
+                const uInitEl = document.getElementById("userInitial"); if(uInitEl) uInitEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : "?";
+
+                // Fetch Quizzes securely
+                try {
+                    const qSnap = await getDocs(collection(db, "users", user.uid, "quizzes"));
+                    let loadedQuizzes = []; qSnap.forEach(d => loadedQuizzes.push(d.data()));
+                    loadedQuizzes.sort((a,b) => a.id - b.id); window.quizzes = loadedQuizzes;
+                    localStorage.setItem('medexcel_quizzes_' + user.uid, JSON.stringify(window.quizzes));
+                } catch(e) { window.quizzes = JSON.parse(localStorage.getItem('medexcel_quizzes_' + user.uid)) || []; }
+
+                // Fetch Main Doc
+                let userRef = doc(db, "users", user.uid); let userDoc = await getDoc(userRef);
+                if (!userDoc.exists() && user.email) { userRef = doc(db, "users", user.email); userDoc = await getDoc(userRef); }
+                
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    
+                    // Home Greeting and Streak Logic
+                    const greetingTitle = document.getElementById('greetingTitle');
+                    if(greetingTitle) { greetingTitle.classList.remove('skeleton'); greetingTitle.style.width='auto'; greetingTitle.style.height='auto'; greetingTitle.innerHTML = `Hi, ${savedName} ${window.getTimeEmoji()}`; }
+                    
+                    const storageKey = 'medexcel_streak_' + user.uid;
+                    let localStreak = JSON.parse(localStorage.getItem(storageKey));
+                    if (data.lastCheckIn) { localStreak = { count: data.streak || 0, lastDate: data.lastCheckIn }; localStorage.setItem(storageKey, JSON.stringify(localStreak)); }
+                    if (!localStreak) localStreak = { count: 0, lastDate: null };
+                    
+                    window.userStats = { xp: data.xp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
+                    localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+
+                    const todayStr = new Date().toDateString(); const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); const yesterdayStr = yesterday.toDateString();
+                    if (localStreak.lastDate === todayStr) { hasCheckedInToday = true; currentStreakCount = localStreak.count; } 
+                    else if (localStreak.lastDate === yesterdayStr) { hasCheckedInToday = false; currentStreakCount = localStreak.count + 1; } 
+                    else { hasCheckedInToday = false; currentStreakCount = 1; }
+
+                    const headerDisplay = document.getElementById('headerStreakDisplay'); const headerFireIcon = document.getElementById('headerFireIcon');
+                    if(headerDisplay) { headerDisplay.classList.remove('skeleton'); headerDisplay.style.width='auto'; headerDisplay.style.height='auto'; }
+                    if (!hasCheckedInToday) { if(headerDisplay) headerDisplay.textContent = Math.max(0, currentStreakCount - 1); if(headerFireIcon) headerFireIcon.style.opacity = '0.4'; setTimeout(() => window.openStreakModal(), 500); } 
+                    else { if(headerDisplay) headerDisplay.textContent = currentStreakCount; if(headerFireIcon) headerFireIcon.style.opacity = '1'; }
+
+                    // Setup Profile/Limits UI
+                    const pStreak = document.getElementById("profileStreakCount"); if(pStreak) pStreak.textContent = currentStreakCount;
+                    const studyStreak = document.getElementById("studyStreakDisplay"); if(studyStreak) studyStreak.textContent = `${currentStreakCount} Day`;
+                    const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(data.xp);
+                    if (data.createdAt) { const dateObj = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt); const memberSince = document.getElementById("memberSince"); if(memberSince) memberSince.textContent = dateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); }
+
+                    window.userPlan = data.plan || "free"; const isToday = data.lastDailyReset === new Date().toISOString().split("T")[0]; const dailyUsage = isToday ? (data.planUsed || data.dailyUsage || 0) : 0;
+                    const badgeText = document.getElementById('planBadgeText'); const barEl = document.getElementById('usageProgressBar'); const usageCountEl = document.getElementById('usageCount');
+                    if(usageCountEl) usageCountEl.textContent = dailyUsage;
+
+                    if (window.userPlan === "elite") { window.allowedMaxItems = 40; if(badgeText) { badgeText.textContent = "Elite"; badgeText.className = "text-sm font-bold text-yellow-500"; } if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / 50) * 100)}%`; barEl.className = "h-full bg-yellow-500 transition-all duration-700 ease-out"; } } 
+                    else if (window.userPlan === "premium") { window.allowedMaxItems = 30; if(badgeText) { badgeText.textContent = "Premium"; badgeText.className = "text-sm font-bold text-blue-500"; } if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / 30) * 100)}%`; barEl.className = "h-full bg-blue-500 transition-all duration-700 ease-out"; } } 
+                    else { window.allowedMaxItems = 15; if(badgeText) { badgeText.textContent = "Free"; badgeText.className = "text-sm font-bold text-[var(--text-muted)]"; } if(barEl) { barEl.style.width = `${Math.min(100, (dailyUsage / 5) * 100)}%`; barEl.className = "h-full bg-slate-400 transition-all duration-700 ease-out"; } }
+                    const maxText = document.getElementById('maxLimitText'); if(maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+                    
+                    window.renderAchievements(data.achievements || []);
+                    window.updateHomeContinueCard(); // Refresh home UI
+                    window.renderLibrary('all', ''); // Load Library
+                }
+            } catch(e) { console.warn("Init Error:", e); }
+        };
+
+        // Top level Firebase Auth listener
+        onAuthStateChanged(auth, async (firebaseUser) => {
+            let activeUser = null;
+            let nativeStr = localStorage.getItem("nativeUser"); let nativeObj = null;
+            if(nativeStr && nativeStr !== "null") { try{ nativeObj = JSON.parse(nativeStr); }catch(e){} }
+
+            if (firebaseUser && !firebaseUser.isAnonymous) { activeUser = firebaseUser; localStorage.setItem("nativeUser", JSON.stringify({ email: firebaseUser.email, uid: firebaseUser.uid, displayName: firebaseUser.displayName })); } 
+            else if (nativeObj && nativeObj.uid) { activeUser = nativeObj; if (!firebaseUser) { try { await signInAnonymously(auth); } catch (e) {} } }
+
+            if (activeUser) {
+                window.currentUser = activeUser;
+                await window.initUserUI(activeUser);
+                window.loadLeaderboard(activeUser.uid);
+            } else {
+                setTimeout(() => { if (!auth.currentUser && !localStorage.getItem("nativeUser")) { window.currentUser = null; localStorage.clear(); window.location.replace("index.html"); } }, 2500);
+            }
+        });
+
+    </script>
+</body>
+</html>

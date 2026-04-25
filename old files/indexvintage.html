@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050A15">
+    <title>MedExcel</title>
+    <style>
+        :root {
+            --bg-main: #050A15; 
+            --bg-card: #0B1120; 
+            --bg-card-hover: rgba(255, 255, 255, 0.05); 
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --text-light: #cbd5e1;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #60a5fa;
+            --accent-blue-dark: #2563eb; 
+            --border-color: rgba(255, 255, 255, 0.05); 
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+            --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+        }
+
+        /* Base & Reset */
+        /* Added -webkit-tap-highlight-color to remove the blue tap highlight */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background-color: var(--bg-main); color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            height: 100vh; overflow: hidden; -webkit-user-select: none; user-select: none;
+            position: relative;
+        }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
+
+        /* Loader & Dialog */
+        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease; }
+        .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+        
+        .modern-spinner { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            border: 3px solid var(--border-color); 
+            border-top-color: var(--accent-blue); 
+            border-right-color: var(--accent-blue-hover); 
+            animation: spin 0.8s linear infinite; 
+            filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4));
+        }
+        
+        .loading-text { 
+            color: var(--text-light); 
+            font-size: 0.875rem; 
+            font-weight: 600; 
+            letter-spacing: 0.05em; 
+            animation: pulse 1.5s infinite ease-in-out; 
+        }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-out); }
+        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
+        .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .btn-cancel { padding: 0.5rem 1rem; color: var(--text-muted); font-weight: bold; font-size: 0.875rem; transition: color 0.2s; }
+        .btn-cancel:hover { color: var(--text-main); }
+        .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
+        .btn-confirm:active { transform: scale(0.95); }
+
+        /* Screen Transitions */
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem; z-index: 50; transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap); opacity: 0; pointer-events: none; transform: scale(0.98); }
+        .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+        .screen.hidden-screen { display: none; }
+
+        /* Splash Layout */
+        .hero-container { flex: 1; display: flex; flex-direction: column; items-center; justify-content: center; width: 100%; text-align: center; align-items: center; }
+        .logo-wrapper { margin-bottom: 2rem; }
+        .app-title { display: flex; align-items: baseline; justify-content: center; font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: 0.025em; }
+        .app-title .d-letter { position: relative; margin-right: -0.1em; font-size: 0.95em; }
+        .app-subtitle { color: var(--text-muted); font-size: 1.125rem; font-weight: 500; max-width: 20rem; line-height: 1.6; }
+        .button-group { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
+
+        /* Buttons */
+        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; }
+        .btn-primary:active { border-bottom-width: 0; transform: translateY(6px); }
+        .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.875rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.1em; transition: background 0.2s; }
+        .btn-secondary:hover { background: var(--bg-card-hover); }
+        .btn-outline { width: 100%; color: var(--text-light); font-weight: bold; font-size: 0.75rem; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 1rem; text-transform: uppercase; letter-spacing: 0.1em; transition: color 0.2s; }
+        .btn-outline:hover { color: var(--text-main); border-color: var(--text-muted); }
+
+        /* Login Modal */
+        .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
+        .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .login-header { display: flex; items-center: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
+        .btn-close { color: var(--text-muted); padding: 0.5rem; margin-left: -0.5rem; transition: color 0.2s; }
+        .btn-close:hover { color: var(--text-main); }
+        .login-title { color: var(--text-muted); font-weight: bold; font-size: 1.125rem; flex: 1; text-align: center; margin-right: 1.5rem; }
+        .login-form { width: 100%; max-width: 24rem; margin: 0 auto; }
+        .input-group { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 1rem; margin-bottom: 1.5rem; overflow: hidden; transition: border-color 0.2s; }
+        .input-group:focus-within { border-color: var(--text-muted); }
+        .input-row { position: relative; border-bottom: 2px solid var(--border-color); }
+        .input-row:last-child { border-bottom: none; }
+        .input-field { width: 100%; padding: 1rem; font-weight: 500; }
+        .input-field::placeholder { color: var(--text-muted); }
+        .btn-toggle-pw { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); transition: color 0.2s; }
+        .btn-toggle-pw:hover { color: var(--accent-blue-hover); }
+        
+        .btn-signin { width: 100%; background: var(--border-color); color: var(--text-light); font-weight: 800; font-size: 0.875rem; padding: 0.875rem; border-radius: 1rem; border-bottom: 4px solid var(--bg-card); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; transition: all 0.1s; }
+        .btn-signin:active { border-bottom-width: 0; transform: translateY(4px); }
+        .btn-forgot { width: 100%; color: var(--accent-blue-hover); font-weight: 800; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3rem; transition: color 0.2s; }
+        .btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 1rem; padding: 0.75rem; transition: all 0.1s; }
+        .btn-google:hover { background: var(--bg-card-hover); }
+        .btn-google:active { transform: scale(0.95); }
+        .google-text { color: var(--text-light); font-weight: bold; font-size: 0.875rem; letter-spacing: 0.025em; }
+
+        /* Intro Screen & Animations */
+        .btn-back { position: absolute; top: 1.5rem; left: 1.5rem; z-index: 50; color: var(--text-muted); padding: 0.5rem; border-radius: 50%; transition: background 0.2s, color 0.2s; }
+        .btn-back:hover { color: var(--text-main); background: var(--bg-card); }
+        .speech-bubble { position: relative; background: var(--bg-card); border: 2px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; max-width: 20rem; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        .speech-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .speech-text { color: var(--text-light); font-size: 1.125rem; line-height: 1.6; }
+        .bubble-tail-outer { position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 12px solid var(--border-color); }
+        .bubble-tail-inner { position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid var(--bg-card); }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+        .animate-blink { animation: blink 4s infinite; transform-origin: center; }
+        @keyframes popIn { 0% { transform: scale(0.8) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        .pop-in { animation: popIn 0.5s var(--ease-snap) forwards; }
+        .aurora-glow { filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.4)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.2)); }
+
+        .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .confetti-area { position: relative; width: 100%; max-width: 20rem; height: 250px; display: flex; align-items: center; justify-content: center; }
+        .confetti-piece { position: absolute; width: 8px; height: 12px; top: 50%; left: 50%; opacity: 0; border-radius: 2px; }
+        
+        @keyframes explode-1 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-80px, -120px) scale(0.5) rotate(180deg); opacity:0; } }
+        @keyframes explode-2 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(40px, -150px) scale(0.5) rotate(-180deg); opacity:0; } }
+        @keyframes explode-3 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-120px, -80px) scale(0.5) rotate(90deg); opacity:0; } }
+        @keyframes explode-4 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(100px, -100px) scale(0.5) rotate(-90deg); opacity:0; } }
+        @keyframes explode-5 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-50px, 100px) scale(0.5) rotate(45deg); opacity:0; } }
+        @keyframes explode-6 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(70px, 80px) scale(0.5) rotate(-45deg); opacity:0; } }
+    </style>
+</head>
+<body>
+
+    <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-content">
+            <div class="modern-spinner"></div>
+            <div class="loading-text">Loading MedExcel...</div>
+        </div>
+    </div>
+
+    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="ok-dialog" role="document">
+            <h3 id="okTitle" class="dialog-title">Notice</h3>
+            <p id="okMessage" class="dialog-msg">Message goes here</p>
+            <div class="dialog-actions">
+                <button id="okCancel" class="btn-cancel">Cancel</button>
+                <button id="okConfirm" class="btn-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="splashScreen" class="screen active">
+        <div class="hero-container">
+            <div id="splashLogo" class="logo-wrapper animate-float aurora-glow">
+                <svg width="200" height="200" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/>
+                    <ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/> 
+                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#0B1120"/>
+                    <g stroke="#0B1120" stroke-width="3">
+                        <circle cx="35" cy="52" r="12" fill="white"/>
+                        <circle cx="65" cy="52" r="12" fill="white"/>
+                        <path d="M47 52 L53 52" stroke-width="3"/> 
+                    </g>
+                    <g class="animate-blink">
+                        <circle cx="35" cy="52" r="4" fill="#0B1120"/>
+                        <circle cx="37" cy="50" r="1.5" fill="white"/>
+                        <circle cx="65" cy="52" r="4" fill="#0B1120"/>
+                        <circle cx="67" cy="50" r="1.5" fill="white"/>
+                    </g>
+                    <path d="M45 62 L55 62 L50 69 L45 62Z" fill="#F59E0B"/>
+                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#0B1120"/>
+                    <circle cx="50" cy="25" r="2" fill="#F59E0B"/>
+                    <path d="M50 25 Q88 25 88 50" stroke="#F59E0B" stroke-width="2" fill="none"/>
+                    <circle cx="88" cy="50" r="3" fill="#F59E0B"/>
+                </svg>
+            </div>
+            <div class="app-title">
+                <span>Me</span><span class="d-letter">d</span><span>E</span><span>xcel</span>
+            </div>
+            <p class="app-subtitle">Crush your exams. <br> Read and remember. Forever.</p>
+        </div>
+        <div class="button-group">
+            <button onclick="navigate('splashScreen', 'introScreen', true)" class="btn-primary">Get Started</button>
+            <button onclick="toggleLogin(true)" class="btn-secondary">I Already Have An Account</button>
+            <button onclick="toggleSignup()" class="btn-outline">Sign Up</button>
+        </div>
+    </div>
+
+    <div id="loginScreen" class="login-modal">
+        <div class="login-header">
+            <button onclick="toggleLogin(false)" class="btn-close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 id="loginHeading" class="login-title">Enter your details</h2>
+        </div>
+        <div class="login-form">
+            <div class="input-group">
+                <div id="nameRow" class="input-row" style="display: none;">
+                    <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="loginPassword" type="password" placeholder="Password" class="input-field">
+                    <button onclick="togglePassword()" class="btn-toggle-pw">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <button id="signInBtn" class="btn-signin">Sign In</button>
+            <button class="btn-forgot">Forgot Password</button>
+            <button id="googleLoginBtn" class="btn-google">
+                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                <span class="google-text">GOOGLE</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="introScreen" class="screen hidden-screen">
+        <button onclick="navigate('introScreen', 'splashScreen')" class="btn-back">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <div id="confetti-container" class="confetti-container">
+            <div class="confetti-area"></div>
+        </div>
+        <div style="width: 100%; padding-top: 0.5rem;"></div>
+        <div class="hero-container" style="margin-top: -2.5rem; position: relative; z-index: 10;">
+            <div class="speech-bubble">
+                <h2 class="speech-title">Hi, I'm Aurora!</h2>
+                <p class="speech-text">I'll help you create flashcards instantly and crush your exams.</p>
+                <div class="bubble-tail-outer"></div>
+                <div class="bubble-tail-inner"></div>
+            </div>
+            <div id="introMascot" class="aurora-glow opacity-0">
+                 <svg width="170" height="170" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="30" width="60" height="65" rx="28" fill="#60A5FA"/>
+                    <ellipse cx="50" cy="70" rx="20" ry="16" fill="#BFDBFE"/> 
+                    <path d="M22 35 V42 Q50 55 78 42 V35" fill="#0B1120"/>
+                    <g stroke="#0B1120" stroke-width="3">
+                        <circle cx="35" cy="52" r="12" fill="white"/>
+                        <circle cx="65" cy="52" r="12" fill="white"/>
+                        <path d="M47 52 L53 52" stroke-width="3"/> 
+                    </g>
+                    <g stroke="#0B1120" stroke-width="3" stroke-linecap="round">
+                        <path d="M 29 54 Q 35 47 41 54" fill="none" />
+                        <path d="M 59 54 Q 65 47 71 54" fill="none" />
+                    </g>
+                    <path d="M45 62 L55 62 L50 69 L45 62Z" fill="#F59E0B"/>
+                    <path d="M50 10 L85 25 L50 40 L15 25 Z" fill="#0B1120"/>
+                    <circle cx="50" cy="25" r="2" fill="#F59E0B"/>
+                    <path d="M50 25 Q88 25 88 50" stroke="#F59E0B" stroke-width="2" fill="none"/>
+                    <circle cx="88" cy="50" r="3" fill="#F59E0B"/>
+                </svg>
+            </div>
+        </div>
+        <div class="button-group" style="position: relative; z-index: 10;">
+            <button onclick="continueAsGuest()" class="btn-primary">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        window.__loader = {
+            startTime: Date.now(),
+            minMs: 0, 
+            authResolved: false, windowLoaded: false, redirecting: false,
+            checkHide() {
+                if (this.redirecting) return;
+                if (this.authResolved && this.windowLoaded) {
+                    const elapsed = Date.now() - this.startTime;
+                    const remaining = Math.max(0, this.minMs - elapsed);
+                    setTimeout(() => {
+                        const loader = document.getElementById('loaderScreen');
+                        if(loader) {
+                            loader.style.opacity = '0';
+                            setTimeout(() => { loader.style.display = 'none'; document.body.style.pointerEvents = 'auto'; }, 400);
+                        }
+                    }, remaining);
+                }
+            }
+        };
+
+        document.body.style.pointerEvents = 'none';
+        window.addEventListener('load', () => { window.__loader.windowLoaded = true; window.__loader.checkHide(); });
+
+        window.showDialog = function (message, title = "Notice", options = {}) {
+            return new Promise((resolve) => {
+                const backdrop = document.getElementById("okBackdrop");
+                const titleEl = document.getElementById("okTitle");
+                const msgEl = document.getElementById("okMessage");
+                const btnOk = document.getElementById("okConfirm");
+                const btnCancel = document.getElementById("okCancel");
+
+                titleEl.textContent = title; msgEl.textContent = message;
+                btnOk.textContent = options.okText || "OK"; btnCancel.textContent = options.cancelText || "Cancel";
+                btnCancel.style.display = options.hideCancel ? 'none' : 'block';
+
+                backdrop.style.display = "flex"; void backdrop.offsetWidth; backdrop.classList.add("active");
+
+                const cleanup = (result) => {
+                    backdrop.classList.remove("active");
+                    setTimeout(() => { backdrop.style.display = "none"; resolve(result); }, 200);
+                };
+                btnOk.onclick = () => cleanup(true); btnCancel.onclick = () => cleanup(false);
+            });
+        };
+
+        function navigate(fromId, toId, triggerIntro = false) {
+            const fromEl = document.getElementById(fromId);
+            const toEl = document.getElementById(toId);
+            fromEl.classList.remove('active');
+            setTimeout(() => {
+                fromEl.classList.add('hidden-screen');
+                toEl.classList.remove('hidden-screen');
+                void toEl.offsetWidth; 
+                toEl.classList.add('active');
+                if (triggerIntro && toId === 'introScreen') {
+                    const mascot = document.getElementById('introMascot');
+                    mascot.classList.remove('pop-in'); void mascot.offsetWidth;
+                    mascot.classList.add('pop-in'); triggerConfetti();
+                }
+            }, 300);
+        }
+
+        window.isSignupMode = false;
+
+        function toggleLogin(show, signup = false) {
+            const login = document.getElementById('loginScreen');
+            const titleEl = document.getElementById('loginHeading');
+            const signInBtn = document.getElementById('signInBtn');
+            const nameRow = document.getElementById('nameRow'); // Reference to the name input row
+            window.isSignupMode = !!signup;
+
+            if (show) {
+                titleEl.textContent = window.isSignupMode ? 'Create your account' : 'Enter your details';
+                signInBtn.textContent = window.isSignupMode ? 'Sign Up' : 'Sign In';
+                
+                // Show name field if signing up, hide if signing in
+                nameRow.style.display = window.isSignupMode ? 'block' : 'none';
+                
+                login.classList.add('show');
+            } else {
+                login.classList.remove('show');
+                setTimeout(() => {
+                    window.isSignupMode = false;
+                    titleEl.textContent = 'Enter your details';
+                    signInBtn.textContent = 'Sign In';
+                    nameRow.style.display = 'none'; // Reset to hidden when closed
+                }, 300);
+            }
+        }
+
+        function toggleSignup() { toggleLogin(true, true); }
+        function togglePassword() {
+            const passInput = document.getElementById('loginPassword');
+            passInput.type = passInput.type === "password" ? "text" : "password";
+        }
+
+        function continueAsGuest() {
+            localStorage.setItem("skip", "true");
+            window.__loader.redirecting = true;
+            const loader = document.getElementById('loaderScreen');
+            if (loader) { loader.style.display = 'flex'; loader.style.opacity = '1'; }
+            setTimeout(() => { window.location.href = 'homepage.html'; }, 200);
+        }
+
+        function triggerConfetti() {
+            const container = document.querySelector('.confetti-area');
+            if (!container) return;
+            container.innerHTML = '';
+            const colors = ['#60A5FA', '#F59E0B', '#FFFFFF', '#BFDBFE', '#3B82F6'];
+            const animations = ['explode-1', 'explode-2', 'explode-3', 'explode-4', 'explode-5', 'explode-6'];
+            for (let i = 0; i < 40; i++) {
+                const piece = document.createElement('div');
+                piece.classList.add('confetti-piece');
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                const animation = animations[Math.floor(Math.random() * animations.length)];
+                const duration = 0.6 + Math.random() * 0.4; 
+                const randomX = (Math.random() - 0.5) * 20; const randomY = (Math.random() - 0.5) * 20;
+                piece.style.transform = `translate(${randomX}px, ${randomY}px)`;
+                piece.style.animation = `${animation} ${duration}s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
+                container.appendChild(piece);
+            }
+        }
+        window.continueAsGuest = continueAsGuest; window.toggleSignup = toggleSignup;
+
+        (function openAuthFromUrl() {
+            try {
+                const hash = (location.hash || '').replace('#', '').toLowerCase();
+                const params = new URLSearchParams(location.search);
+                const action = params.get('action') ? params.get('action').toLowerCase() : null;
+                
+                if (['login', 'signup', 'logout'].includes(hash) || ['login', 'signup', 'logout'].includes(action)) {
+                    localStorage.removeItem('skip');
+                }
+
+                if (hash === 'login' || action === 'login') toggleLogin(true, false);
+                else if (hash === 'signup' || action === 'signup') toggleLogin(true, true);
+            } catch (e) { console.warn('openAuthFromUrl failed', e); }
+        })();
+    </script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getAuth, 
+            setPersistence, 
+            browserLocalPersistence,
+            signInWithEmailAndPassword, 
+            GoogleAuthProvider, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword,
+            signInWithCredential,
+            updateProfile // Added to save the user's name
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", authDomain: "medxcel.firebaseapp.com", projectId: "medxcel", storageBucket: "medxcel.firebasestorage.app", messagingSenderId: "649180317389", appId: "1:649180317389:web:f6b9a7053a37853ea04b84", measurementId: "G-6VQYKEBMSX" };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        window.suppressAuthRedirect = false;
+
+        // Force LOCAL persistence for the app
+        setPersistence(auth, browserLocalPersistence).catch((error) => {
+            console.error("Persistence Auth Error:", error);
+        });
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, (user) => {
+            window.__loader.authResolved = true;
+            const skip = localStorage.getItem("skip") === "true";
+            if (window.suppressAuthRedirect) return;
+            if (user || skip) { window.__loader.redirecting = true; window.location.href = 'homepage.html'; } 
+            else { window.__loader.checkHide(); }
+        });
+
+        // Initialize GoogleAuth plugin if available
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            window.Capacitor.Plugins.GoogleAuth.initialize();
+        }
+
+        // Native Google Login Logic
+        const googleBtn = document.getElementById('googleLoginBtn');
+        if (googleBtn) {
+            googleBtn.addEventListener('click', async () => {
+                window.suppressAuthRedirect = true;
+                
+                try {
+                    // Update loading UI
+                    document.querySelector('.loading-text').textContent = "SIGNING IN...";
+                    document.getElementById('loaderScreen').style.display = 'flex';
+                    document.getElementById('loaderScreen').style.opacity = '1';
+                    
+                    // Ensure the plugin is available
+                    if (!window.Capacitor || !window.Capacitor.Plugins.GoogleAuth) {
+                        throw new Error("Native Google Sign-In is not available. Please ensure you are running the app on an Android device.");
+                    }
+
+                    // 1. Trigger Native Google Account Picker
+                    const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                    
+                    // 2. Extract the idToken from the native response
+                    const idToken = googleUser.authentication.idToken;
+                    
+                    if (!idToken) {
+                        throw new Error("No ID token found in the Google Auth response.");
+                    }
+
+                    // 3. Convert the idToken into a Firebase Credential
+                    const credential = GoogleAuthProvider.credential(idToken);
+                    
+                    // 4. Sign in to Firebase using the generated credential
+                    await signInWithCredential(auth, credential);
+                    
+                    // 5. Success! Redirect to homepage
+                    window.__loader.redirecting = true;
+                    window.location.href = 'homepage.html';
+
+                } catch (error) {
+                    // Handle errors and reset loading UI
+                    window.suppressAuthRedirect = false; 
+                    document.getElementById('loaderScreen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loaderScreen').style.display = 'none', 400);
+                    
+                    console.error("Native Google Login Error:", error);
+                    await showDialog(error.message || "Google login failed.", "Login Failed", { hideCancel: true }); 
+                }
+            });
+        }
+
+        // Email and Password Login Logic
+        const emailBtn = document.getElementById('signInBtn');
+        if (emailBtn) {
+            emailBtn.addEventListener('click', async () => {
+                const name = document.getElementById('nameInput').value.trim();
+                const email = document.getElementById('emailInput').value.trim();
+                const pass = document.getElementById('loginPassword').value;
+                
+                if (window.isSignupMode && !name) {
+                    await showDialog("Please enter your name or nickname.", "Missing Info", { hideCancel: true });
+                    return;
+                }
+
+                if(!email || !pass) { 
+                    await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); 
+                    return; 
+                }
+                
+                window.suppressAuthRedirect = true;
+                
+                try {
+                    if (window.isSignupMode) {
+                        // Create the user
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                        // Save their name to the profile
+                        await updateProfile(userCredential.user, { displayName: name });
+                    } else {
+                        // Just sign in
+                        await signInWithEmailAndPassword(auth, email, pass);
+                    }
+                    
+                    window.__loader.redirecting = true; 
+                    localStorage.removeItem("skip"); 
+                    window.location.href = 'homepage.html';
+                } catch (error) { 
+                    window.suppressAuthRedirect = false; 
+                    await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true }); 
+                }
+            });
+        }
+    </script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  metaTheme.setAttribute("content", "#050A15");
+});
+</script>
+</body>
+</html>

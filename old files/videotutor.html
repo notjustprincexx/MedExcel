@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aurora Video Tutor</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { 
+            background-color: #0B1120; 
+            background-image: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="text-slate-200 min-h-screen flex flex-col relative pb-10">
+
+    <header class="pt-6 pb-4 px-6 flex items-center gap-4 z-10 sticky top-0 bg-[#0B1120]/80 backdrop-blur-md border-b border-white/5">
+        <button onclick="history.back()" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700/50 flex-shrink-0">
+            <i class="fas fa-arrow-left text-sm"></i>
+        </button>
+        <div>
+            <h1 class="text-lg font-bold text-white tracking-tight leading-tight">Video Tutor</h1>
+            <p class="text-[11px] text-blue-400 font-medium tracking-wide uppercase">Powered by Aurora AI</p>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-2xl mx-auto px-5 pt-6 flex flex-col gap-6">
+        
+        <div class="space-y-3">
+            <label for="topicInput" class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">What do you want to learn?</label>
+            <div class="relative flex items-center">
+                <div class="absolute left-4 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center pointer-events-none">
+                    <i class="fas fa-search text-blue-400 text-sm"></i>
+                </div>
+                <input
+                    id="topicInput"
+                    type="text"
+                    placeholder="e.g. Renin Angiotensin System"
+                    class="w-full bg-slate-800/80 border border-slate-700/50 rounded-2xl pl-14 pr-24 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/70 transition-all shadow-inner text-sm"
+                />
+                <button
+                    id="searchVideoBtn"
+                    class="absolute right-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-transform transform active:scale-95 shadow-lg shadow-blue-900/20"
+                >
+                    Find
+                </button>
+            </div>
+        </div>
+
+        <div id="videoLoader" class="hidden flex-col items-center justify-center py-16">
+            <div class="relative w-16 h-16 mb-6">
+                <div class="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <i class="fas fa-play absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-500 ml-0.5 text-sm"></i>
+            </div>
+            <p class="text-white font-semibold mb-1">Aurora is searching...</p>
+            <p class="text-slate-400 text-xs">Finding the highest-yield medical lecture</p>
+        </div>
+
+        <div id="videoResultCard" class="hidden glass-panel rounded-3xl overflow-hidden shadow-2xl transform transition-all duration-500 translate-y-4 opacity-0">
+            
+            <div class="relative w-full aspect-video bg-black border-b border-slate-700/50">
+                <iframe
+                    id="videoPlayer"
+                    class="absolute top-0 left-0 w-full h-full"
+                    src=""
+                    frameborder="0"
+                    allowfullscreen
+                ></iframe>
+            </div>
+
+            <div class="p-5 sm:p-7 space-y-6">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-3">
+                        <i class="fas fa-check-circle"></i> Top Match
+                    </div>
+                    <h3 id="videoTitle" class="text-lg sm:text-xl font-bold text-white leading-tight mb-2 line-clamp-2"></h3>
+                    <p class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+                        <i class="fab fa-youtube text-red-500"></i>
+                        <span id="videoChannel"></span>
+                    </p>
+                </div>
+
+                <div class="bg-[#0f172a]/80 rounded-2xl p-4 sm:p-5 border border-white/5 relative overflow-hidden">
+                    <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="flex items-start gap-3 relative z-10">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border border-blue-500/30">
+                            <i class="fas fa-sparkles text-blue-400 text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Why this video?</span>
+                            <p id="videoReason" class="text-sm text-slate-300 leading-relaxed"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button id="watchBtn" class="col-span-1 sm:col-span-2 w-full flex items-center justify-center gap-2 py-3.5 bg-white text-slate-900 rounded-xl font-bold transition-transform transform active:scale-95 shadow-lg">
+                        <i class="fas fa-external-link-alt text-sm"></i>
+                        Open in YouTube
+                    </button>
+                    
+                    <button id="genFlashcardsBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95 group">
+                        <i class="fas fa-layer-group text-blue-400 group-hover:scale-110 transition-transform"></i>
+                        Make Flashcards
+                    </button>
+
+                    <button id="genQuizBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 text-sm font-semibold transition-transform transform active:scale-95 group">
+                        <i class="fas fa-list-check text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                        Create Quiz
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module">
+        /* ===============================
+        FIREBASE IMPORTS & CONFIG
+        =============================== */
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js"
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+            authDomain: "medxcel.firebaseapp.com",
+            projectId: "medxcel",
+            storageBucket: "medxcel.firebasestorage.app",
+            messagingSenderId: "649180317389",
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84"
+        }
+
+        const app = initializeApp(firebaseConfig)
+        const auth = getAuth(app)
+        const functions = getFunctions(app, "us-central1")
+        const findBestVideo = httpsCallable(functions, "findBestVideo")
+
+        /* ===============================
+        UI ELEMENTS
+        =============================== */
+        const searchBtn = document.getElementById("searchVideoBtn")
+        const topicInput = document.getElementById("topicInput")
+        const loader = document.getElementById("videoLoader")
+        const resultCard = document.getElementById("videoResultCard")
+        const videoPlayer = document.getElementById("videoPlayer")
+        const videoTitle = document.getElementById("videoTitle")
+        const videoChannel = document.getElementById("videoChannel")
+        const videoReason = document.getElementById("videoReason")
+        const watchBtn = document.getElementById("watchBtn")
+
+        /* ===============================
+        SEARCH FUNCTION
+        =============================== */
+        async function searchVideo() {
+            const topic = topicInput.value.trim()
+            if(!topic) {
+                // Focus input instead of harsh alert for better mobile UX
+                topicInput.focus();
+                return;
+            }
+
+            topicInput.blur(); // Hide keyboard on mobile
+            
+            // UI Reset
+            loader.classList.remove("hidden")
+            loader.classList.add("flex")
+            resultCard.classList.add("hidden")
+            resultCard.classList.remove("translate-y-0", "opacity-100")
+            resultCard.classList.add("translate-y-4", "opacity-0")
+            searchBtn.disabled = true
+            searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+
+            try {
+                const response = await findBestVideo({topic})
+                const data = response.data
+
+                videoTitle.textContent = data.title
+                videoChannel.textContent = data.channel
+                videoReason.textContent = data.reason
+                videoPlayer.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=0&rel=0`
+
+                watchBtn.onclick = () => {
+                    window.open(`https://www.youtube.com/watch?v=${data.videoId}`, "_blank")
+                }
+
+                // Smooth reveal
+                loader.classList.add("hidden")
+                loader.classList.remove("flex")
+                resultCard.classList.remove("hidden")
+                
+                // Trigger reflow for animation
+                void resultCard.offsetWidth;
+                resultCard.classList.remove("translate-y-4", "opacity-0")
+                resultCard.classList.add("translate-y-0", "opacity-100")
+
+            } catch(error) {
+                console.error("Video error:", error)
+                alert("Could not fetch a video at this time. Please try another topic.")
+                loader.classList.add("hidden")
+                loader.classList.remove("flex")
+            } finally {
+                searchBtn.disabled = false
+                searchBtn.innerHTML = 'Find'
+            }
+        }
+
+        /* ===============================
+        EVENT LISTENERS
+        =============================== */
+        searchBtn.addEventListener("click", searchVideo)
+
+        topicInput.addEventListener("keypress", (e) => {
+            if(e.key === "Enter") searchVideo()
+        })
+
+        /* ===============================
+        AUTH CHECK
+        =============================== */
+        onAuthStateChanged(auth, (user) => {
+            if(!user) {
+                window.location.href = "login.html"
+            }
+        })
+    </script>
+</body>
+</html>

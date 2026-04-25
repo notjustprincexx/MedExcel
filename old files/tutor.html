@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedExcel - Aurora AI Tutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { 
+            background-color: #0f172a; 
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            overflow: hidden; 
+            -webkit-user-select: none; user-select: none;
+        }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        .loader-screen {
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px);
+            z-index: 10000; transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        .loader-screen.hidden-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+
+        .upload-zone { transition: all 0.2s ease-in-out; }
+        .upload-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.05); }
+
+        .ai-prose h3 { font-size: 0.875rem; font-weight: 600; color: #e2e8f0; margin-top: 1rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .ai-prose h3:first-child { margin-top: 0; }
+        .ai-prose p { margin-bottom: 0.75rem; color: #cbd5e1; line-height: 1.6; }
+        .ai-prose ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 1rem; color: #cbd5e1; }
+        .ai-prose li { margin-bottom: 0.25rem; }
+    </style>
+</head>
+<body class="text-slate-200 h-screen flex flex-col relative w-full overflow-hidden bg-slate-900">
+
+    <div id="aiLoader" class="loader-screen hidden-loader" role="status">
+        <div class="text-center flex flex-col items-center">
+            <div class="w-16 h-16 mb-4 animate-spin text-blue-500">
+                <i class="fas fa-circle-notch text-5xl"></i>
+            </div>
+            <div class="text-slate-100 font-medium tracking-wide text-sm mb-1">Aurora is analyzing</div>
+            <div class="text-slate-400 text-xs" id="loadingText">Extracting key concepts...</div>
+        </div>
+    </div>
+
+    <div class="px-5 pt-6 pb-3 flex-shrink-0 z-10 bg-slate-900/95 backdrop-blur-md w-full flex items-center border-b border-slate-800 max-w-2xl mx-auto">
+        <button onclick="window.location.href='homepage1.html'" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-slate-700/50">
+            <i class="fas fa-arrow-left text-sm"></i>
+        </button>
+        <div class="ml-4 flex flex-col">
+            <h1 class="text-lg font-semibold text-slate-200 leading-tight">Aurora Tutor</h1>
+            <span class="text-[10px] text-emerald-400 font-medium tracking-wider uppercase flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Contextual Analysis
+            </span>
+        </div>
+    </div>
+
+    <main class="flex-1 overflow-hidden flex flex-col min-h-0 w-full max-w-2xl mx-auto relative pb-20">
+        
+        <div id="setupView" class="flex-1 overflow-y-auto hide-scroll px-5 pt-5 pb-10 flex flex-col gap-6">
+            
+            <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-1 flex relative">
+                <button id="tabFile" class="flex-1 py-2.5 text-sm font-medium rounded-xl bg-blue-600 text-white shadow-sm transition-all">Upload Document</button>
+                <button id="tabText" class="flex-1 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-slate-200 transition-all">Paste Text</button>
+            </div>
+
+            <div id="fileUploadSection" class="flex flex-col gap-4">
+                <div id="dropZone" class="upload-zone border-2 border-dashed border-slate-600 rounded-2xl p-8 bg-slate-800/20 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500/50 hover:bg-slate-800/40 relative overflow-hidden h-48">
+                    <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.ppt,.pptx,.doc,.docx,.txt" />
+                    <div class="w-14 h-14 rounded-full bg-slate-700/50 flex items-center justify-center mb-4 text-slate-300 transition-colors" id="uploadIcon">
+                        <i class="fas fa-file-medical text-xl"></i>
+                    </div>
+                    <h3 class="font-medium text-slate-200 text-sm mb-1" id="uploadTitle">Tap to select source material</h3>
+                    <p class="text-slate-500 text-xs" id="uploadSubtitle">PDF, PPTX, DOCX, TXT (Max 10MB)</p>
+                </div>
+            </div>
+
+            <div id="textInputSection" class="hidden flex-col gap-4 h-48">
+                <textarea id="materialInput" class="w-full h-full bg-slate-800/30 border border-slate-700 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:border-blue-500/50 focus:bg-slate-800/50 transition-all resize-none placeholder-slate-500" placeholder="Paste complex medical text, clinical guidelines, or lecture notes here..."></textarea>
+            </div>
+
+            <div class="bg-slate-800/30 rounded-2xl p-5 border border-slate-700/50 focus-within:border-blue-500/50 transition-colors">
+                <label class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 block">Focus Area (Optional)</label>
+                <input type="text" id="topicFocus" placeholder="e.g., Pathophysiology, Pharmacokinetics, Differential Diagnosis" class="w-full bg-transparent text-slate-200 outline-none text-sm placeholder-slate-600">
+            </div>
+
+            <button id="simplifyBtn" disabled class="w-full bg-slate-800/50 text-slate-500 font-medium text-sm py-4 rounded-xl transition-all shadow-sm opacity-50 cursor-not-allowed mt-auto">
+                Analyze & Simplify
+            </button>
+        </div>
+
+        <div id="chatView" class="hidden flex-1 flex flex-col w-full h-full relative">
+            
+            <div id="chatMessages" class="flex-1 overflow-y-auto hide-scroll p-5 flex flex-col gap-6 pb-32">
+                </div>
+
+            <div class="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-20 pb-safe">
+                <div id="quickPrompts" class="flex gap-2 overflow-x-auto hide-scroll px-4 pt-3 pb-2">
+                    </div>
+                
+                <div class="px-4 pb-4 pt-2">
+                    <div class="relative flex items-end gap-2 bg-slate-800 border border-slate-700 focus-within:border-blue-500/50 rounded-2xl p-1 transition-colors">
+                        <textarea id="chatInput" rows="1" class="w-full bg-transparent py-2.5 pl-3 pr-2 text-sm text-slate-200 outline-none resize-none hide-scroll" placeholder="Ask for details, mechanisms, or clinical correlations..."></textarea>
+                        <button id="sendBtn" class="w-9 h-9 flex-shrink-0 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-500 transition-colors mb-0.5 mr-0.5">
+                            <i class="fas fa-arrow-up text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-800 px-6 py-3 pb-6 flex justify-between items-center z-50">
+        <a href="homepage1.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="create.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-plus-circle text-lg"></i>
+            <span class="text-[10px] font-medium">Create</span>
+        </a>
+        <a href="study.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Library</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-[10px] font-medium">Profile</span>
+        </a>
+    </nav>
+
+    <script>
+        // DOM Elements
+        const setupView = document.getElementById('setupView');
+        const chatView = document.getElementById('chatView');
+        const simplifyBtn = document.getElementById('simplifyBtn');
+        const fileInput = document.getElementById('fileInput');
+        const materialInput = document.getElementById('materialInput');
+        const dropZone = document.getElementById('dropZone');
+        const aiLoader = document.getElementById('aiLoader');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const quickPromptsContainer = document.getElementById('quickPrompts');
+
+        // Tab Switching Logic
+        const tabFile = document.getElementById('tabFile');
+        const tabText = document.getElementById('tabText');
+        const fileSec = document.getElementById('fileUploadSection');
+        const textSec = document.getElementById('textInputSection');
+        let currentMode = 'file';
+        let selectedFile = null;
+
+        function updateBtnState() {
+            const isValid = currentMode === 'file' ? !!selectedFile : materialInput.value.trim().length > 10;
+            if (isValid) {
+                simplifyBtn.disabled = false;
+                simplifyBtn.classList.remove('bg-slate-800/50', 'text-slate-500', 'opacity-50', 'cursor-not-allowed');
+                simplifyBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-500');
+            } else {
+                simplifyBtn.disabled = true;
+                simplifyBtn.classList.add('bg-slate-800/50', 'text-slate-500', 'opacity-50', 'cursor-not-allowed');
+                simplifyBtn.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-500');
+            }
+        }
+
+        tabFile.addEventListener('click', () => {
+            currentMode = 'file';
+            tabFile.classList.replace('text-slate-400', 'text-white');
+            tabFile.classList.replace('hover:text-slate-200', 'bg-blue-600');
+            tabText.classList.remove('bg-blue-600', 'text-white');
+            tabText.classList.add('text-slate-400', 'hover:text-slate-200');
+            fileSec.classList.remove('hidden');
+            textSec.classList.add('hidden');
+            fileSec.classList.add('flex');
+            textSec.classList.remove('flex');
+            updateBtnState();
+        });
+
+        tabText.addEventListener('click', () => {
+            currentMode = 'text';
+            tabText.classList.replace('text-slate-400', 'text-white');
+            tabText.classList.replace('hover:text-slate-200', 'bg-blue-600');
+            tabFile.classList.remove('bg-blue-600', 'text-white');
+            tabFile.classList.add('text-slate-400', 'hover:text-slate-200');
+            textSec.classList.remove('hidden');
+            fileSec.classList.add('hidden');
+            textSec.classList.add('flex');
+            fileSec.classList.remove('flex');
+            updateBtnState();
+        });
+
+        // File Selection Logic
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                document.getElementById('uploadIcon').innerHTML = `<i class="fas fa-file-check text-blue-400 text-xl"></i>`;
+                document.getElementById('uploadIcon').classList.replace('bg-slate-700/50', 'bg-blue-500/10');
+                document.getElementById('uploadTitle').innerHTML = `<span class="text-blue-400 truncate block px-4">${selectedFile.name}</span>`;
+                document.getElementById('uploadSubtitle').textContent = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+                dropZone.classList.add('border-blue-500/50', 'bg-blue-500/5');
+                updateBtnState();
+            }
+        });
+
+        materialInput.addEventListener('input', updateBtnState);
+
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight < 100 ? this.scrollHeight : 100) + 'px';
+        });
+
+        // Generate Quick Prompts
+        function loadQuickPrompts(prompts) {
+            quickPromptsContainer.innerHTML = '';
+            prompts.forEach(prompt => {
+                const btn = document.createElement('button');
+                btn.className = 'whitespace-nowrap px-3 py-1.5 bg-slate-800 border border-slate-700 hover:bg-slate-700/80 hover:border-blue-500/30 text-slate-300 text-xs font-medium rounded-lg transition-colors flex-shrink-0';
+                btn.textContent = prompt;
+                btn.onclick = () => {
+                    chatInput.value = prompt;
+                    handleSend();
+                };
+                quickPromptsContainer.appendChild(btn);
+            });
+        }
+
+        // Initialize Simplification
+        simplifyBtn.addEventListener('click', () => {
+            aiLoader.classList.remove('hidden-loader');
+
+            setTimeout(() => {
+                aiLoader.classList.add('hidden-loader');
+                setupView.classList.add('hidden');
+                chatView.classList.remove('hidden');
+                
+                const focusStr = document.getElementById('topicFocus').value.trim();
+                const contextStr = focusStr ? ` with a focus on ${focusStr}` : '';
+                appendMessage('user', `Please analyze this material${contextStr} and extract the core concepts.`);
+                
+                const mockStructuredResponse = `
+                    <div class="ai-prose">
+                        <h3>Overview</h3>
+                        <p>The provided text primarily details the mechanism of action and clinical applications of ACE inhibitors within the context of cardiovascular pathology.</p>
+                        
+                        <h3>Mechanism of Action</h3>
+                        <ul>
+                            <li>Inhibits angiotensin-converting enzyme, preventing the conversion of Angiotensin I to the potent vasoconstrictor Angiotensin II.</li>
+                            <li>Prevents the degradation of bradykinin, leading to vasodilation (and contributing to the common side effect of a dry cough).</li>
+                            <li>Decreases aldosterone secretion, promoting sodium excretion and potassium retention.</li>
+                        </ul>
+
+                        <h3>Clinical Significance</h3>
+                        <p>Standard therapy for hypertension, heart failure with reduced ejection fraction (HFrEF), and prevention of diabetic nephropathy progression.</p>
+                    </div>
+                `;
+                appendMessage('ai', mockStructuredResponse, true);
+                
+                loadQuickPrompts([
+                    "Explain the Bradykinin pathway", 
+                    "List contraindications", 
+                    "Compare with ARBs", 
+                    "What are the adverse effects?"
+                ]);
+            }, 2500); 
+        });
+
+        const handleSend = () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            appendMessage('user', text);
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            quickPromptsContainer.innerHTML = ''; // Clear prompts on new query
+
+            setTimeout(() => {
+                const mockFollowUp = `
+                    <div class="ai-prose">
+                        <h3>Detailed Response</h3>
+                        <p>Accumulation of bradykinin due to ACE inhibition stimulates afferent vagal C-fibers in the airway, resulting in a persistent, dry cough in approximately 10-20% of patients. This typically necessitates a transition to an Angiotensin II Receptor Blocker (ARB).</p>
+                    </div>
+                `;
+                appendMessage('ai', mockFollowUp, true);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                loadQuickPrompts(["Explain ARB mechanism", "Other adverse effects"]);
+            }, 1200);
+        };
+
+        sendBtn.addEventListener('click', handleSend);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        function appendMessage(sender, text, isHTML = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const contentHTML = isHTML ? text : text.replace(/\n/g, '<br>');
+
+            if (sender === 'user') {
+                wrapper.innerHTML = `
+                    <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm py-3 px-4 max-w-[85%] text-sm shadow-sm">
+                        ${contentHTML}
+                    </div>
+                `;
+            } else {
+                wrapper.innerHTML = `
+                    <div class="w-full flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-sparkles text-blue-400 text-xs"></i>
+                        </div>
+                        <div class="flex-1 bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm p-4 shadow-sm text-sm">
+                            ${contentHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(wrapper);
+        }
+    </script>
+</body>
+</html>

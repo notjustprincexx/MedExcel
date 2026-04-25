@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f" id="themeMetaColor">
+<title>MedExcel — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ═══════════════════════════════════════════
+   DARK THEME  (default, matches app dark)
+═══════════════════════════════════════════ */
+:root,
+[data-theme="dark"] {
+  --bg:        #06060f;
+  --surface:   #0e0e22;
+  --surface2:  #13132b;
+  --hover:     #1b1b38;
+  --border:    rgba(139,92,246,0.13);
+  --border2:   rgba(139,92,246,0.24);
+  --shadow:    0 2px 16px rgba(0,0,0,0.55);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.7);
+  --text:      #f1f5f9;
+  --text2:     #cbd5e1;
+  --muted:     #64748b;
+  --soft:      #94a3b8;
+  --purple:    #a78bfa;
+  --purple2:   #7c3aed;
+  --purple-bg: rgba(124,58,237,0.14);
+  --green:     #34d399;
+  --green-bg:  rgba(52,211,153,0.12);
+  --blue:      #60a5fa;
+  --blue-bg:   rgba(96,165,250,0.12);
+  --orange:    #fb923c;
+  --orange-bg: rgba(251,146,60,0.12);
+  --red:       #f87171;
+  --red-bg:    rgba(248,113,113,0.1);
+  --yellow:    #fbbf24;
+  --gold:      #f59e0b;
+  --gold-bg:   rgba(245,158,11,0.12);
+  --bar-bg:    rgba(255,255,255,0.06);
+  --topbar-bg: rgba(6,6,15,0.94);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --radius-sm: 10px;
+  --radius:    16px;
+  --radius-lg: 20px;
+}
+
+/* ═══════════════════════════════════════════
+   LIGHT THEME  (matches your app light UI)
+═══════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg:        #eef1f8;
+  --surface:   #ffffff;
+  --surface2:  #f4f6fb;
+  --hover:     #f0f2f9;
+  --border:    rgba(99,91,255,0.10);
+  --border2:   rgba(99,91,255,0.18);
+  --shadow:    0 2px 12px rgba(100,100,180,0.10);
+  --shadow-lg: 0 8px 32px rgba(100,100,180,0.16);
+  --text:      #1e1b4b;
+  --text2:     #374151;
+  --muted:     #6b7280;
+  --soft:      #9ca3af;
+  --purple:    #7c3aed;
+  --purple2:   #6d28d9;
+  --purple-bg: rgba(124,58,237,0.10);
+  --green:     #059669;
+  --green-bg:  rgba(5,150,105,0.10);
+  --blue:      #2563eb;
+  --blue-bg:   rgba(37,99,235,0.10);
+  --orange:    #d97706;
+  --orange-bg: rgba(217,119,6,0.10);
+  --red:       #dc2626;
+  --red-bg:    rgba(220,38,38,0.08);
+  --yellow:    #d97706;
+  --gold:      #b45309;
+  --gold-bg:   rgba(180,83,9,0.10);
+  --bar-bg:    rgba(0,0,0,0.06);
+  --topbar-bg: rgba(238,241,248,0.95);
+}
+
+/* ─── BASE ─────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{
+  height:100%;background:var(--bg);color:var(--text);
+  font-family:var(--sans);overflow-x:hidden;
+  transition:background .25s,color .25s;
+}
+::-webkit-scrollbar{width:0;}
+input,button,textarea,select{font-family:inherit;outline:none;border:none;}
+button{cursor:pointer;background:transparent;}
+
+/* ─── ANIMATIONS ───────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ─── AUTH SCREEN ──────────────────────── */
+#authScreen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);z-index:200;padding:1.5rem;
+  transition:background .25s;
+}
+.auth-wrap{width:100%;max-width:340px;animation:fadeUp .5s cubic-bezier(.19,1,.22,1);}
+.auth-brand{text-align:center;margin-bottom:2rem;}
+
+/* Auth logo — circular icon like the app */
+.auth-logo-wrap{
+  width:64px;height:64px;border-radius:18px;
+  background:linear-gradient(135deg,#7c3aed,#a78bfa);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto .875rem;
+  box-shadow:0 8px 24px rgba(124,58,237,.4);
+}
+.auth-logo-wrap i{font-size:1.5rem;color:#fff;}
+.auth-logo{font-family:var(--sans);font-size:1.375rem;font-weight:800;letter-spacing:-.02em;color:var(--text);}
+.auth-logo span{color:var(--purple);}
+.auth-status{
+  display:inline-flex;align-items:center;gap:.375rem;margin-top:.375rem;
+  font-size:.72rem;font-weight:600;color:var(--muted);
+}
+.auth-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:1.5rem;
+  box-shadow:var(--shadow);
+}
+.auth-lbl{font-size:.7rem;font-weight:700;color:var(--muted);display:block;margin-bottom:.4rem;}
+.auth-inp{
+  width:100%;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:.875rem 1rem;color:var(--text);font-size:.9rem;
+  transition:border-color .2s,box-shadow .2s;margin-bottom:.875rem;
+}
+.auth-inp:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-bg);}
+.auth-inp::placeholder{color:var(--muted);}
+.auth-btn{
+  width:100%;padding:.9rem;background:var(--purple2);color:#fff;
+  border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;
+  transition:opacity .15s,transform .1s;margin-top:.25rem;
+  box-shadow:0 4px 14px rgba(124,58,237,.4);
+}
+.auth-btn:active{transform:scale(.98);opacity:.9;}
+.auth-btn:disabled{opacity:.4;box-shadow:none;}
+.auth-err{min-height:1.1rem;font-size:.75rem;color:var(--red);text-align:center;margin-top:.75rem;}
+
+/* ─── DASHBOARD ────────────────────────── */
+#dashboard{display:none;min-height:100vh;}
+
+/* ─── TOPBAR ───────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:100;height:60px;
+  background:var(--topbar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 1rem;
+  transition:background .25s,border-color .25s;
+}
+.tb-left{display:flex;align-items:center;gap:.625rem;}
+.tb-logo{font-family:var(--sans);font-size:.95rem;font-weight:800;color:var(--text);letter-spacing:-.02em;}
+.tb-logo span{color:var(--purple);}
+.role-badge{
+  font-size:.58rem;font-weight:700;padding:3px 9px;
+  border-radius:100px;text-transform:uppercase;letter-spacing:.06em;
+}
+.badge-admin{background:var(--gold-bg);color:var(--gold);border:1px solid rgba(245,158,11,0.25);}
+.badge-ambassador{background:var(--orange-bg);color:var(--orange);border:1px solid rgba(251,146,60,0.2);}
+.tb-right{display:flex;align-items:center;gap:.625rem;}
+.tb-profile{display:flex;align-items:center;gap:.5rem;}
+.tb-avatar{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#7c3aed,#a78bfa);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:800;color:#fff;
+  box-shadow:0 2px 8px rgba(124,58,237,.35);
+}
+.tb-name{font-size:.8rem;font-weight:700;color:var(--text);line-height:1.1;}
+.tb-role-line{font-size:.62rem;color:var(--muted);margin-top:1px;}
+
+/* Theme toggle */
+.theme-toggle{
+  width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;
+  transition:all .2s;flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--purple);color:var(--purple);}
+
+.tb-logout{
+  font-size:.7rem;font-weight:700;color:var(--muted);
+  padding:.4rem .875rem;border:1.5px solid var(--border);border-radius:100px;
+  background:var(--surface);
+  transition:color .2s,border-color .2s,background .2s;
+}
+.tb-logout:hover{color:var(--red);border-color:var(--red);background:var(--red-bg);}
+
+/* Premium badge */
+.premium-badge{
+  display:inline-flex;align-items:center;gap:.375rem;
+  font-size:.6rem;font-weight:700;
+  padding:3px 10px;border-radius:100px;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--gold-bg);color:var(--gold);border:1px solid rgba(245,158,11,.2);
+}
+
+/* ─── TAB NAV ──────────────────────────── */
+.tab-nav{
+  position:sticky;top:60px;z-index:99;
+  background:var(--topbar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;padding:0 .75rem;gap:.125rem;
+  transition:background .25s;
+}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex-shrink:0;padding:.75rem .875rem;font-size:.75rem;font-weight:600;
+  color:var(--muted);border-bottom:2.5px solid transparent;
+  transition:color .2s,border-color .2s;white-space:nowrap;
+  display:flex;align-items:center;gap:.4rem;border-radius:0;
+}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);}
+.tab-btn i{font-size:.72rem;}
+
+/* ─── PAGES ────────────────────────────── */
+.tab-page{display:none;padding:1rem;max-width:900px;margin:0 auto;padding-bottom:4.5rem;}
+.tab-page.active{display:block;animation:fadeUp .22s cubic-bezier(.19,1,.22,1);}
+
+/* ─── SECTION HEADER ───────────────────── */
+.sec{
+  font-size:.68rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.09em;
+  margin:1.5rem 0 .625rem;display:flex;align-items:center;justify-content:space-between;
+}
+.sec:first-child{margin-top:0;}
+.sec-action{font-size:.72rem;font-weight:700;color:var(--purple);cursor:pointer;text-transform:none;}
+/* section header used in broadcast/insights */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;}
+.sec-title{font-size:.8rem;font-weight:700;color:var(--text);}
+
+/* ─── WELCOME HERO ─────────────────────── */
+.welcome-hero{
+  background:linear-gradient(135deg,var(--purple2) 0%,#6d28d9 50%,#4c1d95 100%);
+  border-radius:var(--radius-lg);
+  padding:1.375rem 1.25rem 1.25rem;margin-bottom:.875rem;
+  box-shadow:0 8px 24px rgba(124,58,237,.35);
+  position:relative;overflow:hidden;
+}
+.welcome-hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:160px;height:160px;border-radius:50%;
+  background:rgba(255,255,255,0.06);
+}
+.welcome-hero::after{
+  content:'';position:absolute;bottom:-30px;right:30px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,0.04);
+}
+.wh-greeting{font-size:.65rem;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.25rem;}
+.wh-name{font-size:1.5rem;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:.625rem;}
+.wh-name span{color:rgba(255,255,255,.85);}
+.wh-badges{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+
+/* ─── REVENUE HERO ─────────────────────── */
+.rev-hero{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.375rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:.75rem;box-shadow:var(--shadow);
+}
+.rev-lbl{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.rev-val{font-size:2.125rem;font-weight:800;color:var(--text);letter-spacing:-.03em;line-height:1.1;margin-top:.2rem;}
+.rev-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem;}
+.rev-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:var(--green-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.125rem;color:var(--green);flex-shrink:0;
+}
+
+/* ─── STAT GRID ────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;}
+@media(min-width:560px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1rem;
+  box-shadow:var(--shadow);transition:background .25s,border-color .25s;
+}
+.stat-ic{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;margin-bottom:.75rem;
+}
+.stat-ic-purple{background:var(--purple-bg);color:var(--purple);}
+.stat-ic-green{background:var(--green-bg);color:var(--green);}
+.stat-ic-blue{background:var(--blue-bg);color:var(--blue);}
+.stat-ic-orange{background:var(--orange-bg);color:var(--orange);}
+.stat-ic-gold{background:var(--gold-bg);color:var(--gold);}
+.stat-ic-red{background:var(--red-bg);color:var(--red);}
+.stat-val{font-size:1.875rem;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.025em;}
+.stat-lbl{font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:.35rem;}
+.stat-delta{font-size:.68rem;font-weight:700;margin-top:.4rem;color:var(--green);}
+.delta-muted{color:var(--muted) !important;}
+
+/* ─── CARD ─────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;margin-bottom:.75rem;
+  box-shadow:var(--shadow);transition:background .25s,border-color .25s,box-shadow .25s;
+}
+.card-hd{padding:.875rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:.85rem;font-weight:700;color:var(--text);}
+
+/* ─── USER ROW ─────────────────────────── */
+.urow{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.875rem 1rem;border-bottom:1px solid var(--border);
+  transition:background .12s;
+}
+.urow:last-child{border-bottom:none;}
+.urow.click{cursor:pointer;}
+.urow.click:active{background:var(--hover);}
+
+.urow.banned{opacity:.4;}
+.uav{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:800;
+  background:linear-gradient(135deg,var(--purple2),#a78bfa);color:#fff;
+}
+.uname{font-size:.83rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.375rem;flex-wrap:wrap;line-height:1.2;}
+.uemail{font-size:.72rem;color:var(--muted);margin-top:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+.umeta{margin-left:auto;text-align:right;flex-shrink:0;}
+.pill{
+  font-size:.6rem;font-weight:700;padding:3px 10px;
+  border-radius:100px;text-transform:uppercase;letter-spacing:.04em;display:inline-block;
+}
+.pill-prem{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.pill-free{background:var(--hover);color:var(--muted);border:1px solid var(--border);}
+.pill-ban{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.uxp{font-size:.68rem;color:var(--muted);margin-top:.25rem;}
+.udate{font-size:.62rem;color:var(--muted);opacity:.5;margin-top:.1rem;}
+.rank-n{font-size:.72rem;font-weight:800;color:var(--muted);width:1.25rem;flex-shrink:0;text-align:center;}
+
+/* ─── PLAN BARS ─────────────────────────── */
+.pbar-row{padding:.875rem 1rem;border-bottom:1px solid var(--border);}
+.pbar-row:last-child{border-bottom:none;}
+.pbar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.pbar-name{display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:600;color:var(--text);}
+.pdot{width:8px;height:8px;border-radius:50%;}
+.pbar-right{display:flex;align-items:baseline;gap:.3rem;}
+.pbar-count{font-size:.95rem;font-weight:800;color:var(--text);}
+.pbar-pct{font-size:.68rem;color:var(--muted);}
+.bar-track{height:6px;background:var(--bar-bg);border-radius:100px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:100px;width:0%;transition:width 1.1s cubic-bezier(.19,1,.22,1);}
+
+/* ─── SKELETON ──────────────────────────── */
+.skel{
+  background:linear-gradient(90deg,var(--hover) 25%,rgba(255,255,255,.04) 50%,var(--hover) 75%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite linear;border-radius:8px;
+}
+
+/* ─── EMPTY ─────────────────────────────── */
+.empty{
+  padding:2.5rem 1rem;text-align:center;color:var(--muted);font-size:.82rem;
+  display:flex;flex-direction:column;align-items:center;gap:.5rem;
+}
+.empty i{font-size:1.75rem;opacity:.25;}
+
+/* ─── SEARCH ────────────────────────────── */
+.search-wrap{display:flex;align-items:center;gap:.625rem;padding:.875rem 1rem;border-bottom:1px solid var(--border);}
+.search-wrap i{color:var(--muted);font-size:.8rem;flex-shrink:0;}
+.search-wrap input{flex:1;background:transparent;color:var(--text);font-size:.875rem;}
+.search-wrap input::placeholder{color:var(--muted);}
+
+/* ─── FILTER PILLS ──────────────────────── */
+.frow{display:flex;gap:.375rem;padding:.625rem 1rem .75rem;flex-wrap:wrap;}
+.fpill{
+  font-size:.68rem;font-weight:700;padding:5px 12px;
+  border-radius:100px;border:1.5px solid var(--border);
+  color:var(--muted);background:var(--surface);cursor:pointer;transition:all .15s;
+}
+.fpill.active{background:var(--purple2);color:#fff;border-color:var(--purple2);}
+
+/* ─── MODAL ─────────────────────────────── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);
+  z-index:9999;display:none;align-items:flex-end;justify-content:center;
+}
+.modal-bg.show{display:flex;}
+.modal-sheet{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:500px;
+  padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.25rem);
+  transform:translateY(100%);
+  transition:transform .38s cubic-bezier(.19,1,.22,1);
+  max-height:88vh;overflow-y:auto;
+  box-shadow:0 -8px 40px rgba(0,0,0,.4);
+}
+.modal-bg.show .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:100px;margin:0 auto 1.25rem;}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.mrow:last-of-type{border-bottom:none;}
+.mrow-l{font-size:.78rem;color:var(--muted);}
+.mrow-r{font-size:.82rem;font-weight:600;color:var(--text);text-align:right;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+.mbtn{width:100%;margin-top:.625rem;padding:.9rem;border-radius:var(--radius-sm);font-weight:700;font-size:.82rem;transition:opacity .15s,transform .1s;}
+.mbtn:active{opacity:.8;transform:scale(.98);}
+.mbtn-primary{background:var(--purple2);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
+.mbtn-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.mbtn-orange{background:var(--orange-bg);color:var(--orange);border:1px solid rgba(251,146,60,.2);}
+.mbtn-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.mbtn-muted{background:var(--hover);color:var(--muted);border:1px solid var(--border);}
+.mbtn+.mbtn{margin-top:.5rem;}
+.mbtn:disabled{opacity:.4;pointer-events:none;}
+
+/* ─── FORM INPUTS ───────────────────────── */
+.finp{
+  width:100%;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:.875rem .9rem;color:var(--text);font-size:.875rem;
+  transition:border-color .2s,box-shadow .2s;margin-bottom:.75rem;
+}
+.finp:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-bg);}
+.finp::placeholder{color:var(--muted);}
+textarea.finp{resize:vertical;min-height:90px;}
+select.finp{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .875rem center;}
+
+/* ─── FORM LABEL ────────────────────────── */
+.flbl{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:.4rem;}
+
+/* ─── INFO BOX ──────────────────────────── */
+.info-box{
+  background:var(--bg);border-radius:var(--radius-sm);padding:1rem;
+  font-size:.82rem;color:var(--muted);line-height:1.75;border:1.5px solid var(--border);
+}
+code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--purple);font-family:var(--mono);font-size:.78em;}
+
+/* ─── TOAST ─────────────────────────────── */
+.toast{
+  position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 1.25rem);left:50%;
+  transform:translateX(-50%) translateY(160%);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:100px;padding:.65rem 1.375rem;
+  font-size:.78rem;font-weight:700;color:var(--text);
+  z-index:99999;transition:transform .3s cubic-bezier(.19,1,.22,1);
+  white-space:nowrap;box-shadow:var(--shadow-lg);
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+[data-theme="dark"] .toast.success{background:#0a1f15;border-color:rgba(52,211,153,.3);color:var(--green);}
+[data-theme="dark"] .toast.error{background:#1f0a0a;border-color:rgba(248,113,113,.3);color:var(--red);}
+[data-theme="light"] .toast.success{background:#ecfdf5;border-color:rgba(5,150,105,.3);color:#065f46;}
+[data-theme="light"] .toast.error{background:#fef2f2;border-color:rgba(220,38,38,.25);color:#991b1b;}
+
+/* ─── BROADCAST SEND BUTTON ─────────────── */
+.bc-send-btn{
+  width:100%;padding:.9rem;background:var(--purple2);color:#fff;
+  border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  transition:opacity .2s,transform .1s;
+  box-shadow:0 4px 14px rgba(124,58,237,.35);
+}
+.bc-send-btn:active{transform:scale(.98);opacity:.9;}
+.bc-send-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.bc-send-btn .spin{animation:spin .7s linear infinite;}
+
+/* ─── BROADCAST PREVIEW ─────────────────── */
+.bc-preview{
+  background:var(--bg);border:1.5px solid rgba(167,139,250,.2);border-radius:var(--radius-sm);
+  padding:1rem;margin-top:.75rem;font-size:.82rem;color:var(--soft);line-height:1.7;
+  border-left:3px solid var(--purple);display:none;
+}
+
+/* ─── DAU CHART ─────────────────────────── */
+.chart-wrap{padding:1rem;}
+.chart-bars{display:flex;align-items:flex-end;gap:.4rem;height:72px;}
+.chart-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;}
+.chart-bar-count{font-size:.62rem;font-weight:700;color:var(--muted);}
+.chart-bar{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:height .7s cubic-bezier(.19,1,.22,1);}
+.chart-labels{display:flex;gap:.4rem;margin-top:.375rem;}
+.chart-day{flex:1;text-align:center;font-size:.6rem;color:var(--muted);}
+
+/* ─── MINI CHART ────────────────────────── */
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:40px;margin-top:.625rem;}
+.mc-bar{flex:1;background:var(--bar-bg);border-radius:3px 3px 0 0;min-height:3px;transition:height .8s cubic-bezier(.19,1,.22,1);}
+.mc-bar.today{background:var(--purple);}
+
+/* ─── XP ROW ─────────────────────────────── */
+.xp-row{display:flex;gap:.5rem;align-items:center;}
+.xp-row .finp{margin-bottom:0;flex:1;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <div class="auth-logo-wrap"><i class="fas fa-stethoscope"></i></div>
+      <div class="auth-logo">Med<span>Excel</span></div>
+      <div class="auth-status">Admin Portal</div>
+    </div>
+    <div class="auth-card">
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.65;margin-bottom:1.125rem;">Sign in to access the MedExcel content review and analytics dashboard for verified partners.</p>
+      <label class="auth-lbl">Email address</label>
+      <input class="auth-inp" type="email" id="adminEmail" placeholder="you@example.com" autocomplete="email">
+      <label class="auth-lbl">Password</label>
+      <input class="auth-inp" type="password" id="adminPass" placeholder="••••••••" autocomplete="current-password">
+      <button class="auth-btn" id="loginBtn" onclick="doAdminLogin()">Continue</button>
+      <div class="auth-err" id="authError"></div>
+    </div>
+    <p style="text-align:center;font-size:.7rem;color:var(--muted);margin-top:1.25rem;line-height:1.6;">Not a verified partner? <span style="color:var(--purple);cursor:pointer;" onclick="window.location.href='index.html'">Go to MedExcel</span></p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="tb-left">
+      <span class="tb-logo">Med<span>Excel</span></span>
+    </div>
+    <div class="tb-right">
+      <div class="tb-profile">
+        <div class="tb-avatar" id="topAvatar">—</div>
+        <div>
+          <div class="tb-name" id="topName">—</div>
+          <div class="tb-role-line" id="topRoleLine">—</div>
+        </div>
+        <span class="role-badge badge-admin" id="roleChip">Admin</span>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="Toggle theme">
+        <i class="fas fa-sun" id="themeToggleIcon"></i>
+      </button>
+      <button class="tb-logout" onclick="doLogout()">Exit</button>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn" id="tab-btn-ambassador" onclick="switchTab('ambassador')" style="display:none;"><i class="fas fa-star"></i> My Dashboard</button>
+    <button class="tab-btn active"  onclick="switchTab('overview')"><i class="fas fa-chart-line"></i> Overview</button>
+    <button class="tab-btn"         onclick="switchTab('users')"><i class="fas fa-users"></i> Users</button>
+    <button class="tab-btn"         onclick="switchTab('activity')"><i class="fas fa-bolt"></i> Activity</button>
+    <button class="tab-btn"         onclick="switchTab('insights')"><i class="fas fa-chart-pie"></i> Insights</button>
+    <button class="tab-btn"         onclick="switchTab('broadcast')"><i class="fas fa-bullhorn"></i> Broadcast</button>
+    <button class="tab-btn"         onclick="switchTab('team')"><i class="fas fa-shield-halved"></i> Team</button>
+  </div>
+
+  <!-- ══ AMBASSADOR DASHBOARD ══ -->
+  <div class="tab-page" id="tab-ambassador">
+
+    <!-- Personal hero -->
+    <div class="welcome-hero">
+      <div class="wh-greeting" id="ambGreeting">Good morning</div>
+      <div class="wh-name"><span id="ambName">—</span></div>
+      <div class="wh-badges">
+        <span class="premium-badge"><i class="fas fa-star"></i> Ambassador</span>
+        <span style="font-size:.62rem;color:rgba(255,255,255,.55);padding:3px 0;">Community Representative</span>
+      </div>
+    </div>
+
+    <!-- Personal stats -->
+    <div class="sec"><i class="fas fa-gauge-high" style="margin-right:.4rem;color:var(--purple);"></i>Your Stats</div>
+    <div class="stat-grid" style="margin-bottom:.75rem;">
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-purple"><i class="fas fa-bolt"></i></div>
+        <div class="stat-val" id="ambXP">—</div>
+        <div class="stat-lbl">Total XP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-orange"><i class="fas fa-fire"></i></div>
+        <div class="stat-val" id="ambStreak">—</div>
+        <div class="stat-lbl">Day Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-blue"><i class="fas fa-trophy"></i></div>
+        <div class="stat-val" id="ambRank">—</div>
+        <div class="stat-lbl">XP Rank</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-gold"><i class="fas fa-user-plus"></i></div>
+        <div class="stat-val" id="ambReferrals">—</div>
+        <div class="stat-lbl">Referrals</div>
+      </div>
+    </div>
+
+    <!-- Referral widget -->
+    <div class="sec"><i class="fas fa-link" style="margin-right:.4rem;color:var(--purple);"></i>Your Referral Link</div>
+    <div class="card" style="padding:1rem;">
+      <div style="margin-bottom:.875rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.375rem;">
+          <span style="font-size:.75rem;font-weight:700;color:var(--text);" id="ambRefProgress">— referrals</span>
+          <span style="font-family:var(--mono);font-size:.65rem;color:var(--muted);" id="ambRefMilestone"></span>
+        </div>
+        <div style="height:5px;background:var(--bg);border-radius:100px;overflow:hidden;">
+          <div id="ambRefBar" style="height:100%;background:var(--gold);border-radius:100px;width:0%;transition:width 1s cubic-bezier(.19,1,.22,1);"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.625rem .875rem;">
+        <i class="fas fa-link" style="color:var(--muted);font-size:.75rem;flex-shrink:0;"></i>
+        <span id="ambRefLink" style="font-size:.75rem;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);">—</span>
+        <div style="display:flex;gap:.375rem;flex-shrink:0;">
+          <button onclick="ambCopyLink()" style="background:var(--purple2);color:#fff;border:none;border-radius:7px;padding:.375rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+          <button onclick="ambShareLink()" style="background:var(--hover);color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:.375rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;">
+            <i class="fas fa-share-nodes"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community pulse -->
+    <div class="sec"><i class="fas fa-earth-africa" style="margin-right:.4rem;color:var(--purple);"></i>Community</div>
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="stat-card">
+        <div class="stat-ic" style="background:rgba(96,165,250,.1);"><i class="fas fa-users" style="color:var(--blue);"></i></div>
+        <div class="stat-val" id="ambTotalUsers">—</div>
+        <div class="stat-lbl">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic" style="background:rgba(167,139,250,.1);"><i class="fas fa-bolt" style="color:var(--purple);"></i></div>
+        <div class="stat-val" id="ambTotalXP">—</div>
+        <div class="stat-lbl">XP Earned</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="tab-page active" id="tab-overview">
+
+    <!-- Welcome Hero -->
+    <div class="welcome-hero">
+      <div class="wh-greeting" id="whGreeting">Good morning</div>
+      <div class="wh-name">Welcome, <span id="whName">—</span> 👋</div>
+      <div class="wh-badges">
+        <span class="premium-badge" id="whPremiumBadge"><i class="fas fa-crown"></i> Elite Admin</span>
+        <span class="role-badge badge-admin" id="whRoleBadge" style="font-size:.6rem;padding:3px 9px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.25);">Admin · Full Access</span>
+      </div>
+    </div>
+
+    <div class="sec"><i class="fas fa-sack-dollar" style="margin-right:.4rem;color:var(--gold);"></i>Revenue</div>
+    <div class="rev-hero">
+      <div>
+        <div class="rev-lbl">Est. Monthly Revenue</div>
+        <div class="rev-val" id="ovRev">₦—</div>
+        <div class="rev-sub" id="ovRevSub">Calculating...</div>
+      </div>
+      <div class="rev-icon"><i class="fas fa-naira-sign"></i></div>
+    </div>
+
+    <div class="sec"><i class="fas fa-gauge-high" style="margin-right:.4rem;color:var(--purple);"></i>At a Glance</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-blue"><i class="fas fa-users"></i></div>
+        <div class="stat-val" id="ovTotal">—</div>
+        <div class="stat-lbl">Total Users</div>
+        <div class="stat-delta" id="ovToday">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-green"><i class="fas fa-gem"></i></div>
+        <div class="stat-val" id="ovPrem">—</div>
+        <div class="stat-lbl">Premium</div>
+        <div class="stat-delta" id="ovConv">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-purple"><i class="fas fa-bolt"></i></div>
+        <div class="stat-val" id="ovXP">—</div>
+        <div class="stat-lbl">Total XP</div>
+        <div class="stat-delta delta-muted">all users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-orange"><i class="fas fa-fire"></i></div>
+        <div class="stat-val" id="ovStreak">—</div>
+        <div class="stat-lbl">Active Streaks</div>
+        <div class="stat-delta delta-muted">streak &gt; 0</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <span><i class="fas fa-chart-line" style="margin-right:.4rem;color:var(--purple);"></i>Daily Active Users</span>
+      <span class="sec-action" id="dauWeekTotal"></span>
+    </div>
+    <div class="card">
+      <div class="chart-wrap">
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:.875rem;display:flex;align-items:center;gap:.375rem;">
+          <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
+          Users who opened the app each day
+        </div>
+        <div class="chart-bars" id="dauChartBars">
+          <div style="color:var(--muted);font-size:.75rem;padding:.5rem 0;font-family:var(--mono);">Loading…</div>
+        </div>
+        <div class="chart-labels" id="dauChartLabels"></div>
+      </div>
+    </div>
+
+    <div class="sec"><i class="fas fa-layer-group" style="margin-right:.4rem;color:var(--purple);"></i>Plan Breakdown</div>
+    <div class="card" id="planCard"><div class="empty">Loading...</div></div>
+
+    <div class="sec">
+      <span><i class="fas fa-user-plus" style="margin-right:.4rem;color:var(--purple);"></i>Recent Signups</span>
+      <span class="sec-action" onclick="loadData()"><i class="fas fa-rotate-right"></i> Refresh</span>
+    </div>
+    <div class="card" id="recentCard"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- ══ USERS ══ -->
+  <div class="tab-page" id="tab-users">
+    <div class="sec">
+      All Users
+      <span class="sec-action" onclick="loadData()"><i class="fas fa-rotate-right"></i> Refresh</span>
+    </div>
+    <div class="card">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="userSearch" placeholder="Search name, email or UID…" oninput="renderUserList()">
+      </div>
+      <div class="frow" id="filterRow">
+        <button class="fpill active" onclick="setFilter(this,'all')">All</button>
+        <button class="fpill" onclick="setFilter(this,'premium')">💎 Premium</button>
+        <button class="fpill" onclick="setFilter(this,'free')">Free</button>
+        <button class="fpill" onclick="setFilter(this,'banned')">🚫 Banned</button>
+        <button class="fpill" onclick="setFilter(this,'admin')">🛡 Admin</button>
+      </div>
+      <div id="userListWrap"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ACTIVITY ══ -->
+  <div class="tab-page" id="tab-activity">
+    <div class="sec">Top by XP</div>
+    <div class="card" id="topXP"><div class="empty">Loading...</div></div>
+    <div class="sec">Highest Streaks</div>
+    <div class="card" id="topStreak"><div class="empty">Loading...</div></div>
+    <div class="sec">Most Daily Usage</div>
+    <div class="card" id="topUsage"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- ══ BROADCAST ══ -->
+  <div class="tab-page" id="tab-insights">
+    <div class="sec-hd">
+      <span class="sec-title">Onboarding Insights</span>
+      <span class="sec-action" onclick="loadInsights()"><i class="fas fa-rotate-right"></i> Refresh</span>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+      Aggregated answers from users who completed personalised onboarding.
+    </p>
+
+    <!-- Summary strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:1.25rem;" id="ins-summary">
+      <div class="stat-card"><div class="stat-val" id="ins-total">—</div><div class="stat-lbl">Onboarded Users</div></div>
+      <div class="stat-card"><div class="stat-val" id="ins-ref-used">—</div><div class="stat-lbl">Referral Codes Used</div></div>
+    </div>
+
+    <!-- Breakdown cards -->
+    <div id="ins-breakdowns"></div>
+  </div>
+
+  <div class="tab-page" id="tab-broadcast">
+    <div class="sec">Send Announcement</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;line-height:1.65;">
+        Saves to <code>announcements/latest</code> in Firestore. Every user sees it once on their next app open.
+      </p>
+      <label class="flbl">Title</label>
+      <input class="finp" id="bcTitle" placeholder="e.g. New Feature Alert 🎉" maxlength="80">
+      <label class="flbl">Message</label>
+      <textarea class="finp" id="bcBody" placeholder="Write your message to all users..." maxlength="500"></textarea>
+      <label class="flbl">Type</label>
+      <select class="finp" id="bcType" style="cursor:pointer;">
+        <option value="info">ℹ️  Info</option>
+        <option value="update">🚀  Update</option>
+        <option value="maintenance">🔧  Maintenance</option>
+        <option value="promo">🎁  Promo</option>
+      </select>
+      <button class="bc-send-btn" id="bcSendBtn" onclick="sendBroadcast()">
+        <i class="fas fa-paper-plane"></i> Send to All Users
+      </button>
+      <div class="bc-preview" id="bcPreview"></div>
+    </div>
+
+    <div class="sec">Announcement History</div>
+    <div class="card" style="padding:1rem;margin-bottom:.75rem;" id="bcActiveCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+        <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--mono);">Currently Active</span>
+        <span id="bcActiveStatus" style="font-size:.65rem;font-weight:700;font-family:var(--mono);padding:2px 8px;border-radius:4px;background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);">Live</span>
+      </div>
+      <div id="bcActiveContent" style="font-size:.8rem;color:var(--muted);">Loading...</div>
+      <button id="bcRetractBtn" onclick="retractAnnouncement()" style="display:none;margin-top:.875rem;width:100%;padding:.8rem;background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.2);border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .15s;">
+        <i class="fas fa-ban" style="margin-right:.375rem;"></i>Retract — Stop showing to users
+      </button>
+    </div>
+    <div class="card" id="bcHistory"><div class="empty">Loading...</div></div>
+
+    <div class="sec">App Config</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:.875rem;line-height:1.6;">
+        Set maintenance mode — shows a banner to all users in the app.
+      </p>
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-orange" style="margin-top:0;flex:1;" onclick="setMaintenance(true)">
+          <i class="fas fa-wrench" style="margin-right:.375rem;"></i>Enable Maintenance
+        </button>
+        <button class="mbtn mbtn-green" style="margin-top:0;flex:1;" onclick="setMaintenance(false)">
+          <i class="fas fa-check" style="margin-right:.375rem;"></i>Disable
+        </button>
+      </div>
+    </div>
+
+    <div class="sec"><i class="fas fa-rotate" style="margin-right:.4rem;color:var(--purple);"></i>Force App Update</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;line-height:1.65;">
+        Forces all users to do a hard reload next time they open the app — picks up your latest deployed changes instantly. Admins are never affected.
+      </p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.875rem;font-family:var(--mono);font-size:.72rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--muted);">Last pushed</span>
+          <span id="lastUpdateTime" style="color:var(--text);">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.375rem;">
+          <span style="color:var(--muted);">Status</span>
+          <span id="lastUpdateStatus" style="color:var(--muted);">—</span>
+        </div>
+      </div>
+      <button id="pushUpdateBtn" class="mbtn mbtn-primary" style="margin-top:0;width:100%;" onclick="pushForceUpdate()">
+        <i class="fas fa-rotate" style="margin-right:.375rem;"></i>Push Update to All Users
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TEAM ══ -->
+  <div class="tab-page" id="tab-team">
+    <div class="sec">Admins & Ambassadors</div>
+    <div class="card" id="teamCard"><div class="empty">Loading...</div></div>
+
+    <div class="sec">Grant Access</div>
+    <div class="card" style="padding:1rem;">
+      <div class="info-box">
+        In Firebase console, open <code>users / {uid}</code> and set:<br><br>
+        <code>role: "admin"</code> — full dashboard access<br>
+        <code>role: "ambassador"</code> — activity tab only<br><br>
+        Or use the user detail sheet to assign roles directly from here.
+      </div>
+    </div>
+
+    <div class="sec">Manual Plan Override</div>
+    <div class="card" style="padding:1rem;">
+      <input class="finp" id="upgradeUid" placeholder="User UID…">
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="manualUpgrade('premium')">Set Premium</button>
+        <button class="mbtn mbtn-muted"   style="margin-top:0;flex:1;" onclick="manualUpgrade('free')">Set Free</button>
+      </div>
+    </div>
+
+    <div class="sec">Give XP Bonus</div>
+    <div class="card" style="padding:1rem;">
+      <input class="finp" id="xpUid" placeholder="User UID…">
+      <div class="xp-row">
+        <input class="finp" id="xpAmount" type="number" placeholder="XP amount (e.g. 500)">
+        <button class="mbtn mbtn-primary" style="margin-top:0;white-space:nowrap;padding:.75rem 1rem;" onclick="giveXP()">
+          <i class="fas fa-bolt"></i> Give
+        </button>
+      </div>
+    </div>
+
+    <div class="sec">Device Whitelist</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;line-height:1.6;">
+        Whitelist a UID so that account is never blocked by device fingerprinting — regardless of how many devices or accounts share the same phone.
+      </p>
+      <input class="finp" id="whitelistUid" placeholder="User UID to whitelist…" style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="addDeviceWhitelist()">
+          <i class="fas fa-shield-check"></i> Add to Whitelist
+        </button>
+        <button class="mbtn mbtn-muted" style="margin-top:0;flex:1;" onclick="removeDeviceWhitelist()">
+          <i class="fas fa-ban"></i> Remove
+        </button>
+      </div>
+      <div id="whitelistStatus" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;"></div>
+
+      <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.875rem;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.625rem;">Current Whitelist</div>
+        <div id="whitelistList"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="sec">Device Registry</div>
+    <div class="card" style="padding:1rem;">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;line-height:1.6;">
+        Look up which UID a device ID is registered to, or clear a device registration to unblock an account.
+      </p>
+      <input class="finp" id="deviceLookupId" placeholder="Device ID…" style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:.5rem;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="lookupDevice()">
+          <i class="fas fa-search"></i> Look Up
+        </button>
+        <button class="mbtn mbtn-red" style="margin-top:0;flex:1;" onclick="clearDevice()">
+          <i class="fas fa-trash"></i> Clear Registration
+        </button>
+      </div>
+      <div id="deviceLookupResult" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;color:var(--text);"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- User Detail Modal -->
+<div class="modal-bg" id="userModal" onclick="maybeCloseModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit, addDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
+  authDomain:"medxcel.firebaseapp.com",projectId:"medxcel",
+  storageBucket:"medxcel.firebasestorage.app",
+  messagingSenderId:"649180317389",appId:"1:649180317389:web:f6b9a7053a37853ea04b84"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+window._db = db;
+
+let allUsers = [];
+let userFilter = 'all';
+let currentRole = '';
+let ambassadorUserData = null;
+
+// ── AUTH ──
+window.doAdminLogin = async function() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass  = document.getElementById('adminPass').value;
+  const err   = document.getElementById('authError');
+  const btn   = document.getElementById('loginBtn');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Fill in both fields.'; return; }
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch(e) { err.textContent = 'Wrong credentials.'; btn.textContent = 'Sign In'; btn.disabled = false; }
+};
+
+window.doLogout = async function() {
+  await signOut(auth);
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('adminEmail').value = '';
+  document.getElementById('adminPass').value = '';
+  document.getElementById('loginBtn').textContent = 'Sign In';
+  document.getElementById('loginBtn').disabled = false;
+};
+
+document.getElementById('adminPass').addEventListener('keydown', e => { if(e.key==='Enter') window.doAdminLogin(); });
+
+onAuthStateChanged(auth, async (user) => {
+  document.getElementById('loginBtn').textContent = 'Sign In';
+  document.getElementById('loginBtn').disabled = false;
+  if (!user) return;
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const data = snap.exists() ? snap.data() : {};
+    const role = data.role || '';
+    if (role !== 'admin' && role !== 'ambassador') {
+      document.getElementById('authError').textContent = 'Access denied.';
+      await signOut(auth); return;
+    }
+    currentRole = role;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    // ── Populate admin identity ──
+    const displayName = data.displayName || user.displayName || user.email?.split('@')[0] || 'Admin';
+    const initial     = displayName.charAt(0).toUpperCase();
+    const isAdmin     = role === 'admin';
+
+    // Topbar
+    const topAvatar = document.getElementById('topAvatar');
+    const topName   = document.getElementById('topName');
+    const topRole   = document.getElementById('topRoleLine');
+    const chip      = document.getElementById('roleChip');
+    if (topAvatar)  topAvatar.textContent = initial;
+    if (topName)    topName.textContent   = displayName;
+    if (topRole)    topRole.textContent   = isAdmin ? 'Administrator' : 'Ambassador';
+    if (chip) {
+      chip.textContent = isAdmin ? 'Admin' : 'Ambassador';
+      chip.className = 'role-badge ' + (isAdmin ? 'badge-admin' : 'badge-ambassador');
+    }
+
+    // Welcome hero
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const whGreeting   = document.getElementById('whGreeting');
+    const whName       = document.getElementById('whName');
+    const whBadge      = document.getElementById('whPremiumBadge');
+    const whRoleBadge  = document.getElementById('whRoleBadge');
+    if (whGreeting)  whGreeting.textContent = greeting;
+    if (whName)      whName.textContent     = displayName;
+    if (whBadge && !isAdmin) { whBadge.innerHTML = '<i class="fas fa-star"></i> Ambassador'; }
+    if (whRoleBadge) {
+      whRoleBadge.textContent = isAdmin ? 'Admin · Full Access' : 'Ambassador · Activity Only';
+      whRoleBadge.className = 'role-badge ' + (isAdmin ? 'badge-admin' : 'badge-ambassador');
+      whRoleBadge.style.fontSize = '.6rem'; whRoleBadge.style.padding = '3px 9px';
+    }
+
+    if (role === 'ambassador') {
+      // Store ambassador's own data for dashboard rendering
+      ambassadorUserData = { ...data, uid: user.uid, email: user.email };
+
+      // Show only My Dashboard + Activity tabs
+      document.querySelectorAll('.tab-btn').forEach(t => t.style.display = 'none');
+      document.getElementById('tab-btn-ambassador').style.display = '';
+      document.querySelectorAll('.tab-btn')[3].style.display = ''; // Activity (index 3 after new button)
+
+      // Populate ambassador welcome card
+      const hour2 = new Date().getHours();
+      const g2 = hour2 < 12 ? 'Good morning' : hour2 < 17 ? 'Good afternoon' : 'Good evening';
+      const ambG = document.getElementById('ambGreeting'); if (ambG) ambG.textContent = g2;
+      const ambN = document.getElementById('ambName');    if (ambN) ambN.textContent = displayName;
+
+      switchTab('ambassador');
+    }
+    window.loadData();
+  } catch(e) {
+    document.getElementById('authError').textContent = 'Could not verify role.';
+    await signOut(auth);
+  }
+});
+
+// ── LOAD DATA ──
+window.loadData = async function() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    allUsers = [];
+    snap.forEach(d => allUsers.push({ uid: d.id, ...d.data() }));
+    renderAll();
+  } catch(e) { toast('Failed to load data'); }
+};
+
+function renderAll() {
+  renderOverview();
+  renderUserList();
+  renderActivity();
+  renderTeam();
+  renderDAUChart();
+  renderAmbassadorDashboard();
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  }, 80);
+}
+
+// ── AMBASSADOR DASHBOARD ──
+function renderAmbassadorDashboard() {
+  if (currentRole !== 'ambassador' || !ambassadorUserData) return;
+  // Prefer fresh data from the latest allUsers fetch so stats update on refresh
+  const fresh = allUsers.find(u => u.uid === ambassadorUserData.uid);
+  const d = fresh ? { ...ambassadorUserData, ...fresh } : ambassadorUserData;
+
+  const xp           = d.xp || 0;
+  const streak       = d.streak || 0;
+  const referralCount = d.referralCount || 0;
+  const referralCode  = d.referralCode || (d.uid || '').substring(0, 8).toUpperCase();
+  const referralLink  = `https://medexcel.web.app/?ref=${referralCode}`;
+
+  // XP rank among all users
+  const sorted = [...allUsers].sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  const rank   = sorted.findIndex(u => u.uid === d.uid) + 1;
+
+  // Community totals
+  const totalUsers = allUsers.length;
+  const totalXP    = allUsers.reduce((s, u) => s + (u.xp || 0), 0);
+
+  // Referral progress to next milestone
+  const milestones = [1, 3, 5, 10, 20];
+  const next       = milestones.find(m => m > referralCount);
+  const pct        = next ? Math.round((referralCount / next) * 100) : 100;
+  const milestone  = next ? `${referralCount} / ${next} — next reward` : '🏆 Top tier reached';
+
+  // Update DOM
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('ambXP',         fmt(xp));
+  set('ambStreak',     streak);
+  set('ambRank',       rank > 0 ? `#${rank}` : '—');
+  set('ambReferrals',  referralCount);
+  set('ambRefProgress', `${referralCount} referral${referralCount !== 1 ? 's' : ''}`);
+  set('ambRefMilestone', milestone);
+  set('ambTotalUsers', fmt(totalUsers));
+  set('ambTotalXP',    totalXP >= 1000 ? (totalXP / 1000).toFixed(1) + 'k' : totalXP);
+
+  const linkEl = document.getElementById('ambRefLink');
+  if (linkEl) linkEl.textContent = referralLink;
+  window._ambRefLink = referralLink;
+
+  const bar = document.getElementById('ambRefBar');
+  setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
+}
+
+window.ambCopyLink = function() {
+  const link = window._ambRefLink;
+  if (!link) return;
+  navigator.clipboard?.writeText(link)
+    .then(() => toast('✓ Referral link copied', 'success'))
+    .catch(() => toast(link));
+};
+
+window.ambShareLink = function() {
+  const link = window._ambRefLink;
+  if (!link) return;
+  if (navigator.share) {
+    navigator.share({ title: 'Join MedExcel', text: 'Study smarter with MedExcel!', url: link }).catch(() => {});
+  } else {
+    window.ambCopyLink();
+  }
+};
+
+// ── DAILY ACTIVE USERS CHART ──
+async function renderDAUChart() {
+  const barsEl  = document.getElementById('dauChartBars');
+  const labLabelsEl = document.getElementById('dauChartLabels');
+  const totalEl = document.getElementById('dauWeekTotal');
+  if (!barsEl) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push({
+      key:     d.toISOString().split('T')[0],
+      label:   d.toLocaleDateString('en', { weekday: 'short' }),
+      isToday: i === 0
+    });
+  }
+
+  try {
+    // Fetch all 7 dailyActive docs in parallel
+    const snaps  = await Promise.all(days.map(d => getDoc(doc(db, 'dailyActive', d.key))));
+    const counts = snaps.map(s => s.exists() ? Object.keys(s.data().uids || {}).length : 0);
+    const max    = Math.max(...counts, 1);
+    const total  = counts.reduce((s, c) => s + c, 0);
+
+    if (totalEl) totalEl.textContent = `${total} this week`;
+
+    barsEl.innerHTML = days.map((d, i) => {
+      const count  = counts[i];
+      const pct    = count > 0 ? Math.max((count / max) * 100, 10) : 4;
+      const color  = d.isToday ? 'var(--purple)'  : count > 0 ? 'var(--hover)' : 'var(--surface2)';
+      const border = d.isToday ? '1px solid rgba(167,139,250,.35)' : '1px solid var(--border)';
+      const cc     = d.isToday ? 'var(--purple)'  : count > 0 ? 'var(--text)' : 'transparent';
+      return `<div class="chart-bar-col">
+        <span class="chart-bar-count" style="color:${cc};">${count > 0 ? count : ''}</span>
+        <div class="chart-bar" style="height:${pct}%;background:${color};border:${border};"></div>
+      </div>`;
+    }).join('');
+
+    if (labLabelsEl) {
+      labLabelsEl.innerHTML = days.map((d, i) =>
+        `<div class="chart-day" style="color:${d.isToday ? 'var(--purple)' : 'var(--muted)'};">${d.label}</div>`
+      ).join('');
+    }
+  } catch(e) {
+    barsEl.innerHTML = `<div style="color:var(--red);font-size:.75rem;font-family:var(--mono);padding:.25rem 0;line-height:1.8;">
+      <i class="fas fa-triangle-exclamation" style="margin-right:.3rem;"></i>Permission denied on <code>dailyActive</code><br>
+      <span style="color:var(--muted);font-size:.68rem;">Add to Firestore rules:<br>
+      <code>match /dailyActive/{date} { allow read: if request.auth != null; allow write: if request.auth != null; }</code></span>
+    </div>`;
+  }
+}
+
+// ── OVERVIEW ──
+function renderOverview() {
+  const total   = allUsers.length;
+  const premium = allUsers.filter(u => u.plan==='premium').length;
+  const free    = total - premium;
+  const banned  = allUsers.filter(u => u.banned).length;
+  const totalXP = allUsers.reduce((s,u) => s+(u.xp||0), 0);
+  const streaks = allUsers.filter(u => (u.streak||0)>0).length;
+  const today   = new Date().toDateString();
+  const newToday= allUsers.filter(u => { if(!u.createdAt) return false; const d=u.createdAt.toDate?u.createdAt.toDate():new Date(u.createdAt); return d.toDateString()===today; }).length;
+  const weekAgo = Date.now()-7*24*3600000;
+  const newWeek = allUsers.filter(u => ts2ms(u.createdAt)>weekAgo).length;
+  const pct     = total>0 ? ((premium/total)*100).toFixed(1) : '0';
+
+  document.getElementById('ovRev').textContent    = '₦'+(premium*1999).toLocaleString();
+  document.getElementById('ovRevSub').textContent = `from ${premium} premium subscriber${premium!==1?'s':''}`;
+  document.getElementById('ovTotal').textContent  = total;
+  document.getElementById('ovToday').textContent  = `+${newToday} today · +${newWeek} this week`;
+  document.getElementById('ovPrem').textContent   = premium;
+  document.getElementById('ovConv').textContent   = pct+'% conversion';
+  document.getElementById('ovXP').textContent     = totalXP>=1000?(totalXP/1000).toFixed(1)+'k':totalXP;
+  document.getElementById('ovStreak').textContent = streaks;
+
+  document.getElementById('planCard').innerHTML = [
+    barHTML('Premium', premium, total, '#34d399'),
+    barHTML('Free',    free,    total, '#52525b'),
+    banned>0?barHTML('Banned',banned,total,'#f87171'):'',
+  ].join('');
+
+  const recent = [...allUsers].sort((a,b)=>ts2ms(b.createdAt)-ts2ms(a.createdAt)).slice(0,8);
+  document.getElementById('recentCard').innerHTML = recent.map(u=>uRowHTML(u)).join('') || '<div class="empty">No users yet.</div>';
+}
+
+function barHTML(label,count,total,color) {
+  const pct = total>0?+((count/total)*100).toFixed(1):0;
+  return `<div class="pbar-row"><div class="pbar-top"><span class="pbar-name"><span class="pdot" style="background:${color}"></span>${label}</span><span class="pbar-right"><span class="pbar-count">${count}</span><span class="pbar-pct">${pct}%</span></span></div><div class="bar-track"><div class="bar-fill" style="background:${color}" data-w="${pct}"></div></div></div>`;
+}
+
+// ── USERS ──
+window.setFilter = function(btn, f) {
+  userFilter = f;
+  document.querySelectorAll('.fpill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUserList();
+};
+
+window.renderUserList = function() {
+  const q = (document.getElementById('userSearch')?.value||'').toLowerCase();
+  let list = allUsers.filter(u => {
+    const mq = !q||(u.displayName||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)||u.uid.toLowerCase().includes(q);
+    const mf = userFilter==='all'
+      ||(userFilter==='premium'&&u.plan==='premium')
+      ||(userFilter==='free'&&u.plan!=='premium'&&!u.banned)
+      ||(userFilter==='banned'&&u.banned)
+      ||(userFilter==='admin'&&(u.role==='admin'||u.role==='ambassador'));
+    return mq&&mf;
+  }).sort((a,b)=>ts2ms(b.createdAt)-ts2ms(a.createdAt));
+  document.getElementById('userListWrap').innerHTML = list.length
+    ? list.map(u=>uRowHTML(u,true)).join('')
+    : '<div class="empty">No users found.</div>';
+};
+
+// ── ACTIVITY ──
+function renderActivity() {
+  const byXP     = [...allUsers].sort((a,b)=>(b.xp||0)-(a.xp||0)).slice(0,10);
+  const byStreak = [...allUsers].sort((a,b)=>(b.streak||0)-(a.streak||0)).filter(u=>(u.streak||0)>0).slice(0,10);
+  const byUsage  = [...allUsers].sort((a,b)=>((b.planUsed||b.dailyUsage)||0)-((a.planUsed||a.dailyUsage)||0)).slice(0,10);
+  document.getElementById('topXP').innerHTML     = byXP.map((u,i)    =>rankHTML(u,i+1,fmt(u.xp||0)+' XP')).join('')||'<div class="empty">No data.</div>';
+  document.getElementById('topStreak').innerHTML = byStreak.map((u,i) =>rankHTML(u,i+1,(u.streak||0)+' days')).join('')||'<div class="empty">No active streaks.</div>';
+  document.getElementById('topUsage').innerHTML  = byUsage.map((u,i)  =>rankHTML(u,i+1,((u.planUsed||u.dailyUsage)||0)+' uses')).join('')||'<div class="empty">No usage data.</div>';
+}
+
+// ── TEAM ──
+function renderTeam() {
+  const team = allUsers.filter(u=>u.role==='admin'||u.role==='ambassador');
+  document.getElementById('teamCard').innerHTML = team.length
+    ? team.map(u=>uRowHTML(u)).join('')
+    : '<div class="empty">No team members. Add <code>role: "admin"</code> in Firestore.</div>';
+}
+
+// ── BROADCAST ──
+window.sendBroadcast = async function() {
+  const title  = document.getElementById('bcTitle').value.trim();
+  const body   = document.getElementById('bcBody').value.trim();
+  const type   = document.getElementById('bcType').value;
+  const btn    = document.getElementById('bcSendBtn');
+
+  if (!title || !body) { toast('Fill in title and message', 'error'); return; }
+
+  // Loading state — disable immediately so tapping again does nothing
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Sending…';
+
+  try {
+    const msg = { title, body, type, sentAt: new Date().toISOString(), sentBy: auth.currentUser?.email || 'admin' };
+    await setDoc(doc(db, 'announcements', 'latest'), msg);
+    await addDoc(collection(db, 'announcements'), msg);
+
+    // Success — show preview, clear fields
+    const prev = document.getElementById('bcPreview');
+    const typeLabels = { info:'ℹ️', update:'🚀', maintenance:'🔧', promo:'🎁' };
+    prev.style.display = 'block';
+    prev.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.375rem;"><span style="font-size:.9rem;">${typeLabels[type]||'📢'}</span><strong style="color:var(--text);font-size:.875rem;">${esc(title)}</strong></div><div style="color:var(--soft);font-size:.8rem;line-height:1.6;">${esc(body)}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.5rem;font-family:var(--mono);">Sent just now · ${esc(type)}</div>`;
+
+    document.getElementById('bcTitle').value = '';
+    document.getElementById('bcBody').value  = '';
+    toast('✓ Sent to all users', 'success');
+    loadBroadcastHistory();
+
+  } catch(e) {
+    toast('Failed to send — check Firestore rules', 'error');
+  } finally {
+    // Always re-enable so they can try again
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send to All Users';
+  }
+};
+
+async function loadActiveAnnouncement() {
+  const contentEl = document.getElementById('bcActiveContent');
+  const statusEl  = document.getElementById('bcActiveStatus');
+  const retractBtn = document.getElementById('bcRetractBtn');
+  try {
+    const snap = await getDoc(doc(db, 'announcements', 'latest'));
+    if (!snap.exists()) {
+      contentEl.innerHTML = '<span style="color:var(--muted);">No announcement sent yet.</span>';
+      retractBtn.style.display = 'none';
+      if (statusEl) { statusEl.textContent = 'None'; statusEl.style.background='var(--hover)'; statusEl.style.color='var(--muted)'; statusEl.style.borderColor='var(--border)'; }
+      return;
+    }
+    const ann = snap.data();
+    const typeLabels = { info:'ℹ️', update:'🚀', maintenance:'🔧', promo:'🎁' };
+    if (ann.cancelled) {
+      contentEl.innerHTML = `<span style="text-decoration:line-through;opacity:.5;">${esc(ann.title)}</span> <span style="font-size:.7rem;color:var(--red);">— retracted</span>`;
+      retractBtn.style.display = 'none';
+      if (statusEl) { statusEl.textContent = 'Retracted'; statusEl.style.background='rgba(248,113,113,.08)'; statusEl.style.color='var(--red)'; statusEl.style.borderColor='rgba(248,113,113,.2)'; }
+    } else {
+      contentEl.innerHTML = `<div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.3rem;"><span>${typeLabels[ann.type]||'📢'}</span><strong style="color:var(--text);font-size:.85rem;">${esc(ann.title)}</strong></div><div style="color:var(--muted);font-size:.78rem;line-height:1.5;">${esc(ann.body||'')}</div><div style="font-size:.65rem;color:var(--muted);margin-top:.4rem;font-family:var(--mono);">Sent ${ann.sentAt ? new Date(ann.sentAt).toLocaleString() : '—'}</div>`;
+      retractBtn.style.display = 'block';
+      if (statusEl) { statusEl.textContent = 'Live'; statusEl.style.background='rgba(52,211,153,.1)'; statusEl.style.color='var(--green)'; statusEl.style.borderColor='rgba(52,211,153,.2)'; }
+    }
+  } catch(e) {
+    contentEl.innerHTML = '<span style="color:var(--red);">⚠ Could not load — check Firestore rules.</span>';
+    retractBtn.style.display = 'none';
+  }
+}
+
+window.retractAnnouncement = async function() {
+  const btn = document.getElementById('bcRetractBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch" style="animation:spin .7s linear infinite;margin-right:.375rem;"></i>Retracting…';
+  try {
+    await setDoc(doc(db, 'announcements', 'latest'), { cancelled: true }, { merge: true });
+    toast('✓ Announcement retracted — users won\'t see it', 'success');
+    loadActiveAnnouncement();
+  } catch(e) {
+    toast('Failed to retract', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-ban" style="margin-right:.375rem;"></i>Retract — Stop showing to users';
+  }
+};
+
+async function loadBroadcastHistory() {
+  loadActiveAnnouncement();
+  try {
+    const snap = await getDocs(collection(db,'announcements'));
+    const msgs = [];
+    snap.forEach(d => { if(d.id!=='latest') msgs.push({id:d.id,...d.data()}); });
+    msgs.sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt));
+    document.getElementById('bcHistory').innerHTML = msgs.length
+      ? msgs.slice(0,10).map(m=>`
+          <div class="urow">
+            <div style="flex:1;min-width:0;">
+              <div class="uname">${esc(m.title)}</div>
+              <div class="uemail">${esc((m.body||'').substring(0,60))}${(m.body||'').length>60?'…':''}</div>
+            </div>
+            <div class="umeta">
+              <span class="pill pill-free">${esc(m.type||'info')}</span>
+              <div class="udate">${m.sentAt?new Date(m.sentAt).toLocaleDateString():''}</div>
+            </div>
+          </div>`).join('')
+      : '<div class="empty">No announcements sent yet.</div>';
+  } catch(e) {
+    document.getElementById('bcHistory').innerHTML =
+      '<div class="empty" style="color:var(--red);">⚠ Permission denied — check Firestore rules.</div>';
+  }
+}
+
+window.setMaintenance = async function(on) {
+  try {
+    await setDoc(doc(db,'config','app'), { maintenance: on, updatedAt: new Date().toISOString() }, { merge:true });
+    toast(on ? '🔧 Maintenance mode ON' : '✓ Maintenance mode OFF', on ? '' : 'success');
+  } catch(e) { toast('Failed to update config', 'error'); }
+};
+
+window.pushForceUpdate = async function() {
+  const btn = document.getElementById('pushUpdateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin" style="margin-right:.375rem;"></i>Pushing…';
+  try {
+    const version = Date.now().toString();
+    await setDoc(doc(db,'config','app'), {
+      forceUpdateVersion: version,
+      forceUpdatePushedAt: new Date().toISOString(),
+      forceUpdatePushedBy: auth.currentUser?.email || 'admin'
+    }, { merge: true });
+    toast('✓ Update pushed — users will get fresh page on next open', 'success');
+    loadUpdateStatus();
+  } catch(e) {
+    toast('Failed to push update', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:.375rem;"></i>Push Update to All Users';
+  }
+};
+
+async function loadUpdateStatus() {
+  try {
+    const snap = await getDoc(doc(db,'config','app'));
+    const timeEl   = document.getElementById('lastUpdateTime');
+    const statusEl = document.getElementById('lastUpdateStatus');
+    if (!snap.exists() || !snap.data().forceUpdatePushedAt) {
+      if (timeEl)   timeEl.textContent   = 'Never';
+      if (statusEl) statusEl.textContent = 'No update pushed yet';
+      return;
+    }
+    const d = new Date(snap.data().forceUpdatePushedAt);
+    if (timeEl)   timeEl.textContent   = d.toLocaleString();
+    if (statusEl) { statusEl.textContent = 'Active'; statusEl.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+// ── MANUAL UPGRADE ──
+window.manualUpgrade = async function(plan) {
+  const uid = document.getElementById('upgradeUid').value.trim();
+  if (!uid) { toast('Enter a UID'); return; }
+  try {
+    await updateDoc(doc(db,'users',uid), { plan, planUpdatedAt:new Date().toISOString(), planBy:'admin_manual' });
+    toast(`✓ User set to ${plan}`);
+    document.getElementById('upgradeUid').value='';
+    loadData();
+  } catch(e) { toast('Failed — check UID'); }
+};
+
+// ── GIVE XP ──
+window.giveXP = async function() {
+  const uid    = document.getElementById('xpUid').value.trim();
+  const amount = parseInt(document.getElementById('xpAmount').value);
+  if (!uid||!amount) { toast('Enter UID and amount'); return; }
+  try {
+    const snap = await getDoc(doc(db,'users',uid));
+    if (!snap.exists()) { toast('User not found'); return; }
+    const cur       = snap.data().xp       || 0;
+    const curWeekly = snap.data().weeklyXp || 0;
+    await updateDoc(doc(db,'users',uid), { xp: cur + amount, weeklyXp: curWeekly + amount });
+    toast(`✓ +${amount} XP given`);
+    document.getElementById('xpUid').value='';
+    document.getElementById('xpAmount').value='';
+    loadData();
+  } catch(e) { toast('Failed — check UID'); }
+};
+
+// ── USER ROW HTML ──
+function uRowHTML(u, clickable=false) {
+  const name   = u.displayName||u.email?.split('@')[0]||'User';
+  const init   = name.charAt(0).toUpperCase();
+  const isPrem = u.plan==='premium';
+  const click  = clickable ? `onclick="openUserModal('${u.uid}')"` : '';
+  return `<div class="urow${clickable?' click':''}${u.banned?' banned':''}" ${click}>
+    <div class="uav">${esc(init)}</div>
+    <div style="min-width:0;flex:1;">
+      <div class="uname">${esc(name)}
+        ${u.role==='admin'?'<span class="role-badge badge-admin" style="font-size:.45rem;">admin</span>':''}
+        ${u.role==='ambassador'?'<span class="role-badge badge-ambassador" style="font-size:.45rem;">amb</span>':''}
+        ${u.banned?'<span class="pill pill-ban">banned</span>':''}
+      </div>
+      <div class="uemail">${esc(u.email||'—')}</div>
+    </div>
+    <div class="umeta">
+      <span class="pill ${isPrem?'pill-prem':'pill-free'}">${isPrem?'💎 Pro':'Free'}</span>
+      <div class="uxp">${fmt(u.xp||0)} XP · 🔥${u.streak||0}</div>
+      <div class="udate">${fmtDate(u.createdAt)}</div>
+    </div>
+  </div>`;
+}
+
+function rankHTML(u, rank, meta) {
+  const name  = u.displayName || u.email?.split('@')[0] || 'User';
+  const isPrem = u.plan === 'premium';
+  const showEmail = currentRole !== 'ambassador';
+  return `<div class="urow">
+    <div class="rank-n">${rank}</div>
+    <div class="uav">${esc(name.charAt(0).toUpperCase())}</div>
+    <div style="min-width:0;flex:1;">
+      <div class="uname">${esc(name)}</div>
+      ${showEmail ? `<div class="uemail">${esc(u.email || '—')}</div>` : ''}
+    </div>
+    <div class="umeta"><span class="pill ${isPrem ? 'pill-prem' : 'pill-free'}">${isPrem ? '💎' : 'Free'}</span><div class="uxp">${meta}</div></div>
+  </div>`;
+}
+
+// ── USER MODAL ──
+window.openUserModal = function(uid) {
+  const u = allUsers.find(u=>u.uid===uid);
+  if (!u) return;
+  const name   = u.displayName||u.email?.split('@')[0]||'User';
+  const isPrem = u.plan==='premium';
+  const isBan  = !!u.banned;
+
+  const profileRows = ['studyProgram','studyLevel','studyGoal','studyTime','dailyTarget'].map(k => {
+    if (!u[k]) return '';
+    const labels = {
+      studyProgram:{mbbs:'MBBS',usmle:'USMLE',plab:'PLAB',nursing:'Nursing',pharmacy:'Pharmacy'},
+      studyLevel:{'1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year','4th':'4th Year',final:'Final Year',postgrad:'Post-grad'},
+      studyGoal:{pass:'Pass exams',understand:'Deepen understanding',consistency:'Build consistency',revise:'Quick revision'},
+      studyTime:{morning:'Morning',afternoon:'Afternoon',evening:'Evening',night:'Night'},
+      dailyTarget:{}
+    };
+    const val = labels[k][u[k]] || u[k];
+    const key = {studyProgram:'Programme',studyLevel:'Year',studyGoal:'Goal',studyTime:'Study Time',dailyTarget:'Daily Target'}[k];
+    return `<div class="mrow"><span class="mrow-l">${esc(key)}</span><span class="mrow-r">${esc(val)}</span></div>`;
+  }).join('');
+
+  document.getElementById('modalBody').innerHTML = `
+    <div style="font-size:.9375rem;font-weight:800;color:var(--text);margin-bottom:.875rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+      ${esc(name)}
+      ${u.role==='admin'?'<span class="role-badge badge-admin">admin</span>':''}
+      ${u.role==='ambassador'?'<span class="role-badge badge-ambassador">ambassador</span>':''}
+      ${isBan?'<span class="pill pill-ban">banned</span>':''}
+    </div>
+    <div class="mrow"><span class="mrow-l">Email</span><span class="mrow-r">${esc(u.email||'—')}</span></div>
+    <div class="mrow" onclick="copyText('${u.uid}')" style="cursor:pointer;">
+      <span class="mrow-l">UID <small style="opacity:.5">(tap to copy)</small></span>
+      <span class="mrow-r" style="font-size:.65rem;max-width:140px;">${esc(u.uid)}</span>
+    </div>
+    <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${isPrem?'💎 Premium':'Free'}</span></div>
+    <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)}</span></div>
+    <div class="mrow"><span class="mrow-l">Weekly XP</span><span class="mrow-r">${fmt(u.weeklyXp||0)}</span></div>
+    <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
+    <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem?30:5}</span></div>
+    <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${esc(u.role||'user')}</span></div>
+    <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
+    ${profileRows}
+
+    ${isPrem
+      ? `<button class="mbtn mbtn-muted"  onclick="setUserPlan('${u.uid}','free')">Remove Premium</button>`
+      : `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Upgrade to Premium</button>`
+    }
+    <button class="mbtn mbtn-orange" onclick="resetUserUsage('${u.uid}')">Reset Daily Usage</button>
+    <button class="mbtn mbtn-orange" onclick="resetUserStreak('${u.uid}')">Reset Streak</button>
+    <button class="mbtn ${isBan?'mbtn-green':'mbtn-red'}" onclick="${isBan?'unbanUser':'banUser'}('${u.uid}')">
+      ${isBan?'Unban User':'Ban User'}
+    </button>
+    ${u.role !== 'admin'
+      ? `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','admin')"><i class="fas fa-shield-halved" style="margin-right:.375rem;"></i>Make Admin</button>`
+      : `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','user')"><i class="fas fa-shield-halved" style="margin-right:.375rem;"></i>Remove Admin</button>`
+    }
+    ${u.role !== 'ambassador'
+      ? `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','ambassador')"><i class="fas fa-star" style="margin-right:.375rem;color:var(--gold);"></i>Make Ambassador</button>`
+      : `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','user')"><i class="fas fa-star" style="margin-right:.375rem;"></i>Remove Ambassador</button>`
+    }
+    <button class="mbtn mbtn-muted" onclick="closeUserModal()">Close</button>
+  `;
+  document.getElementById('userModal').classList.add('show');
+};
+
+window.setUserPlan = async function(uid, plan) {
+  try {
+    await updateDoc(doc(db,'users',uid), { plan, planUpdatedAt:new Date().toISOString(), planBy:'admin' });
+    toast('✓ Plan updated'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.banUser = async function(uid) {
+  if (!confirm('Ban this user? They will be blocked from logging in.')) return;
+  try {
+    await updateDoc(doc(db,'users',uid), { banned:true, bannedAt:new Date().toISOString() });
+    toast('✓ User banned'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.unbanUser = async function(uid) {
+  try {
+    await updateDoc(doc(db,'users',uid), { banned:false, bannedAt:null });
+    toast('✓ User unbanned'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.resetUserUsage = async function(uid) {
+  try {
+    // Use ISO date format to match what the app reads: new Date().toISOString().split('T')[0]
+    await updateDoc(doc(db,'users',uid), { planUsed:0, dailyUsage:0, lastDailyReset:new Date().toISOString().split('T')[0] });
+    toast('✓ Daily usage reset'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.resetUserStreak = async function(uid) {
+  if (!confirm('Reset this user\'s streak to 0?')) return;
+  try {
+    await updateDoc(doc(db,'users',uid), { streak:0 });
+    toast('✓ Streak reset'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.setRole = async function(uid, role) {
+  try {
+    await updateDoc(doc(db,'users',uid), { role });
+    toast(`✓ Role set to ${role}`); closeUserModal(); loadData();
+  } catch(e) { toast('Failed'); }
+};
+
+window.copyText = function(text) {
+  navigator.clipboard?.writeText(text).then(()=>toast('Copied!')).catch(()=>toast(text));
+};
+
+window.maybeCloseModal = function(e) {
+  if(e.target===document.getElementById('userModal')) closeUserModal();
+};
+window.closeUserModal = function() {
+  document.getElementById('userModal').classList.remove('show');
+};
+
+// ── TABS ──
+window.switchTab = function(tab) {
+  document.querySelectorAll('.tab-btn').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('onclick').includes("'"+tab+"'"));
+  });
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab)?.classList.add('active');
+  if (tab === 'broadcast') { loadBroadcastHistory(); loadUpdateStatus(); }
+  if (tab === 'insights') { loadInsights(); }
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill[data-w]').forEach(el=>{ el.style.width=el.dataset.w+'%'; });
+  }, 80);
+};
+
+// ── TOAST ──
+window.toast = function(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+};
+
+// ── UTILS ──
+function ts2ms(ts) {
+  if(!ts) return 0;
+  if(ts.toDate) return ts.toDate().getTime();
+  return new Date(ts).getTime();
+}
+function esc(str) { return String(str || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t])); }
+function fmtDate(ts) {
+  if(!ts) return '—';
+  const d = ts.toDate?ts.toDate():new Date(ts);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+}
+function fmt(n){ return n>=1000?(n/1000).toFixed(1)+'k':n; }
+
+// ── ONBOARDING INSIGHTS ──────────────────────────────────────────────────────
+window.loadInsights = async function() {
+  const breakdowns = document.getElementById('ins-breakdowns');
+  const totalEl    = document.getElementById('ins-total');
+  const refEl      = document.getElementById('ins-ref-used');
+  if (!breakdowns) return;
+
+  breakdowns.innerHTML = '<p style="color:var(--muted);font-size:.8rem;padding:.5rem 0;">Loading...</p>';
+  totalEl.textContent = '…';
+  refEl.textContent   = '…';
+
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'users'),
+      where('onboardingDone', '==', true)
+    ));
+
+    const users = snap.docs.map(d => d.data());
+    totalEl.textContent = users.length;
+
+    const refCount = users.filter(u => u.referralCode || u.claimedReferral).length;
+    refEl.textContent = refCount;
+
+    const fields = [
+      { key: 'studyProgram', label: 'Study Programme',
+        map: { mbbs:'MBBS / Med School', usmle:'USMLE', plab:'PLAB', nursing:'Nursing', pharmacy:'Pharmacy', other:'Other' } },
+      { key: 'studyLevel', label: 'Year of Study',
+        map: { '1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year','4th':'4th Year','final':'Final Year','postgrad':'Post-grad / Resident' } },
+      { key: 'studyGoal', label: 'Primary Goal',
+        map: { pass:'Pass exams', understand:'Deepen understanding', consistency:'Build consistency', revise:'Quick revision' } },
+      { key: 'studyTime', label: 'Preferred Study Time',
+        map: { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' } },
+      { key: 'dailyTarget', label: 'Daily Target',
+        map: { '10':'10 items','20':'20 items','30':'30 items','50':'50+ items' } },
+      { key: 'gender', label: 'Gender',
+        map: { male:'Male', female:'Female', other:'Prefer not to say' } },
+    ];
+
+    breakdowns.innerHTML = fields.map(field => {
+      // Count occurrences
+      const counts = {};
+      users.forEach(u => {
+        const val = String(u[field.key] || 'unknown');
+        counts[val] = (counts[val] || 0) + 1;
+      });
+
+      const total = users.length || 1;
+      const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+
+      const bars = sorted.map(([val, count]) => {
+        const label = field.map[val] || val;
+        const pct   = Math.round((count / total) * 100);
+        return `
+          <div style="margin-bottom:.625rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:.78rem;font-weight:600;color:var(--text);">${label}</span>
+              <span style="font-size:.72rem;color:var(--muted);font-weight:700;">${count} · ${pct}%</span>
+            </div>
+            <div style="height:7px;background:var(--border);border-radius:9999px;overflow:hidden;">
+              <div class="bar-fill" data-w="${pct}"
+                style="height:100%;width:0%;background:var(--purple2);border-radius:9999px;transition:width .6s cubic-bezier(.19,1,.22,1);"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="sec-hd" style="margin-bottom:.75rem;">
+            <span class="sec-title" style="font-size:.8rem;">${field.label}</span>
+          </div>
+          ${bars}
+        </div>`;
+    }).join('');
+
+    // Animate bars in
+    setTimeout(() => {
+      document.querySelectorAll('#ins-breakdowns .bar-fill[data-w]').forEach(el => {
+        el.style.width = el.dataset.w + '%';
+      });
+    }, 80);
+
+  } catch(e) {
+    breakdowns.innerHTML = `<p style="color:var(--red);font-size:.8rem;">Failed to load: ${e.message}</p>`;
+    console.error('[Insights]', e);
+  }
+};
+
+// ── DEVICE WHITELIST ──────────────────────────────────────────────────────────
+async function loadWhitelistPanel() {
+  const el = document.getElementById('whitelistList');
+  if (!el) return;
+  try {
+    const snap = await getDocs(collection(db, 'deviceWhitelist'));
+    if (snap.empty) { el.innerHTML = '<div class="empty">No UIDs whitelisted yet</div>'; return; }
+    el.innerHTML = snap.docs.map(d => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.78rem;">
+        <code style="color:var(--text);word-break:break-all;">${d.id}</code>
+        <button onclick="removeDeviceWhitelistById('${d.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem;padding:.25rem .5rem;flex-shrink:0;">Remove</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty" style="color:var(--red);">Error: ${e.message}</div>`; }
+}
+
+window.addDeviceWhitelist = async function() {
+  const uid = document.getElementById('whitelistUid').value.trim();
+  const status = document.getElementById('whitelistStatus');
+  if (!uid) { status.style.color = 'var(--red)'; status.textContent = 'Enter a UID first.'; return; }
+  try {
+    await setDoc(doc(db, 'deviceWhitelist', uid), { addedAt: new Date().toISOString(), addedBy: 'admin' });
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ ' + uid + ' whitelisted — device check bypassed for this account.';
+    document.getElementById('whitelistUid').value = '';
+    loadWhitelistPanel();
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = 'Error: ' + e.message; }
+};
+
+window.removeDeviceWhitelist = async function() {
+  const uid = document.getElementById('whitelistUid').value.trim();
+  if (!uid) { document.getElementById('whitelistStatus').textContent = 'Enter a UID first.'; return; }
+  await removeDeviceWhitelistById(uid);
+};
+
+window.removeDeviceWhitelistById = async function(uid) {
+  const status = document.getElementById('whitelistStatus');
+  try {
+    await deleteDoc(doc(db, 'deviceWhitelist', uid));
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Removed ' + uid + ' from whitelist.';
+    loadWhitelistPanel();
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = 'Error: ' + e.message; }
+};
+
+window.lookupDevice = async function() {
+  const deviceId = document.getElementById('deviceLookupId').value.trim();
+  const result   = document.getElementById('deviceLookupResult');
+  if (!deviceId) { result.textContent = 'Enter a device ID.'; return; }
+  try {
+    const snap = await getDoc(doc(db, 'deviceRegistry', deviceId));
+    if (!snap.exists()) { result.style.color = 'var(--muted)'; result.textContent = 'Device not found in registry.'; return; }
+    const d = snap.data();
+    const first = d.firstSeen ? new Date(d.firstSeen).toLocaleString() : '—';
+    const last  = d.lastSeen  ? new Date(d.lastSeen).toLocaleString()  : '—';
+    result.style.color = 'var(--text)';
+    result.innerHTML = '<b>UID:</b> ' + d.uid + '<br><b>First seen:</b> ' + first + '<br><b>Last seen:</b> ' + last;
+  } catch(e) { result.style.color = 'var(--red)'; result.textContent = 'Error: ' + e.message; }
+};
+
+window.clearDevice = async function() {
+  const deviceId = document.getElementById('deviceLookupId').value.trim();
+  const result   = document.getElementById('deviceLookupResult');
+  if (!deviceId) { result.textContent = 'Enter a device ID first.'; return; }
+  if (!confirm('Clear registration for device: ' + deviceId + '?')) return;
+  try {
+    await deleteDoc(doc(db, 'deviceRegistry', deviceId));
+    result.style.color = 'var(--green)';
+    result.textContent = '✓ Device registration cleared.';
+  } catch(e) { result.style.color = 'var(--red)'; result.textContent = 'Error: ' + e.message; }
+};
+
+const _origSwitch = window.switchTab;
+window.switchTab = function(tab) {
+  _origSwitch(tab);
+  if (tab === 'team') loadWhitelistPanel();
+};
+
+// ── THEME TOGGLE ──────────────────────────────────────────────────────────────
+(function initTheme() {
+  const saved = localStorage.getItem('medexcel_admin_theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  applyTheme(theme);
+})();
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeToggleIcon');
+  const meta = document.getElementById('themeMetaColor');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#06060f' : '#eef1f8');
+  localStorage.setItem('medexcel_admin_theme', theme);
+}
+
+window.toggleTheme = function() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+};
+
+
+
+
+</script>
+</body>
+</html>

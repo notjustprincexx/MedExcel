@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+    // Add this inside the <head> of index.html
+    const savedUser = localStorage.getItem("nativeUser");
+    if (savedUser && savedUser !== "undefined" && savedUser !== "null") {
+        window.location.replace("homepage.html");
+    }
+
+    // Capture referral code from URL param (?ref=ABC123) before anything else
+    (function() {
+        try {
+            const params = new URLSearchParams(location.search);
+            const ref = params.get('ref');
+            if (ref && ref.length > 0) {
+                sessionStorage.setItem('medexcel_ref_code', ref.toUpperCase());
+            }
+        } catch(e) {}
+    })();
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050A15">
+    <title>MedExcel</title>
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" as="script">
+    
+    <script>
+        window.AssetManager = {
+            cache: {},
+            preload: function(key, url) {
+                this.cache[key] = fetch(url).then(res => res.json()).catch(err => console.warn(`Failed to preload ${key}:`, err));
+            },
+            get: async function(key) {
+                return await this.cache[key];
+            }
+        };
+
+        AssetManager.preload('loader', 'Loader.json'); 
+        AssetManager.preload('yay', 'YayJump.json');
+        AssetManager.preload('cat', 'Blue Working Cat Animation.json');
+        AssetManager.preload('wonder', 'WonderThings.json');
+        AssetManager.preload('walk', 'Walkinganddrinking.json');
+
+        const preloadFutureAssets = () => {
+            AssetManager.preload('quiz1', 'quiz.json');
+            AssetManager.preload('trophy', 'trophy.json');
+        };
+        
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(preloadFutureAssets);
+        } else {
+            setTimeout(preloadFutureAssets, 2000);
+        }
+    </script>
+
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" onload="initAnimations()"></script>
+
+    <style>
+        :root {
+            --bg-main: #050A15; --bg-card: #0B1120; --bg-card-hover: rgba(255, 255, 255, 0.05); 
+            --text-main: #ffffff; --text-muted: #94a3b8; --text-light: #cbd5e1;
+            --accent-blue: #3b82f6; --accent-blue-hover: #60a5fa; --accent-blue-dark: #2563eb; 
+            --border-color: rgba(255, 255, 255, 0.05); 
+            --ease-snap: cubic-bezier(0.19, 1, 0.22, 1); --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; height: 100vh; overflow: hidden; -webkit-user-select: none; user-select: none; position: relative; }
+        button { cursor: pointer; border: none; outline: none; background: transparent; font-family: inherit; }
+        input { font-family: inherit; outline: none; border: none; background: transparent; color: var(--text-main); }
+
+        .loader-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10000; transition: opacity 0.4s ease, visibility 0.4s; }
+        .loader-content { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+        .loader-graphic-container { position: relative; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; }
+        .lottie-loader-layer { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .loading-text { color: var(--text-light); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.05em; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .lottie-box { width: 250px; height: 250px; opacity: 0; transform: scale(0.95) translateY(10px); transition: all 0.6s var(--ease-out); }
+        .lottie-box.loaded { opacity: 1; transform: scale(1) translateY(0); }
+
+        .ok-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 99999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+        .ok-dialog { width: 90%; max-width: 400px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); transform: scale(0.95); opacity: 0; transition: all 0.2s var(--ease-out); }
+        .ok-backdrop.active .ok-dialog { transform: scale(1); opacity: 1; }
+        .dialog-title { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .dialog-msg { color: var(--text-light); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .btn-cancel { padding: 0.5rem 1rem; color: var(--text-muted); font-weight: bold; font-size: 0.875rem; transition: color 0.2s; }
+        .btn-cancel:hover { color: var(--text-main); }
+        .btn-confirm { padding: 0.5rem 1.5rem; background: var(--accent-blue-dark); color: white; border-radius: 0.75rem; font-weight: bold; font-size: 0.875rem; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: transform 0.1s; }
+        .btn-confirm:active { transform: scale(0.95); }
+
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem; z-index: 50; transition: opacity 0.4s var(--ease-snap), transform 0.4s var(--ease-snap); opacity: 0; pointer-events: none; transform: scale(0.98); overflow: hidden; }
+        .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+        .screen.hidden-screen { display: none; }
+
+        .hero-container { flex: 1; display: flex; flex-direction: column; items-center; justify-content: center; width: 100%; text-align: center; align-items: center; }
+        .app-title { display: flex; align-items: baseline; justify-content: center; font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: 0.025em; }
+        .app-title .d-letter { position: relative; margin-right: -0.1em; font-size: 0.95em; }
+        .app-subtitle { color: var(--text-muted); font-size: 1.125rem; font-weight: 500; max-width: 20rem; line-height: 1.6; }
+        .button-group { width: 100%; max-width: 24rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
+
+        .btn-primary { width: 100%; background: var(--accent-blue); color: var(--text-main); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border-bottom: 6px solid var(--accent-blue-dark); text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.5); transition: all 0.1s; white-space: nowrap; }
+        .btn-primary:active { border-bottom-width: 0; transform: translateY(6px); }
+        .btn-secondary { width: 100%; background: var(--bg-card); color: var(--accent-blue-hover); font-weight: 800; font-size: 0.8rem; padding: 1rem; border-radius: 1rem; border: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.05em; transition: background 0.2s; white-space: nowrap; }
+        .btn-secondary:hover { background: var(--bg-card-hover); }
+
+        .login-modal { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; padding: 1.5rem; transition: all 0.3s ease; opacity: 0; transform: translateY(40px); pointer-events: none; }
+        .login-modal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .login-header { display: flex; align-items: center; justify-content: space-between; margin: 0.5rem 0 2.5rem 0; }
+        .btn-close { color: var(--text-muted); padding: 0.5rem; margin-left: -0.5rem; transition: color 0.2s; }
+        .btn-close:hover { color: var(--text-main); }
+        .login-title { color: var(--text-muted); font-weight: bold; font-size: 1.125rem; flex: 1; text-align: center; margin-right: 1.5rem; }
+        .login-form { width: 100%; max-width: 24rem; margin: 0 auto; }
+        .input-group { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 1rem; margin-bottom: 1.5rem; overflow: hidden; transition: border-color 0.2s; }
+        .input-group:focus-within { border-color: var(--text-muted); }
+        .input-row { position: relative; border-bottom: 2px solid var(--border-color); }
+        .input-row:last-child { border-bottom: none; }
+        .input-field { width: 100%; padding: 1rem; font-weight: 500; }
+        .input-field::placeholder { color: var(--text-muted); }
+        .btn-toggle-pw { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); transition: color 0.2s; }
+        .btn-toggle-pw:hover { color: var(--accent-blue-hover); }
+        
+        .btn-signin { width: 100%; background: var(--border-color); color: var(--text-light); font-weight: 800; font-size: 0.875rem; padding: 0.875rem; border-radius: 1rem; border-bottom: 4px solid var(--bg-card); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; transition: all 0.1s; }
+        .btn-signin:active { border-bottom-width: 0; transform: translateY(4px); }
+        .btn-forgot { width: 100%; color: var(--accent-blue-hover); font-weight: 800; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3rem; transition: color 0.2s; }
+        .btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 1rem; padding: 0.75rem; transition: all 0.1s; }
+        .btn-google:hover { background: var(--bg-card-hover); }
+        .btn-google:active { transform: scale(0.95); }
+        .google-text { color: var(--text-light); font-weight: bold; font-size: 0.875rem; letter-spacing: 0.025em; }
+
+        .onboarding-wrapper { display: flex; width: 100%; height: 100vh; padding-bottom: 40px; box-sizing: content-box; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .onboarding-wrapper::-webkit-scrollbar, .onboarding-wrapper::-webkit-scrollbar-track, .onboarding-wrapper::-webkit-scrollbar-thumb { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; -webkit-appearance: none !important; }
+
+        .slide { flex: 0 0 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; scroll-snap-align: start; scroll-snap-stop: always; padding: 2rem; text-align: center; position: relative; }
+        .slide-title { font-size: 2rem; font-weight: 800; margin-top: 1.5rem; color: var(--text-main); letter-spacing: 0.025em; }
+        .slide-text { font-size: 1.125rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 85%; line-height: 1.6; }
+        
+        .swipe-indicator { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2rem; opacity: 0.8; animation: swipeBounce 2s infinite ease-in-out; }
+        .swipe-indicator svg { width: 20px; height: 20px; }
+        @keyframes swipeBounce { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+
+        .pagination-dots { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; z-index: 100; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--border-color); transition: all 0.3s var(--ease-out); }
+        .dot.active { background-color: var(--accent-blue); width: 24px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="loaderScreen" class="loader-screen" role="status" aria-live="polite">
+        <div class="loader-content">
+            <div class="loader-graphic-container">
+                <div id="lottieLoader" class="lottie-loader-layer"></div>
+            </div>
+            <div class="loading-text">Loading MedExcel...</div>
+        </div>
+    </div>
+
+    <div id="okBackdrop" class="ok-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="ok-dialog" role="document">
+            <h3 id="okTitle" class="dialog-title">Notice</h3>
+            <p id="okMessage" class="dialog-msg">Message goes here</p>
+            <div class="dialog-actions">
+                <button id="okCancel" class="btn-cancel">Cancel</button>
+                <button id="okConfirm" class="btn-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="splashScreen" class="screen hidden-screen"></div>
+
+    <div id="introScreen" class="screen active" style="padding: 0;">
+        <div class="onboarding-wrapper" onscroll="updateDots(this)">
+            <div class="slide">
+                <div id="lottie-yay" class="lottie-box"></div>
+                <h2 class="slide-title">Welcome to MedExcel</h2>
+                <p class="slide-text">Your intelligent study companion.</p>
+                <div class="swipe-indicator">
+                    <span>Swipe</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+            </div>
+            <div class="slide">
+                <div id="lottie-cat" class="lottie-box"></div>
+                <h2 class="slide-title">Instant Flashcards</h2>
+                <p class="slide-text">Let MedExcel create your study materials in seconds.</p>
+            </div>
+            <div class="slide">
+                <div id="lottie-wonder" class="lottie-box"></div>
+                <h2 class="slide-title">Remember Forever</h2>
+                <p class="slide-text">Crush your exams and manage your time perfectly.</p>
+            </div>
+            <div class="slide">
+                <div id="lottie-walk" class="lottie-box" id="secretTapTarget"></div>
+                <h2 class="slide-title" id="secretTapTarget" onclick="(function(){
+                    window._adminTaps = (window._adminTaps || 0) + 1;
+                    clearTimeout(window._adminTapTimer);
+                    window._adminTapTimer = setTimeout(function(){ window._adminTaps = 0; }, 1500);
+                    if(window._adminTaps >= 5){ window._adminTaps = 0; window.location.href = 'admin.html'; }
+                })()">Stress-Free Studying</h2>
+                <p class="slide-text">Take a breath. We've got the hard part covered.</p>
+                
+                <div class="button-group" style="margin-top: 2rem; width: 90%; max-width: 24rem;">
+                    <button onclick="toggleSignup()" class="btn-primary">Get Started</button>
+                    <button onclick="toggleLogin(true)" class="btn-secondary">I Already Have An Account</button>
+                </div>
+            </div>
+        </div>
+        <div class="pagination-dots" id="dots-container">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+
+    <div id="loginScreen" class="login-modal">
+        <div class="login-header">
+            <button onclick="toggleLogin(false)" class="btn-close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 id="loginHeading" class="login-title">Enter your details</h2>
+        </div>
+        <div class="login-form">
+            <div class="input-group">
+                <div id="nameRow" class="input-row" style="display: none;">
+                    <input id="nameInput" type="text" placeholder="Your name or nickname" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="emailInput" type="text" placeholder="Username or email" class="input-field">
+                </div>
+                <div class="input-row">
+                    <input id="loginPassword" type="password" placeholder="Password" class="input-field">
+                    <button onclick="togglePassword()" class="btn-toggle-pw">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <button id="signInBtn" class="btn-signin">Sign In</button>
+            <button class="btn-forgot">Forgot Password</button>
+            
+            <button onclick="startGoogleLogin()" class="btn-google">
+                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                <span class="google-text">GOOGLE</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        window.initAnimations = function() {
+            const injectLottie = async (elementId, cacheKey) => {
+                const data = await AssetManager.get(cacheKey);
+                if(!data) return;
+                const container = document.getElementById(elementId);
+                lottie.loadAnimation({ container: container, renderer: 'svg', loop: true, autoplay: true, animationData: data });
+                requestAnimationFrame(() => container.classList.add('loaded'));
+            };
+            injectLottie('lottieLoader', 'loader');
+            injectLottie('lottie-yay', 'yay');
+            injectLottie('lottie-cat', 'cat');
+            injectLottie('lottie-wonder', 'wonder');
+            injectLottie('lottie-walk', 'walk');
+        };
+
+        window.__loader = {
+            startTime: Date.now(), minMs: 0, authResolved: false, windowLoaded: false, redirecting: false,
+            checkHide() {
+                if (this.redirecting) return;
+                if (this.authResolved && this.windowLoaded) {
+                    const elapsed = Date.now() - this.startTime;
+                    const remaining = Math.max(0, this.minMs - elapsed);
+                    setTimeout(() => {
+                        const loader = document.getElementById('loaderScreen');
+                        if(loader) { loader.style.opacity = '0'; setTimeout(() => { loader.style.visibility = 'hidden'; document.body.style.pointerEvents = 'auto'; }, 400); }
+                    }, remaining);
+                }
+            }
+        };
+
+        document.body.style.pointerEvents = 'none';
+        window.addEventListener('load', () => { window.__loader.windowLoaded = true; window.__loader.checkHide(); });
+
+        window.showDialog = function (message, title = "Notice", options = {}) {
+            return new Promise((resolve) => {
+                const backdrop = document.getElementById("okBackdrop");
+                const titleEl = document.getElementById("okTitle");
+                const msgEl = document.getElementById("okMessage");
+                const btnOk = document.getElementById("okConfirm");
+                const btnCancel = document.getElementById("okCancel");
+
+                titleEl.textContent = title; msgEl.textContent = message;
+                btnOk.textContent = options.okText || "OK"; btnCancel.textContent = options.cancelText || "Cancel";
+                btnCancel.style.display = options.hideCancel ? 'none' : 'block';
+                backdrop.style.display = "flex"; void backdrop.offsetWidth; backdrop.classList.add("active");
+
+                const cleanup = (result) => {
+                    backdrop.classList.remove("active");
+                    setTimeout(() => { backdrop.style.display = "none"; resolve(result); }, 200);
+                };
+                btnOk.onclick = () => cleanup(true); btnCancel.onclick = () => cleanup(false);
+            });
+        };
+
+        window.isSignupMode = false;
+        function toggleLogin(show, signup = false) {
+            const login = document.getElementById('loginScreen');
+            const titleEl = document.getElementById('loginHeading');
+            const signInBtn = document.getElementById('signInBtn');
+            const nameRow = document.getElementById('nameRow'); 
+            window.isSignupMode = !!signup;
+
+            if (show) {
+                titleEl.textContent = window.isSignupMode ? 'Create your account' : 'Enter your details';
+                signInBtn.textContent = window.isSignupMode ? 'Sign Up' : 'Sign In';
+                nameRow.style.display = window.isSignupMode ? 'block' : 'none';
+                login.classList.add('show');
+            } else {
+                login.classList.remove('show');
+                setTimeout(() => {
+                    window.isSignupMode = false;
+                    titleEl.textContent = 'Enter your details';
+                    signInBtn.textContent = 'Sign In';
+                    nameRow.style.display = 'none'; 
+                }, 300);
+            }
+        }
+
+        function toggleSignup() { toggleLogin(true, true); }
+        function togglePassword() {
+            const passInput = document.getElementById('loginPassword');
+            passInput.type = passInput.type === "password" ? "text" : "password";
+        }
+        window.toggleSignup = toggleSignup;
+
+        function updateDots(container) {
+            const scrollPosition = container.scrollLeft;
+            const slideWidth = container.clientWidth;
+            const activeIndex = Math.round(scrollPosition / slideWidth);
+            const dots = document.querySelectorAll('#dots-container .dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === activeIndex);
+            });
+        }
+
+        window.startGoogleLogin = function() {
+            if (window.Android && window.Android.startGoogleSignIn) {
+                document.getElementById('loaderScreen').style.visibility = 'visible';
+                document.getElementById('loaderScreen').style.opacity = '1';
+                document.querySelector('.loading-text').textContent = "SIGNING IN...";
+                window.Android.startGoogleSignIn();
+            } else {
+                alert("Native login not available. Please use the mobile app.");
+            }
+        };
+
+        (function openAuthFromUrl() {
+            try {
+                const hash = (location.hash || '').replace('#', '').toLowerCase();
+                const params = new URLSearchParams(location.search);
+                const action = params.get('action') ? params.get('action').toLowerCase() : null;
+                
+                if (hash === 'login' || action === 'login') {
+                    setTimeout(() => toggleLogin(true, false), 100);
+                } else if (hash === 'signup' || action === 'signup') {
+                    setTimeout(() => toggleLogin(true, true), 100);
+                }
+            } catch (e) { console.warn('openAuthFromUrl failed', e); }
+        })();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // REAL API KEYS INJECTED
+        const firebaseConfig = { 
+            apiKey: "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw", 
+            authDomain: "medxcel.firebaseapp.com", 
+            projectId: "medxcel", 
+            storageBucket: "medxcel.firebasestorage.app", 
+            messagingSenderId: "649180317389", 
+            appId: "1:649180317389:web:f6b9a7053a37853ea04b84", 
+            measurementId: "G-6VQYKEBMSX" 
+        };
+        const app = initializeApp(firebaseConfig); 
+        const auth = getAuth(app); 
+        const db = getFirestore(app);
+        
+        setPersistence(auth, browserLocalPersistence).catch((error) => console.error("Persistence Auth Error:", error));
+
+        // --- NATIVE LOGIN BRIDGE ---
+        window.onNativeLogin = async function(email, uid, idToken, displayName) {
+            // Use the real Google name; fall back to email prefix only if name is absent
+            const resolvedName = (displayName && displayName !== "User") ? displayName : email.split("@")[0];
+            console.log("Native login success:", email, "| Name:", resolvedName);
+
+            const loader = document.getElementById('loaderScreen');
+            if (loader) {
+                loader.style.visibility = 'visible';
+                loader.style.opacity = '1';
+                const loadingText = document.querySelector('.loading-text');
+                if(loadingText) loadingText.textContent = "PREPARING APP...";
+            }
+
+            // 1. Save locally as fallback reference for the homepage
+            localStorage.setItem("nativeUser", JSON.stringify({
+                email: email,
+                uid: uid,
+                displayName: resolvedName
+            }));
+
+            // 2. Self-Heal Firestore Doc
+            try {
+                const userRef = doc(db, "users", uid);
+                const docSnap = await getDoc(userRef);
+                if (!docSnap.exists()) {
+                    const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
+                    const myCode = uid.substring(0, 8).toUpperCase();
+                    await setDoc(userRef, {
+                        email: email,
+                        uid: uid,
+                        displayName: resolvedName,
+                        plan: "free",
+                        dailyUsage: 0,
+                        planUsed: 0,
+                        lastDailyReset: new Date().toISOString().split("T")[0],
+                        createdAt: serverTimestamp(),
+                        referralCode: myCode,
+                        referredBy: refCode,
+                        referralCount: 0,
+                        referralProcessed: false,
+                    }, { merge: true });
+                    if (refCode) sessionStorage.removeItem('medexcel_ref_code');
+                }
+            } catch (e) {
+                console.warn("Firestore sync skipped during native login", e);
+            }
+
+            // 3. Sign WebView into Firebase as the real Google user (no anonymous accounts)
+            try {
+                const { GoogleAuthProvider, signInWithCredential } =
+                    await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                const credential = GoogleAuthProvider.credential(idToken);
+                await signInWithCredential(auth, credential);
+            } catch(e) {
+                // Fallback: anonymous session so homepage auth listener still fires
+                console.warn("Credential sign-in failed, falling back to anonymous:", e);
+                try { await signInAnonymously(auth); } catch(e2) {}
+            }
+
+            // 4. Redirect to app
+            window.__loader.redirecting = true;
+            window.location.replace("homepage.html");
+        };
+
+        // --- STANDARD LOGIN LOGIC (Also with planUsed: 0) ---
+        function checkAuthAndRedirect(firebaseUser) {
+            const nativeUser = localStorage.getItem("nativeUser");
+
+            if (nativeUser || firebaseUser) {
+                window.__loader.redirecting = true;
+                window.location.replace("homepage.html");
+                return;
+            }
+
+            window.__loader.checkHide();
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            window.__loader.authResolved = true;
+            
+            if (user) {
+                localStorage.setItem("nativeUser", JSON.stringify({
+                    email: user.email,
+                    uid: user.uid,
+                    displayName: user.displayName
+                }));
+
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userRef);
+                    if (!docSnap.exists()) {
+                        const refCode = sessionStorage.getItem('medexcel_ref_code') || null;
+                        const myCode = user.uid.substring(0, 8).toUpperCase();
+                        await setDoc(userRef, {
+                            email: user.email,
+                            uid: user.uid,
+                            displayName: user.displayName || user.email.split("@")[0],
+                            plan: "free",
+                            dailyUsage: 0,
+                            planUsed: 0, // <--- CRITICAL FIX FOR NEW EMAIL USERS
+                            lastDailyReset: new Date().toISOString().split("T")[0],
+                            createdAt: serverTimestamp(),
+                            referralCode: myCode,
+                            referredBy: refCode,
+                            referralCount: 0,
+                            referralProcessed: false,
+                        }, { merge: true });
+                        if (refCode) sessionStorage.removeItem('medexcel_ref_code');
+                    }
+                } catch (e) {}
+            }
+
+            checkAuthAndRedirect(user);
+        });
+
+        const emailBtn = document.getElementById('signInBtn');
+        if (emailBtn) {
+            emailBtn.addEventListener('click', async () => {
+                const name = document.getElementById('nameInput').value.trim();
+                const email = document.getElementById('emailInput').value.trim();
+                const pass = document.getElementById('loginPassword').value;
+                
+                if (window.isSignupMode && !name) return await showDialog("Please enter your name.", "Missing Info", { hideCancel: true });
+                if(!email || !pass) return await showDialog("Please enter both email and password.", "Missing Info", { hideCancel: true }); 
+                
+                const loader = document.getElementById('loaderScreen');
+                loader.style.visibility = 'visible';
+                loader.style.opacity = '1';
+
+                try {
+                    if (window.isSignupMode) {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                        await updateProfile(userCredential.user, { displayName: name });
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, pass);
+                    }
+                } catch (error) { 
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.visibility = 'hidden', 400);
+                    await showDialog(error.message, window.isSignupMode ? "Sign Up Failed" : "Login Failed", { hideCancel: true }); 
+                }
+            });
+        }
+    </script>
+</body>
+</html>
