@@ -934,7 +934,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             <div style="min-width:0;flex:1;">
                                 <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                     ${window.escapeHTML(user.displayName || '?')}${proPill}
-                                    ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:var(--btn-text);border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
+                                    ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
                                 </div>
                             </div>
                         </div>

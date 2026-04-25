@@ -69,7 +69,7 @@
                 const isMCQIcon = isMCQ;
                 const label = isMCQ ? 'Questions' : 'Cards';
 
-                return `<a href="javascript:void(0)" onclick="navigateTo('view-study')" 
+                return `<a href="javascript:void(0)" onclick="(function(){navigateTo('view-study');setTimeout(function(){if(window.loadQuizOverview)window.loadQuizOverview(${JSON.stringify(quiz.id)});},80);})()" 
                     class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
                     <div class="flex items-center min-w-0">
                         <div class="mr-4 shrink-0" style="width:40px;height:40px;">
@@ -679,9 +679,11 @@
 
             try {
                 const user = window._cachedUserData || {};
+                let _supToken = '';
+                try { _supToken = await window.currentUser.getIdToken(); } catch(_) {}
                 const res = await fetch('https://us-central1-medxcel.cloudfunctions.net/sendSupportEmail', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _supToken },
                     body: JSON.stringify({
                         name: user.displayName || user.nickname || '',
                         email: window.currentUser?.email || '',
@@ -935,12 +937,15 @@
             const boostType   = userData.referralBoostType;
             const rewardEl    = document.getElementById('profileActiveReward');
             const rewardTxt   = document.getElementById('profileActiveRewardText');
-            if (rewardEl && boostExpiry && new Date(boostExpiry) > new Date()) {
-                const expiryDate = new Date(boostExpiry).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const _isPerm     = boostExpiry === 'permanent';
+            const _isActive   = boostExpiry && (_isPerm || new Date(boostExpiry) > new Date());
+            if (rewardEl && _isActive) {
+                const expiryDate = _isPerm ? 'Forever' : new Date(boostExpiry).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                 const labels = {
                     limit_2x:      `2× daily limit active — expires ${expiryDate}`,
                     week_premium:  `Premium access active — expires ${expiryDate}`,
                     month_premium: `Premium access active — expires ${expiryDate}`,
+                    ambassador:    `Ambassador status — permanent boost active`,
                 };
                 if (rewardTxt) rewardTxt.textContent = labels[boostType] || `Referral reward active — expires ${expiryDate}`;
                 rewardEl.style.display = 'block';
@@ -953,7 +958,9 @@
         window.applyReferralBoost = function(userData) {
             const boostExpiry = userData.referralBoostExpiry;
             const boostType   = userData.referralBoostType;
-            if (!boostExpiry || new Date(boostExpiry) <= new Date()) return; // expired or none
+            const isPermanent = boostExpiry === 'permanent';
+            if (!boostExpiry) return;
+            if (!isPermanent && new Date(boostExpiry) <= new Date()) return;
 
             if (boostType === 'limit_2x' && window.userPlan === 'free') {
                 window.allowedMaxItems = 40; // 2× of 20
@@ -964,6 +971,10 @@
                 window.allowedMaxItems = 50;
                 const maxText = document.getElementById('maxLimitText');
                 if (maxText) maxText.textContent = '(Max: 50 — Referral Reward)';
+            } else if (boostType === 'ambassador') {
+                window.allowedMaxItems = 50;
+                const maxText = document.getElementById('maxLimitText');
+                if (maxText) maxText.textContent = '(Max: 50 — Ambassador)';
             }
         };
 
@@ -1563,6 +1574,7 @@
                 localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(history.filter(d => new Date(d) >= cutoff)));
             }
 
+            window.userStats.streak   = currentStreakCount;
             window.userStats.count    = currentStreakCount;
             window.userStats.lastDate = todayStr;
             localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
@@ -1993,12 +2005,18 @@ if (nextBtn) {
             const totalXP = isFirstAttempt
                 ? (isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
                 : 0;
-            if (totalXP > 0) window.addXP(totalXP);
+            if (totalXP > 0) await window.addXP(totalXP);
             window.commitStreakOnAction?.();
 
             currentQuiz.stats.attempts++;
             currentQuiz.stats.lastScore = examScore;
-            if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            if (isMCQSession) {
+                if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
+            } else {
+                // Flashcard session — completing the deck counts as full score
+                const _fcTotal = currentQuiz.questions ? currentQuiz.questions.length : 0;
+                if (_fcTotal > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = _fcTotal;
+            }
             currentQuiz.stats.lastAttemptedAt = new Date().toISOString();
 
             // ── Daily study log for 7-day activity chart ─────────────────────
@@ -2994,7 +3012,7 @@ window.openProgressSheet = function() {
 
     page.innerHTML =
         // Header
-        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);border-bottom:1px solid var(--border-glass);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
+        '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
             '<div style="display:flex;align-items:center;gap:12px;">' +
                 '<button onclick="window._closeProgressPage()" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">' +
                     '<i class="fas fa-arrow-left"></i>' +
@@ -5340,12 +5358,10 @@ window._openProgressDeck = function(quizId) {
     };
 
     window._bossRematch = function() {
-        _bossStartFight((_questions[0] && window.quizzes || []).find(
-            q => q.questions && q.questions.some(qq => qq === _questions[0])
-        )?.id || '');
-        // Simpler: just re-pick from same questions
-        _qIdx=0; _bossHP=BOSS_MAX; _playerHP=PLAYER_MAX; _xpDelta=0;
-        _questions = [..._questions].sort(() => Math.random()-.5);
+        // Reset state and re-shuffle the same questions — no deck lookup needed
+        _qIdx = 0; _bossHP = BOSS_MAX; _playerHP = PLAYER_MAX; _xpDelta = 0; _answered = false;
+        _questions = [..._questions].sort(() => Math.random() - 0.5);
+        if (_timer) { clearInterval(_timer); _timer = null; }
         _renderFight();
     };
 
