@@ -1,4 +1,4 @@
-const CACHE_NAME = "medexcel-cache-v4";
+const CACHE_NAME = "medexcel-cache-v5";
 
 // Core files that are guaranteed to exist
 const APP_SHELL = [
@@ -19,7 +19,6 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log("Caching core files...");
-      // addAll is all-or-nothing — only include files guaranteed to exist
       return cache.addAll(APP_SHELL);
     })
   );
@@ -49,9 +48,9 @@ self.addEventListener("activate", event => {
 // ==============================
 self.addEventListener("fetch", event => {
   const request = event.request;
-  
+
   // ==========================
-  // A. HTML (FAST LOAD)
+  // A. HTML — cache-first with network fallback
   // ==========================
   if (request.mode === "navigate") {
     event.respondWith(
@@ -59,21 +58,21 @@ self.addEventListener("fetch", event => {
         return (
           cached ||
           fetch(request)
-          .then(res => {
-            return caches.open(CACHE_NAME).then(cache => {
-              cache.put(request, res.clone());
-              return res;
-            });
-          })
-          .catch(() => caches.match("/index.html"))
+            .then(res => {
+              return caches.open(CACHE_NAME).then(cache => {
+                cache.put(request, res.clone());
+                return res;
+              });
+            })
+            .catch(() => caches.match("/index.html"))
         );
       })
     );
     return;
   }
-  
+
   // ==========================
-  // B. ALL JSON (SMART STRATEGY)
+  // B. JSON — stale-while-revalidate
   // ==========================
   if (request.url.includes(".json")) {
     event.respondWith(
@@ -81,21 +80,43 @@ self.addEventListener("fetch", event => {
         const networkFetch = fetch(request)
           .then(res => {
             return caches.open(CACHE_NAME).then(cache => {
-              cache.put(request, res.clone()); // 🔄 update cache
+              cache.put(request, res.clone());
               return res;
             });
           })
           .catch(() => cached);
-        
-        // ⚡ instant response + background update
+
         return cached || networkFetch;
       })
     );
     return;
   }
-  
+
   // ==========================
-  // C. OTHER FILES
+  // C. JS / CSS — stale-while-revalidate
+  // Always serve from cache immediately for speed, but ALSO fetch from
+  // network in the background and update the cache. This means deployed
+  // updates reach users on the NEXT load rather than never.
+  // ==========================
+  if (request.url.includes(".js") || request.url.includes(".css")) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(request).then(cached => {
+          const networkFetch = fetch(request).then(res => {
+            if (res.ok) cache.put(request, res.clone());
+            return res;
+          }).catch(() => cached);
+
+          // Serve cached immediately, refresh in background
+          return cached || networkFetch;
+        });
+      })
+    );
+    return;
+  }
+
+  // ==========================
+  // D. ALL OTHER FILES — cache-first
   // ==========================
   event.respondWith(
     caches.match(request).then(cached => {

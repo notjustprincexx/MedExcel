@@ -72,7 +72,7 @@
             { title: "Spaced Repetition", desc: "Don't forget to review older decks. Spaced repetition solidifies your memory." }
         ];
         let currentTargetIdx = 0;
-        if (_targetRotatorInterval) clearInterval(_targetRotatorInterval);
+        if (typeof _targetRotatorInterval !== 'undefined' && _targetRotatorInterval) clearInterval(_targetRotatorInterval);
         _targetRotatorInterval = setInterval(() => {
             currentTargetIdx = (currentTargetIdx + 1) % targetMessages.length;
             const titleEl = document.getElementById('targetTitle');
@@ -131,7 +131,6 @@
         }
 
         // Weekly Target Rotator interval ref — stored so it can be cleared if needed
-        var _targetRotatorInterval = null;
 
         // Variable to hold the animation so it doesn't duplicate
         var fireLottieAnim = null;

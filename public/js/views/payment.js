@@ -148,6 +148,6 @@
                 handler.openIframe();
             } catch(err) {
                 console.error("Paystack error:", err);
-                window.openPaymentModal(plan === "elite" ? "https://paystack.shop/pay/lw17s2ggpj" : "https://paystack.shop/pay/5wqjry1l0a");
+                var errBanner = document.getElementById("payErrorBanner"); if (errBanner) { errBanner.textContent = "Payment could not be initialized. Check your connection and try again."; errBanner.style.display = "block"; } else { alert("Payment could not be initialized. Check your connection and try again."); }
             }
         };

@@ -2120,7 +2120,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.userPlan = data.plan || "free";
 
                 // Check subscription expiry — downgrade if expired
-                if (data.subscriptionExpiry && window.userPlan === 'premium') {
+                if (data.subscriptionExpiry && (window.userPlan === 'premium' || window.userPlan === 'premium_trial')) {
                     const expiry = new Date(data.subscriptionExpiry);
                     if (expiry < new Date()) {
                         window.userPlan = 'free';
