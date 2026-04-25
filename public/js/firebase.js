@@ -932,9 +932,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
-                                <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                    ${window.escapeHTML(user.displayName || '?')}${proPill}
-                                    ${isMe ? '<span style="font-size:0.625rem;margin-left:6px;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;vertical-align:middle;">YOU</span>' : ''}
+                                <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+                                    <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">
+                                        ${window.escapeHTML(user.displayName || '?')}${proPill}
+                                    </div>
+                                    ${isMe ? '<span style="font-size:0.625rem;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;white-space:nowrap;flex-shrink:0;">YOU</span>' : ''}
                                 </div>
                             </div>
                         </div>
