@@ -36,7 +36,7 @@
                 } else {
                     cM.classList.remove('active'); cY.classList.add('active');
                     if (dealBox) { dealBox.style.display = 'flex'; clearInterval(_payCdInterval); _payTick(); _payCdInterval = setInterval(_payTick, 1000); }
-                    if (ctaEl) ctaEl.textContent = 'Subscribe Yearly — ₦17,999';
+                    if (ctaEl) ctaEl.textContent = 'Subscribe Yearly — ₦14,999';
                 }
             } catch(e) { console.warn('switchPayPlan error:', e); }
         };
@@ -80,7 +80,7 @@
             var amounts = {
                 premium:         199900,
                 premium_monthly: 199900,
-                premium_yearly:  1799900,
+                premium_yearly:  1499900,
                 elite:           299900
             };
             var amount = amounts[plan];
