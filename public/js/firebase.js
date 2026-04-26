@@ -1307,21 +1307,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // ── Estimated time (pages × 6s + questions × 1.5s) ───────────
                 const ESTIMATED_SECS = Math.round(_pageEst * 6 + requestedItems * 1.5);
                 let scanElapsed = 0;
-                const scanProgressBar  = document.getElementById('scanProgressBar');
-                const scanElapsedLabel = document.getElementById('scanElapsedLabel');
-                const scanEstLabel     = document.getElementById('scanEstLabel');
+                const scanProgressBar = document.getElementById('scanProgressBar');
+                const scanEstLabel    = document.getElementById('scanEstLabel');
                 if (scanProgressBar) { scanProgressBar.style.transition = 'none'; scanProgressBar.style.width = '0%'; }
-                if (scanElapsedLabel) scanElapsedLabel.textContent = '0s';
-                if (scanEstLabel)     scanEstLabel.textContent = `~${ESTIMATED_SECS}s`;
+                // Format helper: under 60s → "~45s left", 60s+ → "~1:30 left" (mm:ss)
+                const _fmtRemaining = (s) => {
+                    if (s <= 0) return 'Almost done…';
+                    if (s < 60) return `~${s}s left`;
+                    const mins = Math.floor(s / 60);
+                    const secs = String(s % 60).padStart(2, '0');
+                    return `~${mins}:${secs} left`;
+                };
+                if (scanEstLabel) scanEstLabel.textContent = _fmtRemaining(ESTIMATED_SECS);
                 setTimeout(() => { if (scanProgressBar) scanProgressBar.style.transition = 'width 1s linear'; }, 50);
 
                 window.scanProgressInterval = setInterval(() => {
                     scanElapsed++;
                     const progress = Math.min(90, (scanElapsed / ESTIMATED_SECS) * 100);
-                    if (scanProgressBar)  scanProgressBar.style.width = progress + '%';
-                    if (scanElapsedLabel) scanElapsedLabel.textContent = `${scanElapsed}s`;
+                    if (scanProgressBar) scanProgressBar.style.width = progress + '%';
                     const remaining = Math.max(0, ESTIMATED_SECS - scanElapsed);
-                    if (scanEstLabel) scanEstLabel.textContent = remaining > 0 ? `~${remaining}s left` : 'Almost done…';
+                    if (scanEstLabel) scanEstLabel.textContent = _fmtRemaining(remaining);
                 }, 1000);
                 // ─────────────────────────────────────────────────────────────
 
