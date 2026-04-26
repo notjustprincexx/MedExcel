@@ -1,4 +1,4 @@
-const CACHE_NAME = "medexcel-cache-v5";
+const CACHE_NAME = "medexcel-cache-v6";
 
 // Core files that are guaranteed to exist
 const APP_SHELL = [

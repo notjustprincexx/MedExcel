@@ -1598,8 +1598,15 @@
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
 
             // Show celebration modal (only after onboarding is done)
+            // If the user is still on the results/interactive view, defer until they leave
             if (localStorage.getItem('medexcel_onboarding_v1')) {
-                setTimeout(() => window.openStreakModal(), 600);
+                const _iv = document.getElementById('interactiveView');
+                const _onResultsPage = _iv && _iv.style.display !== 'none' && _iv.innerHTML.trim() !== '';
+                if (_onResultsPage) {
+                    window._pendingStreakModal = true;
+                } else {
+                    setTimeout(() => window.openStreakModal(), 600);
+                }
             }
         };
 
@@ -2413,6 +2420,11 @@ if (nextBtn) {
         window.goBackToSelection = function() {
             window.exitQuizMode();
             if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
+            // Fire the streak modal now that the user has left the results page
+            if (window._pendingStreakModal) {
+                window._pendingStreakModal = false;
+                setTimeout(function() { if (typeof window.openStreakModal === 'function') window.openStreakModal(); }, 600);
+            }
             document.getElementById('setupView').style.display = 'none';
             document.getElementById('interactiveView').style.display = 'none';
             document.getElementById('createHeaderTitle').textContent = "What to create?";
