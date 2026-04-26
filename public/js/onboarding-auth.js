@@ -11,6 +11,9 @@ import {
   import {
     getFirestore, doc, getDoc, setDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import {
+    getFunctions, httpsCallable
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -22,9 +25,10 @@ import {
     measurementId:     "G-6VQYKEBMSX"
   };
 
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
+  const app       = initializeApp(firebaseConfig);
+  const auth      = getAuth(app);
+  const db        = getFirestore(app);
+  const functions = getFunctions(app, "us-central1");
 
   setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -49,22 +53,51 @@ import {
           referralProcessed: false,
           ...extra
         }, { merge: true });
-        // Route through claimReferral Cloud Function — writing referredBy directly
-        // marks the user as "already claimed" and blocks the Cloud Function from crediting the referrer
         if (refCode) {
           localStorage.setItem('medexcel_pending_referral_code', refCode);
           sessionStorage.removeItem('medexcel_ref_code');
         }
       } else {
-        // Returning user on a fresh install — localStorage was wiped when the app was deleted.
-        // Restore critical flags from Firestore before the redirect so the app
-        // doesn't incorrectly re-show onboarding or other first-run flows.
+        // Returning user on a fresh install — restore critical flags from Firestore
         const data = snap.data();
         if (data.onboardingDone) {
           localStorage.setItem('medexcel_personalized_onboarding_done', '1');
         }
       }
     } catch(e) { console.warn('Firestore sync skipped:', e); }
+  }
+
+  /* Claim any pending referral code RIGHT HERE after login — before navigating away.
+     This is more reliable than trusting localStorage to survive a page redirect. */
+  async function claimPendingReferral(user) {
+    const pendingCode =
+      localStorage.getItem('medexcel_pending_referral_code') ||
+      sessionStorage.getItem('medexcel_pending_referral_code');
+
+    if (!pendingCode) return;
+
+    // Clear immediately so it's never attempted twice
+    localStorage.removeItem('medexcel_pending_referral_code');
+    sessionStorage.removeItem('medexcel_pending_referral_code');
+
+    try {
+      // Check if user already claimed a code — avoid unnecessary Cloud Function call
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      if (userSnap.exists() && userSnap.data().referredBy) {
+        console.log('[Referral] Already claimed — skipping.');
+        return;
+      }
+
+      const claimFn = httpsCallable(functions, 'claimReferral');
+      const result  = await claimFn({ code: pendingCode });
+      if (result?.data?.success) {
+        console.log('[Referral] Claimed successfully:', pendingCode);
+      } else if (result?.data?.alreadyClaimed) {
+        console.log('[Referral] Code already claimed.');
+      }
+    } catch(e) {
+      console.warn('[Referral] Claim failed:', e.message);
+    }
   }
 
   /* -- Native Android Google Sign-In bridge -- */
@@ -76,6 +109,7 @@ import {
 
     localStorage.setItem('nativeUser', JSON.stringify({ email, uid, displayName: name }));
     await syncUserDoc({ uid, email, displayName: name }, { displayName: name });
+    await claimPendingReferral({ uid, email });
 
     try {
       await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
@@ -97,6 +131,7 @@ import {
       displayName: user.displayName
     }));
     await syncUserDoc(user);
+    await claimPendingReferral(user);  // claim before redirect
     window.location.replace('homepage.html');
   });
 
