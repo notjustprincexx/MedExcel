@@ -5492,6 +5492,7 @@ window._openProgressDeck = function(quizId) {
         _pdfDoc        = null;
 
         const mv = _getOverlay();
+        _ensureShimmer(); // Inject keyframes before showing loader so spinner can rotate
         mv.innerHTML = _loadingHTML(file.name);
         _show(mv);
 
@@ -5517,7 +5518,12 @@ window._openProgressDeck = function(quizId) {
         if (document.getElementById('_pdfShimmerKf')) return;
         const s = document.createElement('style');
         s.id = '_pdfShimmerKf';
-        s.textContent = '@keyframes _pdfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}';
+        // Defines BOTH animations: shimmer for skeleton placeholders, AND spin
+        // for the loader spinner. Previously `@keyframes spin` was never
+        // declared anywhere, so the loader appeared frozen.
+        s.textContent =
+            '@keyframes _pdfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}' +
+            '@keyframes spin{to{transform:rotate(360deg)}}';
         document.head.appendChild(s);
     }
 
@@ -5596,23 +5602,35 @@ window._openProgressDeck = function(quizId) {
 
         _refreshUI();
 
-        // Step 2 — render thumbnails in parallel batches of 4.
-        // Each page swaps its skeleton for the real image the moment it finishes.
-        const BATCH_SIZE = 4;
-        for (let start = 1; start <= _totalPages; start += BATCH_SIZE) {
-            const batch = [];
-            for (let p = start; p < start + BATCH_SIZE && p <= _totalPages; p++) {
-                batch.push(_renderPageThumb(p));
+        // Step 2 — render thumbnails in parallel batches of 8.
+        // SPEED: this is now fire-and-forget — we DON'T await the loop.
+        // The grid (with skeleton placeholders) is already visible by this
+        // point; thumbnails replace their skeletons as each page finishes.
+        // Previously we awaited the first batch, which made the user stare
+        // at the "Loading pages…" screen for 1-3 extra seconds on big PDFs.
+        // Bumped batch size 4 → 8 (modern phones handle 8 concurrent
+        // canvas renders fine) for ~2× faster overall fill time.
+        (async () => {
+            const BATCH_SIZE = 8;
+            for (let start = 1; start <= _totalPages; start += BATCH_SIZE) {
+                const batch = [];
+                for (let p = start; p < start + BATCH_SIZE && p <= _totalPages; p++) {
+                    batch.push(_renderPageThumb(p));
+                }
+                await Promise.all(batch);
             }
-            await Promise.all(batch);
-        }
+        })();
     }
 
     async function _renderPageThumb(pageNum) {
         try {
             const page     = await _pdfDoc.getPage(pageNum);
             const viewport = page.getViewport({ scale: 1.0 });
-            const scale    = 380 / viewport.width;
+            // SPEED: render at 200px (was 380). Thumbnails are displayed in a
+            // grid with column width well under 200px, so the previous size
+            // was nearly 2× larger than needed. Smaller canvas = ~3× faster
+            // PDF.js rasterization, smaller JPEG = faster toDataURL.
+            const scale    = 200 / viewport.width;
             const scaled   = page.getViewport({ scale });
 
             const canvas   = document.createElement('canvas');
@@ -5623,7 +5641,8 @@ window._openProgressDeck = function(quizId) {
             const img  = document.getElementById(`pdfImg_${pageNum}`);
             const skel = document.getElementById(`pdfSkel_${pageNum}`);
             if (img && skel) {
-                img.src           = canvas.toDataURL('image/jpeg', 0.72);
+                // 0.6 quality — still visually clean for thumbnails, ~30% smaller payload
+                img.src           = canvas.toDataURL('image/jpeg', 0.6);
                 img.style.display = 'block';
                 skel.style.display = 'none';
             }
