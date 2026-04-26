@@ -1902,9 +1902,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // ── BAN CHECK — must run before anything else ──
                     if (data.banned === true) {
                         try { await signOut(auth); } catch(e) {}
-                        const _t = localStorage.getItem('medexcel_theme');
+                        const _t   = localStorage.getItem('medexcel_theme');
+                        const _ref = localStorage.getItem('medexcel_pending_referral_code');
                         localStorage.clear();
-                        if (_t) localStorage.setItem('medexcel_theme', _t);
+                        if (_t)   localStorage.setItem('medexcel_theme', _t);
+                        if (_ref) localStorage.setItem('medexcel_pending_referral_code', _ref);
                         window.location.replace('index.html?banned=1');
                         return;
                     }
@@ -2481,7 +2483,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     if (!data.referredBy) {
                         try {
                             const _claimFn = httpsCallable(functions, 'claimReferral');
-                            const _result  = await _claimFn({ referralCode: _pendingRef });
+                            const _result  = await _claimFn({ code: _pendingRef });
                             if (_result?.data?.success) {
                                 console.log('[Referral] Claimed code:', _pendingRef);
                                 data.referredBy = _pendingRef; // update in-memory so session re-auth doesn't re-attempt
