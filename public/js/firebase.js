@@ -22,20 +22,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.auth = auth;
         window._firestoreGetDoc = getDoc;
 
-        // ── Expose claimReferral Cloud Function for in-app redemption ────
-        // Used by the "Have a referral code?" card on the profile page.
-        // Returns { success: true } on success, throws on failure.
-        window.claimReferralCode = async function(rawCode) {
-            const code = String(rawCode || '').trim().toUpperCase();
-            if (!code) throw new Error('Please enter a code.');
-            if (code.length < 4) throw new Error('Code looks too short.');
-            if (!window.currentUser) throw new Error('You need to be logged in.');
-            const fn = httpsCallable(functions, 'claimReferral');
-            const result = await fn({ referralCode: code });
-            if (!result?.data?.success) {
-                throw new Error(result?.data?.message || 'Could not apply code.');
+        // ── Toast notifications ──────────────────────────────────────────
+        // The codebase has 11+ call sites that check `typeof window.showToast`.
+        // None ever fired because the function was never defined. Defining it
+        // here makes every existing notification call across the app work.
+        window.showToast = function(message, type) {
+            type = type || 'info';
+            let host = document.getElementById('mxToastHost');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'mxToastHost';
+                host.style.cssText = 'position:fixed;top:max(env(safe-area-inset-top,0px),16px);left:50%;transform:translateX(-50%);z-index:99999;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:90vw;';
+                document.body.appendChild(host);
             }
-            return result.data;
+            const palette = {
+                success: { bg: 'rgba(16,185,129,0.96)', fg: '#fff', icon: 'fa-check-circle' },
+                error:   { bg: 'rgba(239,68,68,0.96)',  fg: '#fff', icon: 'fa-exclamation-circle' },
+                info:    { bg: 'rgba(30,41,59,0.96)',   fg: '#fff', icon: 'fa-info-circle' },
+            };
+            const c = palette[type] || palette.info;
+            const t = document.createElement('div');
+            t.style.cssText = `pointer-events:auto;background:${c.bg};color:${c.fg};padding:0.75rem 1rem;border-radius:0.875rem;font-size:0.875rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;box-shadow:0 8px 24px rgba(0,0,0,0.3);max-width:480px;opacity:0;transform:translateY(-12px);transition:opacity 0.3s var(--ease-snap),transform 0.3s var(--ease-snap);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);line-height:1.4;`;
+            t.innerHTML = `<i class="fas ${c.icon}" style="flex-shrink:0;"></i><span>${message}</span>`;
+            host.appendChild(t);
+            requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(-12px)';
+                setTimeout(() => t.remove(), 350);
+            }, type === 'error' ? 4500 : 3500);
         };
         // ─────────────────────────────────────────────────────────────────
 
@@ -731,7 +746,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
             if (avatarIndex !== null && AVATAR_GRID) {
                 const a = AVATAR_GRID[parseInt(avatarIndex)];
-                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}${premBadge}</div>`;
+                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');${_avatarBgCss(a)}"></div>${rankBadge}${premBadge}</div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
             const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
@@ -972,7 +987,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (avatarWrap) {
                     if (saved !== null && AVATAR_GRID) {
                         const a = AVATAR_GRID[parseInt(saved)];
-                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
+                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');${_avatarBgCss(a)}"></div>`;
                     } else {
                         avatarWrap.textContent = window.getInitial ? window.getInitial(me.displayName) : me.displayName.charAt(0).toUpperCase();
                     }
@@ -1017,7 +1032,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-btn);"><img src="'+user.photoBase64+'" style="width:100%;height:100%;object-fit:cover;"></div>';
                 } else if (user.avatarIndex !== null && user.avatarIndex !== undefined && AVATAR_GRID_LOCAL[user.avatarIndex]) {
                     const a = AVATAR_GRID_LOCAL[user.avatarIndex];
-                    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-btn);background-image:url(\'avatar.svg\');background-size:300% 300%;background-position:'+(a.col*50)+'% '+(a.row*50)+'%;"></div>';
+                    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-btn);background-image:url(\'avatar.svg\');' + _avatarBgCss(a) + '"></div>';
                 } else {
                     const initial = (user.displayName || 'U').charAt(0).toUpperCase();
                     const colors = ['#8b5cf6','#3b82f6','#10b981','#f97316','#ef4444','#ec4899'];
@@ -1578,16 +1593,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
         const AVATAR_GRID = [
+            // Row 0 — already well-framed, default zoom (300%, face centered)
             { col: 0, row: 0, label: "Intern",     bg: "#7C3AED" },
             { col: 1, row: 0, label: "Scholar",    bg: "#2563EB" },
             { col: 2, row: 0, label: "Clinician",  bg: "#0D9488" },
-            { col: 0, row: 1, label: "Resident",   bg: "#EA580C" },
-            { col: 1, row: 1, label: "Surgeon",    bg: "#1E3A5F" },
-            { col: 2, row: 1, label: "Focus",      bg: "#7C3AED" },
-            { col: 0, row: 2, label: "Consultant", bg: "#D97706" },
-            { col: 1, row: 2, label: "Medic",      bg: "#DB2777" },
-            { col: 2, row: 2, label: "Classic",    bg: "#F97316" },
+            // Rows 1 & 2 — source images are zoomed out (more body/props visible).
+            // Use zoom:380 + fy:0.40 to crop tighter on the face for visual consistency.
+            { col: 0, row: 1, label: "Resident",   bg: "#EA580C", zoom: 380, fy: 0.40 },
+            { col: 1, row: 1, label: "Surgeon",    bg: "#1E3A5F", zoom: 380, fy: 0.40 },
+            { col: 2, row: 1, label: "Focus",      bg: "#7C3AED", zoom: 380, fy: 0.40 },
+            { col: 0, row: 2, label: "Consultant", bg: "#D97706", zoom: 380, fy: 0.40 },
+            { col: 1, row: 2, label: "Medic",      bg: "#DB2777", zoom: 380, fy: 0.40 },
+            { col: 2, row: 2, label: "Classic",    bg: "#F97316", zoom: 380, fy: 0.40 },
         ];
+
+        // Returns the background-size + background-position CSS for an avatar entry.
+        // Supports per-avatar zoom (default 300%) and vertical focal point fy (default 0.5 = cell center).
+        // Math: position% = ((idx + focal) * zoom/3 - 50) / (zoom - 100) * 100
+        // Reduces to col*50% / row*50% when zoom=300 and fy=0.5 (backwards compatible).
+        function _avatarBgCss(a) {
+            const z  = a.zoom || 300;
+            const fy = (a.fy != null) ? a.fy : 0.5;
+            const fx = 0.5; // horizontal focal stays at cell center
+            const px = ((a.col + fx) * z/3 - 50) / (z - 100) * 100;
+            const py = ((a.row + fy) * z/3 - 50) / (z - 100) * 100;
+            return `background-size:${z}% ${z}%;background-position:${px.toFixed(2)}% ${py.toFixed(2)}%;`;
+        }
 
         window.openAvatarPicker = function() {
             let backdrop = document.getElementById('avatarPickerBackdrop');
@@ -1621,8 +1652,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                     width:64px;height:64px;border-radius:50%;overflow:hidden;
                                     background-color:${a.bg};
                                     background-image:url('${AVATAR_IMAGE_PATH}');
-                                    background-size:300% 300%;
-                                    background-position:${a.col * 50}% ${a.row * 50}%;
+                                    ${_avatarBgCss(a)}
                                     flex-shrink:0;
                                 "></div>
                                 <span style="font-size:0.6875rem;font-weight:600;color:var(--text-muted);">${a.label}</span>
@@ -1820,7 +1850,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (saved !== null) {
                 const a = AVATAR_GRID[parseInt(saved)];
                 if (a) {
-                    const bgStyle = `background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;border-radius:50%;`;
+                    const bgStyle = `background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');${_avatarBgCss(a)}width:100%;height:100%;border-radius:50%;`;
                     if (wrap) {
                         if (isPremium) {
                             wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);display:flex;align-items:center;justify-content:center;overflow:visible;`;

@@ -209,49 +209,6 @@
 
             window.renderReferralTiers('profileReferralTiers', count);
 
-            // ── Redeem-a-code card: show if user hasn't been referred yet ──
-            const redeemCard = document.getElementById('redeemReferralCard');
-            if (redeemCard) {
-                const alreadyRedeemed = !!userData.referredBy || userData.referralProcessed === true;
-                redeemCard.style.display = alreadyRedeemed ? 'none' : 'block';
-                if (!alreadyRedeemed && !redeemCard.dataset.wired) {
-                    redeemCard.dataset.wired = '1';
-                    const input  = document.getElementById('redeemReferralInput');
-                    const btn    = document.getElementById('redeemReferralBtn');
-                    const msgEl  = document.getElementById('redeemReferralMsg');
-                    const showMsg = (t, ok) => { if (msgEl) { msgEl.textContent = t; msgEl.style.color = ok ? '#34d399' : '#f87171'; msgEl.style.display = 'block'; } };
-                    const submit = async () => {
-                        const raw = (input?.value || '').trim().toUpperCase();
-                        if (!raw) { showMsg('Please enter a code.', false); return; }
-                        if (window._userReferralCode && raw === window._userReferralCode.toUpperCase()) { showMsg("That's your own code 😅", false); return; }
-                        if (typeof window.claimReferralCode !== 'function') { showMsg('Refresh and try again.', false); return; }
-                        btn.disabled = true; const origText = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.style.opacity = '0.7';
-                        if (msgEl) msgEl.style.display = 'none';
-                        try {
-                            await window.claimReferralCode(raw);
-                            if (typeof window.showToast === 'function') window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
-                            userData.referredBy = raw; userData.referralProcessed = true;
-                            redeemCard.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
-                            redeemCard.style.opacity = '0'; redeemCard.style.maxHeight = '0px'; redeemCard.style.padding = '0 1.125rem'; redeemCard.style.marginBottom = '0';
-                            setTimeout(() => { redeemCard.style.display = 'none'; }, 420);
-                        } catch (err) {
-                            const m = (err && err.message) || 'Could not apply code.';
-                            let friendly = m;
-                            if (/not[- ]?found|invalid/i.test(m))      friendly = 'That code doesn’t exist. Double-check and try again.';
-                            else if (/already/i.test(m))               friendly = 'You’ve already redeemed a referral code.';
-                            else if (/self|own/i.test(m))              friendly = "You can’t redeem your own code.";
-                            else if (/network|fetch|offline/i.test(m)) friendly = 'Network issue — check your connection and retry.';
-                            showMsg(friendly, false);
-                            btn.disabled = false; btn.innerHTML = origText; btn.style.opacity = '1';
-                        }
-                    };
-                    btn?.addEventListener('click', submit);
-                    input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-                    input?.addEventListener('input', () => { const p = input.selectionStart; input.value = input.value.toUpperCase(); try { input.setSelectionRange(p, p); } catch(_) {} });
-                }
-            }
-            // ───────────────────────────────────────────────────────────────
-
             // Active reward indicator
             const boostExpiry = userData.referralBoostExpiry;
             const boostType   = userData.referralBoostType;
