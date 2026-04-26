@@ -2389,6 +2389,60 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 window.currentUser = firebaseUser;
+
+                // ── Device Registry Check ─────────────────────────────────────
+                // Prevents one device from being used across multiple accounts.
+                // Whitelisted UIDs bypass this check entirely.
+                try {
+                    // Get or generate device ID
+                    let _devId = localStorage.getItem('medexcel_device_id') || '';
+                    if (!_devId) {
+                        _devId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+                        localStorage.setItem('medexcel_device_id', _devId);
+                    }
+
+                    // Check whitelist first
+                    const _whitelistSnap = await getDoc(doc(db, 'deviceWhitelist', firebaseUser.uid));
+                    const _isWhitelisted = _whitelistSnap.exists();
+
+                    if (!_isWhitelisted) {
+                        const _regSnap = await getDoc(doc(db, 'deviceRegistry', _devId));
+                        if (_regSnap.exists()) {
+                            const _regData = _regSnap.data();
+                            if (_regData.uid && _regData.uid !== firebaseUser.uid) {
+                                // Device is registered to a different account — block
+                                await signOut(auth);
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast('This device is linked to another account.', 'error');
+                                }
+                                // Open support sheet with pre-filled message after short delay
+                                setTimeout(() => {
+                                    if (typeof window.showContactSupport === 'function') {
+                                        window.showContactSupport();
+                                        setTimeout(() => {
+                                            const cat = document.getElementById('supportCategory');
+                                            const msg = document.getElementById('supportMessage');
+                                            if (cat) cat.value = 'Account Issue';
+                                            if (msg) msg.value = 'I am unable to log in because my device is linked to another account. Please help me resolve this.';
+                                        }, 300);
+                                    }
+                                }, 800);
+                                return;
+                            }
+                        }
+                        // Register or update device
+                        await setDoc(doc(db, 'deviceRegistry', _devId), {
+                            uid: firebaseUser.uid,
+                            lastSeen: new Date().toISOString(),
+                            firstSeen: _regSnap.exists() ? _regSnap.data().firstSeen : new Date().toISOString(),
+                        });
+                    }
+                } catch (_devErr) {
+                    // Never block login due to registry errors — fail silently
+                    console.warn('[DeviceRegistry]', _devErr.message);
+                }
+                // ─────────────────────────────────────────────────────────────
+
                 await window.initUserUI(firebaseUser);
                 window.loadLeaderboard(firebaseUser.uid);
                 if (window.initPush) window.initPush(firebaseUser.uid);

@@ -468,6 +468,16 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
   border-left:3px solid var(--purple);display:none;
 }
 
+/* ─── CHART PILLS ──────────────────────────── */
+.chart-pill{
+  font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:100px;
+  border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);
+  cursor:pointer;transition:all .15s;
+}
+.chart-pill.active-pill{
+  background:var(--purple2);color:#fff;border-color:var(--purple2);
+}
+
 /* ─── DAU CHART ─────────────────────────── */
 .chart-wrap{padding:1rem;}
 .chart-bars{display:flex;align-items:flex-end;gap:.4rem;height:72px;}
@@ -493,7 +503,6 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
 <div id="authScreen">
   <div class="auth-wrap">
     <div class="auth-brand">
-      <div class="auth-logo-wrap"><i class="fas fa-stethoscope"></i></div>
       <div class="auth-logo">Med<span>Excel</span></div>
       <div class="auth-status">Admin Portal</div>
     </div>
@@ -514,20 +523,21 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
 <div id="dashboard">
   <div class="topbar">
     <div class="tb-left">
-      <span class="tb-logo">Med<span>Excel</span></span>
-    </div>
-    <div class="tb-right">
       <div class="tb-profile">
-        <div class="tb-avatar" id="topAvatar">—</div>
+        <div style="position:relative;flex-shrink:0;">
+          <div style="width:38px;height:38px;border-radius:12px;padding:2px;background:linear-gradient(135deg,#f59e0b,#fbbf24,#f59e0b);box-shadow:0 2px 8px rgba(245,158,11,.45);">
+            <div class="tb-avatar" id="topAvatar" style="overflow:hidden;padding:0;width:100%;height:100%;border-radius:10px;box-shadow:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);">—</div>
+          </div>
+          <div id="topRankBadge" style="position:absolute;bottom:-18px;right:-10px;width:28px;height:40px;z-index:10;"></div>
+        </div>
         <div>
           <div class="tb-name" id="topName">—</div>
           <div class="tb-role-line" id="topRoleLine">—</div>
         </div>
-        <span class="role-badge badge-admin" id="roleChip">Admin</span>
+        <span class="role-badge badge-admin" id="roleChip" style="display:none;"></span>
       </div>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="Toggle theme">
-        <i class="fas fa-sun" id="themeToggleIcon"></i>
-      </button>
+    </div>
+    <div class="tb-right">
       <button class="tb-logout" onclick="doLogout()">Exit</button>
     </div>
   </div>
@@ -639,10 +649,15 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
 
     <div class="sec"><i class="fas fa-sack-dollar" style="margin-right:.4rem;color:var(--gold);"></i>Revenue</div>
     <div class="rev-hero">
-      <div>
-        <div class="rev-lbl">Est. Monthly Revenue</div>
-        <div class="rev-val" id="ovRev">₦—</div>
-        <div class="rev-sub" id="ovRevSub">Calculating...</div>
+      <div style="flex:1;">
+        <div class="rev-lbl" style="display:flex;align-items:center;gap:.5rem;">
+          Est. Monthly Revenue
+          <button onclick="toggleReveal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0;" id="revealBtn">
+            <i class="fas fa-eye-slash" id="revealIcon" style="opacity:.6;"></i>
+          </button>
+        </div>
+        <div class="rev-val" id="ovRev" style="letter-spacing:.05em;font-size:2rem;">₦ ••••••</div>
+        <div class="rev-sub" id="ovRevSub">Tap <i class="fas fa-eye" style="font-size:.7rem;"></i> to reveal</div>
       </div>
       <div class="rev-icon"><i class="fas fa-naira-sign"></i></div>
     </div>
@@ -681,14 +696,35 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
     </div>
     <div class="card">
       <div class="chart-wrap">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:.875rem;display:flex;align-items:center;gap:.375rem;">
-          <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-          Users who opened the app each day
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+          <div style="display:flex;align-items:center;gap:.375rem;font-size:.72rem;color:var(--muted);">
+            <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
+            <span id="dauSubLabel">Users who opened the app each day</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:.25rem;">
+            <button onclick="shiftChart('dau',-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;width:26px;height:26px;color:var(--muted);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-chevron-left"></i></button>
+            <span id="dauPeriodLabel" style="font-size:.68rem;font-weight:700;color:var(--text);min-width:80px;text-align:center;"></span>
+            <button onclick="shiftChart('dau',1)" id="dauNextBtn" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;width:26px;height:26px;color:var(--muted);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-chevron-right"></i></button>
+          </div>
         </div>
-        <div class="chart-bars" id="dauChartBars">
-          <div style="color:var(--muted);font-size:.75rem;padding:.5rem 0;font-family:var(--mono);">Loading…</div>
+        <div style="display:flex;gap:.375rem;margin-bottom:.75rem;">
+          <button onclick="setChartPeriod('dau','week')" id="dauPill-week" class="chart-pill active-pill">Week</button>
+          <button onclick="setChartPeriod('dau','month')" id="dauPill-month" class="chart-pill">Month</button>
+          <button onclick="setChartPeriod('dau','year')" id="dauPill-year" class="chart-pill">Year</button>
         </div>
-        <div class="chart-labels" id="dauChartLabels"></div>
+        <svg id="dauSVG" width="100%" height="100" viewBox="0 0 300 100" preserveAspectRatio="none" style="display:block;overflow:visible;">
+          <defs>
+            <linearGradient id="dauGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path id="dauArea" fill="url(#dauGrad)" d=""/>
+          <path id="dauLine" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d=""/>
+          <g id="dauDots"></g>
+        </svg>
+        <div class="chart-labels" id="dauChartLabels" style="display:flex;justify-content:space-between;margin-top:.375rem;"></div>
+        <div id="dauChartBars" style="display:none;"></div>
       </div>
     </div>
 
@@ -696,10 +732,39 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
     <div class="card" id="planCard"><div class="empty">Loading...</div></div>
 
     <div class="sec">
-      <span><i class="fas fa-user-plus" style="margin-right:.4rem;color:var(--purple);"></i>Recent Signups</span>
-      <span class="sec-action" onclick="loadData()"><i class="fas fa-rotate-right"></i> Refresh</span>
+      <span><i class="fas fa-user-plus" style="margin-right:.4rem;color:var(--purple);"></i>New Signups</span>
     </div>
-    <div class="card" id="recentCard"><div class="empty">Loading...</div></div>
+    <div class="card">
+      <div class="chart-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+          <div style="font-size:.72rem;color:var(--muted);">New users per period</div>
+          <div style="display:flex;align-items:center;gap:.25rem;">
+            <button onclick="shiftChart('sig',-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;width:26px;height:26px;color:var(--muted);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-chevron-left"></i></button>
+            <span id="sigPeriodLabel" style="font-size:.68rem;font-weight:700;color:var(--text);min-width:80px;text-align:center;"></span>
+            <button onclick="shiftChart('sig',1)" id="sigNextBtn" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;width:26px;height:26px;color:var(--muted);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+        <div style="display:flex;gap:.375rem;margin-bottom:.75rem;">
+          <button onclick="setChartPeriod('sig','week')" id="sigPill-week" class="chart-pill active-pill">Week</button>
+          <button onclick="setChartPeriod('sig','month')" id="sigPill-month" class="chart-pill">Month</button>
+          <button onclick="setChartPeriod('sig','year')" id="sigPill-year" class="chart-pill">Year</button>
+        </div>
+        <svg id="sigSVG" width="100%" height="100" viewBox="0 0 300 100" preserveAspectRatio="none" style="display:block;overflow:visible;">
+          <defs>
+            <linearGradient id="sigGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#34d399" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path id="sigArea" fill="url(#sigGrad)" d=""/>
+          <path id="sigLine" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d=""/>
+          <g id="sigDots"></g>
+        </svg>
+        <div class="chart-labels" id="sigChartLabels" style="display:flex;justify-content:space-between;margin-top:.375rem;"></div>
+        <div id="sigTotal" style="text-align:center;font-size:.75rem;font-weight:700;color:var(--green);margin-top:.5rem;"></div>
+      </div>
+    </div>
+    <div class="card" id="recentCard" style="display:none;"></div>
   </div>
 
   <!-- ══ USERS ══ -->
@@ -900,6 +965,7 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
       <div id="deviceLookupResult" style="margin-top:.625rem;font-size:.78rem;min-height:1.2rem;color:var(--text);"></div>
     </div>
 
+  </div>
 
   <!-- ══ ANALYTICS ══ -->
   <div class="tab-page" id="tab-analytics">
@@ -911,44 +977,80 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
       </div>
     </div>
 
-    <div class="card" style="overflow:hidden;margin-bottom:.75rem;">
-      <div style="position:relative;width:100%;padding-top:130%;">
-        <iframe
-          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-          src="https://lookerstudio.google.com/embed/reporting/bf08ab17-d3e4-4136-8713-1f2bb00ec032/page/xMNwF"
-          frameborder="0"
-          allowfullscreen>
-        </iframe>
+    <!-- Metric Cards -->
+    <div class="stat-grid" style="margin-bottom:.75rem;" id="analyticsCards">
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-blue"><i class="fas fa-users"></i></div>
+        <div class="stat-val" id="an-active">—</div>
+        <div class="stat-lbl">Active Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-green"><i class="fas fa-user-plus"></i></div>
+        <div class="stat-val" id="an-new">—</div>
+        <div class="stat-lbl">New Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-purple"><i class="fas fa-clock"></i></div>
+        <div class="stat-val" id="an-session">—</div>
+        <div class="stat-lbl">Avg Session</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-orange"><i class="fas fa-bolt"></i></div>
+        <div class="stat-val" id="an-engaged">—</div>
+        <div class="stat-lbl">Engaged Sessions</div>
       </div>
     </div>
 
+    <!-- Open in browser buttons -->
+    <div class="card" style="padding:1rem;margin-bottom:.75rem;">
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.875rem;">View Full Reports</div>
+      <div style="display:flex;flex-direction:column;gap:.625rem;">
+        <button onclick="window.open('https://lookerstudio.google.com/reporting/bf08ab17-d3e4-4136-8713-1f2bb00ec032','_system')"
+          style="display:flex;align-items:center;justify-content:space-between;padding:.875rem 1rem;background:var(--purple-bg);border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;">
+          <div style="display:flex;align-items:center;gap:.625rem;">
+            <i class="fas fa-chart-line" style="color:var(--purple);font-size:.9rem;"></i>
+            <div style="text-align:left;">
+              <div style="font-size:.82rem;font-weight:700;color:var(--text);">Looker Studio Dashboard</div>
+              <div style="font-size:.7rem;color:var(--muted);margin-top:1px;">Active users, sessions, engagement</div>
+            </div>
+          </div>
+          <i class="fas fa-arrow-up-right-from-square" style="color:var(--muted);font-size:.75rem;"></i>
+        </button>
+        <button onclick="window.open('https://console.firebase.google.com','_system')"
+          style="display:flex;align-items:center;justify-content:space-between;padding:.875rem 1rem;background:var(--orange-bg);border:1px solid rgba(251,146,60,0.2);border-radius:var(--radius-sm);cursor:pointer;">
+          <div style="display:flex;align-items:center;gap:.625rem;">
+            <i class="fas fa-fire" style="color:var(--orange);font-size:.9rem;"></i>
+            <div style="text-align:left;">
+              <div style="font-size:.82rem;font-weight:700;color:var(--text);">Firebase Console</div>
+              <div style="font-size:.7rem;color:var(--muted);margin-top:1px;">Retention, cohorts, realtime users</div>
+            </div>
+          </div>
+          <i class="fas fa-arrow-up-right-from-square" style="color:var(--muted);font-size:.75rem;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Metrics legend -->
     <div class="card" style="padding:1rem;">
-      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Key Metrics Explained</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">What Each Metric Means</div>
       <div style="display:flex;flex-direction:column;gap:.625rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
           <span style="font-size:.8rem;font-weight:600;color:var(--text);">Active Users</span>
-          <span style="font-size:.75rem;color:var(--muted);">Unique users who opened app</span>
+          <span style="font-size:.72rem;color:var(--muted);">Unique users who opened app</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:.8rem;font-weight:600;color:var(--text);">Avg Session Duration</span>
-          <span style="font-size:.75rem;color:var(--muted);">Time spent per session</span>
+          <span style="font-size:.8rem;font-weight:600;color:var(--text);">Avg Session</span>
+          <span style="font-size:.72rem;color:var(--muted);">Time spent per session</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
           <span style="font-size:.8rem;font-weight:600;color:var(--text);">Engaged Sessions</span>
-          <span style="font-size:.75rem;color:var(--muted);">Sessions with real interaction</span>
+          <span style="font-size:.72rem;color:var(--muted);">Sessions with real interaction</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
           <span style="font-size:.8rem;font-weight:600;color:var(--text);">New Users</span>
-          <span style="font-size:.75rem;color:var(--muted);">First-time app installs</span>
+          <span style="font-size:.72rem;color:var(--muted);">First-time installs</span>
         </div>
       </div>
-    </div>
-
-    <div style="text-align:center;padding:.75rem 0;">
-      <a href="https://lookerstudio.google.com" target="_blank"
-        style="font-size:.78rem;font-weight:700;color:var(--purple);text-decoration:none;">
-        <i class="fas fa-arrow-up-right-from-square" style="margin-right:.375rem;"></i>Edit in Looker Studio
-      </a>
     </div>
   </div>
 
@@ -1040,9 +1142,50 @@ onAuthStateChanged(auth, async (user) => {
     const topName   = document.getElementById('topName');
     const topRole   = document.getElementById('topRoleLine');
     const chip      = document.getElementById('roleChip');
-    if (topAvatar)  topAvatar.textContent = initial;
     if (topName)    topName.textContent   = displayName;
     if (topRole)    topRole.textContent   = isAdmin ? 'Administrator' : 'Ambassador';
+
+    // Set profile photo — photoBase64 > avatarIndex > initial letter
+    if (topAvatar) {
+      const photoBase64 = data.photoBase64 || localStorage.getItem('medexcel_photo_' + user.uid);
+      const avatarIndex = data.avatarIndex ?? (() => {
+        const s = localStorage.getItem('medexcel_avatar_' + user.uid);
+        return s !== null ? parseInt(s) : null;
+      })();
+      const AVATAR_GRID = [
+        {col:0,row:0},{col:1,row:0},{col:2,row:0},
+        {col:0,row:1},{col:1,row:1},{col:2,row:1},
+        {col:0,row:2},{col:1,row:2},{col:2,row:2}
+      ];
+      if (photoBase64) {
+        topAvatar.innerHTML = `<img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.parentElement.textContent='${initial}';">`;
+      } else if (avatarIndex !== null && AVATAR_GRID[avatarIndex]) {
+        const a = AVATAR_GRID[avatarIndex];
+        topAvatar.innerHTML = `<div style="width:100%;height:100%;border-radius:10px;background-image:url('avatar.svg');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
+      } else {
+        topAvatar.textContent = initial;
+      }
+    }
+
+    // Set rank badge based on user XP
+    const rankBadgeEl = document.getElementById('topRankBadge');
+    if (rankBadgeEl) {
+      const xp = data.xp || 0;
+      const RANKS = [
+        { minXp: 0,    col: 0, color: '#d97706' },
+        { minXp: 250,  col: 1, color: '#94a3b8' },
+        { minXp: 1000, col: 2, color: '#fbbf24' },
+        { minXp: 2500, col: 3, color: '#8b5cf6' },
+        { minXp: 5000, col: 4, color: '#10b981' },
+      ];
+      let rank = RANKS[0];
+      for (let i = RANKS.length - 1; i >= 0; i--) {
+        if (xp >= RANKS[i].minXp) { rank = RANKS[i]; break; }
+      }
+      const s = 28, h = Math.round(s * 1.4);
+      const bgSz = 5 * s, posX = -(rank.col * s), posY = -Math.round(s * 2.392);
+      rankBadgeEl.innerHTML = `<div style="width:${s}px;height:${h}px;background-image:url('rank.svg');background-size:${bgSz}px ${bgSz}px;background-position:${posX}px ${posY}px;background-repeat:no-repeat;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));"></div>`;
+    }
     if (chip) {
       chip.textContent = isAdmin ? 'Admin' : 'Ambassador';
       chip.className = 'role-badge ' + (isAdmin ? 'badge-admin' : 'badge-ambassador');
@@ -1103,8 +1246,10 @@ function renderAll() {
   renderUserList();
   renderActivity();
   renderTeam();
-  renderDAUChart();
   renderAmbassadorDashboard();
+  renderAnalyticsCards();
+  renderChart('dau');
+  renderChart('sig');
   setTimeout(() => {
     document.querySelectorAll('.bar-fill[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
   }, 80);
@@ -1176,10 +1321,12 @@ window.ambShareLink = function() {
 
 // ── DAILY ACTIVE USERS CHART ──
 async function renderDAUChart() {
-  const barsEl  = document.getElementById('dauChartBars');
   const labLabelsEl = document.getElementById('dauChartLabels');
-  const totalEl = document.getElementById('dauWeekTotal');
-  if (!barsEl) return;
+  const totalEl     = document.getElementById('dauWeekTotal');
+  const svgLine     = document.getElementById('dauLine');
+  const svgArea     = document.getElementById('dauArea');
+  const svgDots     = document.getElementById('dauDots');
+  if (!svgLine) return;
 
   const today = new Date(); today.setHours(0,0,0,0);
   const days = [];
@@ -1194,37 +1341,65 @@ async function renderDAUChart() {
   }
 
   try {
-    // Fetch all 7 dailyActive docs in parallel
     const snaps  = await Promise.all(days.map(d => getDoc(doc(db, 'dailyActive', d.key))));
     const counts = snaps.map(s => s.exists() ? Object.keys(s.data().uids || {}).length : 0);
     const max    = Math.max(...counts, 1);
     const total  = counts.reduce((s, c) => s + c, 0);
-
     if (totalEl) totalEl.textContent = `${total} this week`;
 
-    barsEl.innerHTML = days.map((d, i) => {
-      const count  = counts[i];
-      const pct    = count > 0 ? Math.max((count / max) * 100, 10) : 4;
-      const color  = d.isToday ? 'var(--purple)'  : count > 0 ? 'var(--hover)' : 'var(--surface2)';
-      const border = d.isToday ? '1px solid rgba(167,139,250,.35)' : '1px solid var(--border)';
-      const cc     = d.isToday ? 'var(--purple)'  : count > 0 ? 'var(--text)' : 'transparent';
-      return `<div class="chart-bar-col">
-        <span class="chart-bar-count" style="color:${cc};">${count > 0 ? count : ''}</span>
-        <div class="chart-bar" style="height:${pct}%;background:${color};border:${border};"></div>
-      </div>`;
+    // Build SVG paths
+    const W = 300, H = 90, PAD = 10;
+    const pts = counts.map((c, i) => ({
+      x: PAD + (i / (days.length - 1)) * (W - PAD * 2),
+      y: H - PAD - ((c / max) * (H - PAD * 2))
+    }));
+
+    // Smooth line using cubic bezier
+    let linePath = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = (pts[i-1].x + pts[i].x) / 2;
+      linePath += ` C ${cp1x} ${pts[i-1].y}, ${cp1x} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+    }
+    svgLine.setAttribute('d', linePath);
+
+    // Area fill (close path at bottom)
+    const areaPath = linePath + ` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`;
+    svgArea.setAttribute('d', areaPath);
+
+    // Dots
+    svgDots.innerHTML = pts.map((p, i) => {
+      const isToday = days[i].isToday;
+      return `<circle cx="${p.x}" cy="${p.y}" r="${isToday ? 5 : 3.5}"
+        fill="${isToday ? '#a78bfa' : '#7c3aed'}"
+        stroke="${isToday ? '#fff' : 'rgba(167,139,250,0.4)'}"
+        stroke-width="${isToday ? 2 : 1}">
+        <title>${days[i].label}: ${counts[i]}</title>
+      </circle>
+      <text x="${p.x}" y="${p.y - 8}" text-anchor="middle"
+        font-size="9" fill="${isToday ? '#a78bfa' : '#64748b'}"
+        font-family="sans-serif" font-weight="${isToday ? '700' : '400'}">
+        ${counts[i] > 0 ? counts[i] : ''}
+      </text>`;
     }).join('');
 
+    // Labels
     if (labLabelsEl) {
       labLabelsEl.innerHTML = days.map((d, i) =>
-        `<div class="chart-day" style="color:${d.isToday ? 'var(--purple)' : 'var(--muted)'};">${d.label}</div>`
+        `<span style="font-size:.6rem;color:${d.isToday ? 'var(--purple)' : 'var(--muted)'};font-weight:${d.isToday ? '700' : '400'};">${d.label}</span>`
       ).join('');
     }
+
+    // Animate line drawing
+    requestAnimationFrame(() => {
+      const len = svgLine.getTotalLength?.() || 500;
+      svgLine.style.strokeDasharray = len;
+      svgLine.style.strokeDashoffset = len;
+      svgLine.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.19,1,.22,1)';
+      requestAnimationFrame(() => { svgLine.style.strokeDashoffset = 0; });
+    });
+
   } catch(e) {
-    barsEl.innerHTML = `<div style="color:var(--red);font-size:.75rem;font-family:var(--mono);padding:.25rem 0;line-height:1.8;">
-      <i class="fas fa-triangle-exclamation" style="margin-right:.3rem;"></i>Permission denied on <code>dailyActive</code><br>
-      <span style="color:var(--muted);font-size:.68rem;">Add to Firestore rules:<br>
-      <code>match /dailyActive/{date} { allow read: if request.auth != null; allow write: if request.auth != null; }</code></span>
-    </div>`;
+    if (labLabelsEl) labLabelsEl.innerHTML = `<span style="color:var(--red);font-size:.72rem;">Failed to load DAU data</span>`;
   }
 }
 
@@ -1237,13 +1412,17 @@ function renderOverview() {
   const totalXP = allUsers.reduce((s,u) => s+(u.xp||0), 0);
   const streaks = allUsers.filter(u => (u.streak||0)>0).length;
   const today   = new Date().toDateString();
-  const newToday= allUsers.filter(u => { if(!u.createdAt) return false; const d=u.createdAt.toDate?u.createdAt.toDate():new Date(u.createdAt); return d.toDateString()===today; }).length;
+  const _getSigDate = u => { const r=u.createdAt||u.fcmUpdatedAt||null; if(!r) return null; try{return r.toDate?r.toDate():new Date(r);}catch(e){return null;} };
+  const newToday= allUsers.filter(u => { const d=_getSigDate(u); return d&&d.toDateString()===today; }).length;
   const weekAgo = Date.now()-7*24*3600000;
   const newWeek = allUsers.filter(u => ts2ms(u.createdAt)>weekAgo).length;
   const pct     = total>0 ? ((premium/total)*100).toFixed(1) : '0';
 
-  document.getElementById('ovRev').textContent    = '₦'+(premium*1999).toLocaleString();
-  document.getElementById('ovRevSub').textContent = `from ${premium} premium subscriber${premium!==1?'s':''}`;
+  window._revAmount = '\u20a6'+(premium*1999).toLocaleString();
+  window._revSub = `from ${premium} premium subscriber${premium!==1?'s':''}`;
+  document.getElementById('ovRevSub').textContent = window._revSub;
+  const _revEl = document.getElementById('ovRev');
+  if (_revEl) { _revEl.textContent = window._revRevealed ? window._revAmount : '\u20a6 \u2022\u2022\u2022\u2022\u2022\u2022'; _revEl.style.letterSpacing = window._revRevealed ? '-.03em' : '.05em'; }
   document.getElementById('ovTotal').textContent  = total;
   document.getElementById('ovToday').textContent  = `+${newToday} today · +${newWeek} this week`;
   document.getElementById('ovPrem').textContent   = premium;
@@ -1664,6 +1843,273 @@ window.switchTab = function(tab) {
   }, 80);
 };
 
+// ── ANALYTICS CARDS ──
+function renderAnalyticsCards() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  const total   = allUsers.length;
+  const today   = new Date().toDateString();
+  const newToday= allUsers.filter(u => {
+    if (!u.createdAt) return false;
+    const d = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+    return d.toDateString() === today;
+  }).length;
+
+  // Active today from dailyActive (already fetched in DAU chart)
+  const todayKey = new Date().toISOString().split('T')[0];
+  getDoc(doc(db, 'dailyActive', todayKey)).then(s => {
+    const dau = s.exists() ? Object.keys(s.data().uids || {}).length : 0;
+    set('an-active', dau);
+  }).catch(() => set('an-active', '—'));
+
+  set('an-new', newToday);
+
+  // Avg daily usage across all users as proxy for engagement
+  const usages = allUsers.map(u => u.planUsed || u.dailyUsage || 0).filter(v => v > 0);
+  const avgUsage = usages.length > 0 ? (usages.reduce((a,b) => a+b, 0) / usages.length).toFixed(1) : '—';
+  set('an-session', avgUsage ? avgUsage + ' uses' : '—');
+
+  // Premium + active streak users as engaged proxy
+  const engaged = allUsers.filter(u => (u.streak || 0) > 0 || u.plan === 'premium').length;
+  set('an-engaged', engaged);
+}
+
+// ── CHART ENGINE ──────────────────────────────────────────────────────────────
+const chartState = {
+  dau: { period: 'week', offset: 0 },
+  sig: { period: 'week', offset: 0 },
+};
+
+window.setChartPeriod = function(chartId, period) {
+  chartState[chartId].period = period;
+  chartState[chartId].offset = 0;
+  ['week','month','year'].forEach(p => {
+    const el = document.getElementById(chartId + 'Pill-' + p);
+    if (el) el.className = 'chart-pill' + (p === period ? ' active-pill' : '');
+  });
+  renderChart(chartId);
+};
+
+window.shiftChart = function(chartId, dir) {
+  chartState[chartId].offset += dir;
+  if (chartState[chartId].offset > 0) chartState[chartId].offset = 0;
+  renderChart(chartId);
+};
+
+function getPeriodDays(chartId) {
+  const { period, offset } = chartState[chartId];
+  const now = new Date(); now.setHours(0,0,0,0);
+  const days = [];
+
+  if (period === 'week') {
+    const start = new Date(now);
+    start.setDate(start.getDate() + offset * 7);
+    // Go back to start of that week
+    const dayOfWeek = start.getDay();
+    start.setDate(start.getDate() - dayOfWeek);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+  } else if (period === 'month') {
+    const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+    for (let i = 0; i < daysInMonth; i++) {
+      const d = new Date(base); d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+  } else { // year
+    const year = now.getFullYear() + offset;
+    for (let m = 0; m < 12; m++) {
+      days.push(new Date(year, m, 1));
+    }
+  }
+  return days;
+}
+
+function getPeriodLabel(chartId) {
+  const { period, offset } = chartState[chartId];
+  const now = new Date();
+  if (period === 'week') {
+    const start = new Date(now);
+    start.setDate(start.getDate() + offset * 7);
+    const dow = start.getDay();
+    start.setDate(start.getDate() - dow);
+    const end = new Date(start); end.setDate(end.getDate() + 6);
+    const fmt = d => d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+    return fmt(start) + ' – ' + fmt(end);
+  } else if (period === 'month') {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return d.toLocaleDateString('en', { month: 'long', year: 'numeric' });
+  } else {
+    return String(now.getFullYear() + offset);
+  }
+}
+
+function getDayLabel(d, period) {
+  if (period === 'week') return d.toLocaleDateString('en', { weekday: 'short' });
+  if (period === 'month') return String(d.getDate());
+  return d.toLocaleDateString('en', { month: 'short' });
+}
+
+async function renderChart(chartId) {
+  const { period, offset } = chartState[chartId];
+  const days = getPeriodDays(chartId);
+  const isYear = period === 'year';
+
+  // Update nav label
+  const labelEl = document.getElementById(chartId + 'PeriodLabel');
+  if (labelEl) labelEl.textContent = getPeriodLabel(chartId);
+
+  // Disable next btn if at current period
+  const nextBtn = document.getElementById(chartId + 'NextBtn');
+  if (nextBtn) nextBtn.style.opacity = offset === 0 ? '.3' : '1';
+
+  // Fetch counts
+  let counts = [];
+  if (chartId === 'dau') {
+    if (isYear) {
+      // Sum dailyActive docs per month
+      const year = new Date().getFullYear() + offset;
+      const monthCounts = new Array(12).fill(0);
+      try {
+        // Fetch all docs for this year
+        const { getDocs: gd, collection: col, query: q, where: w } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+        // Use allUsers as fallback for signups, for DAU fetch dailyActive docs
+        for (let m = 0; m < 12; m++) {
+          const daysInMonth = new Date(year, m + 1, 0).getDate();
+          const daySnaps = await Promise.all(
+            Array.from({length: daysInMonth}, (_, i) => {
+              const key = `${year}-${String(m+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;
+              return getDoc(doc(db, 'dailyActive', key));
+            })
+          );
+          monthCounts[m] = daySnaps.reduce((s, snap) => s + (snap.exists() ? Object.keys(snap.data().uids || {}).length : 0), 0);
+        }
+        counts = monthCounts;
+      } catch(e) { counts = new Array(12).fill(0); }
+    } else {
+      const snaps = await Promise.all(days.map(d => {
+        const key = d.toISOString().split('T')[0];
+        return getDoc(doc(db, 'dailyActive', key)).catch(() => null);
+      }));
+      counts = snaps.map(s => s && s.exists() ? Object.keys(s.data().uids || {}).length : 0);
+    }
+
+    // Update week total
+    const totalEl = document.getElementById('dauWeekTotal');
+    if (totalEl) {
+      const total = counts.reduce((a,b) => a+b, 0);
+      const label = period === 'week' ? 'this week' : period === 'month' ? 'this month' : 'this year';
+      totalEl.textContent = `${total} ${label}`;
+    }
+  } else {
+    // Signup chart — use allUsers createdAt
+    // Helper: get best available signup date for a user
+    const getSignupDate = u => {
+      const raw = u.createdAt || u.fcmUpdatedAt || null;
+      if (!raw) return null;
+      try { return raw.toDate ? raw.toDate() : new Date(raw); } catch(e) { return null; }
+    };
+
+    if (isYear) {
+      const year = new Date().getFullYear() + offset;
+      counts = new Array(12).fill(0);
+      (window.allUsers || []).forEach(u => {
+        const d = getSignupDate(u);
+        if (d && d.getFullYear() === year) counts[d.getMonth()]++;
+      });
+    } else if (period === 'month') {
+      counts = days.map(d => {
+        return (window.allUsers || []).filter(u => {
+          const ud = getSignupDate(u);
+          return ud && ud.toDateString() === d.toDateString();
+        }).length;
+      });
+    } else {
+      counts = days.map(d => {
+        return (window.allUsers || []).filter(u => {
+          const ud = getSignupDate(u);
+          return ud && ud.toDateString() === d.toDateString();
+        }).length;
+      });
+    }
+
+    const totalEl = document.getElementById('sigTotal');
+    if (totalEl) {
+      const total = counts.reduce((a,b) => a+b, 0);
+      totalEl.textContent = total > 0 ? `+${total} new users this ${period}` : `No signups this ${period}`;
+    }
+  }
+
+  drawSVGChart(chartId, days, counts, period);
+}
+
+function drawSVGChart(chartId, days, counts, period) {
+  const svgLine = document.getElementById(chartId + 'Line');
+  const svgArea = document.getElementById(chartId + 'Area');
+  const svgDots = document.getElementById(chartId + 'Dots');
+  const labelsEl = document.getElementById(chartId + 'ChartLabels');
+  if (!svgLine) return;
+
+  const max = Math.max(...counts, 1);
+  const W = 300, H = 90, PAD = 10;
+  const pts = counts.map((c, i) => ({
+    x: PAD + (i / Math.max(counts.length - 1, 1)) * (W - PAD * 2),
+    y: H - PAD - ((c / max) * (H - PAD * 2))
+  }));
+
+  let linePath = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const cp1x = (pts[i-1].x + pts[i].x) / 2;
+    linePath += ` C ${cp1x} ${pts[i-1].y}, ${cp1x} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+  }
+  svgLine.setAttribute('d', linePath);
+  svgArea.setAttribute('d', linePath + ` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`);
+
+  const now = new Date(); now.setHours(0,0,0,0);
+  svgDots.innerHTML = pts.map((p, i) => {
+    const isNow = days[i].toDateString() === now.toDateString() || (period === 'year' && days[i].getMonth() === now.getMonth() && days[i].getFullYear() === now.getFullYear());
+    const color = chartId === 'sig' ? '#34d399' : '#a78bfa';
+    const darkColor = chartId === 'sig' ? '#10b981' : '#7c3aed';
+    return `<circle cx="${p.x}" cy="${p.y}" r="${isNow ? 5 : 3.5}" fill="${isNow ? color : darkColor}" stroke="${isNow ? '#fff' : 'rgba(167,139,250,0.3)'}" stroke-width="${isNow ? 2 : 1}">
+      <title>${getDayLabel(days[i], period)}: ${counts[i]}</title>
+    </circle>
+    ${counts[i] > 0 ? `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9" fill="${isNow ? color : '#64748b'}" font-family="sans-serif" font-weight="${isNow ? '700' : '400'}">${counts[i]}</text>` : ''}`;
+  }).join('');
+
+  // Show only a subset of labels to avoid crowding
+  const total = days.length;
+  const step = total <= 7 ? 1 : total <= 12 ? 1 : Math.ceil(total / 8);
+  if (labelsEl) {
+    labelsEl.innerHTML = days.map((d, i) => {
+      const show = i % step === 0 || i === total - 1;
+      return `<span style="font-size:.6rem;color:var(--muted);flex:1;text-align:center;visibility:${show ? 'visible' : 'hidden'};">${getDayLabel(d, period)}</span>`;
+    }).join('');
+  }
+
+  // Animate
+  requestAnimationFrame(() => {
+    const len = svgLine.getTotalLength?.() || 500;
+    svgLine.style.strokeDasharray = len;
+    svgLine.style.strokeDashoffset = len;
+    svgLine.style.transition = 'stroke-dashoffset 1s cubic-bezier(.19,1,.22,1)';
+    requestAnimationFrame(() => { svgLine.style.strokeDashoffset = 0; });
+  });
+}
+
+// ── REVENUE REVEAL ──
+let _revRevealed = false; // always hidden on page load
+window.toggleReveal = function() {
+  _revRevealed = !_revRevealed;
+  const el   = document.getElementById('ovRev');
+  const icon = document.getElementById('revealIcon');
+  if (!el) return;
+  el.textContent = _revRevealed ? (window._revAmount || '₦—') : '₦ ••••••';
+  el.style.letterSpacing = _revRevealed ? '-.03em' : '.05em';
+  if (icon) icon.className = _revRevealed ? 'fas fa-eye' : 'fas fa-eye-slash';
+};
+
 // ── TOAST ──
 window.toast = function(msg, type = '') {
   const t = document.getElementById('toast');
@@ -1853,26 +2299,25 @@ window.switchTab = function(tab) {
 };
 
 // ── THEME TOGGLE ──────────────────────────────────────────────────────────────
-(function initTheme() {
-  const saved = localStorage.getItem('medexcel_admin_theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const theme = saved || (prefersDark ? 'dark' : 'light');
-  applyTheme(theme);
-})();
-
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const icon = document.getElementById('themeToggleIcon');
   const meta = document.getElementById('themeMetaColor');
-  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#06060f' : '#eef1f8');
-  localStorage.setItem('medexcel_admin_theme', theme);
 }
 
-window.toggleTheme = function() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-};
+// Sync theme from the main MedExcel app's localStorage key
+(function initTheme() {
+  const saved = localStorage.getItem('medexcel_theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+
+  // Poll every 2 seconds to pick up theme changes made in the app
+  setInterval(() => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const appTheme = localStorage.getItem('medexcel_theme');
+    if (appTheme && appTheme !== current) applyTheme(appTheme);
+  }, 2000);
+})();
 
 
 

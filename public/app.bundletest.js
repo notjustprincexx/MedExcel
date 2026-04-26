@@ -480,11 +480,18 @@
             const btn = document.getElementById('confirmAccountDeleteBtn');
             if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
-                // Delete Firestore user document
-                if (window.currentUser?.uid && window._deleteDoc && window._doc) {
-                    try { await window._deleteDoc(window._doc(window.db, "users", window.currentUser.uid)); } catch(e) {}
+                // ── Step 1: Delete all Firestore data via Cloud Function ──────
+                // Client-side deleteDoc only removes the root user doc — the
+                // quizzes subcollection is NOT deleted and lingers in Firestore.
+                // The Cloud Function handles the full recursive cleanup.
+                if (window.currentUser) {
+                    try {
+                        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
+                        const fns = getFunctions(window.auth?.app, "us-central1");
+                        await httpsCallable(fns, "deleteUserData")();
+                    } catch(e) { console.warn("[DeleteAccount] Firestore cleanup failed:", e.message); }
                 }
-                // Delete the Firebase Auth account itself
+                // ── Step 2: Delete Firebase Auth account ──────────────────────
                 if (window.currentUser) {
                     try {
                         await window.currentUser.delete();
@@ -2551,7 +2558,7 @@ if (nextBtn) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
                     const file = e.target.files[0];
-                    const isPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
+                    const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
                     const maxMB = isPremium ? 50 : 15;
                     if (file.size > maxMB * 1024 * 1024) { alert(`File is too large. Maximum size is ${maxMB}MB${!isPremium ? ' on the free plan. Upgrade to Premium for 50MB.' : '.'}`); fileInput.value = ''; return; }
 
@@ -2759,7 +2766,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         
         window.claimAndContinue = async function() {
             const btn = document.querySelector('.btn-claim-xp');
-            btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7';
+            if (btn) { btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7'; }
             try { await window.addXP(window.finalEarnedXP); } catch(e) {}
             window.commitStreakOnAction?.();
             window.goBackToSelection();
@@ -3507,31 +3514,19 @@ window._openProgressDeck = function(quizId) {
             var lastName  = nameParts.slice(1).join(" ") || ".";
             var email     = window.currentUser.email || "";
 
-            const p = window._geoPrice || DEFAULT_GEO;
-
-            // ── Always charge in NGN (Paystack account currency) ─────────────
-            // Non-NGN prices are converted to NGN at a fixed rate so foreign
-            // cards still work — the user's bank handles the final FX conversion.
-            // Sending any other currency causes "Currency not supported" errors.
-            const NGN_RATES = { NGN:1, USD:1600, GBP:2050, GHS:110, KES:12, ZAR:85 };
-            const rate = NGN_RATES[p.currency] || 1600;
-
-            function toNGNKobo(kobo) {
-                if (p.currency === 'NGN') return kobo;
-                // kobo here is in the foreign currency's smallest unit (e.g. cents)
-                // convert: kobo/100 = display amount in foreign currency
-                // × rate = NGN amount, × 100 = NGN kobo
-                return Math.round((kobo / 100) * rate * 100);
+            // ── Map MedXcel plan names → Paystack plan codes ─────────────────
+            // Price and billing cycle are controlled by the Paystack plan itself.
+            const PLAN_CODES = {
+                'premium':         'PLN_jcgt20vstjvnf0p', // ₦1,999/month
+                'premium_yearly':  'PLN_kjs8v6kzn39cjnp', // ₦14,999/year
+                'premium_trial':   'PLN_yegmmewhvf8dw5p', // ₦250 one-time trial
+                'premium_exam':    'PLN_zkdzu95bbxthyn2', // ₦4,999/quarter
+            };
+            const planCode = PLAN_CODES[plan];
+            if (!planCode) {
+                console.error('[Payment] Unknown plan:', plan);
+                return;
             }
-
-            const trialAmt = toNGNKobo(p.currency === 'NGN' ? 25000 : Math.round(p.monthlyKobo * 0.132));
-            const examAmt  = toNGNKobo(p.currency === 'NGN' ? 499900 : Math.round(p.monthlyKobo * 2.5));
-
-            var amount   = plan === 'premium_yearly' ? toNGNKobo(p.yearlyKobo)
-                         : plan === 'premium_trial'  ? trialAmt
-                         : plan === 'premium_exam'   ? examAmt
-                         : toNGNKobo(p.monthlyKobo);
-            var currency = 'NGN'; // always NGN — Paystack account only supports NGN
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
@@ -3549,8 +3544,7 @@ window._openProgressDeck = function(quizId) {
                     email:      email,
                     first_name: firstName,
                     last_name:  lastName,
-                    amount:     amount,
-                    currency:   currency,
+                    plan:       planCode,
                     ref:        ref,
                     channels:   ['card'],
                     metadata:   { uid: window.currentUser.uid || "", plan: plan },
@@ -3563,8 +3557,8 @@ window._openProgressDeck = function(quizId) {
                 });
                 handler.openIframe();
             } catch(err) {
-                console.error("Paystack inline error — using fallback iframe:", err);
-                window.openPaymentModal(plan === "elite" ? "https://paystack.shop/pay/lw17s2ggpj" : "https://paystack.shop/pay/5wqjry1l0a");
+                console.error("Paystack inline error:", err);
+                var errBanner = document.getElementById("payErrorBanner"); if (errBanner) { errBanner.textContent = "Payment could not be initialized. Check your connection and try again."; errBanner.style.display = "block"; } else { alert("Payment could not be initialized. Check your connection and try again."); }
             }
         };
 
@@ -3599,7 +3593,7 @@ window._openProgressDeck = function(quizId) {
                             const saved = parseInt(savedRef.split('_')[1] || '0', 10);
                             if (Date.now() - saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); }
                         }
-                    } catch(e) { console.warn('[MedXcel] Auto-recovery check failed silently:', e); }
+                    } catch(e) { console.warn('[MedXcel] Auto-recovery check failed silently:', e); const _saved = parseInt(savedRef.split('_')[1] || '0', 10); if (Date.now() - _saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); console.log('[MedXcel] Cleared stale pending ref (>24h old)'); } }
                 }, 500);
             } catch(_) {}
         })();
