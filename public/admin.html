@@ -2154,59 +2154,76 @@ window.loadInsights = async function() {
     const users = snap.docs.map(d => d.data());
     totalEl.textContent = users.length;
 
-    const refCount = users.filter(u => u.referralCode || u.claimedReferral).length;
+    // Only count users who actually used someone else's referral code
+    const refCount = users.filter(u => u.referredBy).length;
     refEl.textContent = refCount;
 
     const fields = [
-      { key: 'studyProgram', label: 'Study Programme',
+      { key: 'studyProgram', label: 'Study Programme', icon: '🎓',
         map: { mbbs:'MBBS / Med School', usmle:'USMLE', plab:'PLAB', nursing:'Nursing', pharmacy:'Pharmacy', other:'Other' } },
-      { key: 'studyLevel', label: 'Year of Study',
+      { key: 'studyLevel', label: 'Year of Study', icon: '📅',
         map: { '1st':'1st Year','2nd':'2nd Year','3rd':'3rd Year','4th':'4th Year','final':'Final Year','postgrad':'Post-grad / Resident' } },
-      { key: 'studyGoal', label: 'Primary Goal',
+      { key: 'studyGoal', label: 'Primary Goal', icon: '🎯',
         map: { pass:'Pass exams', understand:'Deepen understanding', consistency:'Build consistency', revise:'Quick revision' } },
-      { key: 'studyTime', label: 'Preferred Study Time',
+      { key: 'studyTime', label: 'Study Time', icon: '🕐',
         map: { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' } },
-      { key: 'dailyTarget', label: 'Daily Target',
+      { key: 'dailyTarget', label: 'Daily Target', icon: '📊',
         map: { '10':'10 items','20':'20 items','30':'30 items','50':'50+ items' } },
-      { key: 'gender', label: 'Gender',
+      { key: 'gender', label: 'Gender', icon: '👤',
         map: { male:'Male', female:'Female', other:'Prefer not to say' } },
     ];
 
-    breakdowns.innerHTML = fields.map(field => {
-      // Count occurrences
+    const total = users.length || 1;
+
+    // Build a 2-column grid of cards
+    const cards = fields.map(field => {
+      // Count occurrences for this field across all users
       const counts = {};
       users.forEach(u => {
-        const val = String(u[field.key] || 'unknown');
-        counts[val] = (counts[val] || 0) + 1;
+        const val = u[field.key] != null ? String(u[field.key]) : null;
+        if (val) counts[val] = (counts[val] || 0) + 1;
       });
 
-      const total = users.length || 1;
-      const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+      // Always render ALL defined options — show 0 for unpicked ones so
+      // the full distribution is visible even with few users
+      const allOptions = Object.entries(field.map); // [key, label] pairs
+      const sorted = allOptions
+        .map(([key, label]) => ({ key, label, count: counts[key] || 0 }))
+        .sort((a, b) => b.count - a.count);
 
-      const bars = sorted.map(([val, count]) => {
-        const label = field.map[val] || val;
-        const pct   = Math.round((count / total) * 100);
+      const bars = sorted.map(({ label, count }) => {
+        const pct     = Math.round((count / total) * 100);
+        const isEmpty = count === 0;
         return `
-          <div style="margin-bottom:.625rem;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-size:.78rem;font-weight:600;color:var(--text);">${label}</span>
-              <span style="font-size:.72rem;color:var(--muted);font-weight:700;">${count} · ${pct}%</span>
+          <div style="margin-bottom:.5rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="font-size:.72rem;font-weight:${isEmpty ? '500' : '600'};color:${isEmpty ? 'var(--muted)' : 'var(--text)'};">${label}</span>
+              <span style="font-size:.68rem;font-weight:700;color:${isEmpty ? 'var(--border)' : 'var(--muted)'};">
+                ${isEmpty ? '—' : count + ' · ' + pct + '%'}
+              </span>
             </div>
-            <div style="height:7px;background:var(--border);border-radius:9999px;overflow:hidden;">
+            <div style="height:6px;background:var(--border);border-radius:9999px;overflow:hidden;">
               <div class="bar-fill" data-w="${pct}"
-                style="height:100%;width:0%;background:var(--purple2);border-radius:9999px;transition:width .6s cubic-bezier(.19,1,.22,1);"></div>
+                style="height:100%;width:0%;background:${isEmpty ? 'transparent' : 'var(--purple2)'};border-radius:9999px;transition:width .6s cubic-bezier(.19,1,.22,1);"></div>
             </div>
           </div>`;
       }).join('');
 
       return `
-        <div class="card" style="margin-bottom:1rem;">
-          <div class="sec-hd" style="margin-bottom:.75rem;">
-            <span class="sec-title" style="font-size:.8rem;">${field.label}</span>
+        <div class="card" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.625rem;">
+            <span style="font-size:.875rem;">${field.icon}</span>
+            <span style="font-size:.75rem;font-weight:700;color:var(--text);">${field.label}</span>
           </div>
           ${bars}
         </div>`;
-    }).join('');
+    });
+
+    // Lay out in a 2-column grid
+    breakdowns.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;">
+        ${cards.join('')}
+      </div>`;
 
     // Animate bars in
     setTimeout(() => {
@@ -2318,6 +2335,10 @@ function applyTheme(theme) {
     if (appTheme && appTheme !== current) applyTheme(appTheme);
   }, 2000);
 })();
+
+
+
+
 </script>
 </body>
 </html>
