@@ -1540,9 +1540,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     } else if (msg.includes('resource-exhausted') || msg.includes('quota')) {
                         icon = '🔋'; title = 'Daily Limit Reached';
                         body = window.userPlan === 'free'
-                            ? 'You\'ve used all 5 of your free generations today.'
+                            ? 'You\'ve used all 5 of your free generations today. Premium gives you 30/day.'
                             : 'You\'ve used all 30 of your premium generations today.';
-                        tip = window.userPlan === 'free' ? 'Upgrade to Premium for 30 generations per day.' : 'Your limit resets at midnight.';
+                        tip = window.userPlan === 'free' ? null : 'Your limit resets at midnight.';
                     } else if (msg.includes('unauthenticated')) {
                         icon = '🔒'; title = 'Not Logged In';
                         body = 'Your session expired. Please log in again to continue.';
@@ -1562,6 +1562,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // Only show error modal if user is still on the scanning screen
                     if (_userLeftScan) return;
 
+                    // Detect if this is the free-user daily-limit case — show
+                    // a real upgrade CTA instead of a generic "Got it" button.
+                    // This is the highest-converting moment: user wanted to do
+                    // something, app stopped them, premium would unlock it.
+                    const _isFreeLimit = window.userPlan === 'free'
+                        && (msg.includes('resource-exhausted') || msg.includes('quota'));
+
+                    const _buttonsHTML = _isFreeLimit
+                        ? `<button id="genErrUpgradeBtn" style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                            <i class="fas fa-bolt"></i> Try Premium for ₦250
+                          </button>
+                          <button id="genErrCloseBtn" style="width:100%;padding:0.75rem;border-radius:var(--radius-btn);border:none;background:transparent;color:var(--text-muted);font-size:0.8125rem;font-weight:600;cursor:pointer;">
+                            Maybe later
+                          </button>`
+                        : `<button id="genErrCloseBtn" style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;">Got it</button>`;
+
                     const existing = document.getElementById('genErrorModal');
                     if (existing) existing.remove();
                     const modal = document.createElement('div');
@@ -1576,9 +1592,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                 <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.6;margin:0;">${body}</p>
                                 ${tip ? `<div style="margin-top:0.875rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:0.75rem;padding:0.625rem 0.875rem;"><p style="font-size:0.8rem;color:var(--accent-btn);font-weight:600;margin:0;line-height:1.5;">💡 ${tip}</p></div>` : ''}
                             </div>
-                            <button onclick="document.getElementById('genErrorModal').remove();" style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;">Got it</button>
+                            ${_buttonsHTML}
                         </div>`;
                     document.body.appendChild(modal);
+                    // Wire up buttons
+                    const _close = () => { modal.remove(); };
+                    const _closeBtn = document.getElementById('genErrCloseBtn');
+                    if (_closeBtn) _closeBtn.onclick = _close;
+                    const _upgBtn = document.getElementById('genErrUpgradeBtn');
+                    if (_upgBtn) _upgBtn.onclick = () => {
+                        _close();
+                        if (typeof window.navigateTo === 'function') {
+                            setTimeout(() => window.navigateTo('view-payment'), 200);
+                        }
+                    };
                     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
                 }
             });

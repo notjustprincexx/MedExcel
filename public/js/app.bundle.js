@@ -2542,11 +2542,33 @@ if (nextBtn) {
                     if (!hintEl) {
                         hintEl = document.createElement('p');
                         hintEl.id = 'sliderLimitHint';
-                        hintEl.style.cssText = 'font-size:0.75rem;color:#f97316;text-align:center;margin-top:0.375rem;font-weight:600;';
+                        hintEl.style.cssText = 'font-size:0.75rem;text-align:center;margin-top:0.5rem;font-weight:600;line-height:1.45;';
                         itemSlider.parentElement.appendChild(hintEl);
                     }
-                    const plan = window.userPlan === 'premium' ? 'Premium is capped at 50' : `Free plan max is ${max}. Upgrade for 50`;
-                    hintEl.textContent = `⚠️ ${plan}`;
+                    const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
+                    if (isPremium) {
+                        hintEl.style.color = '#f97316';
+                        hintEl.innerHTML = '⚠️ Premium is capped at 50';
+                    } else {
+                        // Free user — make the hint a tappable upgrade CTA.
+                        // This is the "moment of motivated frustration" — they
+                        // wanted more, hit a cap, premium solves it. Cheap trial
+                        // offered inline so the friction is minimal.
+                        hintEl.style.color = '#f97316';
+                        hintEl.innerHTML = `Free plan max is ${max} questions per deck.
+                            <a id="sliderUpgradeLink" style="color:var(--accent-btn);text-decoration:underline;cursor:pointer;font-weight:700;display:inline-block;margin-top:2px;">
+                                Get 50 with Premium →
+                            </a>`;
+                        const link = document.getElementById('sliderUpgradeLink');
+                        if (link) {
+                            link.onclick = (e) => {
+                                e.preventDefault();
+                                if (typeof window.navigateTo === 'function') {
+                                    window.navigateTo('view-payment');
+                                }
+                            };
+                        }
+                    }
                 } else {
                     sliderValue.textContent = val;
                     sliderValue.style.color = 'var(--text-main)';
