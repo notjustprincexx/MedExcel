@@ -1902,11 +1902,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // ── BAN CHECK — must run before anything else ──
                     if (data.banned === true) {
                         try { await signOut(auth); } catch(e) {}
-                        const _t   = localStorage.getItem('medexcel_theme');
-                        const _ref = localStorage.getItem('medexcel_pending_referral_code');
+                        const _t = localStorage.getItem('medexcel_theme');
                         localStorage.clear();
-                        if (_t)   localStorage.setItem('medexcel_theme', _t);
-                        if (_ref) localStorage.setItem('medexcel_pending_referral_code', _ref);
+                        sessionStorage.clear();
+                        if (_t) localStorage.setItem('medexcel_theme', _t);
                         window.location.replace('index.html?banned=1');
                         return;
                     }
@@ -2474,32 +2473,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.initPush) window.initPush(firebaseUser.uid);
 
                 // ── Claim pending referral code from onboarding ───────────────
-                // Set during onboarding if user entered a friend's code.
-                // We attempt it once after login then clear it regardless of outcome.
-                const _pendingRef = localStorage.getItem('medexcel_pending_referral_code');
-                if (_pendingRef) {
-                    localStorage.removeItem('medexcel_pending_referral_code');
-                    // Guard: skip if this user has already claimed a referral code before
-                    if (!data.referredBy) {
-                        try {
-                            const _claimFn = httpsCallable(functions, 'claimReferral');
-                            const _result  = await _claimFn({ code: _pendingRef });
-                            if (_result?.data?.success) {
-                                console.log('[Referral] Claimed code:', _pendingRef);
-                                data.referredBy = _pendingRef; // update in-memory so session re-auth doesn't re-attempt
-                                if (typeof window.showToast === 'function') {
-                                    window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
-                                }
-                            } else if (_result?.data?.alreadyClaimed) {
-                                console.log('[Referral] User already claimed a referral code previously — skipping.');
+                // onboarding-auth.js saves the code to Firestore (pendingReferralCode field)
+                // before redirecting here — more reliable than localStorage across page navigations
+                const _pendingRef = data.pendingReferralCode || null;
+                if (_pendingRef && !data.referredBy) {
+                    // Clear from Firestore immediately so it's never attempted twice
+                    updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
+                    try {
+                        const _claimFn = httpsCallable(functions, 'claimReferral');
+                        const _result  = await _claimFn({ code: _pendingRef });
+                        if (_result?.data?.success) {
+                            console.log('[Referral] Claimed code:', _pendingRef);
+                            data.referredBy = _pendingRef;
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
                             }
-                        } catch (_refErr) {
-                            // Invalid or already-used code — fail silently, don't block login
-                            console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
+                        } else if (_result?.data?.alreadyClaimed) {
+                            console.log('[Referral] Already claimed a referral code previously — skipping.');
                         }
-                    } else {
-                        console.log('[Referral] Skipped — user already has referredBy set.');
+                    } catch (_refErr) {
+                        console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
                     }
+                } else if (_pendingRef && data.referredBy) {
+                    // Already claimed — clean up the leftover field
+                    updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
                 }
                 // ─────────────────────────────────────────────────────────────
             } else {

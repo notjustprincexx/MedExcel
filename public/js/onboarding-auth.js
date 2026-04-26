@@ -9,11 +9,8 @@ import {
     GoogleAuthProvider, signInWithCredential
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc, serverTimestamp
+    getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-  import {
-    getFunctions, httpsCallable
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyADgcz_naQ_5tpXcpI8tSvm1b4RVLDrlaw",
@@ -25,10 +22,9 @@ import {
     measurementId:     "G-6VQYKEBMSX"
   };
 
-  const app       = initializeApp(firebaseConfig);
-  const auth      = getAuth(app);
-  const db        = getFirestore(app);
-  const functions = getFunctions(app, "us-central1");
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
   setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -67,36 +63,34 @@ import {
     } catch(e) { console.warn('Firestore sync skipped:', e); }
   }
 
-  /* Claim any pending referral code RIGHT HERE after login — before navigating away.
-     This is more reliable than trusting localStorage to survive a page redirect. */
-  async function claimPendingReferral(user) {
+  /* Save pending referral code to Firestore so firebase.js can pick it up reliably.
+     This is more reliable than localStorage which can be wiped across page navigations. */
+  async function savePendingReferralToFirestore(user) {
     const pendingCode =
       localStorage.getItem('medexcel_pending_referral_code') ||
       sessionStorage.getItem('medexcel_pending_referral_code');
 
     if (!pendingCode) return;
 
-    // Clear immediately so it's never attempted twice
+    // Clear from storage immediately
     localStorage.removeItem('medexcel_pending_referral_code');
     sessionStorage.removeItem('medexcel_pending_referral_code');
 
     try {
-      // Check if user already claimed a code — avoid unnecessary Cloud Function call
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      const userRef  = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      // Skip if user already claimed a code
       if (userSnap.exists() && userSnap.data().referredBy) {
-        console.log('[Referral] Already claimed — skipping.');
+        console.log('[Referral] User already claimed a code — skipping.');
         return;
       }
 
-      const claimFn = httpsCallable(functions, 'claimReferral');
-      const result  = await claimFn({ code: pendingCode });
-      if (result?.data?.success) {
-        console.log('[Referral] Claimed successfully:', pendingCode);
-      } else if (result?.data?.alreadyClaimed) {
-        console.log('[Referral] Code already claimed.');
-      }
+      // Save to Firestore — firebase.js will read this and call claimReferral
+      await updateDoc(userRef, { pendingReferralCode: pendingCode });
+      console.log('[Referral] Pending code saved to Firestore:', pendingCode);
     } catch(e) {
-      console.warn('[Referral] Claim failed:', e.message);
+      console.warn('[Referral] Could not save pending referral to Firestore:', e.message);
     }
   }
 
@@ -109,7 +103,7 @@ import {
 
     localStorage.setItem('nativeUser', JSON.stringify({ email, uid, displayName: name }));
     await syncUserDoc({ uid, email, displayName: name }, { displayName: name });
-    await claimPendingReferral({ uid, email });
+    await savePendingReferralToFirestore({ uid });
 
     try {
       await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
@@ -131,7 +125,7 @@ import {
       displayName: user.displayName
     }));
     await syncUserDoc(user);
-    await claimPendingReferral(user);  // claim before redirect
+    await savePendingReferralToFirestore(user); // save to Firestore before redirect
     window.location.replace('homepage.html');
   });
 
