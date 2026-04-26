@@ -22,6 +22,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.auth = auth;
         window._firestoreGetDoc = getDoc;
 
+        // ── Expose claimReferral Cloud Function for in-app redemption ────
+        // Used by the "Have a referral code?" card on the profile page.
+        // Returns { success: true } on success, throws on failure.
+        window.claimReferralCode = async function(rawCode) {
+            const code = String(rawCode || '').trim().toUpperCase();
+            if (!code) throw new Error('Please enter a code.');
+            if (code.length < 4) throw new Error('Code looks too short.');
+            if (!window.currentUser) throw new Error('You need to be logged in.');
+            const fn = httpsCallable(functions, 'claimReferral');
+            const result = await fn({ referralCode: code });
+            if (!result?.data?.success) {
+                throw new Error(result?.data?.message || 'Could not apply code.');
+            }
+            return result.data;
+        };
+        // ─────────────────────────────────────────────────────────────────
+
         // Expose Firestore helpers so non-module scripts can call them
         window._doc       = doc;
         window._updateDoc = updateDoc;
@@ -40,7 +57,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
             const savedHasAccount   = localStorage.getItem('medexcel_has_account');
             const savedAppVersion   = localStorage.getItem('medexcel_app_version');
-            const savedPendingRef   = localStorage.getItem('medexcel_pending_referral_code');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
             if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
@@ -48,7 +64,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
             if (savedHasAccount) localStorage.setItem('medexcel_has_account', savedHasAccount);
             if (savedAppVersion) localStorage.setItem('medexcel_app_version', savedAppVersion);
-            if (savedPendingRef) localStorage.setItem('medexcel_pending_referral_code', savedPendingRef);
             window.location.replace("index.html");
         };
 
@@ -716,7 +731,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
             if (avatarIndex !== null && AVATAR_GRID) {
                 const a = AVATAR_GRID[parseInt(avatarIndex)];
-                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}${premBadge}</div>`;
+                if (a) return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;">${premiumRing}<div style="position:absolute;inset:${innerOffset};border-radius:50%;overflow:hidden;z-index:1;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>${rankBadge}${premBadge}</div>`;
             }
             const [bg, fg] = lbColorFor(user.displayName || '?');
             const initial = window.getInitial ? window.getInitial(user.displayName) : (user.displayName||'?').charAt(0).toUpperCase();
@@ -957,7 +972,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (avatarWrap) {
                     if (saved !== null && AVATAR_GRID) {
                         const a = AVATAR_GRID[parseInt(saved)];
-                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
+                        if (a) avatarWrap.innerHTML = `<div style="width:100%;height:100%;background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col*50}% ${a.row*50}%;"></div>`;
                     } else {
                         avatarWrap.textContent = window.getInitial ? window.getInitial(me.displayName) : me.displayName.charAt(0).toUpperCase();
                     }
@@ -1563,15 +1578,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // 9 avatars in a 3×3 grid. Each entry is [col, row] (0-indexed).
         const AVATAR_GRID = [
-            { col: 0, row: 0, label: "Intern" },
-            { col: 1, row: 0, label: "Scholar" },
-            { col: 2, row: 0, label: "Clinician" },
-            { col: 0, row: 1, label: "Resident" },
-            { col: 1, row: 1, label: "Surgeon" },
-            { col: 2, row: 1, label: "Focus" },
-            { col: 0, row: 2, label: "Consultant" },
-            { col: 1, row: 2, label: "Medic" },
-            { col: 2, row: 2, label: "Classic" },
+            { col: 0, row: 0, label: "Intern",     bg: "#7C3AED" },
+            { col: 1, row: 0, label: "Scholar",    bg: "#2563EB" },
+            { col: 2, row: 0, label: "Clinician",  bg: "#0D9488" },
+            { col: 0, row: 1, label: "Resident",   bg: "#EA580C" },
+            { col: 1, row: 1, label: "Surgeon",    bg: "#1E3A5F" },
+            { col: 2, row: 1, label: "Focus",      bg: "#7C3AED" },
+            { col: 0, row: 2, label: "Consultant", bg: "#D97706" },
+            { col: 1, row: 2, label: "Medic",      bg: "#DB2777" },
+            { col: 2, row: 2, label: "Classic",    bg: "#F97316" },
         ];
 
         window.openAvatarPicker = function() {
@@ -1604,6 +1619,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             " onmousedown="this.style.transform='scale(0.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.94)'" ontouchend="this.style.transform=''">
                                 <div style="
                                     width:64px;height:64px;border-radius:50%;overflow:hidden;
+                                    background-color:${a.bg};
                                     background-image:url('${AVATAR_IMAGE_PATH}');
                                     background-size:300% 300%;
                                     background-position:${a.col * 50}% ${a.row * 50}%;
@@ -1804,7 +1820,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (saved !== null) {
                 const a = AVATAR_GRID[parseInt(saved)];
                 if (a) {
-                    const bgStyle = `background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;border-radius:50%;`;
+                    const bgStyle = `background-color:${a.bg};background-image:url('${AVATAR_IMAGE_PATH}');background-size:300% 300%;background-position:${a.col * 50}% ${a.row * 50}%;width:100%;height:100%;border-radius:50%;`;
                     if (wrap) {
                         if (isPremium) {
                             wrap.style.cssText = `width:56px;height:56px;border-radius:50%;background:conic-gradient(#fbbf24,#f97316,#fbbf24,#facc15,#fbbf24);display:flex;align-items:center;justify-content:center;overflow:visible;`;
@@ -1904,7 +1920,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         try { await signOut(auth); } catch(e) {}
                         const _t = localStorage.getItem('medexcel_theme');
                         localStorage.clear();
-                        sessionStorage.clear();
                         if (_t) localStorage.setItem('medexcel_theme', _t);
                         window.location.replace('index.html?banned=1');
                         return;
@@ -2006,17 +2021,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                     // Load and apply onboarding profile data
                     const profileData = data.studyProgram ? data : JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
-
-                    // If Firestore is missing onboarding fields but localStorage has them, push to Firestore now
-                    if (!data.studyProgram) {
-                        const _obProfileEx = (() => {
-                            try { return JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}'); } catch(_e) { return {}; }
-                        })();
-                        if (_obProfileEx.onboardingDone && _obProfileEx.studyProgram) {
-                            updateDoc(userRef, _obProfileEx).catch(() => {});
-                            localStorage.removeItem('medexcel_user_profile');
-                        }
-                    }
                     window.userProfile = {
                         studyProgram:    profileData.studyProgram    || null,
                         studyLevel:      profileData.studyLevel      || null,
@@ -2031,11 +2035,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // Profile data stored in window.userProfile — used silently by the app
                 } else {
                     // New user — provision their Firestore document now with safe defaults
-                    // Pick up any onboarding answers the user completed before logging in
-                    const _obProfile = (() => {
-                        try { return JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}'); } catch(_e) { return {}; }
-                    })();
-
                     data = {
                         uid: user.uid,
                         email: user.email || "",
@@ -2048,16 +2047,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         dailyUsage: 0,
                         lastDailyReset: "",
                         achievements: [],
-                        createdAt: serverTimestamp(),
-                        // Merge onboarding fields (studyProgram, studyLevel, studyGoal, gender, etc.)
-                        ...(_obProfile.onboardingDone ? _obProfile : {})
+                        createdAt: serverTimestamp()
                     };
-                    try {
-                        await setDoc(userRef, data, { merge: true });
-                        // Clear localStorage copy now that it's safely in Firestore
-                        if (_obProfile.onboardingDone) localStorage.removeItem('medexcel_user_profile');
-                    } catch(e) { console.warn("Could not create user doc:", e); }
-                    window._cachedUserData = data; // expose globally like existing user branch
+                    try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
 
                     // Send welcome email to brand-new users (fire-and-forget)
                     const _welcomeEmail = user.email
@@ -2474,36 +2466,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.initPush) window.initPush(firebaseUser.uid);
 
                 // ── Claim pending referral code from onboarding ───────────────
-                // Use window._cachedUserData (set by initUserUI) since data is scoped inside that function
-                const _cachedData = window._cachedUserData || {};
-                const _pendingRef = _cachedData.pendingReferralCode
-                    || localStorage.getItem('medexcel_pending_referral_code')
-                    || sessionStorage.getItem('medexcel_pending_referral_code')
-                    || null;
+                // Set during onboarding if user entered a friend's code.
+                // We attempt it once after login then clear it regardless of outcome.
+                const _pendingRef = localStorage.getItem('medexcel_pending_referral_code');
                 if (_pendingRef) {
                     localStorage.removeItem('medexcel_pending_referral_code');
-                    sessionStorage.removeItem('medexcel_pending_referral_code');
-                }
-                if (_pendingRef && !_cachedData.referredBy) {
-                    // Clear from Firestore immediately so it's never attempted twice
-                    updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
                     try {
                         const _claimFn = httpsCallable(functions, 'claimReferral');
-                        const _result  = await _claimFn({ code: _pendingRef });
+                        const _result  = await _claimFn({ referralCode: _pendingRef });
                         if (_result?.data?.success) {
                             console.log('[Referral] Claimed code:', _pendingRef);
-                            window._cachedUserData.referredBy = _pendingRef;
+                            // Show a brief toast so the user knows it worked
                             if (typeof window.showToast === 'function') {
                                 window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
                             }
-                        } else if (_result?.data?.alreadyClaimed) {
-                            console.log('[Referral] Already claimed a referral code previously — skipping.');
                         }
                     } catch (_refErr) {
+                        // Invalid or already-used code — fail silently, don't block login
                         console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
                     }
-                } else if (_pendingRef && _cachedData.referredBy) {
-                    updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
                 }
                 // ─────────────────────────────────────────────────────────────
             } else {
@@ -2514,14 +2495,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 const _appVersion     = localStorage.getItem('medexcel_app_version');
-                const _pendingReferral = localStorage.getItem('medexcel_pending_referral_code');
                 localStorage.clear();
-                if (_authTheme)       localStorage.setItem('medexcel_theme', _authTheme);
-                if (_coachMarks)      localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
-                if (_onboardingDone)  localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
-                if (_hasAccount)      localStorage.setItem('medexcel_has_account', _hasAccount);
-                if (_appVersion)      localStorage.setItem('medexcel_app_version', _appVersion);
-                if (_pendingReferral) localStorage.setItem('medexcel_pending_referral_code', _pendingReferral);
+                if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
+                if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
+                if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
+                if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
+                if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
                 window.location.replace("index.html");
             }
         });
