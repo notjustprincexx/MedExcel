@@ -4882,12 +4882,90 @@ window._openProgressDeck = function(quizId) {
         if (_timer) { clearInterval(_timer); _timer = null; }
     }
 
+    // ── Custom modal for "no decks yet" gating (replaces native alert) ────
+    function _showNoDeckModal() {
+        // Remove any existing instance
+        const existing = document.getElementById('bossNoDeckBackdrop');
+        if (existing) existing.remove();
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'bossNoDeckBackdrop';
+        backdrop.className = 'modal-backdrop';
+        backdrop.style.cssText = 'display:flex;opacity:0;align-items:center;justify-content:center;';
+
+        backdrop.innerHTML = `
+            <div id="bossNoDeckContent" style="
+                background:var(--bg-surface);border:1px solid var(--border-color);
+                border-radius:var(--radius-card);padding:2rem 1.5rem 1.5rem;
+                width:calc(100% - 2rem);max-width:340px;text-align:center;
+                transform:scale(0.88);opacity:0;
+                transition:transform 0.4s var(--ease-snap),opacity 0.3s ease;
+                position:relative;">
+                <div style="display:inline-flex;align-items:center;justify-content:center;
+                            width:72px;height:72px;border-radius:50%;
+                            background:linear-gradient(135deg,#7c3aed,#a78bfa);
+                            margin:0 auto 1.125rem;
+                            box-shadow:0 8px 24px rgba(124,58,237,0.3);">
+                    <i class="fas fa-dragon" style="font-size:1.875rem;color:#fff;"></i>
+                </div>
+                <h2 style="font-size:1.25rem;font-weight:800;color:var(--text-main);margin-bottom:0.5rem;letter-spacing:-0.02em;">
+                    No deck to fight yet
+                </h2>
+                <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.55;margin-bottom:1.5rem;">
+                    Boss Fight needs a deck with at least <strong style="color:var(--text-main);">5 questions</strong>. Generate one and come back to earn XP.
+                </p>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <button id="bossNoDeckCreateBtn" style="
+                        width:100%;padding:0.875rem;border-radius:var(--radius-btn);border:none;
+                        background:var(--accent-btn);color:var(--btn-text);
+                        font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;
+                        display:flex;align-items:center;justify-content:center;gap:0.5rem;
+                        transition:transform 0.15s ease;-webkit-tap-highlight-color:transparent;"
+                        onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''"
+                        ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform=''">
+                        <i class="fas fa-wand-magic-sparkles"></i> Generate a Deck
+                    </button>
+                    <button id="bossNoDeckCloseBtn" style="
+                        width:100%;padding:0.75rem;border-radius:var(--radius-btn);border:none;
+                        background:transparent;color:var(--text-muted);
+                        font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;
+                        -webkit-tap-highlight-color:transparent;">
+                        Maybe later
+                    </button>
+                </div>
+            </div>`;
+
+        document.body.appendChild(backdrop);
+
+        requestAnimationFrame(() => {
+            backdrop.style.opacity = '1';
+            const c = document.getElementById('bossNoDeckContent');
+            if (c) { c.style.opacity = '1'; c.style.transform = 'scale(1)'; }
+        });
+
+        const close = () => {
+            const c = document.getElementById('bossNoDeckContent');
+            if (c) { c.style.opacity = '0'; c.style.transform = 'scale(0.92)'; }
+            backdrop.style.opacity = '0';
+            setTimeout(() => backdrop.remove(), 350);
+        };
+        document.getElementById('bossNoDeckCloseBtn')?.addEventListener('click', close);
+        document.getElementById('bossNoDeckCreateBtn')?.addEventListener('click', () => {
+            close();
+            if (typeof window.navigateTo === 'function') {
+                setTimeout(() => window.navigateTo('view-create'), 200);
+            }
+        });
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     // ── Entry point ──────────────────────────────────────────────────────────
     window.openBossFight = function () {
         if (!window.currentUser) { window.showLoginModal(); return; }
         const quizzes = (window.quizzes || []).filter(q => q.questions && q.questions.length >= 5);
         if (!quizzes.length) {
-            alert('You need at least one deck with 5+ questions to start a Boss Fight. Generate a deck first!');
+            _showNoDeckModal();
             return;
         }
         _injectStyles();

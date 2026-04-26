@@ -809,10 +809,20 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
       Aggregated answers from users who completed personalised onboarding.
     </p>
 
-    <!-- Summary strip -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:1.25rem;" id="ins-summary">
-      <div class="stat-card"><div class="stat-val" id="ins-total">—</div><div class="stat-lbl">Onboarded Users</div></div>
-      <div class="stat-card"><div class="stat-val" id="ins-ref-used">—</div><div class="stat-lbl">Referral Codes Used</div></div>
+    <!-- Summary strip — restyled to match Overview cards: icon + value + label -->
+    <div class="stat-grid" id="ins-summary" style="margin-bottom:1.25rem;">
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-blue"><i class="fas fa-user-graduate"></i></div>
+        <div class="stat-val" id="ins-total">—</div>
+        <div class="stat-lbl">Onboarded Users</div>
+        <div class="stat-delta delta-muted" id="ins-total-delta">completed onboarding</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ic stat-ic-purple"><i class="fas fa-gift"></i></div>
+        <div class="stat-val" id="ins-ref-used">—</div>
+        <div class="stat-lbl">Referral Codes Used</div>
+        <div class="stat-delta delta-muted" id="ins-ref-delta">redeemed at signup</div>
+      </div>
     </div>
 
     <!-- Breakdown cards -->
@@ -1090,6 +1100,15 @@ let allUsers = [];
 let userFilter = 'all';
 let currentRole = '';
 let ambassadorUserData = null;
+
+// ── Plan helpers ────────────────────────────────────────────────────────
+// "Premium members" includes BOTH the full ₦1999+ subscribers AND the
+// ₦250 trial users — they're paying customers and should appear in the
+// premium list, premium count, and revenue. Without these helpers the
+// dashboard silently treats trial users as if they were on the free tier.
+const PREMIUM_PLANS = ['premium', 'premium_trial'];
+const isPremiumPlan = p => PREMIUM_PLANS.includes(p);
+const isTrialPlan   = p => p === 'premium_trial';
 
 // ── AUTH ──
 window.doAdminLogin = async function() {
@@ -1405,9 +1424,13 @@ async function renderDAUChart() {
 
 // ── OVERVIEW ──
 function renderOverview() {
-  const total   = allUsers.length;
-  const premium = allUsers.filter(u => u.plan==='premium').length;
-  const free    = total - premium;
+  const total      = allUsers.length;
+  // Split premium into full subscribers and trial users separately —
+  // they pay different amounts, so revenue calc needs both buckets.
+  const premiumFull = allUsers.filter(u => u.plan==='premium').length;
+  const trialCount  = allUsers.filter(u => isTrialPlan(u.plan)).length;
+  const premium     = premiumFull + trialCount;       // total paying members
+  const free        = total - premium;
   const banned  = allUsers.filter(u => u.banned).length;
   const totalXP = allUsers.reduce((s,u) => s+(u.xp||0), 0);
   const streaks = allUsers.filter(u => (u.streak||0)>0).length;
@@ -1418,8 +1441,12 @@ function renderOverview() {
   const newWeek = allUsers.filter(u => ts2ms(u.createdAt)>weekAgo).length;
   const pct     = total>0 ? ((premium/total)*100).toFixed(1) : '0';
 
-  window._revAmount = '\u20a6'+(premium*1999).toLocaleString();
-  window._revSub = `from ${premium} premium subscriber${premium!==1?'s':''}`;
+  // Revenue: full subscribers @ ₦1999 (monthly proxy — quarterly/yearly users
+  // skew this slightly low) + trial users @ ₦250 one-time.
+  const revenue = (premiumFull * 1999) + (trialCount * 250);
+  window._revAmount = '\u20a6'+revenue.toLocaleString();
+  const _trialNote = trialCount > 0 ? ` (incl. ${trialCount} trial)` : '';
+  window._revSub = `from ${premium} premium subscriber${premium!==1?'s':''}${_trialNote}`;
   document.getElementById('ovRevSub').textContent = window._revSub;
   const _revEl = document.getElementById('ovRev');
   if (_revEl) { _revEl.textContent = window._revRevealed ? window._revAmount : '\u20a6 \u2022\u2022\u2022\u2022\u2022\u2022'; _revEl.style.letterSpacing = window._revRevealed ? '-.03em' : '.05em'; }
@@ -1431,7 +1458,8 @@ function renderOverview() {
   document.getElementById('ovStreak').textContent = streaks;
 
   document.getElementById('planCard').innerHTML = [
-    barHTML('Premium', premium, total, '#34d399'),
+    barHTML('Premium', premiumFull, total, '#34d399'),
+    trialCount>0 ? barHTML('Trial (₦250)', trialCount, total, '#fbbf24') : '',
     barHTML('Free',    free,    total, '#52525b'),
     banned>0?barHTML('Banned',banned,total,'#f87171'):'',
   ].join('');
@@ -1458,8 +1486,8 @@ window.renderUserList = function() {
   let list = allUsers.filter(u => {
     const mq = !q||(u.displayName||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)||u.uid.toLowerCase().includes(q);
     const mf = userFilter==='all'
-      ||(userFilter==='premium'&&u.plan==='premium')
-      ||(userFilter==='free'&&u.plan!=='premium'&&!u.banned)
+      ||(userFilter==='premium'&&isPremiumPlan(u.plan))
+      ||(userFilter==='free'&&!isPremiumPlan(u.plan)&&!u.banned)
       ||(userFilter==='banned'&&u.banned)
       ||(userFilter==='admin'&&(u.role==='admin'||u.role==='ambassador'));
     return mq&&mf;
@@ -1673,7 +1701,9 @@ window.giveXP = async function() {
 function uRowHTML(u, clickable=false) {
   const name   = u.displayName||u.email?.split('@')[0]||'User';
   const init   = name.charAt(0).toUpperCase();
-  const isPrem = u.plan==='premium';
+  const isPrem  = isPremiumPlan(u.plan);
+  const isTrial = isTrialPlan(u.plan);
+  const planLabel = isTrial ? '🎫 Trial' : (isPrem ? '💎 Pro' : 'Free');
   const click  = clickable ? `onclick="openUserModal('${u.uid}')"` : '';
   return `<div class="urow${clickable?' click':''}${u.banned?' banned':''}" ${click}>
     <div class="uav">${esc(init)}</div>
@@ -1686,7 +1716,7 @@ function uRowHTML(u, clickable=false) {
       <div class="uemail">${esc(u.email||'—')}</div>
     </div>
     <div class="umeta">
-      <span class="pill ${isPrem?'pill-prem':'pill-free'}">${isPrem?'💎 Pro':'Free'}</span>
+      <span class="pill ${isPrem?'pill-prem':'pill-free'}"${isTrial?' style="background:rgba(251,191,36,0.15);color:#fbbf24;border-color:rgba(251,191,36,0.3);"':''}>${planLabel}</span>
       <div class="uxp">${fmt(u.xp||0)} XP · 🔥${u.streak||0}</div>
       <div class="udate">${fmtDate(u.createdAt)}</div>
     </div>
@@ -1695,7 +1725,8 @@ function uRowHTML(u, clickable=false) {
 
 function rankHTML(u, rank, meta) {
   const name  = u.displayName || u.email?.split('@')[0] || 'User';
-  const isPrem = u.plan === 'premium';
+  const isPrem  = isPremiumPlan(u.plan);
+  const isTrial = isTrialPlan(u.plan);
   const showEmail = currentRole !== 'ambassador';
   return `<div class="urow">
     <div class="rank-n">${rank}</div>
@@ -1704,7 +1735,7 @@ function rankHTML(u, rank, meta) {
       <div class="uname">${esc(name)}</div>
       ${showEmail ? `<div class="uemail">${esc(u.email || '—')}</div>` : ''}
     </div>
-    <div class="umeta"><span class="pill ${isPrem ? 'pill-prem' : 'pill-free'}">${isPrem ? '💎' : 'Free'}</span><div class="uxp">${meta}</div></div>
+    <div class="umeta"><span class="pill ${isPrem ? 'pill-prem' : 'pill-free'}"${isTrial?' style="background:rgba(251,191,36,0.15);color:#fbbf24;border-color:rgba(251,191,36,0.3);"':''}>${isTrial ? '🎫' : (isPrem ? '💎' : 'Free')}</span><div class="uxp">${meta}</div></div>
   </div>`;
 }
 
@@ -1712,8 +1743,10 @@ function rankHTML(u, rank, meta) {
 window.openUserModal = function(uid) {
   const u = allUsers.find(u=>u.uid===uid);
   if (!u) return;
-  const name   = u.displayName||u.email?.split('@')[0]||'User';
-  const isPrem = u.plan==='premium';
+  const name    = u.displayName||u.email?.split('@')[0]||'User';
+  const isPrem  = isPremiumPlan(u.plan);
+  const isTrial = isTrialPlan(u.plan);
+  const planLabel = isTrial ? '🎫 Trial (₦250)' : (isPrem ? '💎 Premium' : 'Free');
   const isBan  = !!u.banned;
 
   const profileRows = ['studyProgram','studyLevel','studyGoal','studyTime','dailyTarget'].map(k => {
@@ -1742,7 +1775,7 @@ window.openUserModal = function(uid) {
       <span class="mrow-l">UID <small style="opacity:.5">(tap to copy)</small></span>
       <span class="mrow-r" style="font-size:.65rem;max-width:140px;">${esc(u.uid)}</span>
     </div>
-    <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${isPrem?'💎 Premium':'Free'}</span></div>
+    <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${planLabel}</span></div>
     <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)}</span></div>
     <div class="mrow"><span class="mrow-l">Weekly XP</span><span class="mrow-r">${fmt(u.weeklyXp||0)}</span></div>
     <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
@@ -1752,7 +1785,7 @@ window.openUserModal = function(uid) {
     ${profileRows}
 
     ${isPrem
-      ? `<button class="mbtn mbtn-muted"  onclick="setUserPlan('${u.uid}','free')">Remove Premium</button>`
+      ? `<button class="mbtn mbtn-muted"  onclick="setUserPlan('${u.uid}','free')">${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>${isTrial ? `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Convert Trial → Premium</button>` : ''}`
       : `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Upgrade to Premium</button>`
     }
     <button class="mbtn mbtn-orange" onclick="resetUserUsage('${u.uid}')">Reset Daily Usage</button>
@@ -1870,7 +1903,7 @@ function renderAnalyticsCards() {
   set('an-session', avgUsage ? avgUsage + ' uses' : '—');
 
   // Premium + active streak users as engaged proxy
-  const engaged = allUsers.filter(u => (u.streak || 0) > 0 || u.plan === 'premium').length;
+  const engaged = allUsers.filter(u => (u.streak || 0) > 0 || isPremiumPlan(u.plan)).length;
   set('an-engaged', engaged);
 }
 
@@ -2005,6 +2038,14 @@ async function renderChart(chartId) {
     }
   } else {
     // Signup chart — use allUsers createdAt
+    // BUGFIX: previously read window.allUsers which is undefined (allUsers
+    // is declared with `let` at module scope, not on window). That caused
+    // the chart to silently fall back to [] and show "No signups" even
+    // when users existed. The module-scoped `allUsers` is in scope here.
+    const usersForChart = (typeof allUsers !== 'undefined' && allUsers.length)
+      ? allUsers
+      : (window.allUsers || []);
+
     // Helper: get best available signup date for a user
     const getSignupDate = u => {
       const raw = u.createdAt || u.fcmUpdatedAt || null;
@@ -2015,20 +2056,20 @@ async function renderChart(chartId) {
     if (isYear) {
       const year = new Date().getFullYear() + offset;
       counts = new Array(12).fill(0);
-      (window.allUsers || []).forEach(u => {
+      usersForChart.forEach(u => {
         const d = getSignupDate(u);
         if (d && d.getFullYear() === year) counts[d.getMonth()]++;
       });
     } else if (period === 'month') {
       counts = days.map(d => {
-        return (window.allUsers || []).filter(u => {
+        return usersForChart.filter(u => {
           const ud = getSignupDate(u);
           return ud && ud.toDateString() === d.toDateString();
         }).length;
       });
     } else {
       counts = days.map(d => {
-        return (window.allUsers || []).filter(u => {
+        return usersForChart.filter(u => {
           const ud = getSignupDate(u);
           return ud && ud.toDateString() === d.toDateString();
         }).length;
@@ -2139,6 +2180,8 @@ window.loadInsights = async function() {
   const breakdowns = document.getElementById('ins-breakdowns');
   const totalEl    = document.getElementById('ins-total');
   const refEl      = document.getElementById('ins-ref-used');
+  const totalDelta = document.getElementById('ins-total-delta');
+  const refDelta   = document.getElementById('ins-ref-delta');
   if (!breakdowns) return;
 
   breakdowns.innerHTML = '<p style="color:var(--muted);font-size:.8rem;padding:.5rem 0;">Loading...</p>';
@@ -2157,6 +2200,25 @@ window.loadInsights = async function() {
     // Only count users who actually used someone else's referral code
     const refCount = users.filter(u => u.referredBy).length;
     refEl.textContent = refCount;
+
+    // Populate deltas with useful context
+    const totalRegistered = (window.allUsers || allUsers || []).length;
+    if (totalDelta) {
+      if (totalRegistered > 0) {
+        const pct = Math.round((users.length / totalRegistered) * 100);
+        totalDelta.textContent = `${pct}% of ${totalRegistered} signups`;
+      } else {
+        totalDelta.textContent = 'completed onboarding';
+      }
+    }
+    if (refDelta) {
+      if (users.length > 0) {
+        const pct = Math.round((refCount / users.length) * 100);
+        refDelta.textContent = `${pct}% used a code`;
+      } else {
+        refDelta.textContent = 'redeemed at signup';
+      }
+    }
 
     const fields = [
       { key: 'studyProgram', label: 'Study Programme', icon: '🎓',
@@ -2335,10 +2397,6 @@ function applyTheme(theme) {
     if (appTheme && appTheme !== current) applyTheme(appTheme);
   }, 2000);
 })();
-
-
-
-
 </script>
 </body>
 </html>
