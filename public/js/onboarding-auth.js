@@ -28,7 +28,7 @@ import {
 
   setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-  /* Helper: ensure Firestore doc exists for new users */
+  /* Helper: ensure Firestore doc exists for new users, and restore flags for returning users */
   async function syncUserDoc(user, extra = {}) {
     try {
       const ref  = doc(db, 'users', user.uid);
@@ -55,16 +55,24 @@ import {
           localStorage.setItem('medexcel_pending_referral_code', refCode);
           sessionStorage.removeItem('medexcel_ref_code');
         }
+      } else {
+        // Returning user on a fresh install — localStorage was wiped when the app was deleted.
+        // Restore critical flags from Firestore before the redirect so the app
+        // doesn't incorrectly re-show onboarding or other first-run flows.
+        const data = snap.data();
+        if (data.onboardingDone) {
+          localStorage.setItem('medexcel_personalized_onboarding_done', '1');
+        }
       }
     } catch(e) { console.warn('Firestore sync skipped:', e); }
   }
 
-  /* ── Native Android Google Sign-In bridge ── */
+  /* -- Native Android Google Sign-In bridge -- */
   window.onNativeLogin = async function(email, uid, idToken, displayName) {
     const name = (displayName && displayName !== 'User')
       ? displayName : email.split('@')[0];
 
-    showOverlay(true, 'Preparing app…');
+    showOverlay(true, 'Preparing app...');
 
     localStorage.setItem('nativeUser', JSON.stringify({ email, uid, displayName: name }));
     await syncUserDoc({ uid, email, displayName: name }, { displayName: name });
@@ -79,7 +87,7 @@ import {
     window.location.replace('homepage.html');
   };
 
-  /* ── Auth state listener — silent, no loader shown ── */
+  /* -- Auth state listener — silent, no loader shown -- */
   onAuthStateChanged(auth, async user => {
     if (!user) return; // not signed in — stay on onboarding
 
@@ -92,7 +100,7 @@ import {
     window.location.replace('homepage.html');
   });
 
-  /* ── Email Sign In / Sign Up ── */
+  /* -- Email Sign In / Sign Up -- */
   document.getElementById('signInBtn').addEventListener('click', async () => {
     const name  = document.getElementById('nameInput').value.trim();
     const email = document.getElementById('emailInput').value.trim();
@@ -104,7 +112,7 @@ import {
       return showDialog('Please enter your email and password.', 'Missing Info', { hideCancel: true });
 
     closeLogin();
-    showOverlay(true, window.isSignupMode ? 'Creating account…' : 'Signing in…');
+    showOverlay(true, window.isSignupMode ? 'Creating account...' : 'Signing in...');
 
     try {
       if (window.isSignupMode) {
@@ -113,7 +121,7 @@ import {
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
       }
-      // onAuthStateChanged will fire → redirect
+      // onAuthStateChanged will fire -> redirect
     } catch(err) {
       showOverlay(false);
       await showDialog(
@@ -125,7 +133,7 @@ import {
     }
   });
 
-  /* ── Forgot Password ── */
+  /* -- Forgot Password -- */
   document.getElementById('forgotBtn').addEventListener('click', async () => {
     const email = document.getElementById('emailInput').value.trim();
     if (!email)

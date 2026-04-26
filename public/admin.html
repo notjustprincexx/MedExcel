@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -2306,10 +2306,10 @@ function applyTheme(theme) {
 }
 
 // Sync theme from the main MedExcel app's localStorage key
+// Defaults to light mode unless the user explicitly chose dark in the app
 (function initTheme() {
   const saved = localStorage.getItem('medexcel_theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+  applyTheme(saved !== 'dark' ? 'light' : 'dark');
 
   // Poll every 2 seconds to pick up theme changes made in the app
   setInterval(() => {
@@ -2318,10 +2318,6 @@ function applyTheme(theme) {
     if (appTheme && appTheme !== current) applyTheme(appTheme);
   }, 2000);
 })();
-
-
-
-
 </script>
 </body>
 </html>

@@ -40,6 +40,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
             const savedHasAccount   = localStorage.getItem('medexcel_has_account');
             const savedAppVersion   = localStorage.getItem('medexcel_app_version');
+            const savedPendingRef   = localStorage.getItem('medexcel_pending_referral_code');
             try { await signOut(auth); } catch (e) {}
             localStorage.clear();
             if (savedTheme)      localStorage.setItem('medexcel_theme', savedTheme);
@@ -47,6 +48,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (savedOnboarding) localStorage.setItem('medexcel_personalized_onboarding_done', savedOnboarding);
             if (savedHasAccount) localStorage.setItem('medexcel_has_account', savedHasAccount);
             if (savedAppVersion) localStorage.setItem('medexcel_app_version', savedAppVersion);
+            if (savedPendingRef) localStorage.setItem('medexcel_pending_referral_code', savedPendingRef);
             window.location.replace("index.html");
         };
 
@@ -2003,6 +2005,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                     // Load and apply onboarding profile data
                     const profileData = data.studyProgram ? data : JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
+
+                    // If Firestore is missing onboarding fields but localStorage has them, push to Firestore now
+                    if (!data.studyProgram) {
+                        const _obProfileEx = (() => {
+                            try { return JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}'); } catch(_e) { return {}; }
+                        })();
+                        if (_obProfileEx.onboardingDone && _obProfileEx.studyProgram) {
+                            updateDoc(userRef, _obProfileEx).catch(() => {});
+                            localStorage.removeItem('medexcel_user_profile');
+                        }
+                    }
                     window.userProfile = {
                         studyProgram:    profileData.studyProgram    || null,
                         studyLevel:      profileData.studyLevel      || null,
@@ -2017,6 +2030,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     // Profile data stored in window.userProfile — used silently by the app
                 } else {
                     // New user — provision their Firestore document now with safe defaults
+                    // Pick up any onboarding answers the user completed before logging in
+                    const _obProfile = (() => {
+                        try { return JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}'); } catch(_e) { return {}; }
+                    })();
+
                     data = {
                         uid: user.uid,
                         email: user.email || "",
@@ -2029,9 +2047,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         dailyUsage: 0,
                         lastDailyReset: "",
                         achievements: [],
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        // Merge onboarding fields (studyProgram, studyLevel, studyGoal, gender, etc.)
+                        ...(_obProfile.onboardingDone ? _obProfile : {})
                     };
-                    try { await setDoc(userRef, data, { merge: true }); } catch(e) { console.warn("Could not create user doc:", e); }
+                    try {
+                        await setDoc(userRef, data, { merge: true });
+                        // Clear localStorage copy now that it's safely in Firestore
+                        if (_obProfile.onboardingDone) localStorage.removeItem('medexcel_user_profile');
+                    } catch(e) { console.warn("Could not create user doc:", e); }
 
                     // Send welcome email to brand-new users (fire-and-forget)
                     const _welcomeEmail = user.email
@@ -2453,19 +2477,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _pendingRef = localStorage.getItem('medexcel_pending_referral_code');
                 if (_pendingRef) {
                     localStorage.removeItem('medexcel_pending_referral_code');
-                    try {
-                        const _claimFn = httpsCallable(functions, 'claimReferral');
-                        const _result  = await _claimFn({ referralCode: _pendingRef });
-                        if (_result?.data?.success) {
-                            console.log('[Referral] Claimed code:', _pendingRef);
-                            // Show a brief toast so the user knows it worked
-                            if (typeof window.showToast === 'function') {
-                                window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
+                    // Guard: skip if this user has already claimed a referral code before
+                    if (!data.referredBy) {
+                        try {
+                            const _claimFn = httpsCallable(functions, 'claimReferral');
+                            const _result  = await _claimFn({ referralCode: _pendingRef });
+                            if (_result?.data?.success) {
+                                console.log('[Referral] Claimed code:', _pendingRef);
+                                data.referredBy = _pendingRef; // update in-memory so session re-auth doesn't re-attempt
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
+                                }
+                            } else if (_result?.data?.alreadyClaimed) {
+                                console.log('[Referral] User already claimed a referral code previously — skipping.');
                             }
+                        } catch (_refErr) {
+                            // Invalid or already-used code — fail silently, don't block login
+                            console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
                         }
-                    } catch (_refErr) {
-                        // Invalid or already-used code — fail silently, don't block login
-                        console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
+                    } else {
+                        console.log('[Referral] Skipped — user already has referredBy set.');
                     }
                 }
                 // ─────────────────────────────────────────────────────────────
@@ -2477,12 +2508,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _onboardingDone = localStorage.getItem('medexcel_personalized_onboarding_done');
                 const _hasAccount     = localStorage.getItem('medexcel_has_account');
                 const _appVersion     = localStorage.getItem('medexcel_app_version');
+                const _pendingReferral = localStorage.getItem('medexcel_pending_referral_code');
                 localStorage.clear();
-                if (_authTheme)      localStorage.setItem('medexcel_theme', _authTheme);
-                if (_coachMarks)     localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
-                if (_onboardingDone) localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
-                if (_hasAccount)     localStorage.setItem('medexcel_has_account', _hasAccount);
-                if (_appVersion)     localStorage.setItem('medexcel_app_version', _appVersion);
+                if (_authTheme)       localStorage.setItem('medexcel_theme', _authTheme);
+                if (_coachMarks)      localStorage.setItem('medexcel_onboarding_v1', _coachMarks);
+                if (_onboardingDone)  localStorage.setItem('medexcel_personalized_onboarding_done', _onboardingDone);
+                if (_hasAccount)      localStorage.setItem('medexcel_has_account', _hasAccount);
+                if (_appVersion)      localStorage.setItem('medexcel_app_version', _appVersion);
+                if (_pendingReferral) localStorage.setItem('medexcel_pending_referral_code', _pendingReferral);
                 window.location.replace("index.html");
             }
         });
