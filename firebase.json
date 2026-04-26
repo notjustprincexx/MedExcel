@@ -11,7 +11,7 @@
         "source": "**/*.html",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-          { "key": "Content-Security-Policy", "value": "frame-src 'self' https://lookerstudio.google.com https://datastudio.google.com;" }
+          { "key": "Content-Security-Policy", "value": "frame-src 'self' https://checkout.paystack.com https://paystack.com https://js.paystack.co https://lookerstudio.google.com https://datastudio.google.com;" }
         ]
       },
       {
