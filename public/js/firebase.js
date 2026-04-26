@@ -2057,6 +2057,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         // Clear localStorage copy now that it's safely in Firestore
                         if (_obProfile.onboardingDone) localStorage.removeItem('medexcel_user_profile');
                     } catch(e) { console.warn("Could not create user doc:", e); }
+                    window._cachedUserData = data; // expose globally like existing user branch
 
                     // Send welcome email to brand-new users (fire-and-forget)
                     const _welcomeEmail = user.email
@@ -2473,13 +2474,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.initPush) window.initPush(firebaseUser.uid);
 
                 // ── Claim pending referral code from onboarding ───────────────
-                // Check Firestore field first (saved by onboarding-auth.js),
-                // then fall back to localStorage (saved by personalized-onboarding.html inline script)
-                const _pendingRef = data.pendingReferralCode
+                // Use window._cachedUserData (set by initUserUI) since data is scoped inside that function
+                const _cachedData = window._cachedUserData || {};
+                const _pendingRef = _cachedData.pendingReferralCode
                     || localStorage.getItem('medexcel_pending_referral_code')
                     || sessionStorage.getItem('medexcel_pending_referral_code')
                     || null;
-                if (_pendingRef && !data.referredBy) {
+                if (_pendingRef) {
+                    localStorage.removeItem('medexcel_pending_referral_code');
+                    sessionStorage.removeItem('medexcel_pending_referral_code');
+                }
+                if (_pendingRef && !_cachedData.referredBy) {
                     // Clear from Firestore immediately so it's never attempted twice
                     updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
                     try {
@@ -2487,7 +2492,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         const _result  = await _claimFn({ code: _pendingRef });
                         if (_result?.data?.success) {
                             console.log('[Referral] Claimed code:', _pendingRef);
-                            data.referredBy = _pendingRef;
+                            window._cachedUserData.referredBy = _pendingRef;
                             if (typeof window.showToast === 'function') {
                                 window.showToast('Referral code applied — bonus rewards unlocked!', 'success');
                             }
@@ -2497,8 +2502,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     } catch (_refErr) {
                         console.warn('[Referral] Claim failed for code:', _pendingRef, _refErr.message);
                     }
-                } else if (_pendingRef && data.referredBy) {
-                    // Already claimed — clean up the leftover field
+                } else if (_pendingRef && _cachedData.referredBy) {
                     updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
                 }
                 // ─────────────────────────────────────────────────────────────
