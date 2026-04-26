@@ -2473,9 +2473,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (window.initPush) window.initPush(firebaseUser.uid);
 
                 // ── Claim pending referral code from onboarding ───────────────
-                // onboarding-auth.js saves the code to Firestore (pendingReferralCode field)
-                // before redirecting here — more reliable than localStorage across page navigations
-                const _pendingRef = data.pendingReferralCode || null;
+                // Check Firestore field first (saved by onboarding-auth.js),
+                // then fall back to localStorage (saved by personalized-onboarding.html inline script)
+                const _pendingRef = data.pendingReferralCode
+                    || localStorage.getItem('medexcel_pending_referral_code')
+                    || sessionStorage.getItem('medexcel_pending_referral_code')
+                    || null;
                 if (_pendingRef && !data.referredBy) {
                     // Clear from Firestore immediately so it's never attempted twice
                     updateDoc(userRef, { pendingReferralCode: null }).catch(() => {});
