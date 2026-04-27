@@ -140,12 +140,15 @@
             prevBtn.addEventListener('click', () => {
                 if (currentQuestionIndex > 0) { currentQuestionIndex--; window.renderStudyQuestion(); }
             });
-            nextBtn.addEventListener('click', () => {
+            nextBtn.addEventListener('click', async () => {
     if (currentQuestionIndex < currentQuiz.questions.length - 1) {
         currentQuestionIndex++;
         window.renderStudyQuestion();
     } else {
-        window.finishStudyQuiz();
+        nextBtn.disabled = true;
+        nextBtn.style.opacity = '0.8';
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:0.375rem;font-size:0.875rem;"></i>Saving...';
+        await window.finishStudyQuiz();
     }
 });
         }
@@ -261,4 +264,4 @@ if (nextBtn) {
                     </div>
                 </div>
             `;
-        }
+        } 

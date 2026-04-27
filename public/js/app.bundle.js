@@ -201,6 +201,7 @@
                 if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
                 if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
                 if (targetViewId === 'view-payment' && typeof window.loadGeoPricing === 'function') window.loadGeoPricing();
+                if (targetViewId === 'view-leaderboard' && typeof window.silentRefreshLeaderboard === 'function') window.silentRefreshLeaderboard();
             } catch(e) { console.warn("View init skipped:", e); }
 
             window.scrollTo(0, 0);

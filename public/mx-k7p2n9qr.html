@@ -998,10 +998,21 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
 
     <div class="sec">Manual Plan Override</div>
     <div class="card" style="padding:1rem;">
+      <div class="info-box" style="margin-bottom:.75rem;">
+        <strong>Premium</strong> — 30 gens/day · 50 items/deck · powered by <strong>Gemini</strong><br>
+        <strong>Trial (₦250)</strong> — 30 gens/day · 50 items/deck · powered by <strong>Groq</strong> (no Gemini cost)
+      </div>
       <input class="finp" id="upgradeUid" placeholder="User UID…">
-      <div style="display:flex;gap:.5rem;">
-        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;" onclick="manualUpgrade('premium')">Set Premium</button>
-        <button class="mbtn mbtn-muted"   style="margin-top:0;flex:1;" onclick="manualUpgrade('free')">Set Free</button>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;min-width:120px;" onclick="manualUpgrade('premium')">
+          <i class="fas fa-gem"></i> Set Premium
+        </button>
+        <button class="mbtn" style="margin-top:0;flex:1;min-width:120px;background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="manualUpgrade('premium_trial')">
+          <i class="fas fa-ticket"></i> Set Trial (₦250)
+        </button>
+        <button class="mbtn mbtn-muted" style="margin-top:0;flex:1;min-width:80px;" onclick="manualUpgrade('free')">
+          <i class="fas fa-arrow-down"></i> Set Free
+        </button>
       </div>
     </div>
 
@@ -1892,7 +1903,7 @@ window.openUserModal = function(uid) {
     <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${planLabel}</span></div>
     <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)} &nbsp;<span style="color:var(--muted);font-weight:500;font-size:.72rem;">weekly ${fmt(u.weeklyXp||0)}</span></span></div>
     <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
-    <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem?30:5}</span></div>
+    <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem&&!isTrial?30:5}</span></div>
     <div class="mrow"><span class="mrow-l">Referrals</span><span class="mrow-r">${u.referralCount||0} invited</span></div>
     <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
     ${profileRows}
@@ -1903,7 +1914,8 @@ window.openUserModal = function(uid) {
       ${isPrem
         ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove ${isTrial?'Trial':'Premium'}','This will downgrade the user to Free.','⬇️',()=>setUserPlan('${u.uid}','free'))"><i class="fas fa-arrow-down"></i>${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>
            ${isTrial ? `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Convert to Premium','Upgrade this trial user to full Premium.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Convert Trial → Premium</button>` : ''}`
-        : `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Upgrade to Premium','Grant this user full Premium access.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Upgrade to Premium</button>`
+        : `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Upgrade to Premium','Grant this user full Premium access.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Upgrade to Premium</button>
+           <button class="mbtn" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="requireConfirm('trial','Grant Trial (₦250)','Gives premium deck size but free-tier AI quota — no Gemini burn.','🎫',()=>setUserPlan('${u.uid}','premium_trial'))"><i class="fas fa-ticket"></i>Grant Trial (₦250)</button>`
       }
 
       <div class="mactions-label">Actions</div>

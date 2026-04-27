@@ -54,6 +54,57 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
         // ─────────────────────────────────────────────────────────────────
 
+        // ── Skeleton loader helpers ───────────────────────────────────────
+        (function() {
+            if (document.getElementById('_mxSkeletonStyles')) return;
+            const s = document.createElement('style');
+            s.id = '_mxSkeletonStyles';
+            s.textContent = `@keyframes _skPulse{0%,100%{opacity:.35}50%{opacity:.7}}`;
+            document.head.appendChild(s);
+        })();
+
+        function _skRow(lines, avatarShape) {
+            // avatarShape: 'circle' | 'square'
+            const radius = avatarShape === 'square' ? '0.625rem' : '50%';
+            const lineHTML = Array.from({length: lines}, (_, i) =>
+                `<div style="height:11px;border-radius:9999px;background:var(--border-color);width:${i===0?'55%':'38%'};animation:_skPulse 1.5s ease-in-out infinite;animation-delay:${i*0.12}s;"></div>`
+            ).join('');
+            return `<div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:0.875rem;padding:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:38px;height:38px;border-radius:${radius};background:var(--border-color);flex-shrink:0;animation:_skPulse 1.5s ease-in-out infinite;"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem;">${lineHTML}</div>
+            </div>`;
+        }
+
+        function _skGroupCard() {
+            return `<div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:1rem;padding:1rem 1.125rem;display:flex;align-items:center;gap:0.875rem;">
+                <div style="width:44px;height:44px;border-radius:50%;background:var(--border-color);flex-shrink:0;animation:_skPulse 1.5s ease-in-out infinite;"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+                    <div style="height:13px;border-radius:9999px;background:var(--border-color);width:50%;animation:_skPulse 1.5s ease-in-out infinite;"></div>
+                    <div style="height:10px;border-radius:9999px;background:var(--border-color);width:30%;animation:_skPulse 1.5s ease-in-out infinite;animation-delay:0.1s;"></div>
+                </div>
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--border-color);animation:_skPulse 1.5s ease-in-out infinite;"></div>
+            </div>`;
+        }
+
+        // Show/hide a loading overlay inside groupDetailBackdrop during destructive ops
+        function _groupDetailBusy(on) {
+            const backdrop = document.getElementById('groupDetailBackdrop');
+            if (!backdrop) return;
+            const existing = backdrop.querySelector('#_grpBusyOverlay');
+            if (on) {
+                if (existing) return;
+                const ov = document.createElement('div');
+                ov.id = '_grpBusyOverlay';
+                ov.style.cssText = 'position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);border-radius:inherit;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);';
+                ov.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:1.75rem;color:var(--accent-btn);"></i>';
+                backdrop.style.position = 'relative';
+                backdrop.appendChild(ov);
+            } else {
+                if (existing) existing.remove();
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         // Expose Firestore helpers so non-module scripts can call them
         window._doc       = doc;
         window._updateDoc = updateDoc;
@@ -67,6 +118,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.logoutUser = async function() {
             if (_isLoggingOut) return;
             _isLoggingOut = true;
+            const btn = document.getElementById('confirmLogoutBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:0.375rem;"></i>Logging out...';
+            }
             const savedTheme        = localStorage.getItem('medexcel_theme');
             const savedCoachMarks   = localStorage.getItem('medexcel_onboarding_v1');
             const savedOnboarding   = localStorage.getItem('medexcel_personalized_onboarding_done');
@@ -896,6 +952,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         window.loadLeaderboard = async function(currentUserId) {
             window._lbUserId = currentUserId;
+            // Snapshot current ranks before fetching so we can show rank change arrows
+            if (window._lbUsers.length > 0) {
+                const sorted = [...window._lbUsers].sort((a, b) => b.xp - a.xp);
+                window._lbPrevRanks = new Map(sorted.map((u, i) => [u.uid, i + 1]));
+            }
             try {
                 const uiXP = document.getElementById('currentUserXp');
                 if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
@@ -929,16 +990,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         window.renderLeaderboardDOM = function(allUsers, currentUserId) {
             const useWeekly = window._lbTab === 'week';
-            // Sort by the right XP field
             let users = [...allUsers].sort((a,b) => (useWeekly ? b.weeklyXp - a.weeklyXp : b.xp - a.xp));
-            // Filter out zero weekly XP if in weekly mode
             if (useWeekly) users = users.filter(u => u.weeklyXp > 0);
 
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
             skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
-            // Empty state
             if (users.length === 0) {
                 ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='---'; });
                 ['xp1','xp2','xp3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
@@ -949,13 +1007,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
             const xpField = useWeekly ? 'weeklyXp' : 'xp';
 
-            // --- Podium top 3 ---
+            // Helper: rank change arrow (only on all-time tab when we have prev data)
+            const rankArrow = (uid, currentRank) => {
+                if (useWeekly || !window._lbPrevRanks) return '';
+                const prev = window._lbPrevRanks.get(uid);
+                if (prev === undefined) return '<span style="font-size:0.6rem;font-weight:800;color:var(--accent-btn);background:rgba(139,92,246,0.12);padding:1px 5px;border-radius:9999px;margin-left:3px;vertical-align:middle;">NEW</span>';
+                const delta = prev - currentRank; // positive = moved up
+                if (delta === 0) return '';
+                if (delta > 0) return `<span style="font-size:0.65rem;font-weight:800;color:#10b981;margin-left:3px;vertical-align:middle;">▲${delta}</span>`;
+                return `<span style="font-size:0.65rem;font-weight:800;color:#f87171;margin-left:3px;vertical-align:middle;">▼${Math.abs(delta)}</span>`;
+            };
+
+            // Podium top 3
             const podiumSlots = [
                 { nameId:'name1', xpId:'xp1', boxId:'avatarBox1', avatarId:'avatar1' },
                 { nameId:'name2', xpId:'xp2', boxId:'avatarBox2', avatarId:'avatar2' },
                 { nameId:'name3', xpId:'xp3', boxId:'avatarBox3', avatarId:'avatar3' },
             ];
-            const podiumOrder = [users[0], users[1], users[2]]; // 1st, 2nd, 3rd
+            const podiumOrder = [users[0], users[1], users[2]];
             podiumSlots.forEach((slot, i) => {
                 const u = podiumOrder[i];
                 const nameEl = document.getElementById(slot.nameId);
@@ -974,7 +1043,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 }
             });
 
-            // --- Ranked list (ranks 4–10) ---
+            // Ranked list (ranks 4–20)
             listContainer.innerHTML = '';
             if (users.length <= 3) {
                 listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} so far. Be the one to break in!</div>`;
@@ -984,11 +1053,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             users.forEach((user, index) => {
                 const rank = index + 1;
                 if (user.uid === currentUserId) currentUserRank = rank;
-                if (rank <= 3 || rank > 10) return; // podium already shown, cap at 10
+                if (rank <= 3 || rank > 20) return;
 
                 const isMe = user.uid === currentUserId;
                 const avatarHTML = lbAvatarHTML(user, 40, currentUserId);
-                const [bg] = lbColorFor(user.displayName);
                 const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
                 const nameCls = isMe ? 'color:var(--accent-btn);' : 'color:var(--text-main);';
                 const proPill = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite'
@@ -1001,10 +1069,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
-                                <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+                                <div style="display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:wrap;">
                                     <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">
                                         ${window.escapeHTML(user.displayName || '?')}${proPill}
                                     </div>
+                                    ${rankArrow(user.uid, rank)}
                                     ${isMe ? '<span style="font-size:0.625rem;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;white-space:nowrap;flex-shrink:0;">YOU</span>' : ''}
                                 </div>
                             </div>
@@ -1015,7 +1084,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     </div>`;
             });
 
-            // --- Pinned Your Rank Bar ---
+            // Pinned Your Rank Bar
             const bar = document.getElementById('yourRankBar');
             if (currentUserRank > 0 && bar) {
                 const me = users[currentUserRank - 1];
@@ -1039,6 +1108,33 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             } else if (bar) {
                 bar.style.display = 'none';
             }
+        };
+
+        // Stale-while-revalidate: show cache instantly, refresh silently in background
+        window.silentRefreshLeaderboard = function() {
+            if (!window._lbUserId) return;
+            const currentTab = window._lbTab;
+            if (currentTab === 'groups') { window.loadMyGroups(); return; }
+            if (window._lbUsers.length > 0) {
+                // Render cached data instantly — no flash, no skeleton
+                window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
+                // Then silently update in background
+                window.loadLeaderboard(window._lbUserId);
+            } else {
+                // First-ever load this session — fetch normally (skeleton already in HTML)
+                window.loadLeaderboard(window._lbUserId);
+            }
+        };
+
+        // Manual refresh button — spins the icon, re-fetches, resets
+        window.refreshLeaderboard = async function() {
+            const btn = document.getElementById('lbRefreshBtn');
+            const icon = btn?.querySelector('i');
+            if (btn) { btn.style.pointerEvents = 'none'; }
+            if (icon) { icon.className = 'fas fa-spinner fa-spin'; icon.style.color = 'var(--accent-btn)'; }
+            await window.loadLeaderboard(window._lbUserId);
+            if (btn) { btn.style.pointerEvents = ''; }
+            if (icon) { icon.className = 'fas fa-rotate-right'; icon.style.color = 'var(--text-muted)'; }
         };
         
         // ── User Profile Viewer (leaderboard tap) ──────────────────────────────
@@ -2782,7 +2878,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.loadMyGroups = async function() {
             const container = document.getElementById('myGroupsList');
             if (!container) return;
-            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">Loading...</div>`;
+            container.innerHTML = [_skGroupCard(), _skGroupCard()].join('<div style="height:0.625rem;"></div>');
             try {
                 const user = window.currentUser;
                 const q = query(collection(db, 'groups'), where('memberUids', 'array-contains', user.uid));
@@ -2830,8 +2926,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             document.getElementById('groupDecksList').innerHTML = '';
             const lbEl   = document.getElementById('groupLeaderboard');
             const feedEl = document.getElementById('groupScoreFeed');
-            if (lbEl)   lbEl.innerHTML   = '';
-            if (feedEl) feedEl.innerHTML = '';
+            // Show skeletons immediately so the panel feels populated while data loads
+            const _sk2 = [_skRow(2,'circle'),_skRow(2,'circle'),_skRow(2,'circle')].join('<div style="height:0.5rem;"></div>');
+            const _skDeck = [_skRow(2,'square'),_skRow(2,'square')].join('<div style="height:0.5rem;"></div>');
+            document.getElementById('groupMembersList').innerHTML = _sk2;
+            document.getElementById('groupDecksList').innerHTML   = _skDeck;
+            if (lbEl)   lbEl.innerHTML   = _sk2;
+            if (feedEl) feedEl.innerHTML = _sk2;
             try {
                 const currentUid = window.currentUser?.uid;
                 const [groupSnap, decksSnap, feedSnap] = await Promise.all([
@@ -2942,7 +3043,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                                     <div style="font-size:0.875rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHTML(dk.title||'Untitled')}</div>
                                     <div style="font-size:0.75rem;color:var(--text-muted);">by ${window.escapeHTML(dk.sharedByName||'Someone')}</div>
                                 </div>
-                                ${myScore?`<span style="font-size:0.8rem;font-weight:700;color:var(--accent-green);">${myScore.percentage}%</span>`:`<button onclick="window.studyGroupDeck('${d.id}','${groupId}')" style="font-size:0.75rem;font-weight:700;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:9999px;padding:0.375rem 0.75rem;cursor:pointer;">Study</button>`}
+                                ${myScore?`<span style="font-size:0.8rem;font-weight:700;color:var(--accent-green);">${myScore.percentage}%</span>`:`<button onclick="window.studyGroupDeck('${d.id}','${groupId}',event)" style="font-size:0.75rem;font-weight:700;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:9999px;padding:0.375rem 0.75rem;cursor:pointer;">Study</button>`}
                             </div>`;
                     });
                 }
@@ -2978,17 +3079,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             });
 
             if (!confirmed) return;
+            _groupDetailBusy(true);
             try {
                 const uid = window.currentUser.uid;
                 const groupRef = doc(db, 'groups', groupId);
                 const snap = await getDoc(groupRef);
-                if (!snap.exists()) return;
+                if (!snap.exists()) { _groupDetailBusy(false); return; }
                 const members = snap.data().members || {};
                 delete members[uid];
                 await updateDoc(groupRef, { members, memberUids: Object.keys(members) });
+                _groupDetailBusy(false);
                 window.closeGroupDetail();
                 window.loadMyGroups();
             } catch(e) {
+                _groupDetailBusy(false);
                 alert('Failed to leave group: ' + e.message);
             }
         };
@@ -3036,11 +3140,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const groupName = document.getElementById('groupDetailName')?.textContent || 'this group';
             if (!groupId) return;
             if (!confirm(`Delete "${groupName}"? This cannot be undone and all shared decks will be lost.`)) return;
+            _groupDetailBusy(true);
             try {
                 await deleteDoc(doc(db, 'groups', groupId));
+                _groupDetailBusy(false);
                 window.closeGroupDetail();
                 window.loadMyGroups();
             } catch(e) {
+                _groupDetailBusy(false);
                 alert('Failed to delete group: ' + e.message);
             }
         };
@@ -3099,7 +3206,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const quizzes = window.quizzes || [];
             if (quizzes.length === 0) { alert('You have no decks to share.'); return; }
             list.innerHTML = quizzes.slice().reverse().map(q => `
-                <div onclick="window.shareDeckToGroup('${q.id}')" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:0.875rem;cursor:pointer;transition:0.15s;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
+                <div onclick="window.shareDeckToGroup('${q.id}', event)" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:0.875rem;cursor:pointer;transition:0.15s;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
                     ${q.type?.includes('Multiple') ? '<svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mbg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7B2CF3"/><stop offset="100%" stop-color="#4B0F9B"/></linearGradient><linearGradient id="mwp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E2E9"/></linearGradient><linearGradient id="mbp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6976F3"/><stop offset="100%" stop-color="#515CE4"/></linearGradient><linearGradient id="mpp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#B27BFF"/><stop offset="100%" stop-color="#884CFF"/></linearGradient><filter id="mps2"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#2D0A66" flood-opacity="0.85"/></filter></defs><rect x="42" y="42" width="428" height="428" rx="100" fill="#F3F3F6"/><rect x="48" y="48" width="416" height="416" rx="96" fill="url(#mbg2)"/><rect x="116" y="116" width="280" height="280" rx="56" fill="url(#mwp2)" filter="url(#mps2)"/><rect x="152" y="152" width="164" height="36" rx="18" fill="url(#mbp2)"/><rect x="210" y="210" width="150" height="36" rx="18" fill="url(#mpp2)"/><rect x="152" y="268" width="164" height="36" rx="18" fill="url(#mbp2)"/><rect x="210" y="326" width="150" height="36" rx="18" fill="url(#mpp2)"/></svg>' : '<svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>'}
                     <span style="font-size:0.875rem;font-weight:600;color:var(--text-main);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHTML(q.title||'Untitled')}</span>
                 </div>`).join('');
@@ -3112,11 +3219,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             });
         };
 
-        window.shareDeckToGroup = async function(deckId) {
+        window.shareDeckToGroup = async function(deckId, event) {
             const groupId = window._currentGroupId;
             if (!groupId) return;
             const quiz = window.quizzes.find(q => q.id == deckId);
             if (!quiz) return;
+            // Lock the tapped row immediately
+            const row = event?.currentTarget || event?.target?.closest('div[onclick]');
+            if (row) {
+                row.style.pointerEvents = 'none';
+                row.style.opacity = '0.6';
+                const existingSpan = row.querySelector('span');
+                if (existingSpan) existingSpan.innerHTML = `<i class="fas fa-spinner fa-spin" style="margin-right:0.375rem;font-size:0.8rem;"></i>Sharing...`;
+            }
             const userData = window._cachedUserData || {};
             try {
                 await setDoc(doc(db, 'groups', groupId, 'sharedDecks', String(deckId)), {
@@ -3150,7 +3265,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
 
-        window.studyGroupDeck = async function(deckId, groupId) {
+        window.studyGroupDeck = async function(deckId, groupId, event) {
+            const btn = event?.currentTarget || event?.target;
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
             const snap = await getDoc(doc(db, 'groups', groupId, 'sharedDecks', deckId));
             if (!snap.exists()) return;
             const dk = snap.data();

@@ -136,6 +136,7 @@
                 if (targetViewId === 'view-study' && typeof window.renderLibrary === 'function') window.renderLibrary();
                 if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
                 if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
+                if (targetViewId === 'view-leaderboard' && typeof window.silentRefreshLeaderboard === 'function') window.silentRefreshLeaderboard();
             } catch(e) { console.warn("View init skipped:", e); }
             
             // 5. Update URL
