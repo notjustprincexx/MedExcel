@@ -1781,6 +1781,7 @@ window.openUserModal = function(uid) {
     <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
     <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem?30:5}</span></div>
     <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${esc(u.role||'user')}</span></div>
+    <div class="mrow"><span class="mrow-l">Referrals</span><span class="mrow-r">${u.referralCount||0} invited</span></div>
     <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
     ${profileRows}
 
@@ -1802,6 +1803,7 @@ window.openUserModal = function(uid) {
       : `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','user')"><i class="fas fa-star" style="margin-right:.375rem;"></i>Remove Ambassador</button>`
     }
     <button class="mbtn mbtn-muted" onclick="closeUserModal()">Close</button>
+    <button class="mbtn" style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.25);margin-top:.25rem;" onclick="deleteUserAccount('${u.uid}','${esc(u.email||'')}')"><i class="fas fa-trash" style="margin-right:.375rem;"></i>Delete Account</button>
   `;
   document.getElementById('userModal').classList.add('show');
 };
@@ -1849,6 +1851,27 @@ window.setRole = async function(uid, role) {
     await updateDoc(doc(db,'users',uid), { role });
     toast(`✓ Role set to ${role}`); closeUserModal(); loadData();
   } catch(e) { toast('Failed'); }
+};
+
+window.deleteUserAccount = async function(uid, email) {
+  const confirmed = confirm(`Permanently delete account for ${email||uid}?\n\nThis removes their Firestore data and revokes access. This cannot be undone.`);
+  if (!confirmed) return;
+  try {
+    // Delete Firestore user document
+    const { deleteDoc, doc: firestoreDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+    await deleteDoc(firestoreDoc(db, 'users', uid));
+    // Call Cloud Function to delete the Auth account
+    const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+    const fn = httpsCallable(getFunctions(), 'adminDeleteUser');
+    await fn({ uid });
+    toast('✓ Account deleted');
+    closeUserModal();
+    allUsers = allUsers.filter(u => u.uid !== uid);
+    renderUserList();
+  } catch(e) {
+    // Firestore doc may already be deleted — surface the real error
+    toast('Error: ' + (e.message || 'Could not delete account'));
+  }
 };
 
 window.copyText = function(text) {
