@@ -2228,6 +2228,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Update both maxLimitText (create slider) and maxLimitDisplay (profile)
                 const maxText = document.getElementById('maxLimitText'); if(maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
                 const maxDisp = document.getElementById('maxLimitDisplay'); if(maxDisp) maxDisp.textContent = pc.cap;
+                // Show "Get 50 →" link only for free users
+                const _upgLink = document.getElementById('maxLimitUpgrade');
+                if (_upgLink) _upgLink.style.display = (window.userPlan === 'free') ? 'inline-flex' : 'none';
 
                 // Plan icon, XP level, achievements, library
                 window.updatePlanIcon(window.userPlan);

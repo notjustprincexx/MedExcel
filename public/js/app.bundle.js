@@ -1854,6 +1854,9 @@
             isExamMode = exam;
             currentQuestionIndex = 0;
             examScore = 0;
+            // Reset reward state for the new session
+            _inQuizStreak = 0;
+            window._streakBonusXP = 0;
             // Reset answered state for all questions
             if (currentQuiz && currentQuiz.questions) {
                 currentQuiz.questions.forEach(q => { q.answered = false; });
@@ -1962,6 +1965,11 @@
         // Tracks consecutive correct answers within the current quiz session.
         // Indicator only appears at 3+ to avoid being noisy. Resets on miss.
         let _inQuizStreak = 0;
+        // Bonus XP earned from streak rewards in this session — added to the
+        // base score on quiz finish. Resets when a new quiz begins via the
+        // existing examScore reset (this var is reset at the same time below
+        // through the bundle's quiz-start path).
+        window._streakBonusXP = window._streakBonusXP || 0;
 
         // Inject the keyframes once (used by the correct-answer pulse).
         if (!document.getElementById('_studyRewardKf')) {
@@ -1996,13 +2004,20 @@
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
 
             // ── Reward feedback (subtle, immediate) ──────────────────────
-            // 1. Light haptic tap — feels like a tactile "yes" on Android.
-            //    Silently ignored on iOS web (no navigator.vibrate support).
-            //    Single 8ms pulse for correct, no haptic on wrong (no need
-            //    to punish; the red color does that).
+            // 1. Light haptic tap — feels like a tactile "yes". Tries the
+            //    Capacitor Haptics plugin first (works in the packaged
+            //    Android app), falls back to navigator.vibrate for the web
+            //    version (Chrome/Android). Silently does nothing on iOS web
+            //    or older browsers — no error, just no vibration.
             // 2. Streak update — only surfaces at 3+, dismisses on miss.
             if (isCorrect) {
-                try { if (navigator.vibrate) navigator.vibrate(8); } catch(_) {}
+                try {
+                    if (window.Capacitor?.Plugins?.Haptics) {
+                        window.Capacitor.Plugins.Haptics.impact({ style: 'Light' });
+                    } else if (navigator.vibrate) {
+                        navigator.vibrate(8);
+                    }
+                } catch(_) {}
                 _inQuizStreak++;
             } else {
                 _inQuizStreak = 0;
@@ -2039,38 +2054,80 @@
 
             // ── Hot-streak float-up indicator (only at 3+) ───────────────
             // Appears at the bottom of the answer options, floats upward
-            // while fading out — like a damage/XP number in games. No pill,
-            // no background. Just the text rising and dissolving.
+            // while fading out — like a damage/XP number in games. Messages
+            // and colors evolve with the streak so it doesn't feel repetitive
+            // for someone on a long roll. Bonus XP scales with the tier so
+            // longer streaks feel meaningfully more rewarding.
             const _existingStreak = document.getElementById('studyStreakChip');
             if (_existingStreak) _existingStreak.remove();
             if (_inQuizStreak >= 3) {
+                // Pick message + color + bonus XP based on streak length.
+                // Bonus XP stacks on top of the base 10 XP/correct from
+                // examScore at quiz finish (see finishStudyQuiz).
+                let _msg, _color, _bonus;
+                if (_inQuizStreak >= 20) {
+                    const opts = ['👑 Legendary', '👑 Untouchable', '👑 Unreal run'];
+                    _msg = opts[_inQuizStreak % opts.length];
+                    _color = '#a855f7'; _bonus = 60;
+                } else if (_inQuizStreak >= 15) {
+                    const opts = ['💎 Flawless', '💎 In the zone', '💎 Locked in'];
+                    _msg = opts[_inQuizStreak % opts.length];
+                    _color = '#06b6d4'; _bonus = 40;
+                } else if (_inQuizStreak >= 10) {
+                    const opts = ['⚡ Unstoppable', '⚡ On a tear', '⚡ Double digits!'];
+                    _msg = opts[_inQuizStreak % opts.length];
+                    _color = '#eab308'; _bonus = 25;
+                } else if (_inQuizStreak >= 7) {
+                    const opts = ['🚀 On fire', '🚀 Streaking', '🚀 Cooking now'];
+                    _msg = opts[_inQuizStreak % opts.length];
+                    _color = '#ef4444'; _bonus = 15;
+                } else if (_inQuizStreak >= 5) {
+                    const opts = [`🔥 ${_inQuizStreak} in a row!`, '🔥 Heating up', '🔥 Nice run'];
+                    _msg = opts[_inQuizStreak % opts.length];
+                    _color = '#f97316'; _bonus = 10;
+                } else {
+                    _msg = `🔥 ${_inQuizStreak} in a row`;
+                    _color = '#f97316'; _bonus = 5;
+                }
+                window._streakBonusXP = (window._streakBonusXP || 0) + _bonus;
+
                 const chip = document.createElement('div');
                 chip.id = 'studyStreakChip';
                 chip.style.cssText = `
                     position: absolute;
                     left: 50%;
-                    transform: translateX(-50%) translateY(0);
-                    color: #f97316;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    color: ${_color};
                     font-size: 1rem;
                     font-weight: 800;
-                    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.25);
                     pointer-events: none;
-                    opacity: 1;
-                    z-index: 50;
+                    opacity: 0;
+                    z-index: 9999;
                     white-space: nowrap;
                     transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1), opacity 1100ms ease-out;
+                    text-align: center;
+                    line-height: 1.25;
                 `;
-                chip.innerHTML = `🔥 ${_inQuizStreak} in a row`;
-                // Anchor to the answers area so it rises from where the user just tapped
-                const anchor = selectedBtn.parentElement || selectedBtn;
-                if (getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
-                // Start near the bottom of the anchor
-                chip.style.bottom = '0';
-                anchor.appendChild(chip);
-                // Trigger the float-up + fade
+                // Two-line: streak message above, bonus XP below in gold.
+                // The XP line is what makes the streak feel earned.
+                chip.innerHTML = `<div>${_msg}</div><div style="font-size:0.85rem;font-weight:800;color:#fbbf24;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,0.3);">+${_bonus} XP</div>`;
+                // Anchor to the SELECTED BUTTON itself (where the user tapped)
+                // so the float-up rises from the point of action. Visual
+                // continuity from tap → reward → upward fade.
+                if (getComputedStyle(selectedBtn).position === 'static') selectedBtn.style.position = 'relative';
+                selectedBtn.appendChild(chip);
+                // Trigger the float-up + fade. Start at button center,
+                // rise 70px up while fading.
                 requestAnimationFrame(() => {
-                    chip.style.transform = 'translateX(-50%) translateY(-60px)';
-                    chip.style.opacity = '0';
+                    chip.style.opacity = '1';
+                    chip.style.transform = 'translate(-50%, -50%) translateY(-70px)';
+                });
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        chip.style.opacity = '0';
+                    }, 200);
                 });
                 setTimeout(() => chip.remove(), 1200);
             }
@@ -2102,10 +2159,14 @@ if (nextBtn) {
             if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
             const isFirstAttempt = currentQuiz.stats.attempts === 0;
 
-            // Only award XP on first completion — replaying is practice, not reward
+            // Only award XP on first completion — replaying is practice, not reward.
+            // Streak bonus XP earned during the session stacks on top of base score.
+            const _streakBonus = window._streakBonusXP || 0;
             const totalXP = isFirstAttempt
-                ? (isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
+                ? (isMCQSession ? examScore * 10 + 20 + _streakBonus : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
                 : 0;
+            // Reset for the next quiz session
+            window._streakBonusXP = 0;
             if (totalXP > 0) await window.addXP(totalXP);
             window.commitStreakOnAction?.();
 
@@ -2619,6 +2680,32 @@ if (nextBtn) {
         });
         const sliderValue = document.getElementById('sliderValue');
         if(itemSlider && sliderValue) {
+
+            // ── Persistent upgrade link next to Max label (free users only) ──
+            // This is the discoverable, always-tappable upgrade entry point.
+            // Previously the only upgrade CTA was inside the slider warning,
+            // which disappeared the moment the slider snapped back to the cap
+            // — making it impossible to tap. Now the link sits in the label
+            // permanently for free users, independent of slider state.
+            (function _wireMaxLimitUpgradeLink() {
+                const link = document.getElementById('maxLimitUpgrade');
+                if (!link) return;
+                const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
+                link.style.display = isPremium ? 'none' : 'inline-flex';
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    if (typeof window.navigateTo === 'function') window.navigateTo('view-payment');
+                };
+                // Press feedback so it feels tappable
+                const _pressOn  = () => { link.style.transform = 'scale(0.94)'; link.style.background = 'rgba(167,139,250,0.22)'; };
+                const _pressOff = () => { link.style.transform = ''; link.style.background = 'rgba(167,139,250,0.12)'; };
+                link.addEventListener('touchstart', _pressOn, { passive: true });
+                link.addEventListener('touchend',   _pressOff);
+                link.addEventListener('mousedown',  _pressOn);
+                link.addEventListener('mouseup',    _pressOff);
+                link.addEventListener('mouseleave', _pressOff);
+            })();
+
             function updateSliderHint(val) {
                 const max = window.allowedMaxItems;
                 let hintEl = document.getElementById('sliderLimitHint');
@@ -2629,33 +2716,16 @@ if (nextBtn) {
                     if (!hintEl) {
                         hintEl = document.createElement('p');
                         hintEl.id = 'sliderLimitHint';
-                        hintEl.style.cssText = 'font-size:0.75rem;text-align:center;margin-top:0.5rem;font-weight:600;line-height:1.45;';
+                        hintEl.style.cssText = 'font-size:0.75rem;color:#f97316;text-align:center;margin-top:0.5rem;font-weight:600;line-height:1.45;';
                         itemSlider.parentElement.appendChild(hintEl);
                     }
                     const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
-                    if (isPremium) {
-                        hintEl.style.color = '#f97316';
-                        hintEl.innerHTML = '⚠️ Premium is capped at 50';
-                    } else {
-                        // Free user — make the hint a tappable upgrade CTA.
-                        // This is the "moment of motivated frustration" — they
-                        // wanted more, hit a cap, premium solves it. Cheap trial
-                        // offered inline so the friction is minimal.
-                        hintEl.style.color = '#f97316';
-                        hintEl.innerHTML = `Free plan max is ${max} questions per deck.
-                            <a id="sliderUpgradeLink" style="color:var(--accent-btn);text-decoration:underline;cursor:pointer;font-weight:700;display:inline-block;margin-top:2px;">
-                                Get 50 with Premium →
-                            </a>`;
-                        const link = document.getElementById('sliderUpgradeLink');
-                        if (link) {
-                            link.onclick = (e) => {
-                                e.preventDefault();
-                                if (typeof window.navigateTo === 'function') {
-                                    window.navigateTo('view-payment');
-                                }
-                            };
-                        }
-                    }
+                    // Just the warning text now — the upgrade link sits next
+                    // to the Max label and is always tappable. No more
+                    // disappearing-link interaction conflict.
+                    hintEl.textContent = isPremium
+                        ? '⚠️ Premium is capped at 50'
+                        : `⚠️ Free plan max is ${max} questions per deck`;
                 } else {
                     sliderValue.textContent = val;
                     sliderValue.style.color = 'var(--text-main)';
@@ -3553,6 +3623,9 @@ window._openProgressDeck = function(quizId) {
                     window.allowedMaxItems = (newPlan === 'premium' || newPlan === 'premium_trial' || newPlan === 'elite') ? 50 : 20;
                     const maxText = document.getElementById('maxLimitText');
                     if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
+                    // Hide the persistent upgrade link now that they're paid
+                    const _upgLink = document.getElementById('maxLimitUpgrade');
+                    if (_upgLink) _upgLink.style.display = 'none';
 
                     if (btn)  { btn.textContent = "✓ You're Premium!"; btn.style.background = "#10b981"; btn.style.color = "#fff"; btn.disabled = false; }
                     if (iBtn) { iBtn.textContent = "✓ Activated!"; iBtn.style.background = "#10b981"; iBtn.disabled = false; }
