@@ -2622,7 +2622,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 const isThisCorrect = ansLower === keyLower ||
                     ansLower === keyLower + '.' ||
                     ansLower === valLower ||
-                    (isShortAnswer && ansLower.startsWith(keyLower));
+                    (isShortAnswer && (ansLower.startsWith(keyLower + '.') || ansLower.startsWith(keyLower + ')')));
                 btn.disabled = true; btn.style.opacity = '0.5';
                 if (isThisCorrect) {
                     btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1';

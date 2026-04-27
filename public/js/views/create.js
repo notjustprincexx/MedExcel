@@ -166,7 +166,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
 
             allButtons.forEach(btn => {
                 const key = btn.dataset.key; const value = btn.dataset.value; 
-                const isThisCorrect = (String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase()));
+                const isThisCorrect = (String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() || String(answer).trim().toLowerCase() === String(key).trim().toLowerCase() || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase() + '.') || String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase() + ')'));
                 btn.disabled = true; btn.style.opacity = '0.5';
                 if (isThisCorrect) { 
                     btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1'; 
