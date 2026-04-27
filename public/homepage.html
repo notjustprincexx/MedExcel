@@ -1594,6 +1594,81 @@
       return outcome;
     };
     window.addEventListener('appinstalled', function() { _mxDeferredInstallPrompt = null; });
+
+    // ── iOS "Add to Home Screen" hint ────────────────────────────────────
+    // iOS Safari doesn't fire beforeinstallprompt, so we nudge users manually.
+    // Shows once, only on iOS Safari, only when not already installed as PWA.
+    (function() {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|opios/i.test(navigator.userAgent);
+      const isStandalone = window.navigator.standalone === true;
+      const isCapacitor = !!window.Capacitor;
+      const dismissed = localStorage.getItem('medexcel_ios_hint_dismissed');
+      if (!isIOS || !isSafari || isStandalone || isCapacitor || dismissed) return;
+
+      const hint = document.createElement('div');
+      hint.id = 'iosInstallHint';
+      hint.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.75;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <span>Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install MedExcel</span>
+        <button id="iosHintClose" aria-label="Dismiss">✕</button>
+      `;
+      hint.style.cssText = `
+        position: fixed;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--bg-surface, #fff);
+        color: var(--text-main, #111);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 14px;
+        padding: 0.7rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        z-index: 99998;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        max-width: calc(100vw - 32px);
+        white-space: normal;
+      `;
+      document.body.appendChild(hint);
+
+      hint.querySelector('#iosHintClose').style.cssText = `
+        background: none; border: none; cursor: pointer;
+        color: var(--text-muted, #94a3b8); font-size: 0.85rem;
+        padding: 0 0 0 0.25rem; flex-shrink: 0; line-height: 1;
+      `;
+
+      // Small arrow pointing down toward the Safari toolbar
+      const arrow = document.createElement('div');
+      arrow.style.cssText = `
+        position: absolute; bottom: -7px; left: 50%;
+        transform: translateX(-50%);
+        width: 14px; height: 7px; overflow: hidden;
+      `;
+      arrow.innerHTML = `<div style="width:14px;height:14px;background:var(--bg-surface,#fff);border:1px solid var(--border-color,#e2e8f0);transform:rotate(45deg);margin-top:-8px;margin-left:0;box-shadow:2px 2px 4px rgba(0,0,0,0.08);"></div>`;
+      hint.appendChild(arrow);
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        hint.style.opacity = '1';
+        hint.style.transform = 'translateX(-50%) translateY(0)';
+      }));
+
+      function dismiss() {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translateX(-50%) translateY(10px)';
+        setTimeout(() => hint.remove(), 300);
+        localStorage.setItem('medexcel_ios_hint_dismissed', '1');
+      }
+
+      hint.querySelector('#iosHintClose').addEventListener('click', dismiss);
+      setTimeout(dismiss, 9000); // auto-dismiss after 9s
+    })();
   </script>
 </body>
 </html>
