@@ -1958,6 +1958,33 @@
 });
         }
 
+        // ── Subtle reward state — in-quiz streak counter ─────────────────
+        // Tracks consecutive correct answers within the current quiz session.
+        // Indicator only appears at 3+ to avoid being noisy. Resets on miss.
+        let _inQuizStreak = 0;
+
+        // Inject the keyframes once (used by the correct-answer pulse).
+        if (!document.getElementById('_studyRewardKf')) {
+            const _s = document.createElement('style');
+            _s.id = '_studyRewardKf';
+            _s.textContent = `
+                @keyframes _studyCorrectPulse {
+                    0%   { transform: scale(1);    }
+                    40%  { transform: scale(1.025);}
+                    100% { transform: scale(1);    }
+                }
+                @keyframes _studyStreakIn {
+                    0%   { opacity: 0; transform: translateY(-4px) scale(0.92); }
+                    100% { opacity: 1; transform: translateY(0)    scale(1);    }
+                }
+                @keyframes _studyStreakOut {
+                    0%   { opacity: 1; transform: translateY(0)    scale(1);    }
+                    100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
+                }
+            `;
+            document.head.appendChild(_s);
+        }
+
         window.handleStudyMCQSelection = function(selectedBtn, q, allBtns) {
             if (q.answered) return;
             q.answered = true;
@@ -1967,6 +1994,20 @@
             if (isCorrect) examScore++;
             window._todayStudiedItems = (window._todayStudiedItems || 0) + 1;
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
+
+            // ── Reward feedback (subtle, immediate) ──────────────────────
+            // 1. Light haptic tap — feels like a tactile "yes" on Android.
+            //    Silently ignored on iOS web (no navigator.vibrate support).
+            //    Single 8ms pulse for correct, no haptic on wrong (no need
+            //    to punish; the red color does that).
+            // 2. Streak update — only surfaces at 3+, dismisses on miss.
+            if (isCorrect) {
+                try { if (navigator.vibrate) navigator.vibrate(8); } catch(_) {}
+                _inQuizStreak++;
+            } else {
+                _inQuizStreak = 0;
+            }
+            // ─────────────────────────────────────────────────────────────
 
             allBtns.forEach(btn => {
                 const idx = parseInt(btn.dataset.idx);
@@ -1978,6 +2019,13 @@
                     btn.style.color = 'var(--accent-green)';
                     btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
                     btn.querySelector('span').style.color = 'var(--accent-green)';
+                    // Subtle scale pulse — a quick "breathe" rather than a
+                    // bounce. 250ms total, peaks at 1.025× (barely there but
+                    // your eye catches it). Only on the user's correct pick,
+                    // not when revealing the right answer after a wrong one.
+                    if (idx === selectedIdx) {
+                        btn.style.animation = '_studyCorrectPulse 250ms ease-out';
+                    }
                 } else if (idx === selectedIdx) {
                     btn.style.background = 'rgba(239,68,68,0.1)';
                     btn.style.borderColor = 'rgba(239,68,68,0.3)';
@@ -1988,6 +2036,45 @@
                     btn.style.opacity = '0.4';
                 }
             });
+
+            // ── Hot-streak float-up indicator (only at 3+) ───────────────
+            // Appears at the bottom of the answer options, floats upward
+            // while fading out — like a damage/XP number in games. No pill,
+            // no background. Just the text rising and dissolving.
+            const _existingStreak = document.getElementById('studyStreakChip');
+            if (_existingStreak) _existingStreak.remove();
+            if (_inQuizStreak >= 3) {
+                const chip = document.createElement('div');
+                chip.id = 'studyStreakChip';
+                chip.style.cssText = `
+                    position: absolute;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(0);
+                    color: #f97316;
+                    font-size: 1rem;
+                    font-weight: 800;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+                    pointer-events: none;
+                    opacity: 1;
+                    z-index: 50;
+                    white-space: nowrap;
+                    transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1), opacity 1100ms ease-out;
+                `;
+                chip.innerHTML = `🔥 ${_inQuizStreak} in a row`;
+                // Anchor to the answers area so it rises from where the user just tapped
+                const anchor = selectedBtn.parentElement || selectedBtn;
+                if (getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
+                // Start near the bottom of the anchor
+                chip.style.bottom = '0';
+                anchor.appendChild(chip);
+                // Trigger the float-up + fade
+                requestAnimationFrame(() => {
+                    chip.style.transform = 'translateX(-50%) translateY(-60px)';
+                    chip.style.opacity = '0';
+                });
+                setTimeout(() => chip.remove(), 1200);
+            }
+            // ─────────────────────────────────────────────────────────────
 
             const expl = document.getElementById('studyExplanationArea');
             expl.innerHTML = `
