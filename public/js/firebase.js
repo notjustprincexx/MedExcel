@@ -599,9 +599,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Sort newest first
             const sorted = filtered.slice().reverse();
 
-            // quiz.id is Date.now() at creation — use it as the timestamp
+            // quiz.id is Date.now() at creation — use it as the timestamp.
+            // Pending quizzes have string IDs like "pending_1234567890" — strip
+            // the prefix so they group as "Today" instead of falling through to
+            // the "Earlier" fallback.
             function getDateLabel(id) {
-                const d = new Date(typeof id === 'number' ? id : parseInt(id));
+                const numId = typeof id === 'number'
+                    ? id
+                    : parseInt(String(id).replace(/^pending_/, ''), 10);
+                const d = new Date(numId);
                 if (isNaN(d.getTime())) return 'Earlier';
                 const today = new Date(); today.setHours(0,0,0,0);
                 const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
@@ -622,6 +628,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             groups.forEach(group => {
                 container.innerHTML += `<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0.875rem 0 0.375rem;margin-bottom:0.25rem;">${group.label}</div>`;
                 group.items.forEach(quiz => {
+                    // Skeleton row for in-progress (pending) quizzes — title visible, rest shimmered, NOT clickable
+                    if (quiz._pending) {
+                        container.innerHTML += `
+                            <div class="quiz-item fade-in" aria-busy="true" aria-live="polite" style="cursor:default;pointer-events:none;opacity:0.92;">
+                                <div class="w-14 h-14 rounded-2xl bg-[var(--bg-body)] border border-[var(--border-color)] flex items-center justify-center relative shrink-0 overflow-hidden" style="animation:_libSkelPulse 1.4s ease-in-out infinite;">
+                                    <i class="fas fa-spinner" style="color:var(--accent-btn);font-size:1.05rem;animation:_libSpin 0.9s linear infinite;"></i>
+                                </div>
+                                <div class="flex-1 min-w-0 py-1">
+                                    <h3 class="font-bold text-[var(--text-main)] text-base truncate mb-1.5">${window.escapeHTML(quiz.title || 'Generating…')}</h3>
+                                    <div class="flex items-center gap-2">
+                                        <span style="display:inline-block;height:14px;width:74px;border-radius:6px;background:linear-gradient(90deg,var(--bg-body) 0%,var(--border-color) 50%,var(--bg-body) 100%);background-size:200% 100%;animation:_libSkelShimmer 1.4s linear infinite;"></span>
+                                        <span style="display:inline-block;height:14px;width:54px;border-radius:6px;background:linear-gradient(90deg,var(--bg-body) 0%,var(--border-color) 50%,var(--bg-body) 100%);background-size:200% 100%;animation:_libSkelShimmer 1.4s linear infinite;animation-delay:0.15s;"></span>
+                                        <span style="font-size:11px;font-weight:700;color:var(--accent-btn);letter-spacing:0.04em;text-transform:uppercase;margin-left:auto;">Generating…</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                        return;
+                    }
+
                     const qLength = quiz.questions ? quiz.questions.length : 0;
                     const isMCQ = quiz.type && quiz.type.includes("Multiple");
                     const itemLabel = isMCQ ? "Questions" : "Cards";
@@ -645,6 +670,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         </div>`;
                 });
             });
+
+            // Inject skeleton keyframes once (idempotent)
+            if (!document.getElementById('_libSkelKf')) {
+                const s = document.createElement('style');
+                s.id = '_libSkelKf';
+                s.textContent = `
+                    @keyframes _libSkelShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+                    @keyframes _libSkelPulse   { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+                    @keyframes _libSpin        { to { transform: rotate(360deg); } }
+                `;
+                document.head.appendChild(s);
+            }
         };
 
         window.loadQuizOverview = function(id) {
@@ -1202,33 +1239,91 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // ── Global generation status pill (shown when user leaves scanning screen) ──
         function _showGenPill(title) {
+            // Inject keyframes once
+            if (!document.getElementById('_genPillKf')) {
+                const s = document.createElement('style');
+                s.id = '_genPillKf';
+                s.textContent = `
+                    @keyframes _genPillSpin { to { transform: rotate(360deg); } }
+                    @keyframes _genPillSlideIn {
+                        from { opacity: 0; transform: translate(-50%, 16px); }
+                        to   { opacity: 1; transform: translate(-50%, 0); }
+                    }
+                    @keyframes _genPillShimmer {
+                        0%   { background-position: -200% 0; }
+                        100% { background-position: 200% 0; }
+                    }
+                    @keyframes _genPillGlow {
+                        0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 0 0 0 rgba(139,92,246,0.45); }
+                        50%      { box-shadow: 0 6px 22px rgba(0,0,0,0.22), 0 0 0 6px rgba(139,92,246,0.0); }
+                    }
+                    #_genStatusPill {
+                        position: fixed;
+                        bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: var(--bg-surface);
+                        border: 1px solid var(--border-glass);
+                        border-radius: 9999px;
+                        padding: 9px 16px 9px 11px;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        font-size: 0.8125rem;
+                        font-weight: 600;
+                        color: var(--text-main);
+                        z-index: 9999;
+                        max-width: min(92vw, 420px);
+                        animation: _genPillSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1), _genPillGlow 2.4s ease-in-out infinite;
+                    }
+                    #_genStatusPill .gp-spinner {
+                        width: 18px; height: 18px;
+                        border-radius: 50%;
+                        flex-shrink: 0;
+                        background: conic-gradient(from 0deg, transparent 0deg, var(--accent-btn) 280deg, transparent 360deg);
+                        -webkit-mask: radial-gradient(circle, transparent 5px, #000 6px);
+                                mask: radial-gradient(circle, transparent 5px, #000 6px);
+                        animation: _genPillSpin 0.9s linear infinite;
+                    }
+                    #_genStatusPill .gp-text {
+                        min-width: 0;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        background: linear-gradient(90deg, var(--text-main) 0%, var(--text-main) 40%, var(--accent-btn) 50%, var(--text-main) 60%, var(--text-main) 100%);
+                        background-size: 200% 100%;
+                        -webkit-background-clip: text;
+                                background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        animation: _genPillShimmer 2.6s linear infinite;
+                    }
+                    #_genStatusPill .gp-title { font-weight: 700; }
+                `;
+                document.head.appendChild(s);
+            }
+
             let pill = document.getElementById('_genStatusPill');
             if (!pill) {
                 pill = document.createElement('div');
                 pill.id = '_genStatusPill';
-                pill.style.cssText = [
-                    'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);',
-                    'background:var(--bg-surface);border:1px solid var(--border-glass);',
-                    'border-radius:9999px;padding:10px 18px;display:flex;align-items:center;gap:8px;',
-                    'font-size:0.8125rem;font-weight:600;color:var(--text-main);',
-                    'box-shadow:0 4px 20px rgba(0,0,0,0.25);z-index:9999;',
-                    'white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;',
-                ].join('');
                 document.body.appendChild(pill);
             }
-            pill.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:var(--accent-btn);flex-shrink:0;animation:_pillPulse 1.2s ease-in-out infinite;"></span>'
-                + '<span>Generating “' + title + '”…</span>';
+            const safeTitle = (typeof window.escapeHTML === 'function')
+                ? window.escapeHTML(title)
+                : String(title).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+            pill.innerHTML =
+                '<span class="gp-spinner" aria-hidden="true"></span>' +
+                '<span class="gp-text">Generating <span class="gp-title">"' + safeTitle + '"</span>…</span>';
             pill.style.display = 'flex';
-            if (!document.getElementById('_pillPulseKf')) {
-                const s = document.createElement('style');
-                s.id = '_pillPulseKf';
-                s.textContent = '@keyframes _pillPulse{0%,100%{opacity:1}50%{opacity:0.35}}';
-                document.head.appendChild(s);
-            }
         }
         function _hideGenPill() {
             const pill = document.getElementById('_genStatusPill');
-            if (pill) { pill.style.opacity='0'; pill.style.transition='opacity 0.3s'; setTimeout(()=>pill.remove(),300); }
+            if (pill) {
+                pill.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+                pill.style.opacity = '0';
+                pill.style.transform = 'translate(-50%, 12px)';
+                setTimeout(() => pill.remove(), 280);
+            }
         }
         function _showGenToast(title, success) {
             const msg = success
