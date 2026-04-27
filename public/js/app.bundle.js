@@ -2094,42 +2094,32 @@
                 const chip = document.createElement('div');
                 chip.id = 'studyStreakChip';
                 chip.style.cssText = `
-                    position: absolute;
+                    position: fixed;
+                    top: 64px;
                     left: 50%;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
+                    transform: translateX(-50%) translateY(-8px);
                     color: ${_color};
-                    font-size: 1rem;
-                    font-weight: 800;
-                    text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+                    font-size: 0.85rem;
+                    font-weight: 700;
                     pointer-events: none;
                     opacity: 0;
-                    z-index: 9999;
+                    z-index: 99999;
                     white-space: nowrap;
-                    transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1), opacity 1100ms ease-out;
                     text-align: center;
-                    line-height: 1.25;
+                    text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+                    transition: opacity 220ms ease, transform 220ms ease;
                 `;
-                // Two-line: streak message above, bonus XP below in gold.
-                // The XP line is what makes the streak feel earned.
-                chip.innerHTML = `<div>${_msg}</div><div style="font-size:0.85rem;font-weight:800;color:#fbbf24;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,0.3);">+${_bonus} XP</div>`;
-                // Anchor to the SELECTED BUTTON itself (where the user tapped)
-                // so the float-up rises from the point of action. Visual
-                // continuity from tap → reward → upward fade.
-                if (getComputedStyle(selectedBtn).position === 'static') selectedBtn.style.position = 'relative';
-                selectedBtn.appendChild(chip);
-                // Trigger the float-up + fade. Start at button center,
-                // rise 70px up while fading.
-                requestAnimationFrame(() => {
+                chip.innerHTML = `${_msg} <span style="color:#fbbf24;font-size:0.78rem;">+${_bonus} XP</span>`;
+                document.body.appendChild(chip);
+                requestAnimationFrame(() => requestAnimationFrame(() => {
                     chip.style.opacity = '1';
-                    chip.style.transform = 'translate(-50%, -50%) translateY(-70px)';
-                });
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        chip.style.opacity = '0';
-                    }, 200);
-                });
-                setTimeout(() => chip.remove(), 1200);
+                    chip.style.transform = 'translateX(-50%) translateY(0)';
+                }));
+                setTimeout(() => {
+                    chip.style.opacity = '0';
+                    chip.style.transform = 'translateX(-50%) translateY(-6px)';
+                }, 1600);
+                setTimeout(() => chip.remove(), 1850);
             }
             // ─────────────────────────────────────────────────────────────
 
