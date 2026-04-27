@@ -1004,13 +1004,13 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
       </div>
       <input class="finp" id="upgradeUid" placeholder="User UID…">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;min-width:120px;" onclick="manualUpgrade('premium')">
+        <button class="mbtn mbtn-primary" style="margin-top:0;flex:1;min-width:120px;" onclick="manualUpgrade('premium', this)">
           <i class="fas fa-gem"></i> Set Premium
         </button>
-        <button class="mbtn" style="margin-top:0;flex:1;min-width:120px;background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="manualUpgrade('premium_trial')">
+        <button class="mbtn" style="margin-top:0;flex:1;min-width:120px;background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="manualUpgrade('premium_trial', this)">
           <i class="fas fa-ticket"></i> Set Trial (₦250)
         </button>
-        <button class="mbtn mbtn-muted" style="margin-top:0;flex:1;min-width:80px;" onclick="manualUpgrade('free')">
+        <button class="mbtn mbtn-muted" style="margin-top:0;flex:1;min-width:80px;" onclick="manualUpgrade('free', this)">
           <i class="fas fa-arrow-down"></i> Set Free
         </button>
       </div>
@@ -1782,33 +1782,43 @@ async function loadUpdateStatus() {
 }
 
 // ── MANUAL UPGRADE ──
-window.manualUpgrade = async function(plan) {
+window.manualUpgrade = async function(plan, btnEl) {
   const uid = document.getElementById('upgradeUid').value.trim();
-  if (!uid) { toast('Enter a UID'); return; }
+  if (!uid) { toast('Enter a UID', 'error'); return; }
+
+  const originalHTML = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Working…'; }
+
   try {
-    await updateDoc(doc(db,'users',uid), { plan, planUpdatedAt:new Date().toISOString(), planBy:'admin_manual' });
-    toast(`✓ User set to ${plan}`);
-    document.getElementById('upgradeUid').value='';
+    await adminCall('setPlan', uid, plan);
+    const label = plan === 'premium_trial' ? 'Trial (N250)' : plan === 'premium' ? 'Premium' : 'Free';
+    toast(`✓ User set to ${label}`, 'success');
+    document.getElementById('upgradeUid').value = '';
     loadData();
-  } catch(e) { toast('Failed — check UID'); }
+  } catch(e) {
+    console.error('manualUpgrade error:', e);
+    toast('Failed: ' + (e.message || 'Unknown error'), 'error');
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHTML; }
+  }
 };
 
 // ── GIVE XP ──
 window.giveXP = async function() {
   const uid    = document.getElementById('xpUid').value.trim();
   const amount = parseInt(document.getElementById('xpAmount').value);
-  if (!uid||!amount) { toast('Enter UID and amount'); return; }
+  if (!uid || !amount) { toast('Enter UID and amount', 'error'); return; }
+  const btn = document.querySelector('#xpUid')?.closest('.card')?.querySelector('.mbtn-primary');
+  const orig = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
   try {
-    const snap = await getDoc(doc(db,'users',uid));
-    if (!snap.exists()) { toast('User not found'); return; }
-    const cur       = snap.data().xp       || 0;
-    const curWeekly = snap.data().weeklyXp || 0;
-    await updateDoc(doc(db,'users',uid), { xp: cur + amount, weeklyXp: curWeekly + amount });
-    toast(`✓ +${amount} XP given`);
-    document.getElementById('xpUid').value='';
-    document.getElementById('xpAmount').value='';
+    await adminCall('giveXP', uid, amount);
+    toast(`✓ +${amount} XP given`, 'success');
+    document.getElementById('xpUid').value = '';
+    document.getElementById('xpAmount').value = '';
     loadData();
-  } catch(e) { toast('Failed — check UID'); }
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.innerHTML = orig; } }
 };
 
 // ── USER ROW HTML ──
@@ -1912,16 +1922,16 @@ window.openUserModal = function(uid) {
     <div class="mactions">
       <div class="mactions-label">Plan</div>
       ${isPrem
-        ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove ${isTrial?'Trial':'Premium'}','This will downgrade the user to Free.','⬇️',()=>setUserPlan('${u.uid}','free'))"><i class="fas fa-arrow-down"></i>${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>
-           ${isTrial ? `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Convert to Premium','Upgrade this trial user to full Premium.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Convert Trial → Premium</button>` : ''}`
+        ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove Plan','This will downgrade the user to Free.','⬇️',()=>setUserPlan('${u.uid}','free'))"><i class="fas fa-arrow-down"></i>${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>
+           ${isTrial ? `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Convert to Premium','Upgrade this trial user to full Premium.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Convert to Premium</button>` : ''}`
         : `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Upgrade to Premium','Grant this user full Premium access.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Upgrade to Premium</button>
-           <button class="mbtn" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="requireConfirm('trial','Grant Trial (₦250)','Gives premium deck size but free-tier AI quota — no Gemini burn.','🎫',()=>setUserPlan('${u.uid}','premium_trial'))"><i class="fas fa-ticket"></i>Grant Trial (₦250)</button>`
+           <button class="mbtn" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" onclick="requireConfirm('trial','Grant Trial','Uses Groq instead of Gemini. Same limits.','*',()=>setUserPlan('${u.uid}','premium_trial'))"><i class="fas fa-ticket"></i>Grant Trial (₦250)</button>`
       }
 
       <div class="mactions-label">Actions</div>
-      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Daily Usage','This resets the user\'s daily AI generation count.','🔄',()=>resetUserUsage('${u.uid}'))"><i class="fas fa-rotate-right"></i>Reset Daily Usage</button>
-      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Streak','This will zero out the user\'s current streak.','🔥',()=>resetUserStreak('${u.uid}'))"><i class="fas fa-fire"></i>Reset Streak</button>
-      <button class="mbtn ${isBan?'mbtn-green':'mbtn-red'}" onclick="requireConfirm('${isBan?'unban':'ban'}','${isBan?'Unban':'Ban'} User','${isBan?'Restore this user\'s access.':'Block this user from accessing MedExcel.'}','${isBan?'✅':'🚫'}',()=>${isBan?'unbanUser':'banUser'}('${u.uid}'))">
+      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Daily Usage','Resets the daily AI generation count.','🔄',()=>resetUserUsage('${u.uid}'))"><i class="fas fa-rotate-right"></i>Reset Daily Usage</button>
+      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Streak','This will zero out the current streak.','🔥',()=>resetUserStreak('${u.uid}'))"><i class="fas fa-fire"></i>Reset Streak</button>
+      <button class="mbtn ${isBan?'mbtn-green':'mbtn-red'}" onclick="requireConfirm('${isBan?'unban':'ban'}','${isBan?'Unban':'Ban'} User','${isBan?'Restore access for this user.':'Block this user from MedExcel.'}','${isBan?'✅':'🚫'}',()=>${isBan?'unbanUser':'banUser'}('${u.uid}'))">
         <i class="fas fa-${isBan?'check':'ban'}"></i>${isBan?'Unban User':'Ban User'}
       </button>
 
@@ -1937,7 +1947,7 @@ window.openUserModal = function(uid) {
 
       <div class="mactions-label" style="margin-top:1rem;"></div>
       <button class="mbtn mbtn-muted" onclick="closeUserModal()">Close</button>
-      <button class="mbtn mbtn-red" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);" onclick="requireConfirm('delete','Delete Account','Permanently deletes this user\'s Auth account and all their data. Cannot be undone.','🗑️',()=>deleteUserAccount('${u.uid}','${esc(u.email||'')}'))">
+      <button class="mbtn mbtn-red" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);" onclick="requireConfirm('delete','Delete Account','Permanently deletes all data. Cannot be undone.','🗑️',()=>deleteUserAccount('${u.uid}','${esc(u.email||'')}'))">
         <i class="fas fa-trash"></i>Delete Account
       </button>
     </div>
@@ -1945,65 +1955,67 @@ window.openUserModal = function(uid) {
   document.getElementById('userModal').classList.add('show');
 };
 
+// ── ADMIN CLOUD FUNCTION CALLER ──
+async function adminCall(action, uid, value) {
+  const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+  const fn = httpsCallable(getFunctions(), 'adminUpdateUser');
+  return fn({ uid, action, value });
+}
+
 window.setUserPlan = async function(uid, plan) {
   try {
-    await updateDoc(doc(db,'users',uid), { plan, planUpdatedAt:new Date().toISOString(), planBy:'admin' });
-    toast('✓ Plan updated'); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('setPlan', uid, plan);
+    const label = plan === 'premium_trial' ? 'Trial (N250)' : plan === 'premium' ? 'Premium' : 'Free';
+    toast(`✓ Plan set to ${label}`, 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.banUser = async function(uid) {
   try {
-    await updateDoc(doc(db,'users',uid), { banned:true, bannedAt:new Date().toISOString() });
-    toast('✓ User banned'); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('ban', uid);
+    toast('✓ User banned', 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.unbanUser = async function(uid) {
   try {
-    await updateDoc(doc(db,'users',uid), { banned:false, bannedAt:null });
-    toast('✓ User unbanned'); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('unban', uid);
+    toast('✓ User unbanned', 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.resetUserUsage = async function(uid) {
   try {
-    // Use ISO date format to match what the app reads: new Date().toISOString().split('T')[0]
-    await updateDoc(doc(db,'users',uid), { planUsed:0, dailyUsage:0, lastDailyReset:new Date().toISOString().split('T')[0] });
-    toast('✓ Daily usage reset'); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('resetUsage', uid);
+    toast('✓ Daily usage reset', 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.resetUserStreak = async function(uid) {
   try {
-    await updateDoc(doc(db,'users',uid), { streak:0 });
-    toast('✓ Streak reset'); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('resetStreak', uid);
+    toast('✓ Streak reset', 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.setRole = async function(uid, role) {
   try {
-    await updateDoc(doc(db,'users',uid), { role });
-    toast(`✓ Role set to ${role}`); closeUserModal(); loadData();
-  } catch(e) { toast('Failed'); }
+    await adminCall('setRole', uid, role);
+    toast(`✓ Role set to ${role}`, 'success'); closeUserModal(); loadData();
+  } catch(e) { toast('Failed: ' + (e.message || 'Unknown error'), 'error'); }
 };
 
 window.deleteUserAccount = async function(uid, email) {
   try {
-    // Delete Firestore user document
-    const { deleteDoc, doc: firestoreDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-    await deleteDoc(firestoreDoc(db, 'users', uid));
-    // Call Cloud Function to delete the Auth account
     const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
     const fn = httpsCallable(getFunctions(), 'adminDeleteUser');
     await fn({ uid });
-    toast('✓ Account deleted');
+    toast('✓ Account deleted', 'success');
     closeUserModal();
     allUsers = allUsers.filter(u => u.uid !== uid);
     renderUserList();
   } catch(e) {
-    // Firestore doc may already be deleted — surface the real error
-    toast('Error: ' + (e.message || 'Could not delete account'));
+    toast('Error: ' + (e.message || 'Could not delete account'), 'error');
   }
 };
 
@@ -2025,6 +2037,7 @@ const CFM_THEMES = {
   ambassador:  { clr:'#d97706', clr2:'#fbbf24', bg:'rgba(217,119,6,.1)',  border:'rgba(217,119,6,.25)', shadow:'rgba(217,119,6,.3)',  bar:'linear-gradient(90deg,#d97706,#fbbf24)' },
   unban:       { clr:'#059669', clr2:'#34d399', bg:'rgba(5,150,105,.1)',  border:'rgba(5,150,105,.25)', shadow:'rgba(5,150,105,.3)',  bar:'linear-gradient(90deg,#059669,#34d399)' },
   reset:       { clr:'#7c3aed', clr2:'#a78bfa', bg:'rgba(124,58,237,.1)', border:'rgba(124,58,237,.25)',shadow:'rgba(124,58,237,.25)',bar:'linear-gradient(90deg,#7c3aed,#a78bfa)' },
+  trial:       { clr:'#d97706', clr2:'#fbbf24', bg:'rgba(251,191,36,.1)', border:'rgba(251,191,36,.25)',shadow:'rgba(251,191,36,.3)', bar:'linear-gradient(90deg,#d97706,#fbbf24)' },
 };
 
 window.requireConfirm = function(word, title, desc, icon, callback) {
