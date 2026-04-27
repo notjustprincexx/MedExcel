@@ -383,10 +383,11 @@ button{cursor:pointer;background:transparent;}
 
 /* ─── MODAL ─────────────────────────────── */
 .modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);
+  position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   z-index:9999;display:none;align-items:flex-end;justify-content:center;
 }
-.modal-bg.show{display:flex;}
+.modal-bg.show{display:flex;animation:modalBgIn .2s ease;}
+@keyframes modalBgIn{from{opacity:0}to{opacity:1}}
 .modal-sheet{
   background:var(--surface);border:1px solid var(--border2);
   border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:500px;
@@ -398,18 +399,97 @@ button{cursor:pointer;background:transparent;}
 }
 .modal-bg.show .modal-sheet{transform:translateY(0);}
 .modal-handle{width:36px;height:4px;background:var(--border2);border-radius:100px;margin:0 auto 1.25rem;}
+
+/* ─── CONFIRM MODAL ─────────────────────── */
+#confirmModal .modal-sheet{
+  padding:0;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  overflow:hidden;
+}
+.cfm-accent-bar{
+  height:4px;width:100%;
+  background:linear-gradient(90deg,var(--cfm-clr,var(--purple2)),var(--cfm-clr2,#a78bfa));
+  flex-shrink:0;
+}
+.cfm-body{
+  padding:1.5rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);
+}
+.cfm-icon-wrap{
+  width:64px;height:64px;border-radius:20px;
+  background:var(--cfm-bg,var(--purple-bg));
+  border:1.5px solid var(--cfm-border,var(--border2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.75rem;margin:0 auto 1rem;
+  box-shadow:0 4px 16px var(--cfm-shadow,rgba(124,58,237,.2));
+}
+.cfm-title{
+  font-size:1.125rem;font-weight:800;color:var(--text);
+  text-align:center;letter-spacing:-.02em;margin-bottom:.375rem;
+}
+.cfm-desc{
+  font-size:.8rem;color:var(--muted);text-align:center;
+  line-height:1.65;margin-bottom:1.375rem;max-width:320px;margin-left:auto;margin-right:auto;
+}
+.cfm-label{
+  font-size:.7rem;font-weight:600;color:var(--muted);margin-bottom:.5rem;
+  display:flex;align-items:center;gap:.3rem;
+}
+.cfm-label strong{
+  color:var(--text);font-family:var(--mono);
+  background:var(--cfm-bg,var(--purple-bg));
+  border:1px solid var(--cfm-border,var(--border2));
+  padding:2px 8px;border-radius:6px;font-size:.72rem;letter-spacing:.03em;
+}
+.cfm-inp{
+  width:100%;padding:.875rem 1.125rem;
+  border:2px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--text);
+  font-size:1rem;font-weight:700;font-family:var(--mono);letter-spacing:.04em;
+  box-sizing:border-box;outline:none;
+  transition:border-color .18s,box-shadow .18s;
+  caret-color:var(--cfm-clr,var(--purple));
+}
+.cfm-inp::placeholder{color:var(--muted);font-weight:400;font-family:var(--sans);letter-spacing:0;}
+.cfm-inp:focus{border-color:var(--cfm-clr,var(--purple));box-shadow:0 0 0 3px var(--cfm-bg,var(--purple-bg));}
+.cfm-inp.matched{border-color:var(--cfm-clr,var(--purple));background:var(--cfm-bg,var(--purple-bg));}
+.cfm-btns{display:flex;gap:.625rem;margin-top:1rem;}
+.cfm-cancel{
+  flex:1;padding:.875rem;border-radius:var(--radius-sm);
+  background:var(--hover);color:var(--muted);border:1.5px solid var(--border);
+  font-size:.875rem;font-weight:700;cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.cfm-cancel:hover{background:var(--surface2);color:var(--text);}
+.cfm-submit{
+  flex:1.3;padding:.875rem;border-radius:var(--radius-sm);
+  background:var(--cfm-clr,var(--purple2));color:#fff;
+  font-size:.875rem;font-weight:700;cursor:pointer;
+  transition:opacity .15s,transform .1s,box-shadow .15s;
+  box-shadow:0 4px 14px var(--cfm-shadow,rgba(124,58,237,.35));
+  display:flex;align-items:center;justify-content:center;gap:.4rem;
+}
+.cfm-submit:disabled{opacity:.35;pointer-events:none;box-shadow:none;}
+.cfm-submit:not(:disabled):active{transform:scale(.97);}
+/* User modal header */
+.mhdr{display:flex;align-items:center;gap:.875rem;margin-bottom:1.125rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+.mhdr-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:800;color:#fff;flex-shrink:0;background:var(--purple2);}
+.mhdr-name{font-size:.9375rem;font-weight:800;color:var(--text);line-height:1.3;}
+.mhdr-email{font-size:.72rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+/* Info rows */
 .mrow{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);}
 .mrow:last-of-type{border-bottom:none;}
 .mrow-l{font-size:.78rem;color:var(--muted);}
 .mrow-r{font-size:.82rem;font-weight:600;color:var(--text);text-align:right;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
-.mbtn{width:100%;margin-top:.625rem;padding:.9rem;border-radius:var(--radius-sm);font-weight:700;font-size:.82rem;transition:opacity .15s,transform .1s;}
+/* Action sections */
+.mactions{margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;}
+.mactions-label{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.875rem;margin-bottom:.125rem;}
+.mbtn{width:100%;padding:.825rem;border-radius:var(--radius-sm);font-weight:700;font-size:.82rem;transition:opacity .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
 .mbtn:active{opacity:.8;transform:scale(.98);}
 .mbtn-primary{background:var(--purple2);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
 .mbtn-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2);}
 .mbtn-orange{background:var(--orange-bg);color:var(--orange);border:1px solid rgba(251,146,60,.2);}
 .mbtn-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2);}
 .mbtn-muted{background:var(--hover);color:var(--muted);border:1px solid var(--border);}
-.mbtn+.mbtn{margin-top:.5rem;}
 .mbtn:disabled{opacity:.4;pointer-events:none;}
 
 /* ─── FORM INPUTS ───────────────────────── */
@@ -1072,6 +1152,29 @@ code{background:var(--purple-bg);padding:2px 7px;border-radius:5px;color:var(--p
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Confirm-word modal -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal-sheet" style="max-height:auto;">
+    <div class="cfm-accent-bar" id="cfmAccentBar"></div>
+    <div class="cfm-body">
+      <div class="cfm-icon-wrap" id="confirmIcon"></div>
+      <div class="cfm-title" id="confirmTitle"></div>
+      <div class="cfm-desc" id="confirmDesc"></div>
+      <div class="cfm-label">Type <strong id="confirmWordLabel"></strong> to confirm</div>
+      <input class="cfm-inp" id="confirmInput" type="text"
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+        placeholder="Type the word above…"
+        oninput="checkConfirmWord()" onkeydown="if(event.key==='Enter')submitConfirm()">
+      <div class="cfm-btns">
+        <button class="cfm-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="cfm-submit" id="confirmSubmitBtn" disabled onclick="submitConfirm()">
+          <i class="fas fa-check"></i> Confirm
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1763,47 +1866,69 @@ window.openUserModal = function(uid) {
     return `<div class="mrow"><span class="mrow-l">${esc(key)}</span><span class="mrow-r">${esc(val)}</span></div>`;
   }).join('');
 
+  const avatarLetter = name.charAt(0).toUpperCase();
+  const avatarColors = ['#7C3AED','#2563EB','#059669','#D97706','#DC2626','#7C3AED'];
+  const avatarBg = avatarColors[(u.email||'a').charCodeAt(0) % avatarColors.length];
+
   document.getElementById('modalBody').innerHTML = `
-    <div style="font-size:.9375rem;font-weight:800;color:var(--text);margin-bottom:.875rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-      ${esc(name)}
-      ${u.role==='admin'?'<span class="role-badge badge-admin">admin</span>':''}
-      ${u.role==='ambassador'?'<span class="role-badge badge-ambassador">ambassador</span>':''}
-      ${isBan?'<span class="pill pill-ban">banned</span>':''}
+    <!-- Header -->
+    <div class="mhdr">
+      <div class="mhdr-avatar" style="background:${avatarBg};">${avatarLetter}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="mhdr-name">${esc(name)}
+          ${u.role==='admin'?'<span class="role-badge badge-admin" style="font-size:.55rem;vertical-align:middle;margin-left:.25rem;">admin</span>':''}
+          ${u.role==='ambassador'?'<span class="role-badge badge-ambassador" style="font-size:.55rem;vertical-align:middle;margin-left:.25rem;">ambassador</span>':''}
+          ${isBan?'<span class="pill pill-ban" style="font-size:.55rem;vertical-align:middle;margin-left:.25rem;">banned</span>':''}
+        </div>
+        <div class="mhdr-email">${esc(u.email||'—')}</div>
+      </div>
     </div>
-    <div class="mrow"><span class="mrow-l">Email</span><span class="mrow-r">${esc(u.email||'—')}</span></div>
+
+    <!-- Info -->
     <div class="mrow" onclick="copyText('${u.uid}')" style="cursor:pointer;">
       <span class="mrow-l">UID <small style="opacity:.5">(tap to copy)</small></span>
       <span class="mrow-r" style="font-size:.65rem;max-width:140px;">${esc(u.uid)}</span>
     </div>
     <div class="mrow"><span class="mrow-l">Plan</span><span class="mrow-r">${planLabel}</span></div>
-    <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)}</span></div>
-    <div class="mrow"><span class="mrow-l">Weekly XP</span><span class="mrow-r">${fmt(u.weeklyXp||0)}</span></div>
+    <div class="mrow"><span class="mrow-l">XP</span><span class="mrow-r">${fmt(u.xp||0)} &nbsp;<span style="color:var(--muted);font-weight:500;font-size:.72rem;">weekly ${fmt(u.weeklyXp||0)}</span></span></div>
     <div class="mrow"><span class="mrow-l">Streak</span><span class="mrow-r">${u.streak||0} days</span></div>
     <div class="mrow"><span class="mrow-l">Daily Usage</span><span class="mrow-r">${u.planUsed||u.dailyUsage||0} / ${isPrem?30:5}</span></div>
-    <div class="mrow"><span class="mrow-l">Role</span><span class="mrow-r">${esc(u.role||'user')}</span></div>
     <div class="mrow"><span class="mrow-l">Referrals</span><span class="mrow-r">${u.referralCount||0} invited</span></div>
     <div class="mrow"><span class="mrow-l">Joined</span><span class="mrow-r">${fmtDate(u.createdAt)}</span></div>
     ${profileRows}
 
-    ${isPrem
-      ? `<button class="mbtn mbtn-muted"  onclick="setUserPlan('${u.uid}','free')">${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>${isTrial ? `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Convert Trial → Premium</button>` : ''}`
-      : `<button class="mbtn mbtn-primary" onclick="setUserPlan('${u.uid}','premium')">Upgrade to Premium</button>`
-    }
-    <button class="mbtn mbtn-orange" onclick="resetUserUsage('${u.uid}')">Reset Daily Usage</button>
-    <button class="mbtn mbtn-orange" onclick="resetUserStreak('${u.uid}')">Reset Streak</button>
-    <button class="mbtn ${isBan?'mbtn-green':'mbtn-red'}" onclick="${isBan?'unbanUser':'banUser'}('${u.uid}')">
-      ${isBan?'Unban User':'Ban User'}
-    </button>
-    ${u.role !== 'admin'
-      ? `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','admin')"><i class="fas fa-shield-halved" style="margin-right:.375rem;"></i>Make Admin</button>`
-      : `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','user')"><i class="fas fa-shield-halved" style="margin-right:.375rem;"></i>Remove Admin</button>`
-    }
-    ${u.role !== 'ambassador'
-      ? `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','ambassador')"><i class="fas fa-star" style="margin-right:.375rem;color:var(--gold);"></i>Make Ambassador</button>`
-      : `<button class="mbtn mbtn-muted" onclick="setRole('${u.uid}','user')"><i class="fas fa-star" style="margin-right:.375rem;"></i>Remove Ambassador</button>`
-    }
-    <button class="mbtn mbtn-muted" onclick="closeUserModal()">Close</button>
-    <button class="mbtn" style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.25);margin-top:.25rem;" onclick="deleteUserAccount('${u.uid}','${esc(u.email||'')}')"><i class="fas fa-trash" style="margin-right:.375rem;"></i>Delete Account</button>
+    <!-- Actions -->
+    <div class="mactions">
+      <div class="mactions-label">Plan</div>
+      ${isPrem
+        ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove ${isTrial?'Trial':'Premium'}','This will downgrade the user to Free.','⬇️',()=>setUserPlan('${u.uid}','free'))"><i class="fas fa-arrow-down"></i>${isTrial ? 'Remove Trial' : 'Remove Premium'}</button>
+           ${isTrial ? `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Convert to Premium','Upgrade this trial user to full Premium.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Convert Trial → Premium</button>` : ''}`
+        : `<button class="mbtn mbtn-primary" onclick="requireConfirm('premium','Upgrade to Premium','Grant this user full Premium access.','💎',()=>setUserPlan('${u.uid}','premium'))"><i class="fas fa-gem"></i>Upgrade to Premium</button>`
+      }
+
+      <div class="mactions-label">Actions</div>
+      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Daily Usage','This resets the user\'s daily AI generation count.','🔄',()=>resetUserUsage('${u.uid}'))"><i class="fas fa-rotate-right"></i>Reset Daily Usage</button>
+      <button class="mbtn mbtn-orange" onclick="requireConfirm('reset','Reset Streak','This will zero out the user\'s current streak.','🔥',()=>resetUserStreak('${u.uid}'))"><i class="fas fa-fire"></i>Reset Streak</button>
+      <button class="mbtn ${isBan?'mbtn-green':'mbtn-red'}" onclick="requireConfirm('${isBan?'unban':'ban'}','${isBan?'Unban':'Ban'} User','${isBan?'Restore this user\'s access.':'Block this user from accessing MedExcel.'}','${isBan?'✅':'🚫'}',()=>${isBan?'unbanUser':'banUser'}('${u.uid}'))">
+        <i class="fas fa-${isBan?'check':'ban'}"></i>${isBan?'Unban User':'Ban User'}
+      </button>
+
+      <div class="mactions-label">Role</div>
+      ${u.role !== 'admin'
+        ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('admin','Make Admin','Grant this user full admin access to the dashboard.','🛡️',()=>setRole('${u.uid}','admin'))"><i class="fas fa-shield-halved"></i>Make Admin</button>`
+        : `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove Admin','Revoke admin access from this user.','🛡️',()=>setRole('${u.uid}','user'))"><i class="fas fa-shield-halved"></i>Remove Admin</button>`
+      }
+      ${u.role !== 'ambassador'
+        ? `<button class="mbtn mbtn-muted" onclick="requireConfirm('ambassador','Make Ambassador','Grant this user ambassador status.','⭐',()=>setRole('${u.uid}','ambassador'))"><i class="fas fa-star" style="color:var(--gold);"></i>Make Ambassador</button>`
+        : `<button class="mbtn mbtn-muted" onclick="requireConfirm('remove','Remove Ambassador','Revoke ambassador status from this user.','⭐',()=>setRole('${u.uid}','user'))"><i class="fas fa-star"></i>Remove Ambassador</button>`
+      }
+
+      <div class="mactions-label" style="margin-top:1rem;"></div>
+      <button class="mbtn mbtn-muted" onclick="closeUserModal()">Close</button>
+      <button class="mbtn mbtn-red" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);" onclick="requireConfirm('delete','Delete Account','Permanently deletes this user\'s Auth account and all their data. Cannot be undone.','🗑️',()=>deleteUserAccount('${u.uid}','${esc(u.email||'')}'))">
+        <i class="fas fa-trash"></i>Delete Account
+      </button>
+    </div>
   `;
   document.getElementById('userModal').classList.add('show');
 };
@@ -1816,7 +1941,6 @@ window.setUserPlan = async function(uid, plan) {
 };
 
 window.banUser = async function(uid) {
-  if (!confirm('Ban this user? They will be blocked from logging in.')) return;
   try {
     await updateDoc(doc(db,'users',uid), { banned:true, bannedAt:new Date().toISOString() });
     toast('✓ User banned'); closeUserModal(); loadData();
@@ -1839,7 +1963,6 @@ window.resetUserUsage = async function(uid) {
 };
 
 window.resetUserStreak = async function(uid) {
-  if (!confirm('Reset this user\'s streak to 0?')) return;
   try {
     await updateDoc(doc(db,'users',uid), { streak:0 });
     toast('✓ Streak reset'); closeUserModal(); loadData();
@@ -1854,8 +1977,6 @@ window.setRole = async function(uid, role) {
 };
 
 window.deleteUserAccount = async function(uid, email) {
-  const confirmed = confirm(`Permanently delete account for ${email||uid}?\n\nThis removes their Firestore data and revokes access. This cannot be undone.`);
-  if (!confirmed) return;
   try {
     // Delete Firestore user document
     const { deleteDoc, doc: firestoreDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
@@ -1876,6 +1997,81 @@ window.deleteUserAccount = async function(uid, email) {
 
 window.copyText = function(text) {
   navigator.clipboard?.writeText(text).then(()=>toast('Copied!')).catch(()=>toast(text));
+};
+
+// ── Confirm-word modal ───────────────────────────────────────────────────────
+let _confirmCallback = null;
+let _confirmWord = '';
+
+// Palette per action type
+const CFM_THEMES = {
+  delete:      { clr:'#ef4444', clr2:'#f87171', bg:'rgba(239,68,68,.1)',  border:'rgba(239,68,68,.25)', shadow:'rgba(239,68,68,.3)',  bar:'linear-gradient(90deg,#ef4444,#f87171)' },
+  ban:         { clr:'#f97316', clr2:'#fb923c', bg:'rgba(249,115,22,.1)', border:'rgba(249,115,22,.25)',shadow:'rgba(249,115,22,.3)', bar:'linear-gradient(90deg,#f97316,#fb923c)' },
+  remove:      { clr:'#f59e0b', clr2:'#fbbf24', bg:'rgba(245,158,11,.1)', border:'rgba(245,158,11,.25)',shadow:'rgba(245,158,11,.3)', bar:'linear-gradient(90deg,#f59e0b,#fbbf24)' },
+  premium:     { clr:'#7c3aed', clr2:'#a78bfa', bg:'rgba(124,58,237,.12)',border:'rgba(124,58,237,.3)', shadow:'rgba(124,58,237,.35)',bar:'linear-gradient(90deg,#7c3aed,#a78bfa)' },
+  admin:       { clr:'#2563eb', clr2:'#60a5fa', bg:'rgba(37,99,235,.1)',  border:'rgba(37,99,235,.25)', shadow:'rgba(37,99,235,.3)',  bar:'linear-gradient(90deg,#2563eb,#60a5fa)' },
+  ambassador:  { clr:'#d97706', clr2:'#fbbf24', bg:'rgba(217,119,6,.1)',  border:'rgba(217,119,6,.25)', shadow:'rgba(217,119,6,.3)',  bar:'linear-gradient(90deg,#d97706,#fbbf24)' },
+  unban:       { clr:'#059669', clr2:'#34d399', bg:'rgba(5,150,105,.1)',  border:'rgba(5,150,105,.25)', shadow:'rgba(5,150,105,.3)',  bar:'linear-gradient(90deg,#059669,#34d399)' },
+  reset:       { clr:'#7c3aed', clr2:'#a78bfa', bg:'rgba(124,58,237,.1)', border:'rgba(124,58,237,.25)',shadow:'rgba(124,58,237,.25)',bar:'linear-gradient(90deg,#7c3aed,#a78bfa)' },
+};
+
+window.requireConfirm = function(word, title, desc, icon, callback) {
+  _confirmCallback = callback;
+  _confirmWord = word.toLowerCase();
+
+  const theme = CFM_THEMES[word.toLowerCase()] || CFM_THEMES.premium;
+  const sheet = document.querySelector('#confirmModal .modal-sheet');
+
+  // Apply CSS vars for colour theming
+  sheet.style.setProperty('--cfm-clr',    theme.clr);
+  sheet.style.setProperty('--cfm-clr2',   theme.clr2);
+  sheet.style.setProperty('--cfm-bg',     theme.bg);
+  sheet.style.setProperty('--cfm-border', theme.border);
+  sheet.style.setProperty('--cfm-shadow', theme.shadow);
+
+  // Accent bar gradient
+  document.getElementById('cfmAccentBar').style.background = theme.bar;
+
+  // Icon
+  document.getElementById('confirmIcon').textContent = icon;
+
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent  = desc;
+  document.getElementById('confirmWordLabel').textContent = word;
+
+  const inp = document.getElementById('confirmInput');
+  inp.value = '';
+  inp.placeholder = `Type "${word}" here…`;
+  inp.classList.remove('matched');
+
+  const btn = document.getElementById('confirmSubmitBtn');
+  btn.disabled = true;
+  btn.style.background = theme.clr;
+  btn.style.boxShadow  = `0 4px 14px ${theme.shadow}`;
+
+  document.getElementById('confirmModal').classList.add('show');
+  setTimeout(() => inp.focus(), 380);
+};
+
+window.checkConfirmWord = function() {
+  const val   = document.getElementById('confirmInput').value.toLowerCase().trim();
+  const btn   = document.getElementById('confirmSubmitBtn');
+  const inp   = document.getElementById('confirmInput');
+  const match = val === _confirmWord;
+  btn.disabled = !match;
+  inp.classList.toggle('matched', match);
+};
+
+window.submitConfirm = function() {
+  const val = document.getElementById('confirmInput').value.toLowerCase().trim();
+  if (val !== _confirmWord) return;
+  closeConfirmModal();
+  if (_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
+};
+
+window.closeConfirmModal = function() {
+  document.getElementById('confirmModal').classList.remove('show');
+  _confirmCallback = null;
 };
 
 window.maybeCloseModal = function(e) {
@@ -2386,7 +2582,6 @@ window.clearDevice = async function() {
   const deviceId = document.getElementById('deviceLookupId').value.trim();
   const result   = document.getElementById('deviceLookupResult');
   if (!deviceId) { result.textContent = 'Enter a device ID first.'; return; }
-  if (!confirm('Clear registration for device: ' + deviceId + '?')) return;
   try {
     await deleteDoc(doc(db, 'deviceRegistry', deviceId));
     result.style.color = 'var(--green)';
