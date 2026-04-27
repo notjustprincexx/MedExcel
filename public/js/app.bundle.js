@@ -2455,6 +2455,7 @@ if (nextBtn) {
                 }
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
+                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
                 const btn = document.getElementById('generateBtn');
                 if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
             } else {
@@ -2493,6 +2494,7 @@ if (nextBtn) {
                 // Enable config + generate button
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
+                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
                 const btn = document.getElementById('generateBtn');
                 if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
             } else {
@@ -2509,7 +2511,88 @@ if (nextBtn) {
             if (nameInput) { nameInput.value = ''; nameInput.style.borderColor = 'var(--border-glass)'; }
             const btn = document.getElementById('generateBtn');
             if (btn) { btn.disabled = true; btn.style.background = 'var(--bg-surface)'; btn.style.color = 'var(--text-muted)'; btn.style.cursor = 'not-allowed'; }
+            // Re-arm the click-catcher overlay so taps on locked config trigger the hint
+            const catcher = document.getElementById('configLockCatcher');
+            if (catcher) catcher.style.display = 'block';
         };
+
+        // ── Upload-first hint helper ────────────────────────────────────
+        // Surfaces a friendly toast when users tap any config control or
+        // the Generate button before uploading material. Without this,
+        // taps on disabled controls just silently do nothing — confusing.
+        // Also briefly highlights the upload zone with a stronger pulse so
+        // their eye gets drawn to where they need to act.
+        window._showUploadFirstHint = function() {
+            // Show toast (uses the existing window.showToast we defined earlier)
+            if (typeof window.showToast === 'function') {
+                window.showToast('Upload your study material first to continue', 'info');
+            }
+            // Visually nudge the upload zone — a brief sharper pulse + scroll into view
+            const dz = document.getElementById('dropZone');
+            if (dz) {
+                // Inject the highlight keyframes once
+                if (!document.getElementById('_dzHighlightKf')) {
+                    const s = document.createElement('style');
+                    s.id = '_dzHighlightKf';
+                    s.textContent = `
+                        @keyframes _dzHighlight {
+                            0%   { transform: scale(1);    border-color: var(--border-glass);   box-shadow: 0 0 0 0 rgba(167,139,250,0); }
+                            30%  { transform: scale(1.02); border-color: var(--accent-btn);     box-shadow: 0 0 0 8px rgba(167,139,250,0.18); }
+                            70%  { transform: scale(1.01); border-color: var(--accent-btn);     box-shadow: 0 0 0 4px rgba(167,139,250,0.10); }
+                            100% { transform: scale(1);    border-color: var(--border-glass);   box-shadow: 0 0 0 0 rgba(167,139,250,0); }
+                        }`;
+                    document.head.appendChild(s);
+                }
+                // Restart animation cleanly even on rapid repeat taps
+                dz.style.animation = 'none';
+                // Force reflow so the next animation reset takes effect
+                void dz.offsetWidth;
+                dz.style.animation = '_dzHighlight 800ms ease-out, uploadPulse 2s ease-in-out infinite 800ms';
+                // Scroll upload zone into view if it's off-screen
+                dz.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+        // Helper: returns true if config section is currently locked (no upload yet)
+        window._isConfigLocked = function() {
+            const cfg = document.getElementById('configSection');
+            return !!cfg && cfg.style.pointerEvents === 'none';
+        };
+
+        // ── Direct lock-check listeners ─────────────────────────────────
+        // The transparent #configLockCatcher overlay handles most taps, but
+        // some elements (range slider drags, native input focuses) bypass
+        // it because the browser routes those events directly to the
+        // control. Wire up the gesture-starting events for these too.
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.getElementById('itemSlider');
+            const deckName = document.getElementById('deckNameInput');
+
+            const _interceptIfLocked = (e) => {
+                if (window._isConfigLocked && window._isConfigLocked()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (slider) slider.blur?.();
+                    if (deckName) deckName.blur?.();
+                    window._showUploadFirstHint();
+                    return false;
+                }
+            };
+
+            // Slider — intercept BOTH touchstart (mobile drag) and mousedown (desktop)
+            if (slider) {
+                slider.addEventListener('touchstart', _interceptIfLocked, { passive: false });
+                slider.addEventListener('mousedown',  _interceptIfLocked);
+                slider.addEventListener('focus',      _interceptIfLocked);
+            }
+            // Deck name — intercept focus events (which open the keyboard on mobile)
+            if (deckName) {
+                deckName.addEventListener('focus',     _interceptIfLocked);
+                deckName.addEventListener('mousedown', _interceptIfLocked);
+                deckName.addEventListener('touchstart', _interceptIfLocked, { passive: false });
+            }
+        });
+        // ────────────────────────────────────────────────────────────────
 
         // Question style selector — use event delegation on container to avoid child element issues
         document.addEventListener('DOMContentLoaded', function() {
@@ -2781,6 +2864,7 @@ if (nextBtn) {
             document.getElementById('dropZone').classList.add('file-selected');
             document.getElementById('configSection').style.opacity = '1';
             document.getElementById('configSection').style.pointerEvents = 'auto';
+                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
             const btn = document.getElementById('generateBtn');
             btn.disabled = false;
             btn.style.background = 'var(--accent-btn)';
@@ -3787,7 +3871,32 @@ window._openProgressDeck = function(quizId) {
                             const saved = parseInt(savedRef.split('_')[1] || '0', 10);
                             if (Date.now() - saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); }
                         }
-                    } catch(e) { console.warn('[MedXcel] Auto-recovery check failed silently:', e); const _saved = parseInt(savedRef.split('_')[1] || '0', 10); if (Date.now() - _saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); console.log('[MedXcel] Cleared stale pending ref (>24h old)'); } }
+                    } catch(e) {
+                        // Distinguish "this ref will never succeed" from "transient network issue".
+                        // Permanent failures (declined payment, unknown ref, not found) → clear
+                        // ref now so we stop retrying. Network/auth/timeout → keep ref, retry
+                        // next launch. Previously every error was treated the same and stale
+                        // refs from declined payments would generate warnings forever.
+                        const code = e?.code || '';
+                        const _permanent = code === 'functions/failed-precondition'
+                                        || code === 'functions/not-found'
+                                        || code === 'functions/invalid-argument'
+                                        || code === 'functions/permission-denied';
+                        if (_permanent) {
+                            // Payment was never made or doesn't belong to this user — clean up silently
+                            localStorage.removeItem('medx_pending_ref');
+                            localStorage.removeItem('medx_pending_plan');
+                            console.log('[MedXcel] Pending ref cleared — payment did not complete');
+                        } else {
+                            // Transient — log quietly, retry next launch, age-out after 24h
+                            console.log('[MedXcel] Recovery deferred (transient):', code || e?.message || 'unknown');
+                            const _saved = parseInt(savedRef.split('_')[1] || '0', 10);
+                            if (Date.now() - _saved > 86400000) {
+                                localStorage.removeItem('medx_pending_ref');
+                                localStorage.removeItem('medx_pending_plan');
+                            }
+                        }
+                    }
                 }, 500);
             } catch(_) {}
         })();

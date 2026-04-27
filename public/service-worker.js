@@ -1,4 +1,8 @@
-const CACHE_NAME = "medexcel-cache-v10";
+// Bumped from v10 → v11 because the previous cache contains potentially
+// poisoned entries (cached Firestore/Auth/Cloud Function responses, opaque
+// cross-origin responses, and 4xx/5xx error pages). Bumping the cache name
+// forces every client to drop the old cache on activate.
+const CACHE_NAME = "medexcel-cache-v11";
 
 const APP_SHELL = [
   "/",
@@ -31,40 +35,81 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+// Only cache successful, non-opaque responses. Caching opaque responses
+// (no-cors cross-origin) wastes storage and can serve broken content; caching
+// 4xx/5xx responses serves errors back to users later as if they succeeded.
+function shouldCacheResponse(response) {
+  return response && response.ok && response.type === "basic";
+}
+
+// Wraps cache.put so a single bad response can never crash the fetch handler.
+function safeCachePut(request, response) {
+  caches.open(CACHE_NAME)
+    .then(cache => cache.put(request, response))
+    .catch(() => {});
+}
+
+// ── Fetch handler ───────────────────────────────────────────────────────────
+//
+// Design principle: the SW only intercepts requests it can safely cache.
+// Anything else (POSTs, cross-origin API calls, third-party assets) is left
+// alone — we don't even call respondWith, so the browser handles it natively.
+// This eliminates the previous bug where Firestore reads, Cloud Function calls,
+// and auth endpoints were being silently cached.
+
 self.addEventListener("fetch", event => {
   const request = event.request;
 
-  // JS and CSS — always fetch from network, never cache
-  // This ensures deployments take effect immediately
-  if (request.url.includes(".js") || request.url.includes(".css")) {
-    event.respondWith(fetch(request));
+  // ── Filter 1: skip non-GET requests ──────────────────────────────────────
+  // cache.put rejects on POST/PUT/DELETE. The previous SW didn't filter, so
+  // every Firestore write attempted to go through the cache logic and threw.
+  if (request.method !== "GET") return;
+
+  // ── Filter 2: skip cross-origin requests ─────────────────────────────────
+  // CRITICAL: this blocks the previous SW's "everything else cache first"
+  // from caching:
+  //   • firestore.googleapis.com  (could leak one user's data to another)
+  //   • identitytoolkit/securetoken (stale auth tokens)
+  //   • *.cloudfunctions.net      (your API responses)
+  //   • api.paystack.co           (payment data)
+  //   • generativelanguage.googleapis.com (AI responses)
+  // All of these now go straight to network, never touched by the SW.
+  let url;
+  try { url = new URL(request.url); } catch(_) { return; }
+  if (url.origin !== self.location.origin) return;
+
+  const path = url.pathname;
+
+  // ── JS / CSS — always network (so deploys take effect immediately) ──────
+  // Use a proper extension test instead of `.includes(".js")` which previously
+  // matched URLs like `/foo.json` or `?type=js` by accident.
+  if (/\.(js|mjs|css)$/i.test(path)) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }
 
-  // HTML navigation — network first, cache fallback
+  // ── HTML navigation — network first, cache fallback ────────────────────
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then(res => {
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, res.clone());
-            return res;
-          });
+          if (shouldCacheResponse(res)) safeCachePut(request, res.clone());
+          return res;
         })
         .catch(() => caches.match(request).then(cached => cached || caches.match("/index.html")))
     );
     return;
   }
 
-  // JSON — stale-while-revalidate
-  if (request.url.includes(".json")) {
+  // ── JSON (Lottie animations etc.) — stale-while-revalidate ─────────────
+  if (path.endsWith(".json")) {
     event.respondWith(
       caches.match(request).then(cached => {
         const networkFetch = fetch(request).then(res => {
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, res.clone());
-            return res;
-          });
+          if (shouldCacheResponse(res)) safeCachePut(request, res.clone());
+          return res;
         }).catch(() => cached);
         return cached || networkFetch;
       })
@@ -72,15 +117,21 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Everything else — cache first
-  event.respondWith(
-    caches.match(request).then(cached => {
-      return cached || fetch(request).then(res => {
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, res.clone());
+  // ── Static assets (images, fonts, icons) — cache first ─────────────────
+  if (/\.(png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)$/i.test(path)) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        return cached || fetch(request).then(res => {
+          if (shouldCacheResponse(res)) safeCachePut(request, res.clone());
           return res;
         });
-      });
-    })
-  );
+      })
+    );
+    return;
+  }
+
+  // ── Anything else — let the browser handle it ──────────────────────────
+  // Don't call respondWith. Default behavior, no SW interference, no cache
+  // poisoning. This is what the previous SW got wrong with its blanket
+  // "cache first" rule for unrecognized URLs.
 });

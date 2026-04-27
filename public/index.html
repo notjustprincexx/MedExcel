@@ -51,14 +51,14 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#a78bfa">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MedExcel">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="/js/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/js/icons/icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/js/icons/icon-512x512.png">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://us-central1-medxcel.cloudfunctions.net">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
@@ -503,6 +503,68 @@
         }
       }
     })();
+  </script>
+  <!-- ────────────────────────────────────────────────────────────────────
+       PWA: register service worker + capture install prompt
+       Without these, the browser never offers "Add to Home Screen" because:
+         • no SW = not a PWA
+         • beforeinstallprompt fires once and is gone unless we capture it
+       After capture, window._mxInstallPWA() can be called from any UI button
+       to show the native install dialog. The button in homepage.html (or
+       wherever you add one) only shows up if the prompt was captured AND
+       the app isn't already installed.
+   ──────────────────────────────────────────────────────────────────── -->
+  <script>
+    // Register the service worker on load. Skip on localhost dev and inside
+    // the Capacitor app (the native shell handles caching, no SW needed).
+    if ('serviceWorker' in navigator
+        && location.protocol === 'https:'
+        && !window.Capacitor) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('[PWA] Service worker registered:', reg.scope))
+          .catch(err => console.warn('[PWA] SW registration failed:', err));
+      });
+    }
+
+    // Capture the install prompt. Browser fires this exactly once when the
+    // PWA install criteria are met (manifest valid, SW registered, served
+    // over HTTPS, not already installed). We stash it for later so a button
+    // tap can trigger the native install dialog.
+    let _mxDeferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _mxDeferredInstallPrompt = e;
+      console.log('[PWA] Install prompt captured — call window._mxInstallPWA() to show it');
+      // Reveal any install buttons that were hidden by default
+      document.querySelectorAll('[data-pwa-install]').forEach(el => {
+        el.style.display = '';
+      });
+    });
+
+    // Public API: call this from any button to show the install dialog.
+    // Returns a promise resolving to 'accepted' | 'dismissed' | 'unavailable'.
+    window._mxInstallPWA = async function() {
+      if (!_mxDeferredInstallPrompt) {
+        console.log('[PWA] No install prompt available (already installed, or not installable yet)');
+        return 'unavailable';
+      }
+      _mxDeferredInstallPrompt.prompt();
+      const { outcome } = await _mxDeferredInstallPrompt.userChoice;
+      _mxDeferredInstallPrompt = null;
+      console.log('[PWA] Install', outcome);
+      // Hide the install buttons after the choice is made
+      document.querySelectorAll('[data-pwa-install]').forEach(el => {
+        el.style.display = 'none';
+      });
+      return outcome;
+    };
+
+    // Detect when the PWA gets installed (also useful for analytics)
+    window.addEventListener('appinstalled', function() {
+      console.log('[PWA] App installed');
+      _mxDeferredInstallPrompt = null;
+    });
   </script>
 </body>
 </html>
