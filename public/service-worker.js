@@ -1,8 +1,9 @@
-// Bumped from v10 → v11 because the previous cache contains potentially
-// poisoned entries (cached Firestore/Auth/Cloud Function responses, opaque
-// cross-origin responses, and 4xx/5xx error pages). Bumping the cache name
-// forces every client to drop the old cache on activate.
-const CACHE_NAME = "medexcel-cache-v11";
+// Bumped from v11 → v12 to force every client to drop its old cache on
+// activate. Needed because earlier deploys may have cached a partial
+// app.bundle.js (truncated mid-file → "Unexpected end of input" on parse).
+// Bumping the cache name is the only reliable way to make all installed
+// clients re-fetch fresh JS.
+const CACHE_NAME = "medexcel-cache-v12";
 
 const APP_SHELL = [
   "/",
