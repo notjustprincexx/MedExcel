@@ -509,7 +509,7 @@ function _showLegalSheet(title, htmlContent) {
                 <p style="color:var(--text-muted);margin-bottom:1rem;">You are responsible for maintaining the security of your account. You must be at least 16 years old to use MedExcel. You agree not to share your account with others or use another user's account.</p>
 
                 <h4 style="font-weight:700;margin-bottom:0.5rem;">5. Subscriptions & Payments</h4>
-                <p style="color:var(--text-muted);margin-bottom:1rem;">Paid plans are processed via Paystack. Subscriptions are for a fixed period and do not auto-renew. You may cancel at any time; premium access continues until your billing period ends. We do not offer refunds for unused subscription periods.</p>
+                <p style="color:var(--text-muted);margin-bottom:1rem;">Paid plans are processed via Paystack. Premium plans are auto-renewing subscriptions — your payment method is automatically charged at the start of each billing period until you cancel. You may cancel at any time from your Account settings; cancelling stops the next renewal and your premium access continues until the end of the period you have already paid for. We do not offer refunds for partially used billing periods. If a renewal payment fails, your account is downgraded to the free plan until payment is retried successfully.</p>
 
                 <h4 style="font-weight:700;margin-bottom:0.5rem;">6. Acceptable Use</h4>
                 <p style="color:var(--text-muted);margin-bottom:1rem;">You agree not to share your account, attempt to reverse-engineer the app, upload harmful or copyrighted content, or use the app for any purpose other than personal study.</p>
