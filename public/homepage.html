@@ -46,7 +46,7 @@
   <script src="https://js.paystack.co/v1/inline.js"></script>
 
   <!-- App Styles -->
-  <link rel="stylesheet" href="css/app.css?v=13">
+  <link rel="stylesheet" href="css/app.css?v=15">
 
   <!-- Theme Sync (must be inline — prevents flash of wrong theme) -->
   <script>
@@ -1675,6 +1675,167 @@
       hint.querySelector('#iosHintClose').addEventListener('click', dismiss);
       setTimeout(dismiss, 9000); // auto-dismiss after 9s
     })();
+  </script>
+  <!-- ═══════════════════════════════════════
+       DESKTOP SWIPE SLIDER (PC only)
+       Hidden on mobile/app via JS guard + CSS.
+  ═══════════════════════════════════════ -->
+  <script>
+  (function() {
+    // Only activate on desktop viewports
+    if (window.innerWidth < 1024) return;
+
+    const VIEW_ORDER = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile'];
+    const SWIPE_THRESHOLD = 72; // px drag needed to trigger navigation
+    const RESIST = 0.35;        // rubber-band resistance beyond threshold
+
+    let startX = 0, currentX = 0, dragging = false, locked = false;
+
+    function getCurrentViewIndex() {
+      const hash = location.hash.replace('#', '') || 'home';
+      const id = 'view-' + hash;
+      const i = VIEW_ORDER.indexOf(id);
+      return i >= 0 ? i : 0;
+    }
+
+    function getActiveView() {
+      return document.querySelector('.app-view.active');
+    }
+
+    function updateDots(index) {
+      document.querySelectorAll('.desktop-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === index);
+      });
+    }
+
+    // Build the dot strip
+    function buildDots() {
+      const existing = document.getElementById('desktopDots');
+      if (existing) return;
+
+      const strip = document.createElement('div');
+      strip.id = 'desktopDots';
+      strip.className = 'desktop-dots';
+
+      const labels = ['Home', 'Library', 'Create', 'Leaders', 'Profile'];
+      VIEW_ORDER.forEach((viewId, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'desktop-dot';
+        dot.title = labels[i];
+        dot.setAttribute('aria-label', labels[i]);
+        dot.addEventListener('click', () => {
+          if (typeof window.navigateTo === 'function') window.navigateTo(viewId);
+        });
+        strip.appendChild(dot);
+      });
+
+      const frame = document.getElementById('app-frame');
+      if (frame) frame.appendChild(strip);
+      updateDots(getCurrentViewIndex());
+    }
+
+    // Translate the active view during drag for visual feedback
+    function applyDrag(dx) {
+      const view = getActiveView();
+      if (!view) return;
+      // Apply rubber-band resistance
+      const applied = dx > 0
+        ? Math.min(dx, SWIPE_THRESHOLD + (dx - SWIPE_THRESHOLD) * RESIST)
+        : Math.max(dx, -(SWIPE_THRESHOLD + (-dx - SWIPE_THRESHOLD) * RESIST));
+      view.style.transition = 'none';
+      view.style.transform = `translateX(${applied}px)`;
+    }
+
+    function resetDrag() {
+      const view = getActiveView();
+      if (!view) return;
+      view.style.transition = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
+      view.style.transform = '';
+      setTimeout(() => { if (view) view.style.transition = ''; }, 260);
+    }
+
+    // Mouse events on the frame
+    const frame = document.getElementById('app-frame');
+    if (!frame) return;
+
+    frame.addEventListener('mousedown', (e) => {
+      // Don't hijack clicks on interactive elements
+      if (e.target.closest('button, a, input, textarea, select, [onclick], .quiz-item, .crypto-card, .continue-card, .list-item, .option-btn, .tab-btn, .nav-item')) return;
+      dragging = true;
+      locked = false;
+      startX = e.clientX;
+      currentX = e.clientX;
+      frame.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      currentX = e.clientX;
+      const dx = currentX - startX;
+      if (!locked && Math.abs(dx) > 6) locked = true;
+      if (locked) {
+        e.preventDefault();
+        applyDrag(dx);
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!dragging) return;
+      dragging = false;
+      frame.style.cursor = '';
+      const dx = currentX - startX;
+
+      if (!locked || Math.abs(dx) < SWIPE_THRESHOLD) {
+        resetDrag();
+        return;
+      }
+
+      const idx = getCurrentViewIndex();
+      const nextIdx = dx < 0
+        ? Math.min(idx + 1, VIEW_ORDER.length - 1)  // swipe left → next
+        : Math.max(idx - 1, 0);                       // swipe right → prev
+
+      resetDrag();
+
+      if (nextIdx !== idx && typeof window.navigateTo === 'function') {
+        window.navigateTo(VIEW_ORDER[nextIdx]);
+      }
+    });
+
+    // Keep dots in sync whenever navigateTo fires
+    const _origNav = window.navigateTo;
+    function patchNav() {
+      if (window.navigateTo && window.navigateTo !== patchedNav) {
+        const original = window.navigateTo;
+        const patchedNav = function(viewId) {
+          original(viewId);
+          const i = VIEW_ORDER.indexOf(viewId);
+          if (i >= 0) updateDots(i);
+        };
+        window.navigateTo = patchedNav;
+      }
+    }
+
+    // Wait for app.bundle.js to expose navigateTo then patch + build dots
+    let attempts = 0;
+    const ready = setInterval(() => {
+      if (typeof window.navigateTo === 'function' || ++attempts > 40) {
+        clearInterval(ready);
+        buildDots();
+        updateDots(getCurrentViewIndex());
+        // patch navigateTo so dots stay in sync
+        const _orig = window.navigateTo;
+        window.navigateTo = function(viewId) {
+          _orig(viewId);
+          const i = VIEW_ORDER.indexOf(viewId);
+          if (i >= 0) updateDots(i);
+        };
+      }
+    }, 100);
+
+    // Also re-check on hash change
+    window.addEventListener('hashchange', () => updateDots(getCurrentViewIndex()));
+  })();
   </script>
 </body>
 </html>

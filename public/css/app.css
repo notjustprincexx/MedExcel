@@ -422,6 +422,27 @@
         bottom: 0 !important;
     }
 
+    /* ── Critical: undo the existing 1024px split-layout rules ──────────
+       The viewport IS >1024px so those rules fire, but the frame is only
+       430px — sidebar would grab 420px and leave the quiz panel with ~10px.
+       Re-apply mobile behaviour for everything inside #app-frame.        */
+    #app-frame .sidebar {
+        width: 100% !important;
+    }
+    #app-frame .layout-wrapper {
+        padding-bottom: 80px !important; /* keep space for bottom nav */
+    }
+    #app-frame .practice-panel {
+        display: none !important;
+        flex: unset !important;
+        position: absolute !important;
+        inset: 0 !important;
+        z-index: 30 !important;
+    }
+    #app-frame .practice-panel.active {
+        display: flex !important;
+    }
+
     /* .app-view already uses position:absolute + inset:0 —
        those are now relative to #app-frame since it has position:relative.
        Force it explicitly in case specificity wars arise. */
@@ -435,4 +456,58 @@
 
     /* Modals/backdrops outside #app-frame stay full-screen which is fine
        because they have a dark backdrop that covers everything. */
+}
+
+/* =========================================
+   DESKTOP PAGE-INDICATOR DOTS
+   Only visible on PC (inside #app-frame).
+   Hidden entirely on mobile via media query.
+   ========================================= */
+.desktop-dots {
+    display: none; /* hidden on mobile by default */
+}
+
+@media (min-width: 1024px) {
+    .desktop-dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        position: absolute;
+        bottom: 68px; /* sits just above the bottom nav */
+        left: 0;
+        right: 0;
+        z-index: 60;
+        pointer-events: none; /* let clicks pass through the strip itself */
+        padding: 4px 0;
+    }
+
+    .desktop-dot {
+        pointer-events: all;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,0.18);
+        cursor: pointer;
+        padding: 0;
+        transition: width 0.25s cubic-bezier(0.4,0,0.2,1),
+                    background 0.25s ease,
+                    border-radius 0.25s ease;
+        flex-shrink: 0;
+    }
+
+    .desktop-dot.active {
+        width: 20px;
+        border-radius: 100px;
+        background: var(--accent-btn);
+    }
+
+    /* Light mode */
+    .light-mode .desktop-dot {
+        background: rgba(0,0,0,0.15);
+    }
+    .light-mode .desktop-dot.active {
+        background: var(--accent-btn);
+    }
 }
