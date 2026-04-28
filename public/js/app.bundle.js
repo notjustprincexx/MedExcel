@@ -1693,7 +1693,7 @@ let currentStreakCount = 0;
             _inQuizStreak = 0;
             window._streakBonusXP = 0;
             if (currentQuiz && currentQuiz.questions) {
-                currentQuiz.questions.forEach(q => { q.answered = false; });
+                currentQuiz.questions.forEach(q => { q.answered = false; q.userAnswer = undefined; });
             }
             window.enterStudyQuizMode();
             window.renderStudyQuestion();
@@ -1770,6 +1770,41 @@ let currentStreakCount = 0;
             if (isMCQSession) {
                 const btns = area.querySelectorAll('.study-mcq-opt');
                 btns.forEach(btn => btn.addEventListener('click', () => window.handleStudyMCQSelection(btn, q, btns)));
+
+                // Restore answered state when navigating back to a previously answered question
+                if (q.answered && q.userAnswer !== undefined) {
+                    const isCorrect = q.userAnswer === q.correct;
+                    btns.forEach(btn => {
+                        const idx = parseInt(btn.dataset.idx);
+                        btn.disabled = true;
+                        btn.style.cursor = 'not-allowed';
+                        if (idx === q.correct) {
+                            btn.style.background = 'rgba(16,185,129,0.1)';
+                            btn.style.borderColor = 'rgba(16,185,129,0.3)';
+                            btn.style.color = 'var(--accent-green)';
+                            btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
+                            btn.querySelector('span').style.color = 'var(--accent-green)';
+                        } else if (idx === q.userAnswer) {
+                            btn.style.background = 'rgba(239,68,68,0.1)';
+                            btn.style.borderColor = 'rgba(239,68,68,0.3)';
+                            btn.style.color = 'var(--accent-red)';
+                            btn.querySelector('span').style.borderColor = 'rgba(239,68,68,0.3)';
+                            btn.querySelector('span').style.color = 'var(--accent-red)';
+                        } else {
+                            btn.style.opacity = '0.4';
+                        }
+                    });
+                    const expl = document.getElementById('studyExplanationArea');
+                    expl.innerHTML = `
+                        <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
+                            ${isCorrect ? '<span style="color:var(--accent-green)"><i class="fas fa-check-circle"></i> Correct!</span>' : '<span style="color:var(--accent-red)"><i class="fas fa-times-circle"></i> Incorrect</span>'}
+                        </div>
+                        ${q.explanation ? `<div style="background:var(--bg-body);padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--text-main);font-size:0.875rem;line-height:1.5;"><span style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem;font-size:0.7rem;text-transform:uppercase;">Explanation</span>${window.escapeHTML(q.explanation)}</div>` : ''}
+                    `;
+                    expl.style.display = 'flex';
+                    const nextBtn2 = document.getElementById('studyNextBtn');
+                    if (nextBtn2) { nextBtn2.disabled = false; nextBtn2.style.opacity = '1'; nextBtn2.style.cursor = 'pointer'; }
+                }
             } else {
                 const fc = document.getElementById('studyFlashcardEl');
                 fc.addEventListener('click', () => { window._todayStudiedItems = (window._todayStudiedItems || 0) + 1; if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
@@ -1826,6 +1861,7 @@ let currentStreakCount = 0;
             q.answered = true;
 
             const selectedIdx = parseInt(selectedBtn.dataset.idx);
+            q.userAnswer = selectedIdx;
             const isCorrect = selectedIdx === q.correct;
             if (isCorrect) examScore++;
             window._todayStudiedItems = (window._todayStudiedItems || 0) + 1;
