@@ -355,10 +355,12 @@
     /* Branded desktop backdrop */
     body {
         display: flex;
-        align-items: stretch;
-        justify-content: center;
+        flex-direction: row;      /* override column — centers #app-frame horizontally */
+        align-items: stretch;     /* frame fills full height */
+        justify-content: center;  /* frame sits in the middle */
         overflow: hidden;
         background: #050507;
+        width: 100vw;
     }
 
     /* Subtle ambient glow + grid behind the phone column */
@@ -421,7 +423,15 @@
     }
 
     /* .app-view already uses position:absolute + inset:0 —
-       those are now relative to #app-frame. No change needed. */
+       those are now relative to #app-frame since it has position:relative.
+       Force it explicitly in case specificity wars arise. */
+    #app-frame > .app-view {
+        width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+    }
 
     /* Modals/backdrops outside #app-frame stay full-screen which is fine
        because they have a dark backdrop that covers everything. */
