@@ -346,100 +346,83 @@
         .pay-btn:active { transform:scale(.97); }
 
 /* =========================================
-   DESKTOP/LAPTOP RESPONSIVE LAYOUT
-   Keeps the mobile UI intact while preventing
-   the app from stretching across wide screens.
-========================================= */
+   DESKTOP / PC LAYOUT (≥1024px)
+   Constrains the SPA to a phone-width
+   column, centered on a branded backdrop.
+   ========================================= */
 @media (min-width: 1024px) {
+
+    /* Branded desktop backdrop */
     body {
         display: flex;
-        justify-content: center;
         align-items: stretch;
-        background: var(--bg-body);
+        justify-content: center;
+        overflow: hidden;
+        background: #050507;
     }
 
-    .app-view {
-        left: 50%;
-        right: auto;
-        top: 0;
-        bottom: 0;
-        width: min(100vw, 1440px);
-        transform: translateX(-50%);
+    /* Subtle ambient glow + grid behind the phone column */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 60% 70% at 20% 60%, rgba(139,92,246,0.07) 0%, transparent 65%),
+            radial-gradient(ellipse 50% 50% at 80% 30%, rgba(59,130,246,0.04) 0%, transparent 55%),
+            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.018) 39px, rgba(255,255,255,0.018) 40px),
+            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.018) 39px, rgba(255,255,255,0.018) 40px);
+        pointer-events: none;
+        z-index: 0;
     }
 
-    /* Home */
-    .home-header,
-    .top-header,
-    .sidebar-header {
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
-
-    .home-main,
-    .create-main {
-        width: min(100%, 960px);
-        margin: 0 auto;
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
-
-    .promo-carousel-wrapper {
-        max-width: 760px;
-        margin: 0 auto;
-    }
-
-    .promo-carousel {
-        gap: 1.25rem;
-    }
-
-    .continue-card,
-    .crypto-scroll-container,
-    .recent-decks-grid,
-    .selection-card,
-    .upload-zone,
-    .quiz-item,
-    .card-panel,
-    .question-card,
-    .flashcard-face {
-        max-width: 960px;
-    }
-
-    /* Study layout */
-    .layout-wrapper {
-        width: min(100%, 1440px);
-        margin: 0 auto;
-        padding-bottom: 0;
-    }
-
-    .sidebar {
-        width: 420px;
-        flex-shrink: 0;
-    }
-
-    .practice-panel {
-        display: flex;
+    /* The phone column itself */
+    #app-frame {
         position: relative;
-        inset: auto;
-        flex: 1;
-        min-width: 0;
+        width: 430px;
+        flex-shrink: 0;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 1;
+        /* Hairline borders make it feel like a device bezel */
+        box-shadow:
+            -1px 0 0 rgba(255,255,255,0.07),
+             1px 0 0 rgba(255,255,255,0.07),
+             0 0 80px rgba(0,0,0,0.6);
     }
 
-    .quiz-wrapper {
-        width: 100%;
-        max-width: 860px;
-        margin: 0 auto;
-        padding-left: 2rem;
-        padding-right: 2rem;
+    /* Light-mode: slightly softer shadow on the frame */
+    .light-mode #app-frame {
+        box-shadow:
+            -1px 0 0 rgba(0,0,0,0.08),
+             1px 0 0 rgba(0,0,0,0.08),
+             0 0 60px rgba(0,0,0,0.18);
     }
 
-    .card-panel,
-    .question-card {
-        width: 100%;
+    /* Light-mode backdrop is lighter */
+    .light-mode body {
+        background: #e8eaf0;
+    }
+    .light-mode body::before {
+        background:
+            radial-gradient(ellipse 60% 70% at 20% 60%, rgba(139,92,246,0.05) 0%, transparent 65%),
+            radial-gradient(ellipse 50% 50% at 80% 30%, rgba(59,130,246,0.03) 0%, transparent 55%),
+            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,0,0,0.025) 39px, rgba(0,0,0,0.025) 40px),
+            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,0,0,0.025) 39px, rgba(0,0,0,0.025) 40px);
     }
 
-    /* Keep modals and sheets visually centered */
-    .streak-dialog,
-    .ok-dialog {
-        max-width: 420px;
+    /* Re-show bottom nav (it was hidden at 1024px); now it lives inside the
+       frame so it doesn't bleed across the full viewport */
+    .bottom-nav {
+        display: flex !important;
+        position: absolute !important; /* constrained inside #app-frame */
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
     }
+
+    /* .app-view already uses position:absolute + inset:0 —
+       those are now relative to #app-frame. No change needed. */
+
+    /* Modals/backdrops outside #app-frame stay full-screen which is fine
+       because they have a dark backdrop that covers everything. */
 }
