@@ -1681,74 +1681,97 @@
   <!-- ═══════════════════════════════════════
        DESKTOP CUSTOM SCROLLBAR (PC only)
        - Thin track floats right of #app-frame
-       - Thumb shows scroll position
-       - Drag thumb or click track to scroll
-       - Zero effect on mobile / the app
+       - Thumb size = proportion of content visible
+       - Drag or click track to scroll the page
+       - Invisible on mobile / the app
   ═══════════════════════════════════════ -->
   <script>
   (function () {
     'use strict';
-    if (window.innerWidth < 1024) return; // mobile/app: do nothing
+    if (window.innerWidth < 1024) return; // phones/tablets: do nothing
 
-    /* ── Build scrollbar DOM ── */
+    /* ── Find the real scrollable element inside the active view ── */
+    function getScroller() {
+      const active = document.querySelector('.app-view.active');
+      if (!active) return null;
+
+      // 1. Try known class names first
+      const named =
+        active.querySelector('.home-main') ||
+        active.querySelector('.create-main') ||
+        active.querySelector('.hide-scroll') ||
+        active.querySelector('main');
+      if (named && named.scrollHeight > named.clientHeight) return named;
+
+      // 2. Walk ALL children and find the one that actually overflows
+      const all = active.querySelectorAll('*');
+      let best = null, bestOverflow = 0;
+      for (const el of all) {
+        const overflow = el.scrollHeight - el.clientHeight;
+        if (overflow > bestOverflow) { bestOverflow = overflow; best = el; }
+      }
+      if (best && bestOverflow > 10) return best;
+
+      // 3. Fallback: the active view itself
+      return active;
+    }
+
+    /* ── Build the scrollbar DOM ── */
     function buildScrollbar() {
       if (document.getElementById('desktopScrollbar')) return;
       const bar = document.createElement('div');
       bar.id = 'desktopScrollbar';
       bar.className = 'custom-scrollbar';
+
       const thumb = document.createElement('div');
       thumb.className = 'scrollbar-thumb';
+      thumb.style.top = '0px';
+      thumb.style.height = '40px';
+
       bar.appendChild(thumb);
       document.body.appendChild(bar);
       initDrag(bar, thumb);
     }
 
-    /* ── Find scrollable element in the active view ── */
-    function getScroller() {
-      const active = document.querySelector('.app-view.active');
-      if (!active) return null;
-      return (
-        active.querySelector('.hide-scroll') ||
-        active.querySelector('.home-main') ||
-        active.querySelector('.layout-wrapper') ||
-        active.querySelector('[style*="overflow-y"]') ||
-        active
-      );
-    }
-
-    /* ── Move thumb to match current scroll position ── */
+    /* ── Reposition thumb to reflect current scroll ── */
     function syncThumb() {
       const bar = document.getElementById('desktopScrollbar');
       if (!bar) return;
       const thumb = bar.querySelector('.scrollbar-thumb');
       const s = getScroller();
 
-      if (!s || s.scrollHeight <= s.clientHeight) {
-        thumb.style.height = '100%';
-        thumb.style.top = '0px';
+      if (!s || s.scrollHeight <= s.clientHeight + 4) {
+        // Content fits — hide scrollbar gracefully
+        bar.style.opacity = '0';
+        bar.style.pointerEvents = 'none';
         return;
       }
 
-      const ratio   = s.clientHeight / s.scrollHeight;
-      const thumbH  = Math.max(28, bar.clientHeight * ratio);
-      const maxTop  = bar.clientHeight - thumbH;
-      const scrollR = s.scrollTop / (s.scrollHeight - s.clientHeight);
+      bar.style.opacity = '1';
+      bar.style.pointerEvents = 'auto';
+
+      const barH   = bar.clientHeight;
+      const ratio  = s.clientHeight / s.scrollHeight;
+      const thumbH = Math.max(32, barH * ratio);
+      const maxTop = barH - thumbH;
+      const pos    = (s.scrollTop / (s.scrollHeight - s.clientHeight)) * maxTop;
 
       thumb.style.height = thumbH + 'px';
-      thumb.style.top    = (scrollR * maxTop) + 'px';
+      thumb.style.top    = pos + 'px';
     }
 
     /* ── Drag thumb → scroll content ── */
     function initDrag(bar, thumb) {
-      let dragging = false, startY = 0, startTop = 0;
+      let dragging = false, startY = 0, startScrollTop = 0;
 
       thumb.addEventListener('mousedown', (e) => {
-        dragging  = true;
-        startY    = e.clientY;
-        const s   = getScroller();
-        startTop  = s ? s.scrollTop : 0;
+        const s = getScroller();
+        dragging      = true;
+        startY        = e.clientY;
+        startScrollTop = s ? s.scrollTop : 0;
         thumb.classList.add('dragging');
         e.preventDefault();
+        e.stopPropagation();
       });
 
       window.addEventListener('mousemove', (e) => {
@@ -1756,50 +1779,69 @@
         const s = getScroller();
         if (!s) return;
         const dy         = e.clientY - startY;
+        const barH       = bar.clientHeight;
+        const thumbH     = thumb.clientHeight;
         const scrollable = s.scrollHeight - s.clientHeight;
-        const ratio      = scrollable / (bar.clientHeight - thumb.clientHeight);
-        s.scrollTop      = Math.max(0, Math.min(scrollable, startTop + dy * ratio));
+        const scale      = scrollable / Math.max(1, barH - thumbH);
+        s.scrollTop      = Math.max(0, Math.min(scrollable, startScrollTop + dy * scale));
+        syncThumb();
       });
 
       window.addEventListener('mouseup', () => {
         if (dragging) { dragging = false; thumb.classList.remove('dragging'); }
       });
 
-      /* Click on track → jump to that position */
+      /* Click on track (not thumb) → jump */
       bar.addEventListener('click', (e) => {
         if (e.target === thumb) return;
         const s = getScroller();
         if (!s) return;
-        const rect      = bar.getBoundingClientRect();
+        const rect       = bar.getBoundingClientRect();
         const clickRatio = (e.clientY - rect.top) / bar.clientHeight;
         s.scrollTop      = clickRatio * (s.scrollHeight - s.clientHeight);
+        syncThumb();
       });
     }
 
-    /* ── Re-attach scroll listener when the active view changes ── */
+    /* ── Attach scroll listener to active view's scroller ── */
     let currentScroller = null;
     function attachScrollListener() {
       const s = getScroller();
-      if (s === currentScroller) return;
-      if (currentScroller) currentScroller.removeEventListener('scroll', syncThumb);
-      currentScroller = s;
-      if (s) s.addEventListener('scroll', syncThumb, { passive: true });
+      if (s !== currentScroller) {
+        if (currentScroller) currentScroller.removeEventListener('scroll', syncThumb);
+        currentScroller = s;
+        if (s) s.addEventListener('scroll', syncThumb, { passive: true });
+      }
       syncThumb();
     }
 
-    /* ── Wait for navigateTo, then patch it ── */
+    /* ── Watch for view changes via MutationObserver (robust fallback) ── */
+    function observeViewChanges() {
+      const observer = new MutationObserver(() => {
+        setTimeout(attachScrollListener, 50);
+      });
+      // Watch .app-view elements for class changes (active toggling)
+      document.querySelectorAll('.app-view').forEach(v => {
+        observer.observe(v, { attributes: true, attributeFilter: ['class'] });
+      });
+    }
+
+    /* ── Patch navigateTo AND set up observer ── */
     let attempts = 0;
     const ready = setInterval(() => {
       if (typeof window.navigateTo === 'function' || ++attempts > 40) {
         clearInterval(ready);
         buildScrollbar();
+        observeViewChanges();
         attachScrollListener();
 
-        const _orig = window.navigateTo;
-        window.navigateTo = function (viewId) {
-          _orig(viewId);
-          setTimeout(attachScrollListener, 60); // wait for new view to activate
-        };
+        if (typeof window.navigateTo === 'function') {
+          const _orig = window.navigateTo;
+          window.navigateTo = function (viewId) {
+            _orig(viewId);
+            setTimeout(attachScrollListener, 80);
+          };
+        }
       }
     }, 100);
 

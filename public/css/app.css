@@ -461,50 +461,60 @@
 
 /* =========================================
    DESKTOP CUSTOM SCROLLBAR
-   Hidden on mobile, shows on desktop ≥1024px.
+   Hidden on mobile/app — only shows ≥1024px.
    Floats to the right of #app-frame.
    ========================================= */
-.custom-scrollbar { display: none; }
+.custom-scrollbar { display: none !important; }
 
 @media (min-width: 1024px) {
     .custom-scrollbar {
-        display: block;
-        position: fixed;
-        top: 50%;
-        transform: translateY(-50%);
-        left: calc(50% + 215px + 16px); /* 16px right of the 430px frame */
-        width: 4px;
-        height: 60vh;
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 100px;
-        z-index: 200;
-        cursor: pointer;
-        overflow: hidden;
+        display: block !important;
+        position: fixed !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        left: calc(50% + 215px + 16px) !important;
+        width: 5px !important;
+        height: 60vh !important;
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-radius: 100px !important;
+        z-index: 9999 !important;
+        cursor: pointer !important;
+        overflow: visible !important;    /* let thumb render fully */
     }
 
     .scrollbar-thumb {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: var(--accent-btn);
-        border-radius: 100px;
-        opacity: 0.45;
-        transition: opacity 0.2s ease;
-        cursor: grab;
-        min-height: 28px;
-        will-change: top;
+        position: absolute !important;
+        left: 0 !important;
+        width: 100% !important;
+        background: var(--accent-btn) !important;   /* purple */
+        border-radius: 100px !important;
+        opacity: 0.55 !important;
+        transition: opacity 0.2s ease, width 0.15s ease, left 0.15s ease !important;
+        cursor: grab !important;
+        min-height: 32px !important;
+        will-change: top, height !important;
     }
 
-    .custom-scrollbar:hover .scrollbar-thumb { opacity: 0.9; }
+    .custom-scrollbar:hover .scrollbar-thumb,
+    .scrollbar-thumb:hover {
+        opacity: 1 !important;
+        width: 7px !important;
+        left: -1px !important;
+    }
 
     .scrollbar-thumb.dragging {
-        cursor: grabbing;
-        opacity: 1;
-        transition: none;
+        cursor: grabbing !important;
+        opacity: 1 !important;
+        transition: none !important;
+        width: 7px !important;
+        left: -1px !important;
     }
 
     /* Light mode */
-    .light-mode .custom-scrollbar { background: rgba(0, 0, 0, 0.1); }
-    .light-mode .scrollbar-thumb  { background: var(--accent-btn); }
+    .light-mode .custom-scrollbar {
+        background: rgba(0, 0, 0, 0.12) !important;
+    }
+    .light-mode .scrollbar-thumb {
+        background: var(--accent-btn) !important;
+    }
 }
