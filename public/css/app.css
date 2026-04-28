@@ -344,3 +344,102 @@
         .pcd-lbl { font-size:.42rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
         .pay-btn { width:100%; padding:.95rem; background:var(--accent-btn); color:var(--btn-text); border:none; border-radius:100px; font-size:.9375rem; font-weight:800; cursor:pointer; transition:transform .15s,opacity .15s; box-shadow:0 4px 24px rgba(167,139,250,.3); }
         .pay-btn:active { transform:scale(.97); }
+
+/* =========================================
+   DESKTOP/LAPTOP RESPONSIVE LAYOUT
+   Keeps the mobile UI intact while preventing
+   the app from stretching across wide screens.
+========================================= */
+@media (min-width: 1024px) {
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        background: var(--bg-body);
+    }
+
+    .app-view {
+        left: 50%;
+        right: auto;
+        top: 0;
+        bottom: 0;
+        width: min(100vw, 1440px);
+        transform: translateX(-50%);
+    }
+
+    /* Home */
+    .home-header,
+    .top-header,
+    .sidebar-header {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
+    .home-main,
+    .create-main {
+        width: min(100%, 960px);
+        margin: 0 auto;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
+    .promo-carousel-wrapper {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .promo-carousel {
+        gap: 1.25rem;
+    }
+
+    .continue-card,
+    .crypto-scroll-container,
+    .recent-decks-grid,
+    .selection-card,
+    .upload-zone,
+    .quiz-item,
+    .card-panel,
+    .question-card,
+    .flashcard-face {
+        max-width: 960px;
+    }
+
+    /* Study layout */
+    .layout-wrapper {
+        width: min(100%, 1440px);
+        margin: 0 auto;
+        padding-bottom: 0;
+    }
+
+    .sidebar {
+        width: 420px;
+        flex-shrink: 0;
+    }
+
+    .practice-panel {
+        display: flex;
+        position: relative;
+        inset: auto;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .quiz-wrapper {
+        width: 100%;
+        max-width: 860px;
+        margin: 0 auto;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
+    .card-panel,
+    .question-card {
+        width: 100%;
+    }
+
+    /* Keep modals and sheets visually centered */
+    .streak-dialog,
+    .ok-dialog {
+        max-width: 420px;
+    }
+}

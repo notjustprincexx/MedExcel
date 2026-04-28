@@ -948,6 +948,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             });
 
             list.innerHTML = html;
+
+            // Fix: update yourRankBar with the correct monthly rank position
+            const rankBar = document.getElementById('yourRankBar');
+            const myRankPos = sorted.findIndex(u => u.uid === currentUserId);
+            if (myRankPos >= 0 && rankBar) {
+                const me = sorted[myRankPos];
+                const rankNumEl  = document.getElementById('yourRankNum');
+                const rankNameEl = document.getElementById('yourRankName');
+                const rankXpEl   = document.getElementById('yourRankXp');
+                const avatarWrap = document.getElementById('yourRankAvatarWrap');
+                if (rankNumEl)  rankNumEl.textContent  = `#${myRankPos + 1}`;
+                if (rankNameEl) rankNameEl.textContent = me.displayName;
+                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me.monthlyRankXp || 0);
+                if (avatarWrap) avatarWrap.innerHTML   = lbAvatarHTML(me, 36, currentUserId, false);
+                rankBar.style.display = 'block';
+            } else if (rankBar) {
+                rankBar.style.display = 'none';
+            }
         };
 
         window.loadLeaderboard = async function(currentUserId) {
@@ -963,19 +981,45 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
                 const snap = await getDocs(q);
                 let fetched = [];
+                let currentUserInList = false;
                 snap.forEach(d => {
                     const data = d.data();
-                    if (data.xp && data.xp > 0) fetched.push({
-                        uid: d.id,
-                        displayName: data.displayName || data.email?.split('@')[0] || "User",
-                        xp: data.xp,
-                        weeklyXp: data.weeklyXp || 0,
-                        monthlyRankXp: data.monthlyRankXp || 0,
-                        avatarIndex: data.avatarIndex ?? null,
-                        photoBase64: data.photoBase64 || null,
-                        plan: data.plan || 'free',
-                    });
+                    if (data.xp && data.xp > 0) {
+                        if (d.id === currentUserId) currentUserInList = true;
+                        fetched.push({
+                            uid: d.id,
+                            displayName: data.displayName || data.email?.split('@')[0] || "User",
+                            xp: data.xp,
+                            weeklyXp: data.weeklyXp || 0,
+                            monthlyRankXp: data.monthlyRankXp || 0,
+                            avatarIndex: data.avatarIndex ?? null,
+                            photoBase64: data.photoBase64 || null,
+                            plan: data.plan || 'free',
+                            streak: data.streak || 0,
+                        });
+                    }
                 });
+                // Bug fix: if current user is outside the top 50, fetch their doc and inject them
+                // so they always appear in the leaderboard with a YOU badge
+                if (!currentUserInList && currentUserId) {
+                    try {
+                        const mySnap = await getDoc(doc(db, 'users', currentUserId));
+                        if (mySnap.exists()) {
+                            const d = mySnap.data();
+                            fetched.push({
+                                uid: currentUserId,
+                                displayName: d.displayName || d.email?.split('@')[0] || "User",
+                                xp: d.xp || 0,
+                                weeklyXp: d.weeklyXp || 0,
+                                monthlyRankXp: d.monthlyRankXp || 0,
+                                avatarIndex: d.avatarIndex ?? null,
+                                photoBase64: d.photoBase64 || null,
+                                plan: d.plan || 'free',
+                                streak: d.streak || 0,
+                            });
+                        }
+                    } catch(e) { /* non-fatal — user just won't appear if fetch fails */ }
+                }
                 window._lbUsers = fetched;
                 window.renderLeaderboardDOM(fetched, currentUserId);
             } catch(e) {
@@ -2354,8 +2398,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     const mon = new Date(now.getFullYear(), now.getMonth(), diff);
                     return mon.toISOString().split('T')[0];
                 })();
-                if (!localStorage.getItem('medexcel_weekkey_' + user.uid)) {
+                const _storedWkKey = localStorage.getItem('medexcel_weekkey_' + user.uid);
+                if (!_storedWkKey) {
                     localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
+                } else if (_storedWkKey !== _wkKey) {
+                    // New week — reset weeklyXp proactively on login so This Week tab
+                    // never shows stale XP from a previous week
+                    window.userStats.weeklyXp = 0;
+                    localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
+                    updateDoc(doc(db, 'users', user.uid), { weeklyXp: 0 }).catch(() => {});
                 }
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
 
