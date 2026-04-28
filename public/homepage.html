@@ -1679,111 +1679,130 @@
   </script>
 
   <!-- ═══════════════════════════════════════
-       DESKTOP VERTICAL SLIDER (PC only)
-       - Mouse-wheel scrolls between views
-       - Vertical dot rail on the right side
+       DESKTOP CUSTOM SCROLLBAR (PC only)
+       - Thin track floats right of #app-frame
+       - Thumb shows scroll position
+       - Drag thumb or click track to scroll
        - Zero effect on mobile / the app
   ═══════════════════════════════════════ -->
   <script>
-  (function() {
+  (function () {
+    'use strict';
     if (window.innerWidth < 1024) return; // mobile/app: do nothing
 
-    const VIEWS   = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile'];
-    const LABELS  = ['Home', 'Library', 'Create', 'Leaders', 'Profile'];
-    const COOLDOWN = 700; // ms between wheel-triggered navigations
-    let lastNav = 0;
-
-    function idxOf(viewId) { return VIEWS.indexOf(viewId); }
-
-    function getIdx() {
-      const hash = (location.hash || '#home').replace('#', '');
-      const i = idxOf('view-' + hash);
-      return i >= 0 ? i : 0;
+    /* ── Build scrollbar DOM ── */
+    function buildScrollbar() {
+      if (document.getElementById('desktopScrollbar')) return;
+      const bar = document.createElement('div');
+      bar.id = 'desktopScrollbar';
+      bar.className = 'custom-scrollbar';
+      const thumb = document.createElement('div');
+      thumb.className = 'scrollbar-thumb';
+      bar.appendChild(thumb);
+      document.body.appendChild(bar);
+      initDrag(bar, thumb);
     }
 
-    function goTo(idx) {
-      if (idx < 0 || idx >= VIEWS.length) return;
-      if (typeof window.navigateTo === 'function') window.navigateTo(VIEWS[idx]);
-    }
-
-    /* ── vertical dot rail (floats to the right of the frame) ── */
-    function buildRail() {
-      if (document.getElementById('vSliderRail')) return;
-      const rail = document.createElement('div');
-      rail.id = 'vSliderRail';
-      rail.className = 'vslider-rail';
-
-      VIEWS.forEach((viewId, i) => {
-        const item = document.createElement('div');
-        item.className = 'vslider-item';
-
-        const dot = document.createElement('button');
-        dot.className = 'vslider-dot';
-        dot.setAttribute('aria-label', LABELS[i]);
-        dot.addEventListener('click', () => goTo(i));
-
-        const label = document.createElement('span');
-        label.className = 'vslider-label';
-        label.textContent = LABELS[i];
-
-        item.appendChild(dot);
-        item.appendChild(label);
-        rail.appendChild(item);
-      });
-
-      // Mount on body so it sits beside #app-frame, not inside it
-      document.body.appendChild(rail);
-      syncRail(getIdx());
-    }
-
-    function syncRail(idx) {
-      document.querySelectorAll('.vslider-item').forEach((item, i) => {
-        item.classList.toggle('active', i === idx);
-      });
-    }
-
-    /* ── mouse-wheel: navigate when inner scroll hits its limit ── */
-    const frame = document.getElementById('app-frame');
-    if (!frame) return;
-
-    frame.addEventListener('wheel', (e) => {
-      // Let inner scrollable areas scroll first; only trigger view change at the edges
+    /* ── Find scrollable element in the active view ── */
+    function getScroller() {
       const active = document.querySelector('.app-view.active');
-      if (active) {
-        const scroller = active.querySelector('.hide-scroll, .home-main, .sidebar, .create-main, [style*="overflow-y:auto"], [style*="overflow-y: auto"]');
-        if (scroller) {
-          const atTop    = scroller.scrollTop <= 0;
-          const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4;
-          if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) return;
-        }
+      if (!active) return null;
+      return (
+        active.querySelector('.hide-scroll') ||
+        active.querySelector('.home-main') ||
+        active.querySelector('.layout-wrapper') ||
+        active.querySelector('[style*="overflow-y"]') ||
+        active
+      );
+    }
+
+    /* ── Move thumb to match current scroll position ── */
+    function syncThumb() {
+      const bar = document.getElementById('desktopScrollbar');
+      if (!bar) return;
+      const thumb = bar.querySelector('.scrollbar-thumb');
+      const s = getScroller();
+
+      if (!s || s.scrollHeight <= s.clientHeight) {
+        thumb.style.height = '100%';
+        thumb.style.top = '0px';
+        return;
       }
 
-      const now = Date.now();
-      if (now - lastNav < COOLDOWN) return;
-      lastNav = now;
+      const ratio   = s.clientHeight / s.scrollHeight;
+      const thumbH  = Math.max(28, bar.clientHeight * ratio);
+      const maxTop  = bar.clientHeight - thumbH;
+      const scrollR = s.scrollTop / (s.scrollHeight - s.clientHeight);
 
-      const idx = getIdx();
-      if      (e.deltaY > 0) goTo(Math.min(idx + 1, VIEWS.length - 1)); // down → next
-      else if (e.deltaY < 0) goTo(Math.max(idx - 1, 0));                  // up   → prev
-    }, { passive: true });
+      thumb.style.height = thumbH + 'px';
+      thumb.style.top    = (scrollR * maxTop) + 'px';
+    }
 
-    /* ── patch navigateTo to keep rail in sync ── */
+    /* ── Drag thumb → scroll content ── */
+    function initDrag(bar, thumb) {
+      let dragging = false, startY = 0, startTop = 0;
+
+      thumb.addEventListener('mousedown', (e) => {
+        dragging  = true;
+        startY    = e.clientY;
+        const s   = getScroller();
+        startTop  = s ? s.scrollTop : 0;
+        thumb.classList.add('dragging');
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const s = getScroller();
+        if (!s) return;
+        const dy         = e.clientY - startY;
+        const scrollable = s.scrollHeight - s.clientHeight;
+        const ratio      = scrollable / (bar.clientHeight - thumb.clientHeight);
+        s.scrollTop      = Math.max(0, Math.min(scrollable, startTop + dy * ratio));
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (dragging) { dragging = false; thumb.classList.remove('dragging'); }
+      });
+
+      /* Click on track → jump to that position */
+      bar.addEventListener('click', (e) => {
+        if (e.target === thumb) return;
+        const s = getScroller();
+        if (!s) return;
+        const rect      = bar.getBoundingClientRect();
+        const clickRatio = (e.clientY - rect.top) / bar.clientHeight;
+        s.scrollTop      = clickRatio * (s.scrollHeight - s.clientHeight);
+      });
+    }
+
+    /* ── Re-attach scroll listener when the active view changes ── */
+    let currentScroller = null;
+    function attachScrollListener() {
+      const s = getScroller();
+      if (s === currentScroller) return;
+      if (currentScroller) currentScroller.removeEventListener('scroll', syncThumb);
+      currentScroller = s;
+      if (s) s.addEventListener('scroll', syncThumb, { passive: true });
+      syncThumb();
+    }
+
+    /* ── Wait for navigateTo, then patch it ── */
     let attempts = 0;
     const ready = setInterval(() => {
       if (typeof window.navigateTo === 'function' || ++attempts > 40) {
         clearInterval(ready);
-        buildRail();
-        syncRail(getIdx());
+        buildScrollbar();
+        attachScrollListener();
+
         const _orig = window.navigateTo;
-        window.navigateTo = function(viewId) {
+        window.navigateTo = function (viewId) {
           _orig(viewId);
-          const i = idxOf(viewId);
-          if (i >= 0) syncRail(i);
+          setTimeout(attachScrollListener, 60); // wait for new view to activate
         };
       }
     }, 100);
 
-    window.addEventListener('hashchange', () => syncRail(getIdx()));
   })();
   </script>
 </body>

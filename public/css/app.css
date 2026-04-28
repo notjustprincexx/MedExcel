@@ -460,95 +460,51 @@
 
 
 /* =========================================
-   DESKTOP VERTICAL SLIDER RAIL
+   DESKTOP CUSTOM SCROLLBAR
+   Hidden on mobile, shows on desktop ≥1024px.
    Floats to the right of #app-frame.
-   display:none by default so it never
-   shows in the mobile app.
    ========================================= */
-.vslider-rail { display: none; }
+.custom-scrollbar { display: none; }
 
 @media (min-width: 1024px) {
-    /* Position the rail just to the right of the centered 430px frame */
-    .vslider-rail {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
+    .custom-scrollbar {
+        display: block;
         position: fixed;
         top: 50%;
         transform: translateY(-50%);
-        /* 430px frame is centered; rail sits 16px to its right */
-        left: calc(50% + 215px + 16px);
-        z-index: 200;
-    }
-
-    .vslider-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        padding: 4px 0;
-    }
-
-    .vslider-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(255,255,255,0.2);
-        cursor: pointer;
-        padding: 0;
-        flex-shrink: 0;
-        transition: height 0.28s cubic-bezier(0.4,0,0.2,1),
-                    background 0.25s ease,
-                    border-radius 0.25s ease;
-    }
-
-    .vslider-item.active .vslider-dot {
-        height: 28px;
+        left: calc(50% + 215px + 16px); /* 16px right of the 430px frame */
+        width: 4px;
+        height: 60vh;
+        background: rgba(255, 255, 255, 0.08);
         border-radius: 100px;
+        z-index: 200;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .scrollbar-thumb {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
         background: var(--accent-btn);
+        border-radius: 100px;
+        opacity: 0.45;
+        transition: opacity 0.2s ease;
+        cursor: grab;
+        min-height: 28px;
+        will-change: top;
     }
 
-    .vslider-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: rgba(255,255,255,0.35);
-        white-space: nowrap;
-        opacity: 0;
-        transform: translateX(-4px);
-        transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-        pointer-events: none;
-        letter-spacing: 0.04em;
-    }
+    .custom-scrollbar:hover .scrollbar-thumb { opacity: 0.9; }
 
-    .vslider-item.active .vslider-label {
+    .scrollbar-thumb.dragging {
+        cursor: grabbing;
         opacity: 1;
-        transform: translateX(0);
-        color: var(--accent-btn);
-        font-weight: 700;
-    }
-
-    /* Hover: reveal label on non-active items */
-    .vslider-item:hover .vslider-dot {
-        background: rgba(255,255,255,0.5);
-    }
-    .vslider-item:hover .vslider-label {
-        opacity: 0.7;
-        transform: translateX(0);
+        transition: none;
     }
 
     /* Light mode */
-    .light-mode .vslider-dot {
-        background: rgba(0,0,0,0.15);
-    }
-    .light-mode .vslider-item:hover .vslider-dot {
-        background: rgba(0,0,0,0.35);
-    }
-    .light-mode .vslider-label {
-        color: rgba(0,0,0,0.4);
-    }
-    .light-mode .vslider-item.active .vslider-label {
-        color: var(--accent-btn);
-    }
+    .light-mode .custom-scrollbar { background: rgba(0, 0, 0, 0.1); }
+    .light-mode .scrollbar-thumb  { background: var(--accent-btn); }
 }
