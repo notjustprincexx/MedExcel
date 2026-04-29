@@ -528,9 +528,10 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
     <div style="display:flex;align-items:center;gap:8px;">
       <img src="logo.png" alt="" style="width:24px;height:24px;border-radius:6px;flex-shrink:0;">
-      <span style="flex:1;color:#e2e8f0;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        Get MedExcel on Android
-      </span>
+      <div style="flex:1;min-width:0;overflow:hidden;">
+        <span style="color:#e2e8f0;font-size:12px;font-weight:600;white-space:nowrap;">Get MedExcel on Android</span>
+        <span style="color:#64748b;font-size:10.5px;margin-left:5px;white-space:nowrap;">Better experience</span>
+      </div>
       <a href="https://play.google.com/store/apps/details?id=com.medexcel.app"
          target="_blank" rel="noopener"
          style="flex-shrink:0;background:#a78bfa;color:#000;font-size:11px;font-weight:700;
@@ -548,11 +549,36 @@
       var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (isNative || isIOS || dismissed) return;
+
       var banner = document.getElementById('app-download-banner');
       banner.style.display = 'block';
+
+      // Push page content below the banner once it is painted
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          var h = banner.offsetHeight;
+          // index.html  → viewport div
+          var vp = document.getElementById('vp');
+          if (vp) { vp.style.marginTop = h + 'px'; vp.style.height = 'calc(100vh - ' + h + 'px)'; }
+          // personalized-onboarding.html → fixed full-screen wrap
+          var wrap = document.getElementById('wrap');
+          if (wrap) { wrap.style.top = h + 'px'; }
+          // homepage SPA → nudge each app-view top header padding
+          var appHeader = document.getElementById('appHeader');
+          if (appHeader) { appHeader.style.paddingTop = h + 'px'; }
+        });
+      });
+
       document.getElementById('app-banner-close').addEventListener('click', function () {
         sessionStorage.setItem('mx_banner_dismissed', '1');
         banner.style.display = 'none';
+        // Restore offsets
+        var vp   = document.getElementById('vp');
+        if (vp)   { vp.style.marginTop = ''; vp.style.height = ''; }
+        var wrap = document.getElementById('wrap');
+        if (wrap) { wrap.style.top = ''; }
+        var appHeader = document.getElementById('appHeader');
+        if (appHeader) { appHeader.style.paddingTop = ''; }
       });
     })();
   </script>
