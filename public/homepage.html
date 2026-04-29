@@ -1678,28 +1678,25 @@
   <!-- ===== Web Browser Download Banner ===== -->
   <div id="app-download-banner" style="
     display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
-    background:rgba(18,18,22,0.95);
-    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    border-bottom:1px solid rgba(167,139,250,0.2);
-    padding:8px 12px;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    transition:opacity 0.2s ease;">
-    <div style="display:flex;align-items:center;gap:10px;max-width:480px;margin:0 auto;">
-      <img src="logo.png" alt="MedExcel" style="width:28px;height:28px;border-radius:7px;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <span style="color:#ffffff;font-size:12px;font-weight:600;">Get the MedExcel App</span>
-        <span style="color:#94a3b8;font-size:11px;margin-left:6px;">Better on Android</span>
-      </div>
+    background:rgba(18,18,22,0.96);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(167,139,250,0.18);
+    padding:6px 12px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <img src="logo.png" alt="" style="width:24px;height:24px;border-radius:6px;flex-shrink:0;">
+      <span style="flex:1;color:#e2e8f0;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        Get MedExcel on Android
+      </span>
       <a href="https://play.google.com/store/apps/details?id=com.medexcel.app"
          target="_blank" rel="noopener"
-         style="flex-shrink:0;background:#a78bfa;color:#000000;font-size:11px;font-weight:700;
-           padding:5px 12px;border-radius:100px;text-decoration:none;white-space:nowrap;">
+         style="flex-shrink:0;background:#a78bfa;color:#000;font-size:11px;font-weight:700;
+           padding:4px 12px;border-radius:100px;text-decoration:none;white-space:nowrap;">
         Download
       </a>
       <button id="app-banner-close"
-              style="flex-shrink:0;background:none;border:none;color:#94a3b8;
-                width:24px;height:24px;cursor:pointer;font-size:14px;
-                display:flex;align-items:center;justify-content:center;">✕</button>
+              style="flex-shrink:0;background:none;border:none;color:#64748b;
+                padding:0 2px;cursor:pointer;font-size:14px;line-height:1;">✕</button>
     </div>
   </div>
   <script>
@@ -1708,26 +1705,11 @@
       var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (isNative || isIOS || dismissed) return;
-
       var banner = document.getElementById('app-download-banner');
       banner.style.display = 'block';
-
-      // Push page content down so banner doesn't cover anything
-      function applyOffset() {
-        var h = banner.offsetHeight;
-        // Nudge fixed headers if any
-        document.querySelectorAll('#appHeader, [data-banner-offset]').forEach(function(el) {
-          el.style.top = h + 'px';
-        });
-      }
-      requestAnimationFrame(function() { requestAnimationFrame(applyOffset); });
-
       document.getElementById('app-banner-close').addEventListener('click', function () {
         sessionStorage.setItem('mx_banner_dismissed', '1');
         banner.style.display = 'none';
-        document.querySelectorAll('#appHeader, [data-banner-offset]').forEach(function(el) {
-          el.style.top = '';
-        });
       });
     })();
   </script>
