@@ -370,7 +370,7 @@ render(0);
            padding:9px 16px;border-radius:20px;text-decoration:none;white-space:nowrap;">
         Download &#8595;
       </a>
-      <button onclick="document.getElementById('app-download-banner').style.display='none';document.body.style.paddingBottom='';sessionStorage.setItem('mx_banner_dismissed','1');"
+      <button onclick="document.getElementById('app-download-banner').style.display='none';(document.querySelector('main')||document.body).style.paddingBottom='';sessionStorage.setItem('mx_banner_dismissed','1');"
               style="flex-shrink:0;background:none;border:none;color:rgba(255,255,255,0.4);
                 font-size:20px;cursor:pointer;padding:4px;line-height:1;">&#x2715;</button>
     </div>
@@ -383,7 +383,8 @@ render(0);
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (!isNative && !isIOS && !dismissed) {
         document.getElementById('app-download-banner').style.display = 'block';
-        document.body.style.paddingBottom = '80px';
+        var _scrollEl = document.querySelector('main') || document.body;
+        _scrollEl.style.paddingBottom = '80px';
       }
     })();
   </script>
