@@ -529,10 +529,11 @@
     <div style="display:flex;align-items:center;gap:8px;">
       <img src="logo.png" alt="" style="width:24px;height:24px;border-radius:6px;flex-shrink:0;">
       <div style="flex:1;min-width:0;overflow:hidden;">
-        <span style="color:#e2e8f0;font-size:12px;font-weight:600;white-space:nowrap;">Get MedExcel on Android</span>
-        <span style="color:#64748b;font-size:10.5px;margin-left:5px;white-space:nowrap;">Better experience</span>
+        <span id="app-banner-title" style="color:#e2e8f0;font-size:12px;font-weight:600;white-space:nowrap;">Get MedExcel on Android</span>
+        <span id="app-banner-sub" style="color:#64748b;font-size:10.5px;margin-left:5px;white-space:nowrap;">Better experience</span>
       </div>
-      <a href="https://play.google.com/store/apps/details?id=com.medexcel.app"
+      <a id="app-banner-btn"
+         href="https://play.google.com/store/apps/details?id=com.medexcel.app"
          target="_blank" rel="noopener"
          style="flex-shrink:0;background:#a78bfa;color:#000;font-size:11px;font-weight:700;
            padding:4px 12px;border-radius:100px;text-decoration:none;white-space:nowrap;">
@@ -550,29 +551,62 @@
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (isNative || isIOS || dismissed) return;
 
-      var banner = document.getElementById('app-download-banner');
+      var banner    = document.getElementById('app-download-banner');
+      var btn       = document.getElementById('app-banner-btn');
+      var titleEl   = document.getElementById('app-banner-title');
+      var subEl     = document.getElementById('app-banner-sub');
+
+      // ── Deep-link intent URL (Android Chrome) ──────────────────────────
+      // Opens the app directly if installed; falls back to Play Store if not.
+      var INTENT_URL = 'intent://open#Intent;package=com.medexcel.app;' +
+        'scheme=medexcel;' +
+        'S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.medexcel.app;end';
+      var STORE_URL  = 'https://play.google.com/store/apps/details?id=com.medexcel.app';
+
+      // ── Detect whether the native app is installed ─────────────────────
+      function applyAppState(installed) {
+        if (installed) {
+          titleEl.textContent  = 'Open in MedExcel App';
+          subEl.textContent    = 'Continue where you left off';
+          btn.textContent      = 'Open App';
+          btn.removeAttribute('href');
+          btn.style.cursor     = 'pointer';
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = INTENT_URL;
+          });
+        }
+        // else: defaults (Download → Play Store) are already set in HTML
+      }
+
+      if (navigator.getInstalledRelatedApps) {
+        navigator.getInstalledRelatedApps()
+          .then(function (apps) {
+            var installed = apps.some(function (a) { return a.id === 'com.medexcel.app'; });
+            applyAppState(installed);
+          })
+          .catch(function () { /* API unavailable — leave defaults */ });
+      }
+
+      // ── Show banner ────────────────────────────────────────────────────
       banner.style.display = 'block';
 
-      // Push page content below the banner once it is painted
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           var h = banner.offsetHeight;
-          // index.html  → viewport div
-          var vp = document.getElementById('vp');
-          if (vp) { vp.style.marginTop = h + 'px'; vp.style.height = 'calc(100vh - ' + h + 'px)'; }
-          // personalized-onboarding.html → fixed full-screen wrap
+          var vp   = document.getElementById('vp');
+          if (vp)   { vp.style.marginTop = h + 'px'; vp.style.height = 'calc(100vh - ' + h + 'px)'; }
           var wrap = document.getElementById('wrap');
           if (wrap) { wrap.style.top = h + 'px'; }
-          // homepage SPA → nudge each app-view top header padding
           var appHeader = document.getElementById('appHeader');
           if (appHeader) { appHeader.style.paddingTop = h + 'px'; }
         });
       });
 
+      // ── Dismiss ────────────────────────────────────────────────────────
       document.getElementById('app-banner-close').addEventListener('click', function () {
         sessionStorage.setItem('mx_banner_dismissed', '1');
         banner.style.display = 'none';
-        // Restore offsets
         var vp   = document.getElementById('vp');
         if (vp)   { vp.style.marginTop = ''; vp.style.height = ''; }
         var wrap = document.getElementById('wrap');

@@ -1,41 +1,49 @@
 {
-"name": "MedExcel",
-"short_name": "MedExcel",
-"description": "MedExcel — your medical exam study companion",
-"start_url": "/index.html",
-"scope": "/",
-"display": "standalone",
-"orientation": "portrait",
-"background_color": "#f1f5f9",
-"theme_color": "#f1f5f9",
-
-"icons": [
-{
-"src": "/js/icons/icon-192x192-v1.png",
-"sizes": "192x192",
-"type": "image/png",
-"purpose": "any"
-},
-{
-"src": "/js/icons/icon-192x192-maskable-v1.png",
-"sizes": "192x192",
-"type": "image/png",
-"purpose": "maskable any"
-},
-{
-"src": "/js/icons/icon-512x512-v1.png",
-"sizes": "512x512",
-"type": "image/png",
-"purpose": "any"
-},
-{
-"src": "/js/icons/icon-512x512-maskable-v1.png",
-"sizes": "512x512",
-"type": "image/png",
-"purpose": "maskable any"
-}
-],
-
-"categories": ["education", "medical"],
-"prefer_related_applications": false
+  "name": "MedExcel",
+  "short_name": "MedExcel",
+  "description": "MedExcel \u2014 your medical exam study companion",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#f1f5f9",
+  "icons": [
+    {
+      "src": "/js/icons/icon-192x192-v1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/js/icons/icon-192x192-maskable-v1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/js/icons/icon-512x512-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/js/icons/icon-512x512-maskable-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": [
+    "education",
+    "medical"
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.medexcel.app",
+      "id": "com.medexcel.app"
+    }
+  ]
 }
