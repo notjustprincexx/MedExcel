@@ -373,7 +373,7 @@ render(0);
          target="_blank" rel="noopener"
          style="flex-shrink:0;background:#a78bfa;color:#000000;font-size:12px;font-weight:700;
            padding:7px 14px;border-radius:100px;text-decoration:none;white-space:nowrap;letter-spacing:0.01em;">
-        Download ↓
+        Download
       </a>
       <button onclick="document.getElementById('app-download-banner').style.display='none';sessionStorage.setItem('mx_banner_dismissed','1');"
               style="flex-shrink:0;background:rgba(255,255,255,0.06);border:none;color:#94a3b8;
@@ -390,6 +390,27 @@ render(0);
         var _banner = document.getElementById('app-download-banner');
         _banner.style.bottom = '12px';
         _banner.style.display = 'block';
+
+        // Nudge fixed bottom CTAs upward so banner never covers them
+        function nudgeCTAs() {
+          var h = _banner.offsetHeight;
+          document.querySelectorAll('.get-started, [data-banner-nudge]').forEach(function(el) {
+            el.dataset.origBottom = el.style.bottom || '';
+            el.style.bottom = (h + 16) + 'px';
+            el.style.transition = 'bottom 0.25s ease';
+          });
+        }
+        requestAnimationFrame(function() { requestAnimationFrame(nudgeCTAs); });
+
+        // Restore on dismiss
+        var _closeBtn = _banner.querySelector('button');
+        if (_closeBtn) {
+          _closeBtn.addEventListener('click', function() {
+            document.querySelectorAll('.get-started, [data-banner-nudge]').forEach(function(el) {
+              el.style.bottom = el.dataset.origBottom || '';
+            });
+          });
+        }
       }
     })();
   </script>
