@@ -3,7 +3,7 @@
 // app.bundle.js (truncated mid-file → "Unexpected end of input" on parse).
 // Bumping the cache name is the only reliable way to make all installed
 // clients re-fetch fresh JS.
-const CACHE_NAME = "medexcel-cache-v12";
+const CACHE_NAME = "medexcel-cache-v13";
 
 const APP_SHELL = [
   "/",

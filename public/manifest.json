@@ -11,25 +11,25 @@
 
 "icons": [
 {
-"src": "/js/icons/icon-192x192.png",
+"src": "/js/icons/icon-192x192-v1.png",
 "sizes": "192x192",
 "type": "image/png",
 "purpose": "any"
 },
 {
-"src": "/js/icons/icon-192x192-maskable.png",
+"src": "/js/icons/icon-192x192-maskable-v1.png",
 "sizes": "192x192",
 "type": "image/png",
 "purpose": "maskable any"
 },
 {
-"src": "/js/icons/icon-512x512.png",
+"src": "/js/icons/icon-512x512-v1.png",
 "sizes": "512x512",
 "type": "image/png",
 "purpose": "any"
 },
 {
-"src": "/js/icons/icon-512x512-maskable.png",
+"src": "/js/icons/icon-512x512-maskable-v1.png",
 "sizes": "512x512",
 "type": "image/png",
 "purpose": "maskable any"
