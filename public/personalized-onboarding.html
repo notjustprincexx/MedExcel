@@ -410,7 +410,7 @@ render(0);
         var els = document.querySelectorAll('*');
         for (var i = 0; i < els.length; i++) {
           var el = els[i];
-          if (el === banner || el.closest('#app-download-banner')) continue;
+          if (el === banner || el.closest('#app-download-banner') || el.closest('#globalBottomNav') || el.id === 'globalBottomNav') continue;
           var cs   = window.getComputedStyle(el);
           var pos  = cs.position;
           if (pos !== 'fixed' && pos !== 'sticky' && pos !== 'absolute') continue;
