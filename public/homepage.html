@@ -1573,6 +1573,75 @@
         </div>
     </div>
 
+  <!-- ═══════════════════════════════════════
+       LEADERBOARD SWIPE GESTURES
+       Attach to the OUTER #view-leaderboard section (overflow:hidden, doesn't scroll).
+       Must use passive:false on touchmove so we can preventDefault() for horizontal
+       swipes before the inner overflow-x:auto tab strip or overflow-y:auto main
+       get a chance to consume them.
+  ═══════════════════════════════════════ -->
+  <script>
+  (function () {
+    const LB_TABS = ['alltime', 'week', 'groups', 'ranks'];
+    let startX = 0, startY = 0, dirLocked = null; // null | 'h' | 'v'
+
+    function attachSwipe() {
+      const lbView = document.getElementById('view-leaderboard');
+      if (!lbView) return;
+
+      // touchstart — record finger position, reset direction lock
+      lbView.addEventListener('touchstart', function (e) {
+        startX    = e.touches[0].clientX;
+        startY    = e.touches[0].clientY;
+        dirLocked = null;
+      }, { passive: true });
+
+      // touchmove — lock direction on first meaningful movement;
+      // preventDefault() for horizontal so inner overflow-x:auto elements
+      // and iOS momentum scrollers don't swallow the gesture.
+      lbView.addEventListener('touchmove', function (e) {
+        if (dirLocked) {
+          if (dirLocked === 'h') e.preventDefault();
+          return;
+        }
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx < 5 && dy < 5) return; // too early to decide
+        dirLocked = dx >= dy ? 'h' : 'v';
+        if (dirLocked === 'h') e.preventDefault();
+      }, { passive: false }); // MUST be non-passive to call preventDefault
+
+      // touchend — if horizontal swipe, switch tab
+      lbView.addEventListener('touchend', function (e) {
+        if (dirLocked !== 'h') return;
+        const dx = startX - e.changedTouches[0].clientX;
+        if (Math.abs(dx) < 35) return; // too short, ignore
+
+        const currentTab = window._lbTab || 'alltime';
+        const idx        = LB_TABS.indexOf(currentTab);
+        if (idx === -1) return;
+
+        const nextIdx = dx > 0
+          ? Math.min(idx + 1, LB_TABS.length - 1) // swipe left  → next tab
+          : Math.max(idx - 1, 0);                   // swipe right → prev tab
+
+        if (nextIdx !== idx && typeof window.switchLbTab === 'function') {
+          window.switchLbTab(LB_TABS[nextIdx]);
+        }
+      }, { passive: true });
+    }
+
+    // firebase.js is a module — wait for switchLbTab to appear
+    let tries = 0;
+    const poll = setInterval(function () {
+      if (typeof window.switchLbTab === 'function' || ++tries > 80) {
+        clearInterval(poll);
+        attachSwipe();
+      }
+    }, 100);
+  })();
+  </script>
+
   <!-- PWA: register service worker + capture install prompt (see index.html for details) -->
   <script>
     if ('serviceWorker' in navigator
