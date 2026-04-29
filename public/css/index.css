@@ -508,36 +508,3 @@
   }
   .lm-google:active { transform: scale(0.97); }
   .lm-google svg { width: 20px; height: 20px; flex-shrink: 0; }
-
-/* =========================================
-   DESKTOP/LAPTOP RESPONSIVE LAYOUT
-   Keep the intro/onboarding screen phone-sized
-   and centered on large screens.
-========================================= */
-@media (min-width: 768px) {
-  body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 32px 0;
-    background: var(--bg);
-  }
-
-  .viewport,
-  .slide-inner {
-    max-width: 430px;
-  }
-
-  .viewport#vp {
-    width: min(100vw, 430px);
-    margin: 0 auto;
-    border-radius: 28px;
-    overflow: hidden;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
-  }
-
-  .get-started {
-    right: max(24px, calc((100vw - 430px) / 2 + 20px));
-  }
-}
-

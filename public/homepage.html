@@ -46,7 +46,7 @@
   <script src="https://js.paystack.co/v1/inline.js"></script>
 
   <!-- App Styles -->
-  <link rel="stylesheet" href="css/app.css?v=16">
+  <link rel="stylesheet" href="css/app.css">
 
   <!-- Theme Sync (must be inline — prevents flash of wrong theme) -->
   <script>
@@ -275,7 +275,6 @@
     </div>
 
 
-    <div id="app-frame">
     <section id="view-home" class="app-view active">
         <header class="home-header" style="gap: 0.75rem;">
             <div id="homeAvatarBtn" onclick="navigateTo('view-profile')" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;cursor:pointer;overflow:hidden;border:2px solid var(--border-color);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:var(--accent-orange);transition:border-color 0.2s;" title="Profile">
@@ -1392,7 +1391,6 @@
             <span class="nav-label">Profile</span>
         </a>
     </nav>
-    </div><!-- /#app-frame -->
 
     <!-- Import Overlays — OUTSIDE all app-views so they work from any screen -->
     <div id="manualCreateView" style="display:none;"></div>
@@ -1573,75 +1571,6 @@
         </div>
     </div>
 
-  <!-- ═══════════════════════════════════════
-       LEADERBOARD SWIPE GESTURES
-       Attach to the OUTER #view-leaderboard section (overflow:hidden, doesn't scroll).
-       Must use passive:false on touchmove so we can preventDefault() for horizontal
-       swipes before the inner overflow-x:auto tab strip or overflow-y:auto main
-       get a chance to consume them.
-  ═══════════════════════════════════════ -->
-  <script>
-  (function () {
-    const LB_TABS = ['alltime', 'week', 'groups', 'ranks'];
-    let startX = 0, startY = 0, dirLocked = null; // null | 'h' | 'v'
-
-    function attachSwipe() {
-      const lbView = document.getElementById('view-leaderboard');
-      if (!lbView) return;
-
-      // touchstart — record finger position, reset direction lock
-      lbView.addEventListener('touchstart', function (e) {
-        startX    = e.touches[0].clientX;
-        startY    = e.touches[0].clientY;
-        dirLocked = null;
-      }, { passive: true });
-
-      // touchmove — lock direction on first meaningful movement;
-      // preventDefault() for horizontal so inner overflow-x:auto elements
-      // and iOS momentum scrollers don't swallow the gesture.
-      lbView.addEventListener('touchmove', function (e) {
-        if (dirLocked) {
-          if (dirLocked === 'h') e.preventDefault();
-          return;
-        }
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx < 5 && dy < 5) return; // too early to decide
-        dirLocked = dx >= dy ? 'h' : 'v';
-        if (dirLocked === 'h') e.preventDefault();
-      }, { passive: false }); // MUST be non-passive to call preventDefault
-
-      // touchend — if horizontal swipe, switch tab
-      lbView.addEventListener('touchend', function (e) {
-        if (dirLocked !== 'h') return;
-        const dx = startX - e.changedTouches[0].clientX;
-        if (Math.abs(dx) < 35) return; // too short, ignore
-
-        const currentTab = window._lbTab || 'alltime';
-        const idx        = LB_TABS.indexOf(currentTab);
-        if (idx === -1) return;
-
-        const nextIdx = dx > 0
-          ? Math.min(idx + 1, LB_TABS.length - 1) // swipe left  → next tab
-          : Math.max(idx - 1, 0);                   // swipe right → prev tab
-
-        if (nextIdx !== idx && typeof window.switchLbTab === 'function') {
-          window.switchLbTab(LB_TABS[nextIdx]);
-        }
-      }, { passive: true });
-    }
-
-    // firebase.js is a module — wait for switchLbTab to appear
-    let tries = 0;
-    const poll = setInterval(function () {
-      if (typeof window.switchLbTab === 'function' || ++tries > 80) {
-        clearInterval(poll);
-        attachSwipe();
-      }
-    }, 100);
-  })();
-  </script>
-
   <!-- PWA: register service worker + capture install prompt (see index.html for details) -->
   <script>
     if ('serviceWorker' in navigator
@@ -1744,177 +1673,6 @@
       hint.querySelector('#iosHintClose').addEventListener('click', dismiss);
       setTimeout(dismiss, 9000); // auto-dismiss after 9s
     })();
-  </script>
-  </script>
-
-  <!-- ═══════════════════════════════════════
-       DESKTOP CUSTOM SCROLLBAR (PC only)
-       - Thin track floats right of #app-frame
-       - Thumb size = proportion of content visible
-       - Drag or click track to scroll the page
-       - Invisible on mobile / the app
-  ═══════════════════════════════════════ -->
-  <script>
-  (function () {
-    'use strict';
-    if (window.innerWidth < 1024) return; // phones/tablets: do nothing
-
-    /* ── Find the real scrollable element inside the active view ── */
-    function getScroller() {
-      const active = document.querySelector('.app-view.active');
-      if (!active) return null;
-
-      // 1. Try known class names first
-      const named =
-        active.querySelector('.home-main') ||
-        active.querySelector('.create-main') ||
-        active.querySelector('.hide-scroll') ||
-        active.querySelector('main');
-      if (named && named.scrollHeight > named.clientHeight) return named;
-
-      // 2. Walk ALL children and find the one that actually overflows
-      const all = active.querySelectorAll('*');
-      let best = null, bestOverflow = 0;
-      for (const el of all) {
-        const overflow = el.scrollHeight - el.clientHeight;
-        if (overflow > bestOverflow) { bestOverflow = overflow; best = el; }
-      }
-      if (best && bestOverflow > 10) return best;
-
-      // 3. Fallback: the active view itself
-      return active;
-    }
-
-    /* ── Build the scrollbar DOM ── */
-    function buildScrollbar() {
-      if (document.getElementById('desktopScrollbar')) return;
-      const bar = document.createElement('div');
-      bar.id = 'desktopScrollbar';
-      bar.className = 'custom-scrollbar';
-
-      const thumb = document.createElement('div');
-      thumb.className = 'scrollbar-thumb';
-      thumb.style.top = '0px';
-      thumb.style.height = '40px';
-
-      bar.appendChild(thumb);
-      document.body.appendChild(bar);
-      initDrag(bar, thumb);
-    }
-
-    /* ── Reposition thumb to reflect current scroll ── */
-    function syncThumb() {
-      const bar = document.getElementById('desktopScrollbar');
-      if (!bar) return;
-      const thumb = bar.querySelector('.scrollbar-thumb');
-      const s = getScroller();
-
-      if (!s || s.scrollHeight <= s.clientHeight + 4) {
-        // Content fits — hide scrollbar gracefully
-        bar.style.opacity = '0';
-        bar.style.pointerEvents = 'none';
-        return;
-      }
-
-      bar.style.opacity = '1';
-      bar.style.pointerEvents = 'auto';
-
-      const barH   = bar.clientHeight;
-      const ratio  = s.clientHeight / s.scrollHeight;
-      const thumbH = Math.max(32, barH * ratio);
-      const maxTop = barH - thumbH;
-      const pos    = (s.scrollTop / (s.scrollHeight - s.clientHeight)) * maxTop;
-
-      thumb.style.height = thumbH + 'px';
-      thumb.style.top    = pos + 'px';
-    }
-
-    /* ── Drag thumb → scroll content ── */
-    function initDrag(bar, thumb) {
-      let dragging = false, startY = 0, startScrollTop = 0;
-
-      thumb.addEventListener('mousedown', (e) => {
-        const s = getScroller();
-        dragging      = true;
-        startY        = e.clientY;
-        startScrollTop = s ? s.scrollTop : 0;
-        thumb.classList.add('dragging');
-        e.preventDefault();
-        e.stopPropagation();
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!dragging) return;
-        const s = getScroller();
-        if (!s) return;
-        const dy         = e.clientY - startY;
-        const barH       = bar.clientHeight;
-        const thumbH     = thumb.clientHeight;
-        const scrollable = s.scrollHeight - s.clientHeight;
-        const scale      = scrollable / Math.max(1, barH - thumbH);
-        s.scrollTop      = Math.max(0, Math.min(scrollable, startScrollTop + dy * scale));
-        syncThumb();
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (dragging) { dragging = false; thumb.classList.remove('dragging'); }
-      });
-
-      /* Click on track (not thumb) → jump */
-      bar.addEventListener('click', (e) => {
-        if (e.target === thumb) return;
-        const s = getScroller();
-        if (!s) return;
-        const rect       = bar.getBoundingClientRect();
-        const clickRatio = (e.clientY - rect.top) / bar.clientHeight;
-        s.scrollTop      = clickRatio * (s.scrollHeight - s.clientHeight);
-        syncThumb();
-      });
-    }
-
-    /* ── Attach scroll listener to active view's scroller ── */
-    let currentScroller = null;
-    function attachScrollListener() {
-      const s = getScroller();
-      if (s !== currentScroller) {
-        if (currentScroller) currentScroller.removeEventListener('scroll', syncThumb);
-        currentScroller = s;
-        if (s) s.addEventListener('scroll', syncThumb, { passive: true });
-      }
-      syncThumb();
-    }
-
-    /* ── Watch for view changes via MutationObserver (robust fallback) ── */
-    function observeViewChanges() {
-      const observer = new MutationObserver(() => {
-        setTimeout(attachScrollListener, 50);
-      });
-      // Watch .app-view elements for class changes (active toggling)
-      document.querySelectorAll('.app-view').forEach(v => {
-        observer.observe(v, { attributes: true, attributeFilter: ['class'] });
-      });
-    }
-
-    /* ── Patch navigateTo AND set up observer ── */
-    let attempts = 0;
-    const ready = setInterval(() => {
-      if (typeof window.navigateTo === 'function' || ++attempts > 40) {
-        clearInterval(ready);
-        buildScrollbar();
-        observeViewChanges();
-        attachScrollListener();
-
-        if (typeof window.navigateTo === 'function') {
-          const _orig = window.navigateTo;
-          window.navigateTo = function (viewId) {
-            _orig(viewId);
-            setTimeout(attachScrollListener, 80);
-          };
-        }
-      }
-    }, 100);
-
-  })();
   </script>
 </body>
 </html>

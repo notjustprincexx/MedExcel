@@ -1,8 +1,14 @@
+/* ── app.js ── */
+
+/* ── js/app.js ── */
+// State · Router · Utils · Modals · Profile Helpers
+// --- GLOBAL VARIABLES & STATE ---
         window.userStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || { xp: 0, level: 1, streak: 0, count: 0, lastDate: null };
         window.quizzes = [];
         window.userPlan = "free";
         window.allowedMaxItems = 20;
-
+        
+        // Study & Create State
         let currentQuiz = null;
         window.setCurrentQuiz = function(q) { currentQuiz = window.currentQuiz = q; };
         let currentQuestionIndex = 0;
@@ -33,11 +39,13 @@
                 return;
             }
 
+            // Last 3, most recent first
             const recent = quizzes.slice().reverse().slice(0, 3);
             const iconColors = ['bg-purple-500/10 text-purple-400', 'bg-pink-500/10 text-pink-400', 'bg-blue-500/10 text-blue-400'];
             const icons = ['fas fa-layer-group', 'fas fa-cards-blank', 'fas fa-brain'];
 
             container.innerHTML = recent.map((quiz, i) => {
+                // Skeleton card for pending (background) generation
                 if (quiz._pending) {
                     return `<div class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]" style="overflow:hidden;">
                         <div class="flex items-center min-w-0" style="flex:1;">
@@ -61,7 +69,7 @@
                 const isMCQIcon = isMCQ;
                 const label = isMCQ ? 'Questions' : 'Cards';
 
-                return `<a href="javascript:void(0)" onclick="(function(){navigateTo('view-study');setTimeout(function(){if(window.loadQuizOverview)window.loadQuizOverview(${JSON.stringify(quiz.id)});},80);})()"
+                return `<a href="javascript:void(0)" onclick="(function(){navigateTo('view-study');setTimeout(function(){if(window.loadQuizOverview)window.loadQuizOverview(${JSON.stringify(quiz.id)});},80);})()" 
                     class="flex items-center justify-between bg-[var(--bg-surface)] p-4 rounded-[var(--radius-md)] border border-[var(--border-glass)]">
                     <div class="flex items-center min-w-0">
                         <div class="mr-4 shrink-0" style="width:40px;height:40px;">
@@ -97,6 +105,7 @@
             cIconBox.classList.remove('skeleton');
 
             if (window.quizzes && window.quizzes.length > 0) {
+                // Show most recent activity — whichever happened last: creating a deck OR finishing a study session
                 const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
                 const lastAttempted = attempted.length > 0
                     ? attempted.reduce((a, b) => {
@@ -105,6 +114,7 @@
                         return ta > tb ? a : b;
                       })
                     : null;
+                // quiz.id is Date.now() at creation — reliable creation timestamp
                 const lastCreated = window.quizzes[window.quizzes.length - 1];
                 let lastQuiz;
                 if (!lastAttempted) {
@@ -130,11 +140,13 @@
                 cTitle.textContent = lastQuiz.title || 'Untitled';
 
                 if (attempts === 0) {
+                    // Never attempted — show item count as a nudge
                     cProgress.textContent = `${totalQs} items`;
                     cProgress.style.background = 'rgba(139,92,246,0.1)';
                     cProgress.style.color = 'var(--accent-btn)';
                     cMeta.innerHTML = `<span>${lastQuiz.subject || 'GENERAL'}</span> • <span>Not started</span>`;
                 } else if (isMCQ) {
+                    // MCQ — show last score percentage, best in meta
                     const lastPct = totalQs > 0 ? Math.round((lastScore / totalQs) * 100) : 0;
                     const bestPct = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
                     cProgress.textContent = `${lastPct}%`;
@@ -142,6 +154,7 @@
                     cProgress.style.color = lastPct >= 80 ? 'var(--accent-green)' : lastPct >= 50 ? 'var(--accent-yellow)' : '#f87171';
                     cMeta.innerHTML = `<span>Best: ${bestPct}%</span> • <span>${attempts} attempt${attempts !== 1 ? 's' : ''}</span>`;
                 } else {
+                    // Flashcards — show cards reviewed
                     cProgress.textContent = `${totalQs} cards`;
                     cProgress.style.background = 'rgba(96,165,250,0.12)';
                     cProgress.style.color = '#60a5fa';
@@ -172,43 +185,49 @@
             }
         };
 
+        // --- BULLETPROOF ROUTER LOGIC ---
         function navigateTo(targetViewId) {
+            // 1. Hide all views securely
             document.querySelectorAll('.app-view').forEach(view => {
                 view.classList.remove('active');
                 view.style.display = 'none';
             });
-
+            
+            // 2. Show the requested view
             const target = document.getElementById(targetViewId);
-            if (target) {
-                target.classList.add('active');
-                target.style.display = 'flex';
+            if (target) { 
+                target.classList.add('active'); 
+                target.style.display = 'flex'; 
             } else {
                 console.error("View not found: " + targetViewId);
             }
 
+            // 3. Update bottom navigation icons
             const nav = document.getElementById('globalBottomNav');
             if (nav) {
                 if (targetViewId === 'view-payment') {
                     nav.classList.add('hidden');
-                } else {
-                    nav.classList.remove('hidden');
-                    updateNavIcons(targetViewId);
+                } else { 
+                    nav.classList.remove('hidden'); 
+                    updateNavIcons(targetViewId); 
                 }
             }
-
+            
+            // 4. Safe Initializations (wrapped in try/catch so they don't break routing)
             try {
                 if (targetViewId === 'view-study' && typeof window.renderLibrary === 'function') window.renderLibrary();
                 if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
                 if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
                 if (targetViewId === 'view-payment' && typeof window.loadGeoPricing === 'function') window.loadGeoPricing();
-                if (targetViewId === 'view-leaderboard' && typeof window.silentRefreshLeaderboard === 'function') window.silentRefreshLeaderboard();
             } catch(e) { console.warn("View init skipped:", e); }
-
+            
+            // 5. Update URL
             window.scrollTo(0, 0);
-            try { history.pushState(null, null, '#' + targetViewId.replace('view-', '')); }
+            try { history.pushState(null, null, '#' + targetViewId.replace('view-', '')); } 
             catch(e) { window.location.hash = targetViewId.replace('view-', ''); }
         }
 
+        // Expose function globally so inline HTML clicks can reach it
         window.navigateTo = navigateTo;
 
         function updateNavIcons(activeViewId) {
@@ -217,8 +236,8 @@
                 const svg = el.querySelector('svg');
                 if(svg) svg.setAttribute('fill', 'none');
             });
-
-                        const mapping = { 'view-home': 'nav-home', 'view-study': 'nav-study', 'view-create': 'nav-create', 'view-leaderboard': 'nav-leaderboard', 'view-profile': 'nav-profile' };
+            
+            const mapping = { 'view-home': 'nav-home', 'view-study': 'nav-study', 'view-create': 'nav-create', 'view-leaderboard': 'nav-leaderboard', 'view-profile': 'nav-profile' };
             const activeNav = document.getElementById(mapping[activeViewId]);
             if (activeNav) {
                 activeNav.classList.add('active');
@@ -233,19 +252,22 @@
             let hash = window.location.hash.replace('#', '');
             if (!hash) hash = 'home';
             const viewId = 'view-' + hash;
-
-                        const validViews = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile', 'view-payment'];
+            
+            const validViews = ['view-home', 'view-study', 'view-create', 'view-leaderboard', 'view-profile', 'view-payment'];
             if (validViews.includes(viewId)) {
-                navigateTo(viewId);
-            } else {
-                navigateTo('view-home');
+                navigateTo(viewId); 
+            } else { 
+                navigateTo('view-home'); 
             }
         }
 
+        // Initialize Router on load
         window.addEventListener('DOMContentLoaded', initRouter);
         window.addEventListener('popstate', initRouter);
 
-window.closeGlobalModal = function(id) {
+
+        // --- UTILS & MODALS ---
+        window.closeGlobalModal = function(id) {
             const modal = document.getElementById(id);
             if (!modal) return;
             if (id === 'logoutModalBackdrop') {
@@ -268,6 +290,7 @@ window.closeGlobalModal = function(id) {
             });
         };
 
+        // Level calculation — exponential growth
         window.getProfileLevel = function(xp) {
             const thresholds = [0, 500, 1200, 2200, 3700, 6000, 9500, 14500, 21500, 31500, 50000];
             let level = 1;
@@ -286,6 +309,7 @@ window.closeGlobalModal = function(id) {
             if (typeof window.updateRankDisplay === 'function') window.updateRankDisplay(xp || 0);
         };
 
+        // Plan icon — Free or Premium only
         window.updatePlanIcon = function(plan) {
             const freeCard    = document.getElementById('planCardFree');
             const premCard    = document.getElementById('planCardPremium');
@@ -295,6 +319,7 @@ window.closeGlobalModal = function(id) {
             if (plan === 'premium' || plan === 'premium_trial' || plan === 'elite') {
                 if (freeCard) freeCard.style.display = 'none';
                 if (premCard) premCard.style.display = 'block';
+                // Sync usage to premium elements too
                 const usageFree = document.getElementById('usageCount')?.textContent || '0';
                 const premUsage = document.getElementById('usageCountPremium');
                 const premBar   = document.getElementById('usageProgressBarPremium');
@@ -302,6 +327,7 @@ window.closeGlobalModal = function(id) {
                 if (premUsage) premUsage.textContent = usageFree;
                 if (premMax)   premMax.textContent   = '30';
                 if (premBar)   premBar.style.width   = `${Math.min(100, (parseInt(usageFree) / 30) * 100)}%`;
+                // Expiry label
                 const expiry = window._cachedUserData?.subscriptionExpiry;
                 if (expiryLbl && expiry) {
                     const d = new Date(expiry);
@@ -309,6 +335,7 @@ window.closeGlobalModal = function(id) {
                 } else if (expiryLbl) {
                     expiryLbl.textContent = 'Premium active';
                 }
+                // Hide cancel if already cancelled
                 const cancelBtn = document.querySelector('#subscriptionManageRow button');
                 if (cancelBtn && window._cachedUserData?.subscriptionCancelled) {
                     cancelBtn.textContent = 'Cancelled';
@@ -324,6 +351,7 @@ window.closeGlobalModal = function(id) {
                 if (iconEl)   { iconEl.className = 'fas fa-lock'; iconEl.style.color = '#64748b'; }
             }
 
+            // Keep legacy planBadgeText in sync if it exists
             const planBadge = document.getElementById('planBadgeText');
             if (planBadge) planBadge.textContent = plan === 'premium' ? 'Premium' : 'Free';
         };
@@ -367,13 +395,16 @@ window.closeGlobalModal = function(id) {
                 const cancel = httpsCallable(fns, "cancelSubscription");
                 const result = await cancel();
                 if (result.data?.success) {
+                    // Update local state — premium stays until expiry
                     if (window._cachedUserData) {
                         window._cachedUserData.subscriptionCancelled = true;
+                        // Store expiresAt from server so downgrade check and UI have the correct date
                         if (result.data.expiresAt) {
                             window._cachedUserData.subscriptionExpiry = result.data.expiresAt;
                         }
                     }
                     document.getElementById('cancelSubscriptionSheet')?.remove();
+                    // Show confirmation toast with actual expiry date if available
                     const expiryForToast = result.data.expiresAt || window._cachedUserData?.subscriptionExpiry;
                     const expiryLabel = expiryForToast
                         ? `until ${new Date(expiryForToast).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' })}`
@@ -383,12 +414,17 @@ window.closeGlobalModal = function(id) {
                     t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:0.875rem 1.25rem;border-radius:9999px;font-size:0.8rem;font-weight:600;z-index:9999;border:1px solid rgba(52,211,153,0.4);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
                     document.body.appendChild(t);
                     setTimeout(() => t.remove(), 5000);
+                    // Refresh plan icon so label switches from "Renews X" to "Access until X"
                     if (typeof window.updatePlanIcon === 'function') window.updatePlanIcon(window.userPlan);
+                    // Update cancel button text
                     const cancelBtn = document.querySelector('#subscriptionManageRow button');
                     if (cancelBtn) { cancelBtn.textContent = 'Cancelled'; cancelBtn.style.color = 'var(--text-muted)'; cancelBtn.disabled = true; }
                 }
             } catch(e) {
                 console.error('Cancel subscription error:', e);
+                // FAILED_PRECONDITION means the cloud function found no Paystack subscription
+                // to cancel — this happens with fixed-period (non-auto-renewing) plans.
+                // Treat it as already cancelled: no renewal will happen anyway.
                 if (e.code === 'functions/failed-precondition') {
                     if (window._cachedUserData) window._cachedUserData.subscriptionCancelled = true;
                     document.getElementById('cancelSubscriptionSheet')?.remove();
@@ -411,6 +447,7 @@ window.closeGlobalModal = function(id) {
             }
         };
 
+        // Delete account modal
         window.showDeleteAccountModal = function() {
             const backdrop = document.getElementById('accountDeleteBackdrop');
             const sheet    = document.getElementById('accountDeleteSheet');
@@ -443,6 +480,10 @@ window.closeGlobalModal = function(id) {
             const btn = document.getElementById('confirmAccountDeleteBtn');
             if (btn) { btn.textContent = 'Deleting...'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
+                // ── Step 1: Delete all Firestore data via Cloud Function ──────
+                // Client-side deleteDoc only removes the root user doc — the
+                // quizzes subcollection is NOT deleted and lingers in Firestore.
+                // The Cloud Function handles the full recursive cleanup.
                 if (window.currentUser) {
                     try {
                         const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js");
@@ -450,6 +491,7 @@ window.closeGlobalModal = function(id) {
                         await httpsCallable(fns, "deleteUserData")();
                     } catch(e) { console.warn("[DeleteAccount] Firestore cleanup failed:", e.message); }
                 }
+                // ── Step 2: Delete Firebase Auth account ──────────────────────
                 if (window.currentUser) {
                     try {
                         await window.currentUser.delete();
@@ -462,6 +504,7 @@ window.closeGlobalModal = function(id) {
                         throw e;
                     }
                 }
+                // Sign out and clear local data
                 try { if (window._signOut && window.auth) await window._signOut(window.auth); } catch(e) {}
                 const _delTheme = localStorage.getItem('medexcel_theme');
                 localStorage.clear();
@@ -473,7 +516,10 @@ window.closeGlobalModal = function(id) {
             }
         };
 
-function _showLegalSheet(title, htmlContent) {
+        // logout handled by window.showLogoutModal defined above
+
+        // ── Legal document sheet helper ──────────────────────────────────────
+        function _showLegalSheet(title, htmlContent) {
             const sheetId = 'legalSheet_' + Date.now();
             const sheet = document.createElement('div');
             sheet.id = sheetId;
@@ -510,7 +556,7 @@ function _showLegalSheet(title, htmlContent) {
                 <p style="color:var(--text-muted);margin-bottom:1rem;">You are responsible for maintaining the security of your account. You must be at least 16 years old to use MedExcel. You agree not to share your account with others or use another user's account.</p>
 
                 <h4 style="font-weight:700;margin-bottom:0.5rem;">5. Subscriptions & Payments</h4>
-                <p style="color:var(--text-muted);margin-bottom:1rem;">Paid plans are processed via Paystack. Premium plans are auto-renewing subscriptions — your payment method is automatically charged at the start of each billing period until you cancel. You may cancel at any time from your Account settings; cancelling stops the next renewal and your premium access continues until the end of the period you have already paid for. We do not offer refunds for partially used billing periods. If a renewal payment fails, your account is downgraded to the free plan until payment is retried successfully.</p>
+                <p style="color:var(--text-muted);margin-bottom:1rem;">Paid plans are processed via Paystack. Subscriptions are for a fixed period and do not auto-renew. You may cancel at any time; premium access continues until your billing period ends. We do not offer refunds for unused subscription periods.</p>
 
                 <h4 style="font-weight:700;margin-bottom:0.5rem;">6. Acceptable Use</h4>
                 <p style="color:var(--text-muted);margin-bottom:1rem;">You agree not to share your account, attempt to reverse-engineer the app, upload harmful or copyrighted content, or use the app for any purpose other than personal study.</p>
@@ -572,13 +618,16 @@ function _showLegalSheet(title, htmlContent) {
         window.showTerms = function() { _showLegalSheet('Terms of Service', _termsHTML); };
         window.showPrivacyPolicy = function() { _showLegalSheet('Privacy Policy', _privacyHTML); };
 
+        // Onboarding page — opens dedicated standalone pages instead
         window._showOnboardingTerms = function() { window.location.href = 'terms.html'; };
         window._showOnboardingPrivacy = function() { window.location.href = 'privacy.html'; };
 
+        // ── Contact Support Form ─────────────────────────────────────────────
         window.showContactSupport = function() {
             const user = window._cachedUserData || {};
             const userEmail = window.currentUser?.email || '';
 
+            // Remove any existing sheet first
             document.getElementById('contactSupportSheet')?.remove();
 
             const sheet = document.createElement('div');
@@ -673,6 +722,9 @@ function _showLegalSheet(title, htmlContent) {
 
         window.getInitial = function(name) { return name && name.length > 0 ? name.charAt(0).toUpperCase() : '?'; }
 
+        // ── Frontend Error Logger ────────────────────────────────────────────
+        // Logs critical client-side errors to Firestore errorLogs via Firebase SDK.
+        // Rate-limited per session — same error only logged once every 5 minutes.
         const _errorLogCache = new Map();
         window.logClientError = async function(source, error, context = {}) {
             try {
@@ -696,7 +748,7 @@ function _showLegalSheet(title, htmlContent) {
                     lastSeen: now,
                     resolved: false,
                 });
-            } catch(e) {  }
+            } catch(e) { /* never crash on logger failure */ }
         };
         window.formatXP = function(xp) { return (xp || 0).toLocaleString() + " XP"; }
         window.timeAgo = function(iso) {
@@ -710,6 +762,7 @@ function _showLegalSheet(title, htmlContent) {
         window.escapeHTML = function(str) { return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
         window.getTimeEmoji = function() { const hour = new Date().getHours(); if (hour < 12) return '⛅'; if (hour < 18) return '☀️'; return '🌙'; }
 
+        // Refresh the gens-remaining pill on the Create page header
         window.refreshGensRemaining = function() {
             const label = document.getElementById('gensRemainingLabel');
             if (!label) return;
@@ -718,7 +771,16 @@ function _showLegalSheet(title, htmlContent) {
             label.textContent = Math.max(0, cap - used);
         };
 
-const REFERRAL_TIERS = [
+        // =========================================================
+
+/* ── js/referral.js ── */
+
+/* ── referral.js ── */
+// Referral System
+// REFERRAL SYSTEM — global scope so initUserUI can call it
+        // =========================================================
+
+        const REFERRAL_TIERS = [
             { refs: 1,  label: "+500 XP bonus",                icon: "fa-bolt",        color: "#fbbf24", type: "xp"            },
             { refs: 3,  label: "2× daily limit for 7 days",    icon: "fa-layer-group", color: "#3b82f6", type: "limit_2x"      },
             { refs: 5,  label: "1 week Premium access",        icon: "fa-gem",         color: "#a78bfa", type: "week_premium"  },
@@ -729,6 +791,7 @@ const REFERRAL_TIERS = [
         window.renderReferralTiers = function(containerId, referralCount) {
             const container = document.getElementById(containerId);
             if (!container) return;
+            // Find the next uncompleted tier
             const next = REFERRAL_TIERS.find(t => referralCount < t.refs);
             const allDone = !next;
             if (allDone) {
@@ -801,6 +864,7 @@ const REFERRAL_TIERS = [
             const link = `https://medxcel.web.app?ref=${code}`;
             const message = REFERRAL_SHARE_MESSAGE(code, link);
 
+            // Capacitor native share (Android / iOS)
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
                 try {
                     const { Share } = window.Capacitor.Plugins;
@@ -811,6 +875,7 @@ const REFERRAL_TIERS = [
                         dialogTitle: 'Share your referral link'
                     });
                 } catch(e) {
+                    // User cancelled — do nothing
                     if (e.message && !e.message.includes('cancel')) {
                         window.copyReferralLink(source);
                     }
@@ -818,6 +883,7 @@ const REFERRAL_TIERS = [
                 return;
             }
 
+            // Web Share API (modern browsers)
             if (navigator.share) {
                 try {
                     await navigator.share({ title: 'Join me on MedExcel', text: message, url: link });
@@ -827,6 +893,7 @@ const REFERRAL_TIERS = [
                 return;
             }
 
+            // Final fallback — just copy
             window.copyReferralLink(source);
         };
 
@@ -865,11 +932,14 @@ const REFERRAL_TIERS = [
             const count   = userData.referralCount || 0;
             window._userReferralCode = code;
 
+            // Update count display
             const pCount = document.getElementById('profileReferralCount');
             if (pCount) pCount.innerHTML = `${count} <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">referred</span>`;
 
+            // Next reward progress
             window.renderReferralTiers('profileReferralTiers', count);
 
+            // Active reward indicator
             const boostExpiry = userData.referralBoostExpiry;
             const boostType   = userData.referralBoostType;
             const rewardEl    = document.getElementById('profileActiveReward');
@@ -891,6 +961,7 @@ const REFERRAL_TIERS = [
             }
         };
 
+        // Apply referral boost to limits if active
         window.applyReferralBoost = function(userData) {
             const boostExpiry = userData.referralBoostExpiry;
             const boostType   = userData.referralBoostType;
@@ -899,10 +970,11 @@ const REFERRAL_TIERS = [
             if (!isPermanent && new Date(boostExpiry) <= new Date()) return;
 
             if (boostType === 'limit_2x' && window.userPlan === 'free') {
-                window.allowedMaxItems = 40;
+                window.allowedMaxItems = 40; // 2× of 20
                 const maxText = document.getElementById('maxLimitText');
                 if (maxText) maxText.textContent = "(Max: 40 — Referral Boost)";
             } else if (boostType === 'week_premium' || boostType === 'month_premium') {
+                // treat as premium for limit purposes only (Groq still used — server enforces AI model)
                 window.allowedMaxItems = 50;
                 const maxText = document.getElementById('maxLimitText');
                 if (maxText) maxText.textContent = '(Max: 50 — Referral Reward)';
@@ -913,12 +985,20 @@ const REFERRAL_TIERS = [
             }
         };
 
-window.showCustomUpgradeModal = function(maxAllowed) {
+        // =========================================================
+
+/* ── upgrade-modal.js ── */
+// Upgrade Modal · Theme Toggle
+// UPGRADE MODAL — open / close
+        // =========================================================
+
+        window.showCustomUpgradeModal = function(maxAllowed) {
             return new Promise(resolve => {
                 const backdrop = document.getElementById('upgradeModalBackdrop');
                 const sheet    = document.getElementById('upgradeModalSheet');
                 if (!backdrop || !sheet) { resolve(true); return; }
 
+                // Populate usage bar
                 const used = parseInt(document.getElementById('usageCount')?.textContent || '0');
                 const cap  = (window.userPlan === 'premium' || window.userPlan === 'premium_trial') ? 30 : maxAllowed || 5;
                 document.getElementById('upgUsageLabel').textContent = `${used} / ${cap}`;
@@ -926,12 +1006,14 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 document.getElementById('upgModalSubtitle').textContent =
                     `You've used all ${cap} free generations today.`;
 
+                // Referral tiers
                 const count = parseInt(document.getElementById('profileReferralCount')?.textContent || '0');
                 window.renderReferralTiers('upgModalTiers', count);
                 const code  = window._userReferralCode || '';
                 const upgLink = document.getElementById('upgReferralLinkDisplay');
                 if (upgLink) upgLink.textContent = code ? `medxcel.web.app?ref=${code}` : 'Loading...';
 
+                // Show sheet
                 backdrop.style.display = 'flex';
                 backdrop.style.opacity = '1';
                 requestAnimationFrame(() => {
@@ -939,6 +1021,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                     sheet.style.opacity   = '1';
                 });
 
+                // Override buttons
                 const upgBtn = backdrop.querySelector('button[onclick*="view-payment"]');
                 if (upgBtn) {
                     upgBtn.onclick = () => { window.closeUpgradeModal(); resolve(true); };
@@ -959,22 +1042,24 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             setTimeout(() => { backdrop.style.display = 'none'; backdrop.style.opacity = '0'; }, 400);
         };
 
+        // Close on backdrop tap
         document.getElementById('upgradeModalBackdrop')?.addEventListener('click', function(e) {
             if (e.target === this) window.closeUpgradeModal();
         });
 
+        // Theme Setup
         window.updateThemeUI = function() {
             const isLight = document.documentElement.classList.contains('light-mode');
             const themeText = document.getElementById('themeText');
             const themeIcon = document.getElementById('themeIcon');
             const switchBg = document.getElementById('themeSwitchBg');
             const switchKnob = document.getElementById('themeSwitchKnob');
-
-                        if(themeText) themeText.innerText = isLight ? 'Light Mode' : 'Dark Mode';
+            
+            if(themeText) themeText.innerText = isLight ? 'Light Mode' : 'Dark Mode';
             if(themeIcon) themeIcon.className = isLight ? 'fas fa-sun text-yellow-500 text-lg' : 'fas fa-moon text-indigo-400 text-lg';
-
-                        if(switchBg && switchKnob) {
-                if (isLight) { switchBg.classList.replace('bg-slate-600', 'bg-blue-500'); switchKnob.style.transform = 'translateX(20px)'; }
+            
+            if(switchBg && switchKnob) {
+                if (isLight) { switchBg.classList.replace('bg-slate-600', 'bg-blue-500'); switchKnob.style.transform = 'translateX(20px)'; } 
                 else { switchBg.classList.replace('bg-blue-500', 'bg-slate-600'); switchKnob.style.transform = 'translateX(0)'; }
             }
         };
@@ -987,13 +1072,21 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 localStorage.setItem('medexcel_theme', themeName);
                 window.updateThemeUI();
                 window.syncStatusBar(isLight);
+                // Tell native Android to save theme for skeleton screen
                 if (window.Android && window.Android.saveTheme) {
                     window.Android.saveTheme(themeName);
                 }
             });
         }
 
-(function initCarousel() {
+/* ── home.js ── */
+// Home View
+// --- HOME UI LOGIC ---
+
+        // Render last 3 decks dynamically — empty state if none
+        
+        // ── Promo Carousel — auto-rotate + swipe + real data ──────────
+        (function initCarousel() {
             const carousel   = document.getElementById('promoCarousel');
             const indicators = document.querySelectorAll('.promo-dot');
             if (!carousel || indicators.length === 0) return;
@@ -1022,21 +1115,25 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
             }, { passive: true });
 
+            // One-time swipe hint — peeks right then snaps back
             setTimeout(() => {
                 const w = carousel.offsetWidth;
                 carousel.scrollTo({ left: w * 0.09, behavior: 'smooth' });
                 setTimeout(() => carousel.scrollTo({ left: 0, behavior: 'smooth' }), 550);
             }, 1400);
 
+            // ── Slide 1: Streak + Check In ───────────────────────────
+            // Daily challenges — use user's dailyTarget from onboarding if available
             const _profile   = JSON.parse(localStorage.getItem('medexcel_user_profile') || '{}');
             const _userTarget = (window.userProfile && window.userProfile.dailyTarget) || _profile.dailyTarget || 0;
 
             function _makeChallenge(goal, msg) {
                 const xp = goal <= 10 ? 50 : goal <= 20 ? 100 : goal <= 30 ? 125 : 150;
-                return { goal, xp, challenge: goal + ' questions today', msg };
+                return { goal, xp, challenge: goal + ' items today', msg };
             }
 
             const dailyChallenges = _userTarget > 0 ? [
+                // All 7 days use the user's chosen target
                 _makeChallenge(_userTarget, 'Sunday reset — stay consistent'),
                 _makeChallenge(_userTarget, 'Start the week strong'),
                 _makeChallenge(_userTarget, 'Build on yesterday'),
@@ -1045,15 +1142,16 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 _makeChallenge(_userTarget, 'Finish the week on fire'),
                 _makeChallenge(_userTarget, 'The best never rest'),
             ] : [
-                { goal: 10, xp: 50,  challenge: '10 questions today',          msg: 'Sunday reset — light and steady' },
-                { goal: 15, xp: 75,  challenge: 'Crush 15 MCQs',               msg: 'Start the week strong' },
-                { goal: 20, xp: 100, challenge: '20 flashcards today',         msg: 'Build on yesterday' },
-                { goal: 25, xp: 125, challenge: 'Answer 25 questions',         msg: 'Midweek momentum' },
-                { goal: 20, xp: 100, challenge: '20 questions today',          msg: 'Almost at the finish line' },
-                { goal: 20, xp: 100, challenge: 'End the week — 20 questions', msg: 'Finish the week on fire' },
-                { goal: 15, xp: 75,  challenge: 'Weekend warrior — 15',        msg: 'The best never rest' },
+                { goal: 10, xp: 50,  challenge: '10 items today',          msg: 'Sunday reset — light and steady' },
+                { goal: 15, xp: 75,  challenge: 'Crush 15 MCQs',           msg: 'Start the week strong' },
+                { goal: 20, xp: 100, challenge: '20 flashcards today',     msg: 'Build on yesterday' },
+                { goal: 25, xp: 125, challenge: 'Answer 25 questions',     msg: 'Midweek momentum' },
+                { goal: 20, xp: 100, challenge: '20 items today',          msg: 'Almost at the finish line' },
+                { goal: 20, xp: 100, challenge: 'End the week — 20 items', msg: 'Finish the week on fire' },
+                { goal: 15, xp: 75,  challenge: 'Weekend warrior — 15',    msg: 'The best never rest' },
             ];
 
+            // Load today's progress from localStorage (persists across sessions)
             const _challengeKey = () => 'medexcel_challenge_' + new Date().toDateString();
             const _savedProgress = parseInt(localStorage.getItem(_challengeKey()) || '0');
             if (_savedProgress > 0 && !window._todayStudiedItems) {
@@ -1089,13 +1187,16 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                     labelEl.textContent = days[day] + ' Challenge  •  ' + done + '/' + dc.goal;
                 }
 
+                // Save progress to localStorage so it persists
                 localStorage.setItem(_challengeKey(), String(done));
 
+                // Award XP exactly once when goal is first hit
                 const xpKey = 'medexcel_challenge_xp_' + new Date().toDateString();
                 if (pct >= 100 && !localStorage.getItem(xpKey)) {
                     localStorage.setItem(xpKey, '1');
                     if (window.addXP) {
                         window.addXP(dc.xp);
+                        // Show a brief toast
                         const toast = document.createElement('div');
                         toast.innerHTML = '+' + dc.xp + ' XP 🎉 Daily challenge complete!';
                         Object.assign(toast.style, {
@@ -1113,6 +1214,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             window.updatePromoTodayProgress();
             setTimeout(window.updatePromoTodayProgress, 2000);
 
+            // ── Slide 2: Last deck ───────────────────────────────────
             window.updatePromoLastDeck = function() {
                 const quizzes = window.quizzes || [];
                 const last    = quizzes.length > 0 ? quizzes[quizzes.length - 1] : null;
@@ -1139,9 +1241,11 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             window.updatePromoLastDeck();
             setTimeout(window.updatePromoLastDeck, 2000);
 
+            // ── Slide 3: Daily usage ─────────────────────────────────
             window.updatePromoUsage = function() {
                 const plan   = window.userPlan || 'free';
                 const cap    = (plan === 'premium' || plan === 'premium_trial') ? 30 : 5;
+                // Read from the profile usageCount element — firebase.js keeps it up to date
                 const usageEl = document.getElementById('usageCount');
                 const used   = usageEl ? (parseInt(usageEl.textContent) || 0) : 0;
                 const left   = Math.max(0, cap - used);
@@ -1161,10 +1265,15 @@ window.showCustomUpgradeModal = function(maxAllowed) {
 
         })();
 
-(function() {
+
+        // ══════════════════════════════════
+        // COACH MARKS — GUIDED TOUR
+        // ══════════════════════════════════
+        (function() {
             var KEY = 'medexcel_onboarding_v1';
             if (localStorage.getItem(KEY)) return;
 
+            // Preload doctor.svg immediately so it's cached before the tour builds
             var _doctorImg = new Image();
             _doctorImg.src = 'doctor.svg';
 
@@ -1221,6 +1330,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 ctx.fillStyle = 'rgba(0,0,0,0.75)';
                 ctx.fillRect(0, 0, W, H);
                 if (!rect) return;
+                // Punch hole
                 ctx.globalCompositeOperation = 'destination-out';
                 var r=12, x=rect.x, y=rect.y, w=rect.w, h=rect.h;
                 ctx.beginPath();
@@ -1230,6 +1340,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
                 ctx.closePath(); ctx.fill();
                 ctx.globalCompositeOperation = 'source-over';
+                // Glow
                 ctx.strokeStyle = 'rgba(139,92,246,0.9)'; ctx.lineWidth = 2;
                 ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 12;
                 ctx.beginPath();
@@ -1241,15 +1352,18 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             }
 
             function makeTail(dir, leftPx) {
+                // Container flush against the box edge — no gap
                 var wrap = document.createElement('div');
                 wrap.style.cssText = 'position:absolute;left:' + leftPx + 'px;width:22px;height:12px;' +
                     (dir === 'down' ? 'bottom:-12px;' : 'top:-12px;');
 
                 if (dir === 'down') {
+                    // Outer: border-color triangle pointing down
                     var outer = document.createElement('div');
                     outer.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;' +
                         'border-left:11px solid transparent;border-right:11px solid transparent;' +
                         'border-top:12px solid rgba(139,92,246,0.55);';
+                    // Inner: bg-color triangle, 1px smaller, shifted down 1px to sit inside border
                     var inner = document.createElement('div');
                     inner.style.cssText = 'position:absolute;top:0;left:1.5px;width:0;height:0;' +
                         'border-left:9.5px solid transparent;border-right:9.5px solid transparent;' +
@@ -1257,6 +1371,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                     wrap.appendChild(outer);
                     wrap.appendChild(inner);
                 } else {
+                    // Pointing up
                     var outer = document.createElement('div');
                     outer.style.cssText = 'position:absolute;bottom:0;left:0;width:0;height:0;' +
                         'border-left:11px solid transparent;border-right:11px solid transparent;' +
@@ -1272,12 +1387,14 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             }
 
             function makeTooltip(step, rect) {
+                // Remove old tooltip
                 var old = ov.querySelector('.ob-tt');
                 if (old) old.remove();
 
                 var tt = document.createElement('div');
                 tt.className = 'ob-tt';
 
+                // Build inner HTML — no tail yet
                 tt.innerHTML =
                     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
                         '<span style="font-size:0.6rem;font-weight:800;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.07em;">MedExcel Guide</span>' +
@@ -1295,6 +1412,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                     'border:1.5px solid rgba(139,92,246,0.55);border-radius:14px;padding:14px;' +
                     'box-shadow:0 12px 36px rgba(0,0,0,0.7);animation:ob-pop 0.25s ease;';
 
+                // Dots
                 var dotsWrap = tt.querySelector('.ob-dots-wrap');
                 STEPS.forEach(function(_, i) {
                     var d = document.createElement('div');
@@ -1306,16 +1424,20 @@ window.showCustomUpgradeModal = function(maxAllowed) {
 
                 ov.appendChild(tt);
 
+                // Wire buttons
                 tt.querySelector('.ob-skip-btn').onclick = done;
                 tt.querySelector('.ob-next-btn').onclick = advance;
 
+                // Position tooltip snug next to highlighted element
                 if (!rect) {
+                    // Intro/outro — upper center, leave bottom half for doctor
                     tt.style.width = (W - 48) + 'px';
                     tt.style.left  = '24px';
                     tt.style.top   = Math.round(H * 0.14) + 'px';
                     return;
                 }
 
+                // Tooltip width — leave right 35% for doctor
                 var ttW = Math.round(W * 0.62);
                 tt.style.width = ttW + 'px';
 
@@ -1324,20 +1446,25 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 var ttH = tt.offsetHeight || 130;
                 var spaceAbove = rect.y - pad;
 
+                // Horizontal position
                 var isNavTarget = rect.y > H * 0.75;
                 var left;
                 if (isNavTarget) {
-                    left = pad;
+                    left = pad; // left-anchored so doctor stays on right
                 } else {
                     left = Math.max(pad, Math.min(W - ttW - pad, cx - ttW / 2));
                 }
 
+                // Tail offset = element center relative to tooltip left edge, clamped
                 var tailLeft = Math.max(14, Math.min(ttW - 26, cx - left - 11));
 
+                // Vertical: tooltip above or below target
                 if (spaceAbove >= ttH + 14) {
+                    // Tooltip ABOVE target — tail points DOWN toward element
                     tt.style.top = (rect.y - ttH - 12) + 'px';
                     tt.appendChild(makeTail('down', tailLeft));
                 } else {
+                    // Tooltip BELOW target — tail points UP toward element
                     tt.style.top = (rect.y + rect.h + 12) + 'px';
                     tt.appendChild(makeTail('up', tailLeft));
                 }
@@ -1348,6 +1475,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 cur = idx;
                 var s = STEPS[idx];
 
+                // Doctor size
                 if (!s.target) {
                     doc.style.height = '44%'; doc.style.bottom = '0'; doc.style.maxHeight = '290px';
                 } else {
@@ -1357,6 +1485,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 if (s.target) {
                     var el = document.getElementById(s.target);
                     if (el) {
+                        // Scroll element into view first — handles cards below the fold
                         el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
                         setTimeout(function() {
@@ -1365,9 +1494,11 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                             drawCutout(rect);
                             makeTooltip(s, rect);
 
+                            // Remove old tap zone
                             var oldZone = ov.querySelector('.ob-tapzone');
                             if (oldZone) oldZone.remove();
 
+                            // Transparent tap zone over the highlighted element
                             var zone = document.createElement('div');
                             zone.className = 'ob-tapzone';
                             zone.style.cssText = 'position:absolute;z-index:9;cursor:pointer;' +
@@ -1375,9 +1506,10 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                                 'width:' + rect.w + 'px;height:' + rect.h + 'px;';
                             zone.onclick = advance;
                             ov.appendChild(zone);
-                        }, 120);
+                        }, 120); // wait for scroll to settle before measuring
                     }
                 } else {
+                    // Remove tap zone on non-target steps
                     var oldZone = ov.querySelector('.ob-tapzone');
                     if (oldZone) oldZone.remove();
                     drawCutout(null);
@@ -1396,6 +1528,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 if (homeMain) homeMain.scrollTop = 0;
                 if (typeof navigateTo==='function') navigateTo('view-home');
                 localStorage.setItem(KEY, '1');
+                // Show streak modal now if it was pending
                 if (window._pendingStreakModal) {
                     window._pendingStreakModal = false;
                     setTimeout(function(){ if(typeof window.openStreakModal==='function') window.openStreakModal(); }, 600);
@@ -1405,9 +1538,11 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             var fired = false;
             function fire() {
                 if (!fired) {
+                    // Wait if personalized onboarding is open
                     if (window._personalizedOnboardingOpen === true) {
                         setTimeout(fire, 400); return;
                     }
+                    // Wait if streak modal is open (check both 'show' and 'open' class)
                     var streakModal = document.getElementById('streakModalBackdrop');
                     if (streakModal && (streakModal.classList.contains('show') || streakModal.classList.contains('open'))) {
                         setTimeout(fire, 800); return;
@@ -1425,14 +1560,20 @@ window.showCustomUpgradeModal = function(maxAllowed) {
             setTimeout(function() { clearInterval(t); fire(); }, 3000);
         })();
 
-let currentStreakCount = 0;
+        // Weekly Target Rotator
+        // Weekly Target replaced by smart Study Focus card — see window.renderStudyFocusCard()
+
+        // Streak Calendar UI
+        let currentStreakCount = 0;
         let hasCheckedInToday = false;
 
+        // Called after any real study action (quiz complete, deck generated, boss fight, Anki import)
         window.commitStreakOnAction = function() {
             if (hasCheckedInToday || !window.currentUser) return;
             const uid      = window.currentUser.uid;
             const todayStr = new Date().toDateString();
 
+            // Save to local history
             const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
             if (!history.includes(todayStr)) {
                 history.push(todayStr);
@@ -1446,14 +1587,18 @@ let currentStreakCount = 0;
             localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
             hasCheckedInToday = true;
 
+            // Update header
             const hDisplay = document.getElementById('headerStreakDisplay');
             if (hDisplay) hDisplay.textContent = currentStreakCount;
             const hIcon = document.getElementById('headerFireIcon');
             if (hIcon) hIcon.style.opacity = '1';
 
+            // Sync to Firestore
             if (window.syncUserStreak) window.syncUserStreak(uid, currentStreakCount, todayStr);
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
 
+            // Show celebration modal (only after onboarding is done)
+            // If the user is still on the results/interactive view, defer until they leave
             if (localStorage.getItem('medexcel_onboarding_v1')) {
                 const _iv = document.getElementById('interactiveView');
                 const _onResultsPage = _iv && _iv.style.display !== 'none' && _iv.innerHTML.trim() !== '';
@@ -1470,6 +1615,7 @@ let currentStreakCount = 0;
             const today = new Date();
             const currentDayIndex = (today.getDay() + 6) % 7;
 
+            // Build array of Date objects for this week (Mon–Sun)
             const weekDates = [];
             for (let i = 0; i < 7; i++) {
                 const d = new Date(today);
@@ -1478,6 +1624,8 @@ let currentStreakCount = 0;
                 weekDates.push(d);
             }
 
+            // Reconstruct check-in days from Firestore data (lastCheckIn + streak count)
+            // We don't store per-day history — instead we backfill streak days backwards from lastCheckIn
             const checkedInSet = new Set();
             const lastDate = window.userStats ? window.userStats.lastDate : null;
             const streakCount = currentStreakCount || 0;
@@ -1491,10 +1639,12 @@ let currentStreakCount = 0;
                     checkedInSet.add(d.toDateString());
                 }
             }
+            // Also mark today if already checked in this session
             if (hasCheckedInToday) {
                 checkedInSet.add(new Date(today.getFullYear(), today.getMonth(), today.getDate()).toDateString());
             }
 
+            // Determine state for each day
             const states = weekDates.map((d, i) => {
                 const ds = d.toDateString();
                 if (i < currentDayIndex) {
@@ -1505,6 +1655,7 @@ let currentStreakCount = 0;
                 return 'future';
             });
 
+            // Build connector map — connect consecutive 'done' days
             let html = '';
             for (let i = 0; i < 7; i++) {
                 const prevDone = i > 0 && states[i-1] === 'done';
@@ -1532,6 +1683,7 @@ let currentStreakCount = 0;
             return html;
         }
 
+        // Variable to hold the animation so it doesn't duplicate
         var fireLottieAnim = null;
 
         const streakDailyMessages = [
@@ -1543,8 +1695,8 @@ let currentStreakCount = 0;
             { title: "Friday fire!", sub: "End the week strong.<br>Check in and protect that streak! 🎯" },
             { title: "Weekend warrior mode!", sub: "Saturday hustle — the best students<br>don't take days off. Let's go! 🚀" }
         ];
-
-                window.openStreakModal = function() {
+        
+        window.openStreakModal = function() {
             document.getElementById('calendarRow').innerHTML = buildCalendarRow();
             const btn = document.getElementById('closeStreakModal');
             document.getElementById('modalDayCount').textContent = currentStreakCount;
@@ -1558,6 +1710,7 @@ let currentStreakCount = 0;
                     : todayMsg.sub;
             }
 
+            // Streak freeze — always visible, 3 states
             const freezeRow   = document.getElementById('streakFreezeRow');
             const freezeTitle = document.getElementById('freezeTitle');
             const freezeDesc  = document.getElementById('freezeDesc');
@@ -1572,18 +1725,21 @@ let currentStreakCount = 0;
                 freezeRow.style.display = 'flex';
 
                 if (freezeAvailable) {
+                    // State 1: Freeze ready to use
                     const freezeIcon = document.getElementById('freezeIcon');
                     if (freezeIcon) { freezeIcon.style.color = '#63b3ed'; freezeIcon.className = 'fas fa-snowflake'; }
                     if (freezeTitle) freezeTitle.textContent = 'Streak Freeze Available!';
                     if (freezeDesc)  freezeDesc.textContent  = 'Protects your streak for 1 missed day';
                     if (freezeBtn)   { freezeBtn.style.display = 'block'; freezeBtn.textContent = 'Use Freeze'; freezeBtn.disabled = false; freezeBtn.style.opacity = '1'; }
                 } else if (freezesUsed > 0 && freezesUsed >= freezesEarned) {
+                    // State 2: Freeze used
                     const freezeIcon = document.getElementById('freezeIcon');
                     if (freezeIcon) { freezeIcon.style.color = '#94a3b8'; freezeIcon.className = 'fas fa-snowflake'; }
                     if (freezeTitle) freezeTitle.textContent = 'Freeze Used';
                     if (freezeDesc)  freezeDesc.textContent  = daysToNextFreeze + ' more days to earn your next freeze';
                     if (freezeBtn)   freezeBtn.style.display = 'none';
                 } else {
+                    // State 3: Not yet earned — show progress
                     const freezeIcon = document.getElementById('freezeIcon');
                     if (freezeIcon) { freezeIcon.style.color = '#94a3b8'; freezeIcon.className = 'fas fa-snowflake'; }
                     if (freezeTitle) freezeTitle.textContent = 'Streak Freeze';
@@ -1610,15 +1766,18 @@ let currentStreakCount = 0;
             document.getElementById('streakModalBackdrop').classList.add('show');
         };
 
+        // Use streak freeze — marks yesterday as checked-in to protect streak
         window.useStreakFreeze = function() {
             const uid = window.currentUser ? window.currentUser.uid : 'guest';
             const freezeBtn = document.getElementById('freezeBtn');
             const freezeTitle = document.getElementById('freezeTitle');
             const freezeDesc = document.getElementById('freezeDesc');
 
+            // Mark freeze as used
             const used = parseInt(localStorage.getItem('medexcel_freezes_used_' + uid) || '0');
             localStorage.setItem('medexcel_freezes_used_' + uid, String(used + 1));
 
+            // Add yesterday to check-in history
             const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
             const history = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
             if (!history.includes(yesterday.toDateString())) {
@@ -1626,10 +1785,12 @@ let currentStreakCount = 0;
                 localStorage.setItem('medexcel_checkin_history_' + uid, JSON.stringify(history));
             }
 
+            // Sync to Firestore
             if (window.currentUser && window.syncUserStreak) {
                 window.syncUserStreak(window.currentUser.uid, currentStreakCount, new Date().toDateString());
             }
 
+            // Update UI
             if (freezeBtn) { freezeBtn.textContent = 'Used!'; freezeBtn.disabled = true; freezeBtn.style.opacity = '0.5'; }
             if (freezeTitle) freezeTitle.textContent = 'Freeze Used';
             if (freezeDesc) freezeDesc.textContent = 'Your streak is protected!';
@@ -1644,6 +1805,9 @@ let currentStreakCount = 0;
             if (hIcon) hIcon.style.opacity = hasCheckedInToday ? '1' : '0.4';
         };
 
+/* ── study.js ── */
+// Study / Library View
+// --- STUDY UI LOGIC ---
         window.openPracticeMobile = function() {
             if (window.innerWidth < 1024) {
                 document.getElementById('libraryPanel').classList.add('hidden');
@@ -1690,10 +1854,9 @@ let currentStreakCount = 0;
             isExamMode = exam;
             currentQuestionIndex = 0;
             examScore = 0;
-            _inQuizStreak = 0;
-            window._streakBonusXP = 0;
+            // Reset answered state for all questions
             if (currentQuiz && currentQuiz.questions) {
-                currentQuiz.questions.forEach(q => { q.answered = false; q.userAnswer = undefined; });
+                currentQuiz.questions.forEach(q => { q.answered = false; });
             }
             window.enterStudyQuizMode();
             window.renderStudyQuestion();
@@ -1767,44 +1930,10 @@ let currentStreakCount = 0;
                 </div>
             `;
 
+            // Attach event listeners
             if (isMCQSession) {
                 const btns = area.querySelectorAll('.study-mcq-opt');
                 btns.forEach(btn => btn.addEventListener('click', () => window.handleStudyMCQSelection(btn, q, btns)));
-
-                // Restore answered state when navigating back to a previously answered question
-                if (q.answered && q.userAnswer !== undefined) {
-                    const isCorrect = q.userAnswer === q.correct;
-                    btns.forEach(btn => {
-                        const idx = parseInt(btn.dataset.idx);
-                        btn.disabled = true;
-                        btn.style.cursor = 'not-allowed';
-                        if (idx === q.correct) {
-                            btn.style.background = 'rgba(16,185,129,0.1)';
-                            btn.style.borderColor = 'rgba(16,185,129,0.3)';
-                            btn.style.color = 'var(--accent-green)';
-                            btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
-                            btn.querySelector('span').style.color = 'var(--accent-green)';
-                        } else if (idx === q.userAnswer) {
-                            btn.style.background = 'rgba(239,68,68,0.1)';
-                            btn.style.borderColor = 'rgba(239,68,68,0.3)';
-                            btn.style.color = 'var(--accent-red)';
-                            btn.querySelector('span').style.borderColor = 'rgba(239,68,68,0.3)';
-                            btn.querySelector('span').style.color = 'var(--accent-red)';
-                        } else {
-                            btn.style.opacity = '0.4';
-                        }
-                    });
-                    const expl = document.getElementById('studyExplanationArea');
-                    expl.innerHTML = `
-                        <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
-                            ${isCorrect ? '<span style="color:var(--accent-green)"><i class="fas fa-check-circle"></i> Correct!</span>' : '<span style="color:var(--accent-red)"><i class="fas fa-times-circle"></i> Incorrect</span>'}
-                        </div>
-                        ${q.explanation ? `<div style="background:var(--bg-body);padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-glass);color:var(--text-main);font-size:0.875rem;line-height:1.5;"><span style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem;font-size:0.7rem;text-transform:uppercase;">Explanation</span>${window.escapeHTML(q.explanation)}</div>` : ''}
-                    `;
-                    expl.style.display = 'flex';
-                    const nextBtn2 = document.getElementById('studyNextBtn');
-                    if (nextBtn2) { nextBtn2.disabled = false; nextBtn2.style.opacity = '1'; nextBtn2.style.cursor = 'pointer'; }
-                }
             } else {
                 const fc = document.getElementById('studyFlashcardEl');
                 fc.addEventListener('click', () => { window._todayStudiedItems = (window._todayStudiedItems || 0) + 1; if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
@@ -1819,41 +1948,14 @@ let currentStreakCount = 0;
             prevBtn.addEventListener('click', () => {
                 if (currentQuestionIndex > 0) { currentQuestionIndex--; window.renderStudyQuestion(); }
             });
-            nextBtn.addEventListener('click', async () => {
+            nextBtn.addEventListener('click', () => {
     if (currentQuestionIndex < currentQuiz.questions.length - 1) {
         currentQuestionIndex++;
         window.renderStudyQuestion();
     } else {
-        nextBtn.disabled = true;
-        nextBtn.style.opacity = '0.8';
-        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:0.375rem;font-size:0.875rem;"></i>Saving...';
-        await window.finishStudyQuiz();
+        window.finishStudyQuiz();
     }
 });
-        }
-
-        let _inQuizStreak = 0;
-        window._streakBonusXP = window._streakBonusXP || 0;
-
-        if (!document.getElementById('_studyRewardKf')) {
-            const _s = document.createElement('style');
-            _s.id = '_studyRewardKf';
-            _s.textContent = `
-                @keyframes _studyCorrectPulse {
-                    0%   { transform: scale(1);    }
-                    40%  { transform: scale(1.025);}
-                    100% { transform: scale(1);    }
-                }
-                @keyframes _studyStreakIn {
-                    0%   { opacity: 0; transform: translateY(-4px) scale(0.92); }
-                    100% { opacity: 1; transform: translateY(0)    scale(1);    }
-                }
-                @keyframes _studyStreakOut {
-                    0%   { opacity: 1; transform: translateY(0)    scale(1);    }
-                    100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
-                }
-            `;
-            document.head.appendChild(_s);
         }
 
         window.handleStudyMCQSelection = function(selectedBtn, q, allBtns) {
@@ -1861,24 +1963,10 @@ let currentStreakCount = 0;
             q.answered = true;
 
             const selectedIdx = parseInt(selectedBtn.dataset.idx);
-            q.userAnswer = selectedIdx;
             const isCorrect = selectedIdx === q.correct;
             if (isCorrect) examScore++;
             window._todayStudiedItems = (window._todayStudiedItems || 0) + 1;
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
-
-            if (isCorrect) {
-                try {
-                    if (window.Capacitor?.Plugins?.Haptics) {
-                        window.Capacitor.Plugins.Haptics.impact({ style: 'Light' });
-                    } else if (navigator.vibrate) {
-                        navigator.vibrate(8);
-                    }
-                } catch(_) {}
-                _inQuizStreak++;
-            } else {
-                _inQuizStreak = 0;
-            }
 
             allBtns.forEach(btn => {
                 const idx = parseInt(btn.dataset.idx);
@@ -1890,9 +1978,6 @@ let currentStreakCount = 0;
                     btn.style.color = 'var(--accent-green)';
                     btn.querySelector('span').style.borderColor = 'rgba(16,185,129,0.3)';
                     btn.querySelector('span').style.color = 'var(--accent-green)';
-                    if (idx === selectedIdx) {
-                        btn.style.animation = '_studyCorrectPulse 250ms ease-out';
-                    }
                 } else if (idx === selectedIdx) {
                     btn.style.background = 'rgba(239,68,68,0.1)';
                     btn.style.borderColor = 'rgba(239,68,68,0.3)';
@@ -1904,73 +1989,6 @@ let currentStreakCount = 0;
                 }
             });
 
-            const _existingStreak = document.getElementById('studyStreakChip');
-            if (_existingStreak) _existingStreak.remove();
-            if (_inQuizStreak >= 3) {
-                let _msg, _color, _bonus;
-                if (_inQuizStreak >= 20) {
-                    const opts = ['👑 Legendary', '👑 Untouchable', '👑 Unreal run'];
-                    _msg = opts[_inQuizStreak % opts.length];
-                    _color = '#a855f7'; _bonus = 60;
-                } else if (_inQuizStreak >= 15) {
-                    const opts = ['💎 Flawless', '💎 In the zone', '💎 Locked in'];
-                    _msg = opts[_inQuizStreak % opts.length];
-                    _color = '#06b6d4'; _bonus = 40;
-                } else if (_inQuizStreak >= 10) {
-                    const opts = ['⚡ Unstoppable', '⚡ On a tear', '⚡ Double digits!'];
-                    _msg = opts[_inQuizStreak % opts.length];
-                    _color = '#eab308'; _bonus = 25;
-                } else if (_inQuizStreak >= 7) {
-                    const opts = ['🚀 On fire', '🚀 Streaking', '🚀 Cooking now'];
-                    _msg = opts[_inQuizStreak % opts.length];
-                    _color = '#ef4444'; _bonus = 15;
-                } else if (_inQuizStreak >= 5) {
-                    const opts = [`🔥 ${_inQuizStreak} in a row!`, '🔥 Heating up', '🔥 Nice run'];
-                    _msg = opts[_inQuizStreak % opts.length];
-                    _color = '#f97316'; _bonus = 10;
-                } else {
-                    _msg = `🔥 ${_inQuizStreak} in a row`;
-                    _color = '#f97316'; _bonus = 5;
-                }
-                window._streakBonusXP = (window._streakBonusXP || 0) + _bonus;
-
-                const chip = document.createElement('div');
-                chip.id = 'studyStreakChip';
-                chip.style.cssText = `
-                    position: fixed;
-                    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
-                    left: 50%;
-                    transform: translateX(-50%) translateY(8px);
-                    background: rgba(15,15,20,0.86);
-                    backdrop-filter: blur(8px);
-                    -webkit-backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    border-radius: 9999px;
-                    padding: 8px 14px;
-                    color: ${_color};
-                    font-size: 0.8125rem;
-                    font-weight: 700;
-                    pointer-events: none;
-                    opacity: 0;
-                    z-index: 99999;
-                    white-space: nowrap;
-                    text-align: center;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 0 1px ${_color}33;
-                    transition: opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-                `;
-                chip.innerHTML = `${_msg} <span style="color:#fbbf24;margin-left:4px;">+${_bonus} XP</span>`;
-                document.body.appendChild(chip);
-                requestAnimationFrame(() => requestAnimationFrame(() => {
-                    chip.style.opacity = '1';
-                    chip.style.transform = 'translateX(-50%) translateY(0)';
-                }));
-                setTimeout(() => {
-                    chip.style.opacity = '0';
-                    chip.style.transform = 'translateX(-50%) translateY(-6px)';
-                }, 1600);
-                setTimeout(() => chip.remove(), 1850);
-            }
-
             const expl = document.getElementById('studyExplanationArea');
             expl.innerHTML = `
                 <div style="font-size:0.8125rem;font-weight:700;margin-bottom:0.375rem;">
@@ -1980,12 +1998,13 @@ let currentStreakCount = 0;
             `;
             expl.style.display = 'flex';
 
+            // Unlock Next button
 const nextBtn = document.getElementById('studyNextBtn');
 if (nextBtn) {
     nextBtn.disabled = false;
     nextBtn.style.opacity = '1';
     nextBtn.style.cursor = 'pointer';
-}
+} 
 
             setTimeout(() => { expl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
         }
@@ -1996,11 +2015,10 @@ if (nextBtn) {
             if (!currentQuiz.stats) currentQuiz.stats = { bestScore: 0, attempts: 0, lastScore: 0 };
             const isFirstAttempt = currentQuiz.stats.attempts === 0;
 
-            const _streakBonus = window._streakBonusXP || 0;
+            // Only award XP on first completion — replaying is practice, not reward
             const totalXP = isFirstAttempt
-                ? (isMCQSession ? examScore * 10 + 20 + _streakBonus : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
+                ? (isMCQSession ? examScore * 10 + 20 : (currentQuiz.questions ? currentQuiz.questions.length * 5 : 20))
                 : 0;
-            window._streakBonusXP = 0;
             if (totalXP > 0) await window.addXP(totalXP);
             window.commitStreakOnAction?.();
 
@@ -2009,11 +2027,13 @@ if (nextBtn) {
             if (isMCQSession) {
                 if (examScore > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = examScore;
             } else {
+                // Flashcard session — completing the deck counts as full score
                 const _fcTotal = currentQuiz.questions ? currentQuiz.questions.length : 0;
                 if (_fcTotal > currentQuiz.stats.bestScore) currentQuiz.stats.bestScore = _fcTotal;
             }
             currentQuiz.stats.lastAttemptedAt = new Date().toISOString();
 
+            // ── Daily study log for 7-day activity chart ─────────────────────
             try {
                 const _logKey  = 'medexcel_studylog_' + (window.currentUser?.uid || 'guest');
                 const _logDate = new Date().toISOString().split('T')[0];
@@ -2025,13 +2045,16 @@ if (nextBtn) {
                 Object.keys(_log).sort().slice(-30).forEach(k => _trimmed[k] = _log[k]);
                 localStorage.setItem(_logKey, JSON.stringify(_trimmed));
             } catch(_le) {}
+            // ─────────────────────────────────────────────────────────────────
 
             if (window.currentUser) {
                 try {
                     const { updateDoc, doc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                    // Save stats (only for non-group decks)
                     if (!currentQuiz._isGroupDeck) {
                         await updateDoc(doc(window.db, "users", window.currentUser.uid, "quizzes", currentQuiz.id.toString()), { stats: currentQuiz.stats });
                         localStorage.setItem('medexcel_quizzes_' + window.currentUser.uid, JSON.stringify(window.quizzes));
+                        // Track total MCQ questions answered
                         if (isMCQSession) {
                             const qCount = currentQuiz.questions ? currentQuiz.questions.length : 0;
                             const prev = window._cachedUserData?.totalQuestionsAnswered || 0;
@@ -2040,6 +2063,7 @@ if (nextBtn) {
                             if (window._cachedUserData) window._cachedUserData.totalQuestionsAnswered = newTotal;
                         }
                     }
+                    // Write to group score feed if this is a group deck
                     if (currentQuiz._isGroupDeck && currentQuiz._groupId) {
                         const total2 = currentQuiz.questions ? currentQuiz.questions.length : 0;
                         const pct = total2 > 0 ? Math.round((examScore / total2) * 100) : 0;
@@ -2054,10 +2078,12 @@ if (nextBtn) {
                             percentage: pct,
                             scoredAt: new Date().toISOString()
                         });
+                        // Update scores on deck doc
                         const deckRef = doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id));
                         await updateDoc(deckRef, {
                             [`scores.${window.currentUser.uid}`]: { score: examScore, percentage: pct, date: new Date().toISOString() }
                         }).catch(() => {});
+                        // Notify deck creator
                         try {
                             const deckRef2 = doc(window.db, 'groups', currentQuiz._groupId, 'sharedDecks', String(currentQuiz.id));
                             const deckSnap = await window._firestoreGetDoc(deckRef2);
@@ -2073,11 +2099,13 @@ if (nextBtn) {
                     }
                 } catch(e) { console.error("Stats sync failed", e); }
 
+                // Check achievements with quiz context
                 if (typeof window.checkAchievements === 'function') {
                     const now = new Date();
                     const hour = now.getHours();
                     const qCount = currentQuiz.questions ? currentQuiz.questions.length : 0;
                     const pct3 = qCount > 0 ? Math.round((examScore / qCount) * 100) : 0;
+                    // Track groupHighScores for Team Player achievement
                     if (currentQuiz._isGroupDeck && pct3 >= 80 && window.currentUser && window._cachedUserData) {
                         const prev = window._cachedUserData.groupHighScores || 0;
                         const newCount = prev + 1;
@@ -2174,6 +2202,7 @@ if (nextBtn) {
                 }, 400);
 
             } else {
+                // Flashcards — simple clean layout, no stars
                 area.innerHTML = `
                     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;padding:2rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);box-sizing:border-box;max-width:500px;margin:0 auto;" class="fade-in">
                         <div style="width:80px;height:80px;border-radius:50%;background:rgba(52,211,153,0.15);border:3px solid #34d399;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
@@ -2199,7 +2228,11 @@ if (nextBtn) {
             }
         };
 
-window.openCreateView = function(type) {
+/* ── create.js ── */
+// Create View
+// --- CREATE UI LOGIC ---
+
+        window.openCreateView = function(type) {
             window.globalQuizType = type;
             document.getElementById('selectionView').style.display = 'none';
             document.getElementById('setupView').style.display = 'flex';
@@ -2207,11 +2240,13 @@ window.openCreateView = function(type) {
             document.getElementById('createBackBtn').style.display = 'flex';
         };
 
+        // Source tab switching — only touch borderColor and color, never background
         window.switchSourceTab = function(tab) {
             const dropZone    = document.getElementById('dropZone');
             const pasteZone   = document.getElementById('pasteZone');
             const youtubeZone = document.getElementById('youtubeZone');
 
+            // Reset all 3 tabs to inactive
             ['tabUpload','tabPaste','tabYoutube'].forEach(id => {
                 const b = document.getElementById(id);
                 if (!b) return;
@@ -2219,6 +2254,7 @@ window.openCreateView = function(type) {
                 b.style.color = 'var(--text-muted)';
             });
 
+            // Activate selected tab with its accent colour — NO background change
             const accentColors = { upload: '#8b5cf6', paste: '#64748b', youtube: '#ef4444' };
             const activeBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
             if (activeBtn) {
@@ -2226,10 +2262,12 @@ window.openCreateView = function(type) {
                 activeBtn.style.color = accentColors[tab] || 'var(--accent-btn)';
             }
 
+            // Show/hide zones
             if (dropZone)    dropZone.style.display    = tab === 'upload'  ? 'flex'  : 'none';
             if (pasteZone)   pasteZone.style.display   = tab === 'paste'   ? 'block' : 'none';
             if (youtubeZone) youtubeZone.style.display = tab === 'youtube' ? 'block' : 'none';
 
+            // Clear stale source state when switching
             if (tab === 'upload') {
                 window._sourceIsPaste = false; window._sourceIsYoutube = false;
                 if (!window.selectedFile) window._resetGenerateBtn();
@@ -2246,6 +2284,7 @@ window.openCreateView = function(type) {
             }
         };
 
+        // YouTube URL handler
         window._youtubeVideoId = null;
         window.handleYoutubeInput = function(inp) {
             const url = inp.value.trim();
@@ -2260,6 +2299,7 @@ window.openCreateView = function(type) {
                 if (feedback) feedback.innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:4px;"></i>Valid URL — transcript will be extracted on generate';
                 const blob = new Blob(['youtube:' + window._youtubeVideoId], { type: 'text/plain' });
                 window.selectedFile = new File([blob], 'youtube-' + window._youtubeVideoId + '.txt', { type: 'text/plain' });
+                // Auto-suggest deck name for YouTube
                 const nameInputYt = document.getElementById('deckNameInput');
                 if (nameInputYt && !nameInputYt.value.trim()) {
                     nameInputYt.value = 'YouTube — ' + window._youtubeVideoId;
@@ -2267,7 +2307,6 @@ window.openCreateView = function(type) {
                 }
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
-                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
                 const btn = document.getElementById('generateBtn');
                 if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
             } else {
@@ -2279,28 +2318,33 @@ window.openCreateView = function(type) {
             }
         };
 
+        // Handle paste textarea input
         window.handlePasteInput = function(ta) {
             const text = ta.value;
             const count = text.length;
             const charCount = document.getElementById('pasteCharCount');
             if (charCount) charCount.textContent = count.toLocaleString();
 
+            // Update textarea border color
             ta.style.borderColor = count > 20 ? 'var(--border-active)' : 'var(--border-glass)';
 
             if (count > 20) {
+                // Convert pasted text to a File object so firebase.js works unchanged
                 const blob = new Blob([text], { type: 'text/plain' });
                 window.selectedFile = new File([blob], 'pasted-text.txt', { type: 'text/plain' });
                 window._sourceIsPaste = true;
+                // Auto-suggest deck name for paste if empty
                 const nameInputPaste = document.getElementById('deckNameInput');
                 if (nameInputPaste && !nameInputPaste.value.trim()) {
+                    // Use first few words of pasted text as name
                     const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
                     nameInputPaste.value = words.length > 3 ? words + '…' : 'Pasted Notes';
                     nameInputPaste.style.borderColor = 'var(--accent-btn)';
                 }
 
+                // Enable config + generate button
                 document.getElementById('configSection').style.opacity = '1';
                 document.getElementById('configSection').style.pointerEvents = 'auto';
-                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
                 const btn = document.getElementById('generateBtn');
                 if (btn) { btn.disabled = false; btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)'; btn.style.cursor = 'pointer'; }
             } else {
@@ -2317,86 +2361,32 @@ window.openCreateView = function(type) {
             if (nameInput) { nameInput.value = ''; nameInput.style.borderColor = 'var(--border-glass)'; }
             const btn = document.getElementById('generateBtn');
             if (btn) { btn.disabled = true; btn.style.background = 'var(--bg-surface)'; btn.style.color = 'var(--text-muted)'; btn.style.cursor = 'not-allowed'; }
-            const catcher = document.getElementById('configLockCatcher');
-            if (catcher) catcher.style.display = 'block';
         };
 
-        window._showUploadFirstHint = function() {
-            if (typeof window.showToast === 'function') {
-                window.showToast('Upload your study material first to continue', 'info');
-            }
-            const dz = document.getElementById('dropZone');
-            if (dz) {
-                if (!document.getElementById('_dzHighlightKf')) {
-                    const s = document.createElement('style');
-                    s.id = '_dzHighlightKf';
-                    s.textContent = `
-                        @keyframes _dzHighlight {
-                            0%   { transform: scale(1);    border-color: var(--border-glass);   box-shadow: 0 0 0 0 rgba(167,139,250,0); }
-                            30%  { transform: scale(1.02); border-color: var(--accent-btn);     box-shadow: 0 0 0 8px rgba(167,139,250,0.18); }
-                            70%  { transform: scale(1.01); border-color: var(--accent-btn);     box-shadow: 0 0 0 4px rgba(167,139,250,0.10); }
-                            100% { transform: scale(1);    border-color: var(--border-glass);   box-shadow: 0 0 0 0 rgba(167,139,250,0); }
-                        }`;
-                    document.head.appendChild(s);
-                }
-                dz.style.animation = 'none';
-                void dz.offsetWidth;
-                dz.style.animation = '_dzHighlight 800ms ease-out, uploadPulse 2s ease-in-out infinite 800ms';
-                dz.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        };
-
-        window._isConfigLocked = function() {
-            const cfg = document.getElementById('configSection');
-            return !!cfg && cfg.style.pointerEvents === 'none';
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const slider = document.getElementById('itemSlider');
-            const deckName = document.getElementById('deckNameInput');
-
-            const _interceptIfLocked = (e) => {
-                if (window._isConfigLocked && window._isConfigLocked()) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (slider) slider.blur?.();
-                    if (deckName) deckName.blur?.();
-                    window._showUploadFirstHint();
-                    return false;
-                }
-            };
-
-            if (slider) {
-                slider.addEventListener('touchstart', _interceptIfLocked, { passive: false });
-                slider.addEventListener('mousedown',  _interceptIfLocked);
-                slider.addEventListener('focus',      _interceptIfLocked);
-            }
-            if (deckName) {
-                deckName.addEventListener('focus',     _interceptIfLocked);
-                deckName.addEventListener('mousedown', _interceptIfLocked);
-                deckName.addEventListener('touchstart', _interceptIfLocked, { passive: false });
-            }
-        });
-
+        // Question style selector — use event delegation on container to avoid child element issues
         document.addEventListener('DOMContentLoaded', function() {
             const selector = document.getElementById('styleSelector');
             if (selector) {
                 selector.addEventListener('click', function(e) {
                     const btn = e.target.closest('.style-btn');
                     if (!btn) return;
+                    // Deactivate all
                     selector.querySelectorAll('.style-btn').forEach(b => {
                         b.style.borderColor = 'var(--border-glass)';
                         b.style.background = 'transparent';
                         b.style.color = 'var(--text-muted)';
                     });
+                    // Activate selected
                     btn.style.borderColor = 'var(--accent-btn)';
                     btn.style.background = 'rgba(167,139,250,0.1)';
                     btn.style.color = 'var(--accent-btn)';
+                    // Update hidden input
                     const input = document.getElementById('topicFocus');
                     if (input) input.value = btn.dataset.style;
                 });
             }
         });
+        // Keep function available for resets
         window.selectQuestionStyle = function(btn) {
             const selector = document.getElementById('styleSelector');
             if (!selector) return;
@@ -2430,6 +2420,7 @@ window.openCreateView = function(type) {
         window.goBackToSelection = function() {
             window.exitQuizMode();
             if (typeof window.refreshGensRemaining === 'function') window.refreshGensRemaining();
+            // Fire the streak modal now that the user has left the results page
             if (window._pendingStreakModal) {
                 window._pendingStreakModal = false;
                 setTimeout(function() { if (typeof window.openStreakModal === 'function') window.openStreakModal(); }, 600);
@@ -2439,6 +2430,7 @@ window.openCreateView = function(type) {
             document.getElementById('createHeaderTitle').textContent = "What to create?";
             document.getElementById('createBackBtn').style.display = 'none';
 
+            // ── Always reset file/button state BEFORE any early return ──────
             window.selectedFile     = null;
             window._sourceIsPaste   = false;
             window._sourceIsYoutube = false;
@@ -2465,7 +2457,9 @@ window.openCreateView = function(type) {
             const _btn = document.getElementById('generateBtn');
             if (_btn) { _btn.disabled = true; _btn.style.background = 'var(--bg-surface)'; _btn.style.color = 'var(--text-muted)'; _btn.style.cursor = 'not-allowed'; }
             document.getElementById('interactiveView').style.display = 'none';
+            // ────────────────────────────────────────────────────────────────
 
+            // If coming from home page MCQ/Flashcard tap, skip selection entirely
             if (window._pendingCreateType) {
                 const type = window._pendingCreateType;
                 window._pendingCreateType = null;
@@ -2474,6 +2468,7 @@ window.openCreateView = function(type) {
                 return;
             }
 
+            // Normal back — show selection screen
             document.getElementById('selectionView').style.display = 'flex';
             const _mv = document.getElementById('manualCreateView'); if (_mv) _mv.style.display = 'none';
             const _av = document.getElementById('ankiImportView');   if (_av) _av.style.display = 'none';
@@ -2485,6 +2480,7 @@ window.openCreateView = function(type) {
             const _ytZone = document.getElementById('youtubeZone');
             if (_ytZone) _ytZone.style.display = 'none';
 
+            // Reset source tabs — upload active, others inactive
             ['tabUpload','tabPaste','tabYoutube'].forEach((id, i) => {
                 const b = document.getElementById(id);
                 if (!b) return;
@@ -2492,6 +2488,7 @@ window.openCreateView = function(type) {
                 else         { b.style.borderColor = 'var(--border-glass)'; b.style.color = 'var(--text-muted)'; }
             });
 
+            // Reset style selector to default (Direct & Factual)
             const _topicInput = document.getElementById('topicFocus');
             if (_topicInput) _topicInput.value = 'direct';
             document.querySelectorAll('.style-btn').forEach((b, i) => {
@@ -2500,6 +2497,7 @@ window.openCreateView = function(type) {
             });
         };
 
+        // --- LIBRARY FILTER TABS & SEARCH ---
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -2517,6 +2515,7 @@ window.openCreateView = function(type) {
             });
         }
 
+        // --- LOTTIE LOADER INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             const loaderContainer = document.getElementById('lottieLoaderContainer');
             if (loaderContainer && typeof lottie !== 'undefined') {
@@ -2533,25 +2532,6 @@ window.openCreateView = function(type) {
         });
         const sliderValue = document.getElementById('sliderValue');
         if(itemSlider && sliderValue) {
-
-            (function _wireMaxLimitUpgradeLink() {
-                const link = document.getElementById('maxLimitUpgrade');
-                if (!link) return;
-                const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
-                link.style.display = isPremium ? 'none' : 'inline-flex';
-                link.onclick = (e) => {
-                    e.preventDefault();
-                    if (typeof window.navigateTo === 'function') window.navigateTo('view-payment');
-                };
-                const _pressOn  = () => { link.style.transform = 'scale(0.94)'; link.style.background = 'rgba(167,139,250,0.22)'; };
-                const _pressOff = () => { link.style.transform = ''; link.style.background = 'rgba(167,139,250,0.12)'; };
-                link.addEventListener('touchstart', _pressOn, { passive: true });
-                link.addEventListener('touchend',   _pressOff);
-                link.addEventListener('mousedown',  _pressOn);
-                link.addEventListener('mouseup',    _pressOff);
-                link.addEventListener('mouseleave', _pressOff);
-            })();
-
             function updateSliderHint(val) {
                 const max = window.allowedMaxItems;
                 let hintEl = document.getElementById('sliderLimitHint');
@@ -2562,13 +2542,11 @@ window.openCreateView = function(type) {
                     if (!hintEl) {
                         hintEl = document.createElement('p');
                         hintEl.id = 'sliderLimitHint';
-                        hintEl.style.cssText = 'font-size:0.75rem;color:#f97316;text-align:center;margin-top:0.5rem;font-weight:600;line-height:1.45;';
+                        hintEl.style.cssText = 'font-size:0.75rem;color:#f97316;text-align:center;margin-top:0.375rem;font-weight:600;';
                         itemSlider.parentElement.appendChild(hintEl);
                     }
-                    const isPremium = ['premium', 'premium_trial', 'elite'].includes(window.userPlan);
-                    hintEl.textContent = isPremium
-                        ? '⚠️ Premium is capped at 50'
-                        : `⚠️ Free plan max is ${max} questions per deck`;
+                    const plan = window.userPlan === 'premium' ? 'Premium is capped at 50' : `Free plan max is ${max}. Upgrade for 50`;
+                    hintEl.textContent = `⚠️ ${plan}`;
                 } else {
                     sliderValue.textContent = val;
                     sliderValue.style.color = 'var(--text-main)';
@@ -2596,21 +2574,19 @@ window.openCreateView = function(type) {
                     const maxMB = isPremium ? 50 : 15;
                     if (file.size > maxMB * 1024 * 1024) { alert(`File is too large. Maximum size is ${maxMB}MB${!isPremium ? ' on the free plan. Upgrade to Premium for 50MB.' : '.'}`); fileInput.value = ''; return; }
 
+                    // PDFs get the page selector first
                     if (file.name.toLowerCase().endsWith('.pdf')) {
                         window.openPdfPageSelector(file);
                         return;
                     }
 
-                    if (file.name.toLowerCase().endsWith('.pptx')) {
-                        window.openPptxSlideSelector(file);
-                        return;
-                    }
-
+                    // All other file types proceed as normal
                     window._applySelectedFile(file);
                 }
             });
         }
 
+        // Shared helper — called after page selection or for non-PDF files
         window._applySelectedFile = function(file) {
             window.selectedFile = file;
             const iconEl = document.getElementById('uploadIconInner');
@@ -2626,13 +2602,13 @@ window.openCreateView = function(type) {
             document.getElementById('dropZone').classList.add('file-selected');
             document.getElementById('configSection').style.opacity = '1';
             document.getElementById('configSection').style.pointerEvents = 'auto';
-                { const _c = document.getElementById('configLockCatcher'); if (_c) _c.style.display = 'none'; }
             const btn = document.getElementById('generateBtn');
             btn.disabled = false;
             btn.style.background = 'var(--accent-btn)';
             btn.style.color = 'var(--btn-text)';
             btn.style.cursor = 'pointer';
         };
+//// --- NEW INTERACTIVE RENDERER LOGIC (CREATE VIEW) ---
 
 window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
     if (!correctAnswer) return false;
@@ -2654,18 +2630,19 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 const ansLower = String(answer).trim().toLowerCase();
                 const keyLower = String(key).trim().toLowerCase();
                 const valLower = String(value).trim().toLowerCase();
+                // Only use startsWith for short answers (A, B, C, D) — never match full text against a single letter
                 const isShortAnswer = ansLower.length <= 3;
                 const isThisCorrect = ansLower === keyLower ||
                     ansLower === keyLower + '.' ||
                     ansLower === valLower ||
-                    (isShortAnswer && (ansLower.startsWith(keyLower + '.') || ansLower.startsWith(keyLower + ')')));
+                    (isShortAnswer && ansLower.startsWith(keyLower));
                 btn.disabled = true; btn.style.opacity = '0.5';
-                if (isThisCorrect) {
-                    btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1';
-                    if (key === selectedKey) { selectedIsCorrect = true; sessionScore++; }
-                }
-                else if (key === selectedKey) {
-                    btn.style.background = 'rgba(239, 68, 68, 0.1)'; btn.style.borderColor = 'rgba(239, 68, 68, 0.3)'; btn.style.color = 'var(--accent-red)'; btn.style.opacity = '1';
+                if (isThisCorrect) { 
+                    btn.style.background = 'rgba(16, 185, 129, 0.1)'; btn.style.borderColor = 'rgba(16, 185, 129, 0.3)'; btn.style.color = 'var(--accent-green)'; btn.style.opacity = '1'; 
+                    if (key === selectedKey) { selectedIsCorrect = true; sessionScore++; } 
+                } 
+                else if (key === selectedKey) { 
+                    btn.style.background = 'rgba(239, 68, 68, 0.1)'; btn.style.borderColor = 'rgba(239, 68, 68, 0.3)'; btn.style.color = 'var(--accent-red)'; btn.style.opacity = '1'; 
                 }
             });
 
@@ -2798,8 +2775,8 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             window.animateValue("animatedXP", 0, window.finalEarnedXP, 1500);
             if (isMCQMode) window.animateValue("animatedAcc", 0, percentage, 1500);
         };
-
-                window.claimAndContinue = async function() {
+        
+        window.claimAndContinue = async function() {
             const btn = document.querySelector('.btn-claim-xp');
             if (btn) { btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7'; }
             try { await window.addXP(window.finalEarnedXP); } catch(e) {}
@@ -2809,13 +2786,16 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
         };
 
         window.generateAnother = async function(type) {
+            // 1. Claim XP silently — same as claimAndContinue but stays on create
             try { await window.addXP(window.finalEarnedXP || 0); } catch(e) {}
             window.commitStreakOnAction?.();
 
+            // 2. Exit quiz mode and clean up interactive view
             window.exitQuizMode();
             document.getElementById('interactiveView').style.display = 'none';
             document.getElementById('interactiveView').innerHTML = '';
 
+            // 3. Full state reset — same as goBackToSelection but opens setupView directly
             window.selectedFile      = null;
             window._sourceIsPaste    = false;
             window._sourceIsYoutube  = false;
@@ -2834,6 +2814,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const _btn = document.getElementById('generateBtn');
             if (_btn) { _btn.disabled = true; _btn.style.background = 'var(--bg-surface)'; _btn.style.color = 'var(--text-muted)'; _btn.style.cursor = 'not-allowed'; }
 
+            // 4. Open setup view for the requested type
             window.openCreateView(type);
         };
 
@@ -2849,6 +2830,10 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                 obj.textContent = current;
             }, stepTime);
         }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDY FOCUS CARD + PROGRESS SHEET
+// ══════════════════════════════════════════════════════════════════════════════
 
 window.renderStudyFocusCard = function() {
     const card = document.getElementById('studyFocusCard');
@@ -2942,6 +2927,7 @@ window.openProgressSheet = function() {
     var logKey   = 'medexcel_studylog_' + (window.currentUser ? window.currentUser.uid : 'guest');
     var log      = JSON.parse(localStorage.getItem(logKey) || '{}');
 
+    // ── Stats ─────────────────────────────────────────────────────────────────
     var attempted    = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
     var totalSessions = Object.values(log).reduce(function(s, d) { return s + (d.sessions || 0); }, 0);
     var totalQs      = Object.values(log).reduce(function(s, d) { return s + (d.questions || 0); }, 0);
@@ -2949,6 +2935,7 @@ window.openProgressSheet = function() {
         ? Math.round(attempted.reduce(function(s, q) { return s + (q.questions.length > 0 ? (q.stats.bestScore / q.questions.length) * 100 : 0); }, 0) / attempted.length)
         : null;
 
+    // ── Ring chart (avg score or 0) ───────────────────────────────────────────
     var ringPct   = avgScore !== null ? avgScore : 0;
     var R         = 54;
     var circ      = 2 * Math.PI * R;
@@ -2957,6 +2944,7 @@ window.openProgressSheet = function() {
     var ringLabel = avgScore !== null ? avgScore + '%' : '—';
     var ringDesc  = avgScore !== null ? 'Avg score' : 'No attempts yet';
 
+    // ── 7-day chart ───────────────────────────────────────────────────────────
     var days = [];
     for (var i = 6; i >= 0; i--) {
         var d   = new Date(now - i * DAY_MS);
@@ -2964,7 +2952,7 @@ window.openProgressSheet = function() {
         var lbl = d.toLocaleDateString(undefined, { weekday: 'short' });
         days.push({ label: lbl, val: (log[key] && log[key].questions) || 0, isToday: i === 0 });
     }
-    var maxVal = Math.max.apply(null, days.map(function(d) { return d.val; }).concat([20]));
+    var maxVal = Math.max.apply(null, days.map(function(d) { return d.val; }).concat([20])); // floor at 20 so small values don't look disproportionate
     var bars   = days.map(function(d) {
         var h   = Math.max(4, Math.round((d.val / maxVal) * 100));
         var col = d.isToday ? '#8b5cf6' : d.val > 0 ? 'rgba(139,92,246,0.4)' : 'var(--border-glass)';
@@ -2977,6 +2965,7 @@ window.openProgressSheet = function() {
         '</div>';
     }).join('');
 
+    // ── Deck rows ─────────────────────────────────────────────────────────────
     var deckRows = quizzes.map(function(q) {
         var total   = q.questions.length;
         var pct     = (q.stats && q.stats.attempts > 0) ? Math.round((q.stats.bestScore / total) * 100) : null;
@@ -3011,6 +3000,7 @@ window.openProgressSheet = function() {
             '</div>';
         }).join('');
 
+    // ── Suggestion ────────────────────────────────────────────────────────────
     var sugg = deckRows.find(function(d) { return d.pct >= 0 && d.pct < 60; })
         || deckRows.find(function(d) { return d.q.stats && d.q.stats.lastAttemptedAt && Math.floor((now - new Date(d.q.stats.lastAttemptedAt).getTime()) / DAY_MS) >= 5; })
         || (deckRows.length > 0 ? deckRows[deckRows.length - 1] : null);
@@ -3033,12 +3023,14 @@ window.openProgressSheet = function() {
         '</div>'
     ) : '';
 
+    // ── Build page ────────────────────────────────────────────────────────────
     var page = document.createElement('div');
     page.id = '_progressPage';
     page.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg-body);overflow-y:auto;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.19,1,0.22,1);';
     page.className = 'hide-scroll';
 
     page.innerHTML =
+        // Header
         '<div style="position:sticky;top:0;z-index:10;background:var(--bg-body);padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;">' +
             '<div style="display:flex;align-items:center;gap:12px;">' +
                 '<button onclick="window._closeProgressPage()" style="width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main);font-size:0.875rem;flex-shrink:0;">' +
@@ -3050,6 +3042,7 @@ window.openProgressSheet = function() {
 
         '<div style="padding:1.5rem 1.25rem calc(env(safe-area-inset-bottom,0px) + 2rem);">' +
 
+            // Ring chart hero
             '<div style="display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;margin-bottom:1.75rem;">' +
                 '<div style="position:relative;width:140px;height:140px;">' +
                     '<svg width="140" height="140" style="transform:rotate(-90deg);">' +
@@ -3065,6 +3058,7 @@ window.openProgressSheet = function() {
                 '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:1rem;text-align:center;">Performance Overview</p>' +
             '</div>' +
 
+            // Stats row
             '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:2rem;">' +
                 '<div style="background:var(--bg-surface);border:1px solid var(--border-glass);border-radius:16px;padding:14px 8px;text-align:center;">' +
                     '<div style="font-size:1.5rem;font-weight:800;color:var(--text-main);">' + totalSessions + '</div>' +
@@ -3080,6 +3074,7 @@ window.openProgressSheet = function() {
                 '</div>' +
             '</div>' +
 
+            // 7-day chart
             '<div style="margin-bottom:2rem;">' +
                 '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
                     '<h3 style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0;">Learning Statistics</h3>' +
@@ -3091,9 +3086,12 @@ window.openProgressSheet = function() {
                 '</div>' +
             '</div>' +
 
+            // Suggested next
             suggSection +
 
+            // ── Subject Breakdown ─────────────────────────────────────────
             (function() {
+                // Group quizzes by subject, compute avg best score per group
                 var subjectMap = {};
                 quizzes.forEach(function(q) {
                     var subj = (q.subject || 'General').toUpperCase().trim();
@@ -3108,7 +3106,7 @@ window.openProgressSheet = function() {
                 var subjects = Object.keys(subjectMap).sort(function(a, b) {
                     var pa = subjectMap[a].attempts > 0 ? subjectMap[a].scoreSum / subjectMap[a].attempts : 101;
                     var pb = subjectMap[b].attempts > 0 ? subjectMap[b].scoreSum / subjectMap[b].attempts : 101;
-                    return pa - pb;
+                    return pa - pb; // weakest first
                 });
                 if (subjects.length === 0) return '';
                 var rows = subjects.map(function(subj) {
@@ -3139,6 +3137,7 @@ window.openProgressSheet = function() {
                 '</div>';
             })() +
 
+            // ── Streak Calendar ───────────────────────────────────────────────
             (function() {
                 var uid        = window.currentUser ? window.currentUser.uid : 'guest';
                 var history    = JSON.parse(localStorage.getItem('medexcel_checkin_history_' + uid) || '[]');
@@ -3146,6 +3145,7 @@ window.openProgressSheet = function() {
                 var streak     = (window.userStats && window.userStats.count) || 0;
                 var consistency = 0;
                 if (history.length > 0) {
+                    // Count days studied in last 14 days
                     var studied14 = 0;
                     for (var i = 0; i < 14; i++) {
                         var d14 = new Date(now - i * DAY_MS);
@@ -3154,6 +3154,7 @@ window.openProgressSheet = function() {
                     consistency = Math.round((studied14 / 14) * 100);
                 }
 
+                // Build 4-week calendar grid (28 days, newest = bottom-right)
                 var cells = [];
                 for (var w = 27; w >= 0; w--) {
                     var dc = new Date(now - w * DAY_MS);
@@ -3168,6 +3169,7 @@ window.openProgressSheet = function() {
                     cells.push('<div style="width:28px;height:28px;border-radius:6px;background:' + col + ';flex-shrink:0;" title="' + dc.toDateString() + '"></div>');
                 }
 
+                // Arrange into 4 rows of 7
                 var rows4 = '';
                 var dayLabels = '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
                     ['M','T','W','T','F','S','S'].map(function(l) {
@@ -3235,7 +3237,14 @@ window._openProgressDeck = function(quizId) {
     }
 };
 
-var _payCurrentPlan = 'monthly';
+
+
+
+/* ── payment.js ── */
+// Payment View
+// ---- PAYMENT PAGE LOGIC ----
+        // Defined at top level — NOT inside an IIFE — so a crash elsewhere can't prevent registration
+        var _payCurrentPlan = 'monthly';
         var _payCdInterval = null;
 
         function _payGetCountdownEnd() {
@@ -3256,6 +3265,7 @@ var _payCurrentPlan = 'monthly';
             } catch(e) {}
         }
 
+        // ── GEO PRICING ─────────────────────────────────────────────────────
         const GEO_PRICES = {
             NG: { currency: 'NGN', symbol: '₦',   monthly: 1999,  yearly: 14999, monthlyKobo: 199900,  yearlyKobo: 1499900, origYearly: 23988, savePct: '37%', perMo: '₦1,249/mo'  },
             GH: { currency: 'GHS', symbol: 'GH₵', monthly: 25,    yearly: 180,   monthlyKobo: 2500,    yearlyKobo: 18000,   origYearly: 300,   savePct: '40%', perMo: 'GH₵15/mo'   },
@@ -3278,6 +3288,7 @@ var _payCurrentPlan = 'monthly';
             }
             window.applyGeoPricing();
 
+            // Show first month promo only for free users who have never subscribed
             const userData = window._cachedUserData || {};
             const isAlreadyPremium = window.userPlan === 'premium' || window.userPlan === 'elite';
             const neverSubscribed = !userData.planRef && !userData.subscriptionExpiry;
@@ -3344,6 +3355,7 @@ var _payCurrentPlan = 'monthly';
                 const tAmt = p.currency === 'NGN' ? 250 : Math.round(p.monthly * 0.13);
                 const tFmt = sym + tAmt.toLocaleString();
 
+                // Reset all three cards to idle
                 ['Monthly','Yearly','Exam'].forEach(function(n) {
                     var card = document.getElementById('pCard' + n);
                     var check= document.getElementById('pCheck' + n);
@@ -3358,6 +3370,7 @@ var _payCurrentPlan = 'monthly';
                     }
                 });
 
+                // Trial banner
                 var cT  = document.getElementById('pFirstMonthBanner');
                 var ckT = document.getElementById('pCheckTrial');
                 if (cT)  cT.style.opacity = plan === 'trial' ? '1' : '0.65';
@@ -3405,7 +3418,10 @@ var _payCurrentPlan = 'monthly';
             } catch(e) { console.warn('handlePayCTA error:', e); }
         };
 
-window._activatePremium = async function(ref) {
+        // --- PAYMENT UI LOGIC ---
+
+        // Shared verify helper — used by inline popup onSuccess AND fallback iframe path
+        window._activatePremium = async function(ref) {
             var btn = document.getElementById('payCTABtn');
             var iBtn = document.getElementById('iframeVerifyBtn');
             if (btn)  { btn.textContent = "Verifying payment…"; btn.disabled = true; }
@@ -3416,6 +3432,7 @@ window._activatePremium = async function(ref) {
                 const verify = httpsCallable(fns, "verifySubscriptionPayment");
                 const result = await verify({ reference: ref });
                 if (result.data?.success) {
+                    // Clear stored pending payment
                     try { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); } catch(_){}
                     window._pendingPayRef  = null;
                     window._pendingPayPlan = null;
@@ -3427,8 +3444,6 @@ window._activatePremium = async function(ref) {
                     window.allowedMaxItems = (newPlan === 'premium' || newPlan === 'premium_trial' || newPlan === 'elite') ? 50 : 20;
                     const maxText = document.getElementById('maxLimitText');
                     if (maxText) maxText.textContent = `(Max: ${window.allowedMaxItems})`;
-                    const _upgLink = document.getElementById('maxLimitUpgrade');
-                    if (_upgLink) _upgLink.style.display = 'none';
 
                     if (btn)  { btn.textContent = "✓ You're Premium!"; btn.style.background = "#10b981"; btn.style.color = "#fff"; btn.disabled = false; }
                     if (iBtn) { iBtn.textContent = "✓ Activated!"; iBtn.style.background = "#10b981"; iBtn.disabled = false; }
@@ -3457,6 +3472,7 @@ window._activatePremium = async function(ref) {
             }
         };
 
+        // Verify whatever pending ref is stored (called by "I've paid" button in iframe modal)
         window.verifyPendingPayment = async function() {
             const ref = window._pendingPayRef || localStorage.getItem('medx_pending_ref');
             if (!ref) { alert("No pending payment found. If you were charged, use the recovery option on the payment page."); return; }
@@ -3470,6 +3486,7 @@ window._activatePremium = async function(ref) {
             const iBtn  = document.getElementById('iframeVerifyBtn');
             iframe.src = url;
             modal.style.display = 'flex';
+            // Show "I've paid" button after 8 s — user has had time to complete payment
             if (iBtn) {
                 iBtn.style.display = 'none';
                 iBtn.textContent = "✓ I've paid — Activate";
@@ -3488,6 +3505,7 @@ window._activatePremium = async function(ref) {
             setTimeout(() => { modal.style.display = 'none'; iframe.src = ''; }, 300);
         };
 
+        // Listen for Paystack postMessage from the shop iframe (fires on successful payment)
         window.addEventListener('message', function(e) {
             try {
                 if (!e.origin.includes('paystack')) return;
@@ -3508,11 +3526,13 @@ window._activatePremium = async function(ref) {
             var lastName  = nameParts.slice(1).join(" ") || ".";
             var email     = window.currentUser.email || "";
 
+            // ── Map MedXcel plan names → Paystack plan codes ─────────────────
+            // Price and billing cycle are controlled by the Paystack plan itself.
             const PLAN_CODES = {
-                'premium':         'PLN_jcgt20vstjvnf0p',
-                'premium_yearly':  'PLN_kjs8v6kzn39cjnp',
-                'premium_trial':   'PLN_yegmmewhvf8dw5p',
-                'premium_exam':    'PLN_zkdzu95bbxthyn2',
+                'premium':         'PLN_jcgt20vstjvnf0p', // ₦1,999/month
+                'premium_yearly':  'PLN_kjs8v6kzn39cjnp', // ₦14,999/year
+                'premium_trial':   'PLN_yegmmewhvf8dw5p', // ₦250 one-time trial
+                'premium_exam':    'PLN_zkdzu95bbxthyn2', // ₦4,999/quarter
             };
             const planCode = PLAN_CODES[plan];
             if (!planCode) {
@@ -3522,6 +3542,9 @@ window._activatePremium = async function(ref) {
 
             var ref = "medx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
+            // ── Store pending payment BEFORE attempting PaystackPop ──
+            // If PaystackPop throws or the fallback iframe is used, the ref is still
+            // available so we can verify after the user completes payment.
             window._pendingPayRef  = ref;
             window._pendingPayPlan = plan;
             try { localStorage.setItem('medx_pending_ref', ref); localStorage.setItem('medx_pending_plan', plan); } catch(_) {}
@@ -3541,6 +3564,7 @@ window._activatePremium = async function(ref) {
                         await window._activatePremium(transaction.reference);
                     },
                     onCancel: function() {
+                        // Don't clear pending ref on cancel — user may re-open and complete
                     }
                 });
                 handler.openIframe();
@@ -3550,14 +3574,16 @@ window._activatePremium = async function(ref) {
             }
         };
 
+        // On startup: if a pending ref exists (e.g. app restarted mid-payment), auto-verify
         (function checkPendingOnLoad() {
             try {
                 const savedRef = localStorage.getItem('medx_pending_ref');
                 if (!savedRef) return;
+                // Wait for auth to be ready then attempt silent verification
                 var attempts = 0;
                 var poll = setInterval(async function() {
                     attempts++;
-                    if (attempts > 20) { clearInterval(poll); return; }
+                    if (attempts > 20) { clearInterval(poll); return; } // give up after 10 s
                     if (!window.currentUser || !window.auth) return;
                     clearInterval(poll);
                     console.log('[MedXcel] Found unverified pending payment, attempting recovery:', savedRef);
@@ -3575,33 +3601,34 @@ window._activatePremium = async function(ref) {
                             if (typeof window.applyAvatar    === 'function') window.applyAvatar();
                             console.log('[MedXcel] Auto-recovery succeeded — plan:', newPlan);
                         } else {
+                            // Not successful — payment may not have completed, clear after 24 h to avoid stale refs
                             const saved = parseInt(savedRef.split('_')[1] || '0', 10);
                             if (Date.now() - saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); }
                         }
-                    } catch(e) {
-                        const code = e?.code || '';
-                        const _permanent = code === 'functions/failed-precondition'
-                                        || code === 'functions/not-found'
-                                        || code === 'functions/invalid-argument'
-                                        || code === 'functions/permission-denied';
-                        if (_permanent) {
-                            localStorage.removeItem('medx_pending_ref');
-                            localStorage.removeItem('medx_pending_plan');
-                            console.log('[MedXcel] Pending ref cleared — payment did not complete');
-                        } else {
-                            console.log('[MedXcel] Recovery deferred (transient):', code || e?.message || 'unknown');
-                            const _saved = parseInt(savedRef.split('_')[1] || '0', 10);
-                            if (Date.now() - _saved > 86400000) {
-                                localStorage.removeItem('medx_pending_ref');
-                                localStorage.removeItem('medx_pending_plan');
-                            }
-                        }
-                    }
+                    } catch(e) { console.warn('[MedXcel] Auto-recovery check failed silently:', e); const _saved = parseInt(savedRef.split('_')[1] || '0', 10); if (Date.now() - _saved > 86400000) { localStorage.removeItem('medx_pending_ref'); localStorage.removeItem('medx_pending_plan'); console.log('[MedXcel] Cleared stale pending ref (>24h old)'); } }
                 }, 500);
             } catch(_) {}
         })();
 
+/* ── push.js ── */
+/**
+         * initPush(userId)
+         * ─────────────────────────────────────────────────────────────────
+         * Initialises FCM via the Capacitor native bridge.
+         * Called automatically from onAuthStateChanged once the user is
+         * confirmed logged-in, so userId is always valid.
+         *
+         * Flow:
+         *   1. Guard — native Capacitor device only
+         *   2. Attach 'registration' + 'registrationError' listeners FIRST
+         *      (must precede register() — cached tokens fire instantly on Android)
+         *   3. Request OS permission
+         *   4. Call register() → native FCM token arrives via 'registration' event
+         *   5. Save full token to backend (POST /saveToken) + write directly to
+         *      Firestore users/{uid}.tokens[] as a belt-and-suspenders backup
+         */
         window.initPush = async function (userId) {
+            // ── Guard ──────────────────────────────────────────────────────
             if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
                 console.log("[Push] Not a native platform — skipping.");
                 return;
@@ -3613,7 +3640,12 @@ window._activatePremium = async function(ref) {
                 return;
             }
 
+            // ── Step 1: attach listeners BEFORE register() ─────────────────
+            // On Android, a cached token fires the event almost immediately
+            // after register() is called. Adding the listener after register()
+            // creates a race condition where the event is missed entirely.
             PushNotifications.addListener("registration", async (token) => {
+                // token.value is the raw FCM token string — never truncate it
                 const fcmToken = (token.value || "").trim();
                 console.log("[Push] ✅ FCM token received:", fcmToken);
 
@@ -3623,6 +3655,7 @@ window._activatePremium = async function(ref) {
                     return;
                 }
 
+                // ── Save via Cloud Function (primary) ─────────────────────
                 try {
                     const res = await fetch(
                         "https://us-central1-medxcel.cloudfunctions.net/saveToken",
@@ -3638,6 +3671,9 @@ window._activatePremium = async function(ref) {
                     console.error("[Push] saveToken fetch failed:", err);
                 }
 
+                // ── Write directly to Firestore (backup) ──────────────────
+                // Ensures token is stored even if the Cloud Function is cold.
+                // arrayUnion deduplicates — safe to call on every app start.
                 try {
                     if (window.db) {
                         const { doc, updateDoc, arrayUnion } =
@@ -3657,6 +3693,7 @@ window._activatePremium = async function(ref) {
                 console.error("[Push] ❌ Registration error:", JSON.stringify(err));
             });
 
+            // ── Step 2: request OS permission ──────────────────────────────
             const permStatus = await PushNotifications.requestPermissions();
             console.log("[Push] Permission:", permStatus.receive);
             if (permStatus.receive !== "granted") {
@@ -3664,17 +3701,23 @@ window._activatePremium = async function(ref) {
                 return;
             }
 
+            // ── Step 3: register with FCM ───────────────────────────────────
+            // This triggers the native FCM registration. Token arrives via the
+            // 'registration' listener above (which is already attached).
             await PushNotifications.register();
             console.log("[Push] register() called — awaiting token event...");
-        };
+        };// Manual Flashcard Creation
+// ─────────────────────────────────────────────────────────────────────────────
 (function () {
 
-    let _cards   = [];
-    let _idx     = 0;
+    // ── State ────────────────────────────────────────────────────────────────
+    let _cards   = [];    // [{ front: '', back: '' }, ...]
+    let _idx     = 0;     // card currently in the editor
     let _saving  = false;
     window._mcTitle   = '';
     window._mcSubject = '';
 
+    // ── Public entry ─────────────────────────────────────────────────────────
     window.openManualCreate = function () {
         if (!window.currentUser) { window.showLoginModal(); return; }
         _cards   = [{ front: '', back: '' }];
@@ -3686,6 +3729,7 @@ window._activatePremium = async function(ref) {
         _enter();
     };
 
+    // ── Overlay enter / exit ─────────────────────────────────────────────────
     function _enter() {
         document.getElementById('globalBottomNav')?.style.setProperty('transform', 'translateY(100%)');
         const hdr = document.querySelector('#view-create .top-header');
@@ -3709,6 +3753,7 @@ window._activatePremium = async function(ref) {
         document.getElementById('selectionView').style.display = 'flex';
     }
 
+    // ── Full render ──────────────────────────────────────────────────────────
     function _render() {
         const mv    = document.getElementById('manualCreateView');
         const card  = _cards[_idx];
@@ -3808,7 +3853,8 @@ window._activatePremium = async function(ref) {
     </div>
     ` : ''}
 
-<!-- Import from another app — compact row at bottom -->
+
+    <!-- Import from another app — compact row at bottom -->
     <div style="display:flex;align-items:center;gap:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-glass);">
       <span style="font-size:0.7rem;color:var(--text-muted);flex-shrink:0;">Import from Anki:</span>
       <button data-import="anki" id="mcImportAnkiBtn"
@@ -3837,16 +3883,19 @@ window._activatePremium = async function(ref) {
   </div>
 
 </div>`;
+    // Wire import buttons — must happen after innerHTML is set
     (function(){
         var ab=document.getElementById('mcImportAnkiBtn');
         if(ab) ab.onclick=function(){window._mcImport('anki');};
     })();
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
     function _esc(s) {
         return String(s || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
     }
 
+    // Save textarea values before any action that re-renders
     function _flush() {
         const f = document.getElementById('mcFrontInput');
         const b = document.getElementById('mcBackInput');
@@ -3858,6 +3907,7 @@ window._activatePremium = async function(ref) {
         if (s) window._mcSubject = s.value;
     }
 
+    // ── Live updates (typing — no re-render) ─────────────────────────────────
     window._mcLive = function (field, value) {
         _cards[_idx][field] = value;
         const canAdd  = !!(  _cards[_idx].front.trim() && _cards[_idx].back.trim());
@@ -3881,6 +3931,7 @@ window._activatePremium = async function(ref) {
         }
     };
 
+    // ── Navigation ───────────────────────────────────────────────────────────
     window._mcNav = function (dir) {
         _flush();
         const next = _idx + dir;
@@ -3889,22 +3940,26 @@ window._activatePremium = async function(ref) {
         _render();
     };
 
+    // ── Add card ─────────────────────────────────────────────────────────────
     window._mcAdd = function () {
         _flush();
         const card = _cards[_idx];
         if (!card.front.trim() || !card.back.trim()) return;
 
+        // If on a middle card, just advance to next
         if (_idx < _cards.length - 1) {
             _idx++;
             _render();
             return;
         }
+        // Append new blank card
         _cards.push({ front: '', back: '' });
         _idx = _cards.length - 1;
         _render();
         setTimeout(() => document.getElementById('mcFrontInput')?.focus(), 60);
     };
 
+    // ── Delete card ──────────────────────────────────────────────────────────
     window._mcDelete = function () {
         _flush();
         if (_cards.length <= 1) return;
@@ -3913,11 +3968,13 @@ window._activatePremium = async function(ref) {
         _render();
     };
 
+    // ── Back / exit ──────────────────────────────────────────────────────────
     window._mcBack = function () {
         _flush();
         const hasContent = _cards.some(c => c.front.trim() || c.back.trim());
         if (!hasContent) { _exit(); return; }
 
+        // Bottom-sheet confirm instead of browser confirm()
         _showDiscardSheet();
     };
 
@@ -3937,6 +3994,7 @@ window._activatePremium = async function(ref) {
         backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
     }
 
+    // ── Save deck ────────────────────────────────────────────────────────────
     window._mcSave = async function () {
         if (_saving) return;
         _flush();
@@ -3967,6 +4025,7 @@ window._activatePremium = async function(ref) {
             }))
         };
 
+        // Firestore
         try {
             if (window.currentUser && window.db) {
                 const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
@@ -3974,12 +4033,14 @@ window._activatePremium = async function(ref) {
             }
         } catch (e) { console.warn('[ManualCreate] Firestore save error:', e); }
 
+        // localStorage + in-memory
         const uid   = window.currentUser?.uid || 'guest';
         const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
         store.push(newQuiz);
         localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
         window.quizzes = store;
 
+        // XP (5 per card)
         try { await window.addXP(valid.length * 5); } catch (e) {}
         window.commitStreakOnAction?.();
 
@@ -3988,6 +4049,7 @@ window._activatePremium = async function(ref) {
         window.updateHomeContinueCard?.();
         window.navigateTo('view-study');
 
+        // Toast
         setTimeout(() => {
             const t = document.createElement('div');
             t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--accent-btn);color:var(--btn-text);padding:0.625rem 1.25rem;border-radius:9999px;font-size:0.875rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
@@ -3997,6 +4059,7 @@ window._activatePremium = async function(ref) {
         }, 350);
     };
 
+    // ── Import from manual create ─────────────────────────────────────────────
     window._mcImport = function (target) {
         _flush();
         window._importEntryPoint = 'manual';
@@ -4016,8 +4079,14 @@ window._activatePremium = async function(ref) {
 
 })();
 
+// Anki .apkg Import
+// ─────────────────────────────────────────────────────────────────────────────
+// Supports .apkg (Anki package) files — no external dependencies except JSZip
+// which is loaded on-demand from cdnjs when the user first opens this feature.
+// ─────────────────────────────────────────────────────────────────────────────
 (function () {
 
+    // ── JSZip loader ─────────────────────────────────────────────────────────
     let _jszipReady = null;
     function _loadJSZip() {
         if (_jszipReady) return _jszipReady;
@@ -4032,6 +4101,7 @@ window._activatePremium = async function(ref) {
         return _jszipReady;
     }
 
+    // ── SQLite reader with overflow page support ────────────────────────────────
     function _varint(u8, pos) {
         let v = 0;
         for (let i = 0; i < 9; i++) {
@@ -4043,6 +4113,7 @@ window._activatePremium = async function(ref) {
         return { v, next: pos + 9 };
     }
 
+    // Concatenate payload across overflow pages into a single Uint8Array
     function _fullPayload(u8, pageSize, cellPos, totalPayloadLen) {
         const reservedBytes = u8[20];
         const usable = pageSize - reservedBytes;
@@ -4050,17 +4121,22 @@ window._activatePremium = async function(ref) {
         const minLocal = Math.floor((usable - 12) * 32 / 255) - 23;
 
         if (totalPayloadLen <= maxLocal) {
+            // No overflow — all data is on this page
             return u8.slice(cellPos, cellPos + totalPayloadLen);
         }
 
+        // Calculate how many bytes are stored locally
         let localSize = minLocal + ((totalPayloadLen - minLocal) % (usable - 4));
         if (localSize > maxLocal) localSize = minLocal;
 
+        // Collect local bytes
         const chunks = [u8.slice(cellPos, cellPos + localSize)];
 
+        // Read overflow page number (4 bytes right after local payload)
         const dv = new DataView(u8.buffer, u8.byteOffset);
         let ovflPage = dv.getUint32(cellPos + localSize, false);
 
+        // Follow overflow page chain
         let collected = localSize;
         let safety = 0;
         while (ovflPage > 0 && collected < totalPayloadLen && safety++ < 500) {
@@ -4074,6 +4150,7 @@ window._activatePremium = async function(ref) {
             ovflPage = nextPage;
         }
 
+        // Merge chunks
         const total = chunks.reduce((s, c) => s + c.length, 0);
         const merged = new Uint8Array(total);
         let offset = 0;
@@ -4120,12 +4197,12 @@ window._activatePremium = async function(ref) {
         for (let i = 0; i < cellCount; i++) {
             const cp = pageOffset + ((u8[ptrOff+i*2]<<8)|u8[ptrOff+i*2+1]);
             let p = cp;
-            const pl = _varint(u8, p); p = pl.next;
-            const ri = _varint(u8, p); p = ri.next;
+            const pl = _varint(u8, p); p = pl.next; // total payload length
+            const ri = _varint(u8, p); p = ri.next; // row id (skip)
             try {
                 const payload = _fullPayload(u8, pageSize, p, pl.v);
                 rows.push(_record(payload));
-            } catch(e) {  }
+            } catch(e) { /* skip unparseable row */ }
         }
     }
 
@@ -4161,6 +4238,7 @@ window._activatePremium = async function(ref) {
         const u8 = new Uint8Array(arrayBuffer);
         const dv = new DataView(arrayBuffer);
 
+        // Validate SQLite magic
         const magic = 'SQLite format 3\x00';
         for (let i = 0; i < 16; i++) {
             if (u8[i] !== magic.charCodeAt(i)) throw new Error('Not a valid SQLite file');
@@ -4186,6 +4264,7 @@ window._activatePremium = async function(ref) {
         }
         return result;
     }
+    // ── HTML strip helper ─────────────────────────────────────────────────────
     function _stripHTML(html) {
         if (!html) return '';
         return html
@@ -4199,6 +4278,7 @@ window._activatePremium = async function(ref) {
             .trim();
     }
 
+    // ── Parse .apkg file → array of {front, back, tags, deckName} ─────────────
     async function _parseApkg(file) {
         await _loadJSZip();
         const zip = await JSZip.loadAsync(file);
@@ -4274,8 +4354,10 @@ window._activatePremium = async function(ref) {
 
         return { cards, deckName };
     }
-    let _parsed = null;
+    // ── UI state ─────────────────────────────────────────────────────────────
+    let _parsed = null; // { cards, deckName }
 
+    // ── Entry point ───────────────────────────────────────────────────────────
     window.openAnkiImport = function () {
         if (!window.currentUser) { window.showLoginModal(); return; }
         _parsed = null;
@@ -4284,6 +4366,7 @@ window._activatePremium = async function(ref) {
     };
 
     function _ankiEnter() {
+        // Track which view we came from so back nav can return correctly
         const onCreateView = document.getElementById('view-create')?.classList.contains('active');
         window._ankiFromCreate = onCreateView;
         if (onCreateView) {
@@ -4317,8 +4400,10 @@ window._activatePremium = async function(ref) {
             if (hdr) hdr.style.display = '';
             document.getElementById('selectionView').style.display = 'flex';
         }
+        // If from home/library, just close overlay — nav was never hidden
     }
 
+    // ── Screen 1: picker with two tabs (File / Paste text) ───────────────────
     function _renderAnkiPicker(tab) {
         tab = tab || 'file';
         const mv = document.getElementById('ankiImportView');
@@ -4409,9 +4494,11 @@ window._activatePremium = async function(ref) {
   ` : ''}
 
 </div>`;
+        // Expose for tab switching
         window._renderAnkiPicker = _renderAnkiPicker;
     }
 
+    // ── Live paste feedback ───────────────────────────────────────────────────
     window._ankiPasteLive = function(val) {
         const cards = _parseTSV(val);
         const status = document.getElementById('ankiPasteStatus');
@@ -4430,12 +4517,13 @@ window._activatePremium = async function(ref) {
         }
     };
 
+    // ── Parse tab-separated text (Anki plain text export) ─────────────────────
     function _parseTSV(text) {
         if (!text.trim()) return [];
         const cards = [];
         for (const line of text.split('\n')) {
             const t = line.trim();
-            if (!t || t.startsWith('#')) continue;
+            if (!t || t.startsWith('#')) continue; // skip empty + Anki comment lines
             const tabIdx = t.indexOf('\t');
             if (tabIdx === -1) continue;
             const front = _stripHTML(t.substring(0, tabIdx).trim());
@@ -4445,6 +4533,7 @@ window._activatePremium = async function(ref) {
         return cards;
     }
 
+    // ── Import from paste ─────────────────────────────────────────────────────
     window._ankiPasteImport = function() {
         const text  = document.getElementById('ankiPasteArea')?.value || '';
         const cards = _parseTSV(text);
@@ -4453,6 +4542,7 @@ window._activatePremium = async function(ref) {
         _renderAnkiPreview();
     };
 
+    // ── File chosen — parse and show preview ──────────────────────────────────
     window._ankiFileChosen = async function (input) {
         const file = input.files[0];
         if (!file) return;
@@ -4478,6 +4568,7 @@ window._activatePremium = async function(ref) {
         }
     };
 
+    // ── Screen 2: loading ─────────────────────────────────────────────────────
     function _renderAnkiLoading(filename) {
         const mv = document.getElementById('ankiImportView');
         mv.innerHTML = `
@@ -4491,6 +4582,7 @@ window._activatePremium = async function(ref) {
 </div>`;
     }
 
+    // ── Screen 3: preview / confirm ───────────────────────────────────────────
     function _renderAnkiPreview() {
         if (!_parsed) return;
         const { cards, deckName } = _parsed;
@@ -4565,9 +4657,11 @@ window._activatePremium = async function(ref) {
   </div>
 
 </div>`;
+        // expose for back button
         window._renderAnkiPicker = _renderAnkiPicker;
     }
 
+    // ── Screen 4: error ───────────────────────────────────────────────────────
     function _renderAnkiError(msg) {
         const mv = document.getElementById('ankiImportView');
         mv.innerHTML = `
@@ -4587,6 +4681,7 @@ window._activatePremium = async function(ref) {
         window._renderAnkiPicker = _renderAnkiPicker;
     }
 
+    // ── Save imported deck ────────────────────────────────────────────────────
     window._ankiConfirmImport = async function () {
         if (!_parsed) return;
         const btn = document.querySelector('#ankiImportView button:last-of-type');
@@ -4612,6 +4707,7 @@ window._activatePremium = async function(ref) {
             }))
         };
 
+        // Firestore
         try {
             if (window.currentUser && window.db) {
                 const { setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
@@ -4619,12 +4715,14 @@ window._activatePremium = async function(ref) {
             }
         } catch(e) { console.warn('[AnkiImport] Firestore error:', e); }
 
+        // localStorage + in-memory
         const uid   = window.currentUser?.uid || 'guest';
         const store = JSON.parse(localStorage.getItem('medexcel_quizzes_' + uid) || '[]');
         store.push(newQuiz);
         localStorage.setItem('medexcel_quizzes_' + uid, JSON.stringify(store));
         window.quizzes = store;
 
+        // XP (5 per card, capped at 500 so a huge import doesn't break the economy)
         try { await window.addXP(Math.min(cards.length * 5, 500)); } catch(e) {}
         window.commitStreakOnAction?.();
 
@@ -4641,36 +4739,44 @@ window._activatePremium = async function(ref) {
         }, 350);
     };
 
+    // ── Back ──────────────────────────────────────────────────────────────────
     window._ankiBack = _ankiExit;
 
+    // ── Escape helper ─────────────────────────────────────────────────────────
     function _esc(s) {
         return String(s || '').replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
     }
 
 })();
+// ═══════════════════════════════════════════════════════════════════════════
+// BOSS FIGHT MODE
+// ═══════════════════════════════════════════════════════════════════════════
 (function () {
 
-    let _questions  = [];
-    let _qIdx       = 0;
+    // ── State ────────────────────────────────────────────────────────────────
+    let _questions  = [];   // shuffled subset from chosen deck
+    let _qIdx       = 0;    // current question index
     let _bossHP     = 100;
     let _playerHP   = 100;
     let _timer      = null;
     let _timeLeft   = 10;
     let _answered   = false;
     let _deckTitle  = '';
-    let _xpDelta    = 0;
+    let _xpDelta    = 0;    // net XP change at end
 
     const TOTAL_Q    = 15;
     const BOSS_MAX   = 100;
     const PLAYER_MAX = 100;
-    const TIME_PER_Q = 10;
+    const TIME_PER_Q = 10;  // seconds
 
+    // Damage values
     const DMG_CORRECT_BASE  = 15;
-    const DMG_CORRECT_QUICK = 5;
+    const DMG_CORRECT_QUICK = 5;   // bonus if answered in ≤4s
     const DMG_WRONG_PLAYER  = 20;
     const XP_WIN            = 50;
     const XP_LOSE           = -15;
 
+    // ── CSS (injected once) ──────────────────────────────────────────────────
     function _injectStyles() {
         if (document.getElementById('bossStyle')) return;
         const s = document.createElement('style');
@@ -4739,6 +4845,7 @@ window._activatePremium = async function(ref) {
         document.head.appendChild(s);
     }
 
+    // ── Enter / Exit overlay ─────────────────────────────────────────────────
     function _enter() {
         document.getElementById('globalBottomNav')?.style.setProperty('transform','translateY(100%)');
         const mv = document.getElementById('bossFightView');
@@ -4750,6 +4857,7 @@ window._activatePremium = async function(ref) {
             transition:'opacity .22s ease, transform .22s ease',
         });
         requestAnimationFrame(() => { mv.style.opacity='1'; mv.style.transform='translateY(0)'; });
+        // Purple status bar for boss fight
         const _themeMeta = document.querySelector('meta[name="theme-color"]');
         if (_themeMeta) _themeMeta.content = '#0f0720';
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -4762,6 +4870,7 @@ window._activatePremium = async function(ref) {
         if (!mv) return;
         mv.style.opacity='0'; mv.style.transform='translateY(20px)';
         setTimeout(() => { mv.style.display='none'; mv.style.transition=''; }, 230);
+        // Reset status bar to theme
         const _isLight = localStorage.getItem('medexcel_theme') !== 'dark';
         const _tm = document.querySelector('meta[name="theme-color"]');
         if (_tm) _tm.content = _isLight ? '#f1f5f9' : '#09090b';
@@ -4773,86 +4882,12 @@ window._activatePremium = async function(ref) {
         if (_timer) { clearInterval(_timer); _timer = null; }
     }
 
-    function _showNoDeckModal() {
-        const existing = document.getElementById('bossNoDeckBackdrop');
-        if (existing) existing.remove();
-
-        const backdrop = document.createElement('div');
-        backdrop.id = 'bossNoDeckBackdrop';
-        backdrop.className = 'modal-backdrop';
-        backdrop.style.cssText = 'display:flex;opacity:0;align-items:center;justify-content:center;';
-
-        backdrop.innerHTML = `
-            <div id="bossNoDeckContent" style="
-                background:var(--bg-surface);border:1px solid var(--border-color);
-                border-radius:var(--radius-card);padding:2rem 1.5rem 1.5rem;
-                width:calc(100% - 2rem);max-width:340px;text-align:center;
-                transform:scale(0.88);opacity:0;
-                transition:transform 0.4s var(--ease-snap),opacity 0.3s ease;
-                position:relative;">
-                <div style="display:inline-flex;align-items:center;justify-content:center;
-                            width:72px;height:72px;border-radius:50%;
-                            background:linear-gradient(135deg,#7c3aed,#a78bfa);
-                            margin:0 auto 1.125rem;
-                            box-shadow:0 8px 24px rgba(124,58,237,0.3);">
-                    <i class="fas fa-dragon" style="font-size:1.875rem;color:#fff;"></i>
-                </div>
-                <h2 style="font-size:1.25rem;font-weight:800;color:var(--text-main);margin-bottom:0.5rem;letter-spacing:-0.02em;">
-                    No deck to fight yet
-                </h2>
-                <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.55;margin-bottom:1.5rem;">
-                    Boss Fight needs a deck with at least <strong style="color:var(--text-main);">5 questions</strong>. Generate one and come back to earn XP.
-                </p>
-                <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                    <button id="bossNoDeckCreateBtn" style="
-                        width:100%;padding:0.875rem;border-radius:var(--radius-btn);border:none;
-                        background:var(--accent-btn);color:var(--btn-text);
-                        font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;
-                        display:flex;align-items:center;justify-content:center;gap:0.5rem;
-                        transition:transform 0.15s ease;-webkit-tap-highlight-color:transparent;"
-                        onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''"
-                        ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform=''">
-                        <i class="fas fa-wand-magic-sparkles"></i> Generate a Deck
-                    </button>
-                    <button id="bossNoDeckCloseBtn" style="
-                        width:100%;padding:0.75rem;border-radius:var(--radius-btn);border:none;
-                        background:transparent;color:var(--text-muted);
-                        font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;
-                        -webkit-tap-highlight-color:transparent;">
-                        Maybe later
-                    </button>
-                </div>
-            </div>`;
-
-        document.body.appendChild(backdrop);
-
-        requestAnimationFrame(() => {
-            backdrop.style.opacity = '1';
-            const c = document.getElementById('bossNoDeckContent');
-            if (c) { c.style.opacity = '1'; c.style.transform = 'scale(1)'; }
-        });
-
-        const close = () => {
-            const c = document.getElementById('bossNoDeckContent');
-            if (c) { c.style.opacity = '0'; c.style.transform = 'scale(0.92)'; }
-            backdrop.style.opacity = '0';
-            setTimeout(() => backdrop.remove(), 350);
-        };
-        document.getElementById('bossNoDeckCloseBtn')?.addEventListener('click', close);
-        document.getElementById('bossNoDeckCreateBtn')?.addEventListener('click', () => {
-            close();
-            if (typeof window.navigateTo === 'function') {
-                setTimeout(() => window.navigateTo('view-create'), 200);
-            }
-        });
-        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-    }
-
+    // ── Entry point ──────────────────────────────────────────────────────────
     window.openBossFight = function () {
         if (!window.currentUser) { window.showLoginModal(); return; }
         const quizzes = (window.quizzes || []).filter(q => q.questions && q.questions.length >= 5);
         if (!quizzes.length) {
-            _showNoDeckModal();
+            alert('You need at least one deck with 5+ questions to start a Boss Fight. Generate a deck first!');
             return;
         }
         _injectStyles();
@@ -4860,6 +4895,7 @@ window._activatePremium = async function(ref) {
         _enter();
     };
 
+    // ── Screen 1: Deck picker ────────────────────────────────────────────────
     function _renderDeckPicker(quizzes) {
         const mv = document.getElementById('bossFightView');
 
@@ -4959,6 +4995,7 @@ window._activatePremium = async function(ref) {
 
 </div>`;
 
+        // Inject stagger keyframe if missing
         if (!document.getElementById('bossFadeStyle')) {
             const st = document.createElement('style');
             st.id = 'bossFadeStyle';
@@ -4969,10 +5006,12 @@ window._activatePremium = async function(ref) {
         window._bossExit = _exit;
     }
 
+    // ── Start fight ──────────────────────────────────────────────────────────
     window._bossStartFight = function(deckId) {
         const quiz = (window.quizzes||[]).find(q => String(q.id) === String(deckId));
         if (!quiz) return;
 
+        // Shuffle and take up to TOTAL_Q
         const pool = [...quiz.questions].sort(() => Math.random()-.5).slice(0, TOTAL_Q);
         _questions  = pool;
         _qIdx       = 0;
@@ -4984,11 +5023,13 @@ window._activatePremium = async function(ref) {
         _renderFight();
     };
 
+    // ── Boss SVG character ───────────────────────────────────────────────────
     function _bossSVG(size, extra) {
         const s = size || 64;
         return `<img src="boss.svg" style="width:${s}px;height:${s}px;${extra||''}display:inline-block;object-fit:contain;" alt="Boss">`;
     }
 
+    // ── Main fight screen ────────────────────────────────────────────────────
     function _renderFight() {
         const mv = document.getElementById('bossFightView');
         const q  = _questions[_qIdx];
@@ -5091,6 +5132,7 @@ window._activatePremium = async function(ref) {
         _startTimer();
     }
 
+    // ── Timer ────────────────────────────────────────────────────────────────
     function _startTimer() {
         _timeLeft = TIME_PER_Q;
         _answered = false;
@@ -5105,6 +5147,7 @@ window._activatePremium = async function(ref) {
             if (numEl) numEl.textContent = Math.max(0, _timeLeft);
             if (ring)  ring.style.strokeDashoffset = circ - ((_timeLeft / TIME_PER_Q) * circ);
 
+            // Turn red when ≤3s
             if (_timeLeft <= 3 && ring) {
                 ring.style.stroke = '#ef4444';
                 if (numEl) { numEl.style.color = '#ef4444'; numEl.style.animation = 'bossTimerPulse .5s ease infinite'; }
@@ -5118,6 +5161,7 @@ window._activatePremium = async function(ref) {
         }, 1000);
     }
 
+    // ── Answer handling ───────────────────────────────────────────────────────
     window._bossAnswer = function(idx) {
         if (_answered) return;
         _answered = true;
@@ -5126,8 +5170,9 @@ window._activatePremium = async function(ref) {
         const q       = _questions[_qIdx];
         const correct = q.correct;
         const isRight = idx === correct;
-        const quick   = _timeLeft >= (TIME_PER_Q - 4);
+        const quick   = _timeLeft >= (TIME_PER_Q - 4); // answered within 4s
 
+        // Style buttons
         const btns = document.querySelectorAll('.boss-opt-btn');
         btns.forEach((btn, i) => {
             btn.disabled = true;
@@ -5149,6 +5194,7 @@ window._activatePremium = async function(ref) {
             _updateHP('player', _playerHP);
         }
 
+        // Check win/lose
         setTimeout(() => {
             if (_bossHP <= 0)     { _endFight(true); return; }
             if (_playerHP <= 0)   { _endFight(false); return; }
@@ -5176,6 +5222,7 @@ window._activatePremium = async function(ref) {
         }, 1000);
     }
 
+    // ── Visual helpers ────────────────────────────────────────────────────────
     function _updateHP(who, val) {
         const pct   = (val / (who === 'boss' ? BOSS_MAX : PLAYER_MAX)) * 100;
         const barId = who === 'boss' ? 'bossHPBar' : 'playerHPBar';
@@ -5214,8 +5261,10 @@ window._activatePremium = async function(ref) {
         setTimeout(() => d.remove(), 950);
     }
 
+    // ── End screen ────────────────────────────────────────────────────────────
     function _endFight(won) {
         if (_timer) { clearInterval(_timer); _timer = null; }
+        // ── Daily win cap — max 3 boss wins per day ──────────────────────
         let xp = XP_LOSE;
         if (won) {
             const today = new Date().toDateString();
@@ -5225,6 +5274,7 @@ window._activatePremium = async function(ref) {
                 localStorage.setItem(key, wins + 1);
                 xp = XP_WIN;
             } else {
+                // Already maxed today — win but no XP
                 xp = 0;
             }
         }
@@ -5276,9 +5326,11 @@ window._activatePremium = async function(ref) {
 </div>`;
     }
 
+    // ── Nav ───────────────────────────────────────────────────────────────────
     window._bossConfirmExit = function() {
+        // Show a quick confirmation sheet
         if (_timer) clearInterval(_timer);
-        _answered = true;
+        _answered = true; // pause the current question
 
         const sheet = document.createElement('div');
         sheet.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;';
@@ -5298,6 +5350,7 @@ window._activatePremium = async function(ref) {
         };
         sheet.querySelector('#_bossQuitNo').onclick = function() {
             sheet.remove();
+            // Resume timer
             _answered = false;
             _startTimer();
         };
@@ -5311,6 +5364,7 @@ window._activatePremium = async function(ref) {
     };
 
     window._bossRematch = function() {
+        // Reset state and re-shuffle the same questions — no deck lookup needed
         _qIdx = 0; _bossHP = BOSS_MAX; _playerHP = PLAYER_MAX; _xpDelta = 0; _answered = false;
         _questions = [..._questions].sort(() => Math.random() - 0.5);
         if (_timer) { clearInterval(_timer); _timer = null; }
@@ -5323,12 +5377,18 @@ window._activatePremium = async function(ref) {
         window.updateHomeContinueCard?.();
     };
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
     function _esc(s) {
         return String(s||'').replace(/[&<>"']/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[t]));
     }
 
 })();
 
+// PDF Page Selector
+// ─────────────────────────────────────────────────────────────────────────────
+// Shows a thumbnail grid of all PDF pages so users can pick which pages
+// to include before quiz generation. Uses PDF.js for rendering and
+// PDF-lib for reconstructing a new PDF from selected pages only.
 (function () {
 
     let _pdfFile       = null;
@@ -5354,7 +5414,6 @@ window._activatePremium = async function(ref) {
         _pdfDoc        = null;
 
         const mv = _getOverlay();
-        _ensureShimmer();
         mv.innerHTML = _loadingHTML(file.name);
         _show(mv);
 
@@ -5380,9 +5439,7 @@ window._activatePremium = async function(ref) {
         if (document.getElementById('_pdfShimmerKf')) return;
         const s = document.createElement('style');
         s.id = '_pdfShimmerKf';
-        s.textContent =
-            '@keyframes _pdfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}' +
-            '@keyframes spin{to{transform:rotate(360deg)}}';
+        s.textContent = '@keyframes _pdfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}';
         document.head.appendChild(s);
     }
 
@@ -5425,12 +5482,15 @@ window._activatePremium = async function(ref) {
         _ensureShimmer();
         const grid = mv.querySelector('#pdfThumbGrid');
 
+        // Step 1 — stamp ALL skeleton placeholders synchronously so the full
+        // grid layout appears instantly before any canvas work starts
         for (let pageNum = 1; pageNum <= _totalPages; pageNum++) {
             const wrapper = document.createElement('div');
             wrapper.id = `pdfPage_${pageNum}`;
             wrapper.style.cssText = 'position:relative;border-radius:0.75rem;overflow:hidden;cursor:pointer;border:2.5px solid var(--accent-btn);background:var(--bg-surface);transition:border-color 0.15s,opacity 0.15s;';
             wrapper.onclick = () => window._pdfTogglePage(pageNum);
 
+            // Skeleton — padding-bottom trick holds aspect ratio without knowing image height
             const skel = document.createElement('div');
             skel.id = `pdfSkel_${pageNum}`;
             skel.style.cssText = 'width:100%;padding-bottom:133%;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border-glass) 50%,var(--bg-surface) 75%);background-size:200% 100%;animation:_pdfShimmer 1.3s infinite linear;';
@@ -5458,23 +5518,23 @@ window._activatePremium = async function(ref) {
 
         _refreshUI();
 
-        (async () => {
-            const BATCH_SIZE = 8;
-            for (let start = 1; start <= _totalPages; start += BATCH_SIZE) {
-                const batch = [];
-                for (let p = start; p < start + BATCH_SIZE && p <= _totalPages; p++) {
-                    batch.push(_renderPageThumb(p));
-                }
-                await Promise.all(batch);
+        // Step 2 — render thumbnails in parallel batches of 4.
+        // Each page swaps its skeleton for the real image the moment it finishes.
+        const BATCH_SIZE = 4;
+        for (let start = 1; start <= _totalPages; start += BATCH_SIZE) {
+            const batch = [];
+            for (let p = start; p < start + BATCH_SIZE && p <= _totalPages; p++) {
+                batch.push(_renderPageThumb(p));
             }
-        })();
+            await Promise.all(batch);
+        }
     }
 
     async function _renderPageThumb(pageNum) {
         try {
             const page     = await _pdfDoc.getPage(pageNum);
             const viewport = page.getViewport({ scale: 1.0 });
-            const scale    = 200 / viewport.width;
+            const scale    = 380 / viewport.width;
             const scaled   = page.getViewport({ scale });
 
             const canvas   = document.createElement('canvas');
@@ -5485,11 +5545,12 @@ window._activatePremium = async function(ref) {
             const img  = document.getElementById(`pdfImg_${pageNum}`);
             const skel = document.getElementById(`pdfSkel_${pageNum}`);
             if (img && skel) {
-                img.src           = canvas.toDataURL('image/jpeg', 0.6);
+                img.src           = canvas.toDataURL('image/jpeg', 0.72);
                 img.style.display = 'block';
                 skel.style.display = 'none';
             }
         } catch (_e) {
+            // Failed page: kill shimmer, leave neutral grey — other pages continue normally
             const skel = document.getElementById(`pdfSkel_${pageNum}`);
             if (skel) { skel.style.animation = 'none'; skel.style.background = 'var(--bg-surface)'; }
         }
@@ -5629,306 +5690,6 @@ window._activatePremium = async function(ref) {
             <p style="font-size:0.9375rem;font-weight:600;color:var(--text-main);margin:0;">Couldn't load PDF</p>
             <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${msg}</p>
             <button onclick="window._pdfSelectorBack()" style="margin-top:0.5rem;padding:0.75rem 1.5rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-weight:700;cursor:pointer;">Go back</button>
-        </div>`;
-    }
-
-})();
-
-(function () {
-
-    let _pptxFile       = null;
-    let _slidesData     = [];
-    let _selectedSlides = new Set();
-    let _totalSlides    = 0;
-
-    let _jszipReady = null;
-    function _loadJSZip() {
-        if (_jszipReady) return _jszipReady;
-        _jszipReady = new Promise((resolve, reject) => {
-            if (typeof JSZip !== 'undefined') { resolve(); return; }
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error('Failed to load JSZip'));
-            document.head.appendChild(s);
-        });
-        return _jszipReady;
-    }
-
-    window.openPptxSlideSelector = async function (file) {
-        _pptxFile       = file;
-        _selectedSlides = new Set();
-        _slidesData     = [];
-
-        const mv = _getOverlay();
-        _ensureShimmer();
-        mv.innerHTML = _loadingHTML(file.name);
-        _show(mv);
-
-        try {
-            await _loadJSZip();
-            const zip = await JSZip.loadAsync(file);
-
-            const slideEntries = Object.keys(zip.files)
-                .filter(p => /^ppt\/slides\/slide\d+\.xml$/i.test(p))
-                .sort((a, b) => {
-                    const na = parseInt(a.match(/slide(\d+)\.xml/i)[1], 10);
-                    const nb = parseInt(b.match(/slide(\d+)\.xml/i)[1], 10);
-                    return na - nb;
-                });
-
-            if (slideEntries.length === 0) {
-                throw new Error('No slides found in this file. It may not be a valid .pptx.');
-            }
-
-            _totalSlides = slideEntries.length;
-
-            for (let i = 0; i < slideEntries.length; i++) {
-                const xml = await zip.files[slideEntries[i]].async('string');
-                const texts = [];
-                const re = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
-                let m;
-                while ((m = re.exec(xml)) !== null) {
-                    const t = _decodeXmlEntities(m[1]).trim();
-                    if (t) texts.push(t);
-                }
-                const title = texts[0] || '(Untitled slide)';
-                const body  = texts.slice(1).join(' • ');
-                _slidesData.push({ num: i + 1, title, body });
-                _selectedSlides.add(i + 1);
-            }
-
-            _renderGrid(mv);
-        } catch (e) {
-            console.error('[PptxSlideSelector]', e);
-            mv.innerHTML = _errorHTML(e.message);
-        }
-    };
-
-    function _decodeXmlEntities(s) {
-        return s
-            .replace(/&lt;/g,  '<')
-            .replace(/&gt;/g,  '>')
-            .replace(/&quot;/g,'"')
-            .replace(/&apos;/g,"'")
-            .replace(/&amp;/g, '&');
-    }
-
-    function _ensureShimmer() {
-        if (document.getElementById('_pptxAnimKf')) return;
-        const s = document.createElement('style');
-        s.id = '_pptxAnimKf';
-        s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
-        document.head.appendChild(s);
-    }
-
-    function _renderGrid(mv) {
-        mv.innerHTML = `
-<div style="display:flex;flex-direction:column;min-height:100%;">
-
-  <!-- Header -->
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:1rem 1.125rem 0.875rem;border-bottom:1px solid var(--border-glass);background:var(--bg-body);flex-shrink:0;position:sticky;top:0;z-index:5;">
-    <button onclick="window._pptxSelectorBack()"
-      style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;cursor:pointer;"
-      ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform=''">
-      <i class="fas fa-times"></i>
-    </button>
-    <div style="flex:1;">
-      <h2 style="font-size:1rem;font-weight:700;color:var(--text-main);margin:0;">Select slides</h2>
-      <p style="font-size:0.75rem;color:var(--text-muted);margin:0;" id="pptxSelCount">${_totalSlides} of ${_totalSlides} selected</p>
-    </div>
-    <button onclick="window._pptxToggleAll()" id="pptxToggleAllBtn"
-      style="font-size:0.75rem;font-weight:700;color:var(--accent-btn);background:transparent;border:none;cursor:pointer;padding:0.25rem 0.5rem;">
-      Deselect all
-    </button>
-  </div>
-
-  <!-- Grid (single column — text cards read better stacked than side-by-side) -->
-  <div id="pptxSlideGrid"
-    style="display:flex;flex-direction:column;gap:0.75rem;padding:1rem;flex:1;">
-  </div>
-
-  <!-- Footer -->
-  <div style="padding:0.875rem 1.125rem 0.875rem;background:var(--bg-body);border-top:1px solid var(--border-glass);position:sticky;bottom:0;z-index:5;">
-    <button id="pptxContinueBtn" onclick="window._pptxConfirm()"
-      style="width:100%;padding:0.9375rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:1rem;font-weight:700;cursor:pointer;">
-      Continue with ${_totalSlides} slides
-    </button>
-  </div>
-
-</div>`;
-
-        const grid = mv.querySelector('#pptxSlideGrid');
-
-        for (const slide of _slidesData) {
-            const wrapper = document.createElement('div');
-            wrapper.id = `pptxSlide_${slide.num}`;
-            wrapper.style.cssText = 'position:relative;border-radius:0.75rem;padding:0.875rem 1rem;cursor:pointer;border:2px solid var(--accent-btn);background:var(--bg-surface);transition:border-color 0.15s,opacity 0.15s;';
-            wrapper.onclick = () => window._pptxToggleSlide(slide.num);
-
-            const slideLabel = document.createElement('div');
-            slideLabel.style.cssText = 'font-size:0.6875rem;font-weight:700;color:var(--accent-btn);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.375rem;';
-            slideLabel.textContent = `Slide ${slide.num}`;
-
-            const titleEl = document.createElement('div');
-            titleEl.style.cssText = 'font-size:0.9375rem;font-weight:700;color:var(--text-main);margin-bottom:0.25rem;line-height:1.3;word-break:break-word;';
-            titleEl.textContent = slide.title;
-
-            const bodyEl = document.createElement('div');
-            bodyEl.style.cssText = 'font-size:0.8125rem;color:var(--text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;padding-right:2rem;';
-            bodyEl.textContent = slide.body || '(no body text)';
-
-            const checkEl = document.createElement('div');
-            checkEl.id = `pptxCheck_${slide.num}`;
-            checkEl.style.cssText = 'position:absolute;top:0.75rem;right:0.75rem;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;transition:opacity 0.15s;';
-            checkEl.innerHTML = '<i class="fas fa-check" style="font-size:0.6rem;color:white;"></i>';
-
-            wrapper.appendChild(slideLabel);
-            wrapper.appendChild(titleEl);
-            wrapper.appendChild(bodyEl);
-            wrapper.appendChild(checkEl);
-            grid.appendChild(wrapper);
-        }
-
-        _refreshUI();
-    }
-
-    window._pptxToggleSlide = function (num) {
-        if (_selectedSlides.has(num)) _selectedSlides.delete(num);
-        else _selectedSlides.add(num);
-        _refreshUI();
-    };
-
-    window._pptxToggleAll = function () {
-        if (_selectedSlides.size === _totalSlides) _selectedSlides.clear();
-        else for (let i = 1; i <= _totalSlides; i++) _selectedSlides.add(i);
-        _refreshUI();
-    };
-
-    function _refreshUI() {
-        const count = _selectedSlides.size;
-
-        const countEl = document.getElementById('pptxSelCount');
-        if (countEl) countEl.textContent = `${count} of ${_totalSlides} selected`;
-
-        const toggleBtn = document.getElementById('pptxToggleAllBtn');
-        if (toggleBtn) toggleBtn.textContent = count === _totalSlides ? 'Deselect all' : 'Select all';
-
-        const continueBtn = document.getElementById('pptxContinueBtn');
-        if (continueBtn) {
-            continueBtn.disabled       = count === 0;
-            continueBtn.style.opacity  = count === 0 ? '0.45' : '1';
-            continueBtn.style.cursor   = count === 0 ? 'not-allowed' : 'pointer';
-            continueBtn.textContent    = count === 0
-                ? 'Select at least one slide'
-                : `Continue with ${count} slide${count !== 1 ? 's' : ''}`;
-        }
-
-        for (const slide of _slidesData) {
-            const wrapper  = document.getElementById(`pptxSlide_${slide.num}`);
-            const checkEl  = document.getElementById(`pptxCheck_${slide.num}`);
-            const selected = _selectedSlides.has(slide.num);
-            if (wrapper) {
-                wrapper.style.borderColor = selected ? 'var(--accent-btn)' : 'var(--border-glass)';
-                wrapper.style.opacity     = selected ? '1' : '0.45';
-            }
-            if (checkEl) checkEl.style.opacity = selected ? '1' : '0';
-        }
-    }
-
-    window._pptxConfirm = async function () {
-        if (_selectedSlides.size === 0) return;
-
-        const btn = document.getElementById('pptxContinueBtn');
-        if (btn) { btn.textContent = 'Preparing slides…'; btn.disabled = true; btn.style.opacity = '0.65'; }
-
-        try {
-            let finalFile;
-
-            if (_selectedSlides.size === _totalSlides) {
-                finalFile = _pptxFile;
-            } else {
-                const sortedNums = [..._selectedSlides].sort((a, b) => a - b);
-                const chunks = sortedNums.map(num => {
-                    const s = _slidesData.find(d => d.num === num);
-                    if (!s) return '';
-                    const head = `--- Slide ${num} ---`;
-                    const body = [s.title, s.body].filter(Boolean).join('\n');
-                    return `${head}\n${body}`;
-                });
-                const text = chunks.join('\n\n');
-
-                if (text.trim().length < 20) {
-                    throw new Error('The selected slides have almost no text. Pick slides with more content.');
-                }
-
-                const blob = new Blob([text], { type: 'text/plain' });
-                const baseName = _pptxFile.name.replace(/\.pptx$/i, '');
-                finalFile = new File([blob], `${baseName}_slides.txt`, { type: 'text/plain' });
-            }
-
-            _hide(_getOverlay());
-            window._applySelectedFile(finalFile);
-
-        } catch (e) {
-            console.error('[PptxSlideSelector] Confirm error:', e);
-            if (btn) {
-                btn.textContent = e.message || 'Something went wrong — try again';
-                btn.disabled = false; btn.style.opacity = '1';
-                btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.color = '#f87171';
-            }
-            setTimeout(() => {
-                if (btn) {
-                    btn.style.background = 'var(--accent-btn)'; btn.style.color = 'var(--btn-text)';
-                    btn.textContent = `Continue with ${_selectedSlides.size} slide${_selectedSlides.size !== 1 ? 's' : ''}`;
-                }
-            }, 3000);
-        }
-    };
-
-    window._pptxSelectorBack = function () {
-        _hide(_getOverlay());
-        _pptxFile = null; _slidesData = []; _selectedSlides.clear();
-    };
-
-    function _getOverlay() {
-        let mv = document.getElementById('pptxSlideSelectorView');
-        if (!mv) {
-            mv = document.createElement('div');
-            mv.id = 'pptxSlideSelectorView';
-            document.body.appendChild(mv);
-        }
-        return mv;
-    }
-
-    function _show(mv) {
-        Object.assign(mv.style, {
-            display:'block', position:'fixed', inset:'0', zIndex:'350',
-            background:'var(--bg-body)', overflowY:'auto', overflowX:'hidden',
-            opacity:'0', transform:'translateY(24px)', transition:'opacity 0.22s ease, transform 0.22s ease',
-        });
-        requestAnimationFrame(() => { mv.style.opacity = '1'; mv.style.transform = 'translateY(0)'; });
-    }
-
-    function _hide(mv) {
-        mv.style.opacity = '0'; mv.style.transform = 'translateY(24px)';
-        setTimeout(() => { mv.style.display = 'none'; mv.style.transition = ''; }, 220);
-    }
-
-    function _loadingHTML(name) {
-        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;gap:1rem;padding:2rem;">
-            <div style="width:2.5rem;height:2.5rem;border:3px solid var(--border-glass);border-top-color:var(--accent-btn);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-            <p style="font-size:0.9375rem;font-weight:600;color:var(--text-main);margin:0;">Reading slides…</p>
-            <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${name}</p>
-        </div>`;
-    }
-
-    function _errorHTML(msg) {
-        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;gap:1rem;padding:2rem;text-align:center;">
-            <i class="fas fa-exclamation-circle" style="font-size:2.5rem;color:#f87171;"></i>
-            <p style="font-size:0.9375rem;font-weight:600;color:var(--text-main);margin:0;">Couldn't read slides</p>
-            <p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">${msg}</p>
-            <button onclick="window._pptxSelectorBack()" style="margin-top:0.5rem;padding:0.75rem 1.5rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-weight:700;cursor:pointer;">Go back</button>
         </div>`;
     }
 
