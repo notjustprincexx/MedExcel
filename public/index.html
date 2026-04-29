@@ -598,9 +598,13 @@
       var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (!isNative && !isIOS && !dismissed) {
-        document.getElementById('app-download-banner').style.display = 'block';
+        var _banner = document.getElementById('app-download-banner');
+        var _nav = document.getElementById('globalBottomNav');
+        var _navH = _nav ? _nav.offsetHeight : 0;
+        _banner.style.bottom = _navH + 'px';
+        _banner.style.display = 'block';
         var _scrollEl = document.querySelector('main') || document.body;
-        _scrollEl.style.paddingBottom = '80px';
+        _scrollEl.style.paddingBottom = (_banner.offsetHeight + _navH) + 'px';
       }
     })();
   </script>
