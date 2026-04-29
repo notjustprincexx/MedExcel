@@ -3,7 +3,7 @@
 // app.bundle.js (truncated mid-file → "Unexpected end of input" on parse).
 // Bumping the cache name is the only reliable way to make all installed
 // clients re-fetch fresh JS.
-const CACHE_NAME = "medexcel-cache-v13";
+const CACHE_NAME = "medexcel-cache-v14";
 
 const APP_SHELL = [
   "/",
@@ -118,14 +118,18 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // ── Static assets (images, fonts, icons) — cache first ─────────────────
+  // ── Static assets (images, fonts, icons) — stale-while-revalidate ────────
+  // Cache-first caused PWA icons to never update after a deploy.
+  // Now we serve the cached version instantly but always fetch a fresh copy
+  // in the background so the next load gets the updated asset.
   if (/\.(png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)$/i.test(path)) {
     event.respondWith(
       caches.match(request).then(cached => {
-        return cached || fetch(request).then(res => {
+        const networkFetch = fetch(request).then(res => {
           if (shouldCacheResponse(res)) safeCachePut(request, res.clone());
           return res;
-        });
+        }).catch(() => cached);
+        return cached || networkFetch;
       })
     );
     return;

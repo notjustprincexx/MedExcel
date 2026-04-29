@@ -350,5 +350,43 @@ function finish(){
 
 render(0);
 </script>
+
+  <!-- ===== Web Browser Download Banner ===== -->
+  <!-- Only shows when opened in a regular browser, not inside the Capacitor app -->
+  <div id="app-download-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;
+    background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+    border-top:1px solid rgba(99,179,237,0.25);
+    padding:14px 16px;box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <div style="max-width:480px;margin:0 auto;display:flex;align-items:center;gap:12px;">
+      <img src="logo.png" alt="MedExcel" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="color:#fff;font-size:14px;font-weight:600;line-height:1.2;">Get the MedExcel App</div>
+        <div style="color:rgba(255,255,255,0.55);font-size:12px;margin-top:2px;">Better experience on Android</div>
+      </div>
+      <a href="https://play.google.com/store/apps/details?id=com.medexcel.app"
+         target="_blank" rel="noopener"
+         style="flex-shrink:0;background:#63b3ed;color:#0d1117;font-size:13px;font-weight:700;
+           padding:9px 16px;border-radius:20px;text-decoration:none;white-space:nowrap;">
+        Download &#8595;
+      </a>
+      <button onclick="document.getElementById('app-download-banner').style.display='none';sessionStorage.setItem('mx_banner_dismissed','1');"
+              style="flex-shrink:0;background:none;border:none;color:rgba(255,255,255,0.4);
+                font-size:20px;cursor:pointer;padding:4px;line-height:1;">&#x2715;</button>
+    </div>
+  </div>
+  <script>
+    (function() {
+      // Show only in a real browser — Capacitor sets window.Capacitor when running natively
+      var isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var dismissed = sessionStorage.getItem('mx_banner_dismissed');
+      if (!isNative && !isIOS && !dismissed) {
+        document.getElementById('app-download-banner').style.display = 'block';
+      }
+    })();
+  </script>
+  <!-- ===== End Download Banner ===== -->
+
 </body>
 </html>
