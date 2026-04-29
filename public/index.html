@@ -519,121 +519,57 @@
   <!-- ===== End Download Banner ===== -->
 
   <!-- ===== Web Browser Download Banner ===== -->
-  <!-- Only shows in browser; hides behind modals/sheets; nudges any bottom-zone UI automatically -->
   <div id="app-download-banner" style="
-    display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:9990;
-    width:calc(100% - 32px);max-width:420px;
-    background:rgba(18,18,22,0.92);
+    display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+    background:rgba(18,18,22,0.95);
     backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    border:1px solid rgba(167,139,250,0.2);
-    border-radius:16px;
-    padding:10px 10px 10px 12px;
-    box-shadow:0 4px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(167,139,250,0.08);
+    border-bottom:1px solid rgba(167,139,250,0.2);
+    padding:8px 12px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    transition:opacity 0.2s ease,transform 0.2s ease;">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <img src="logo.png" alt="MedExcel" style="width:34px;height:34px;border-radius:9px;flex-shrink:0;">
+    transition:opacity 0.2s ease;">
+    <div style="display:flex;align-items:center;gap:10px;max-width:480px;margin:0 auto;">
+      <img src="logo.png" alt="MedExcel" style="width:28px;height:28px;border-radius:7px;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
-        <div style="color:#ffffff;font-size:13px;font-weight:600;line-height:1.3;">Get the MedExcel App</div>
-        <div style="color:#94a3b8;font-size:11px;margin-top:1px;">Better experience on Android</div>
+        <span style="color:#ffffff;font-size:12px;font-weight:600;">Get the MedExcel App</span>
+        <span style="color:#94a3b8;font-size:11px;margin-left:6px;">Better on Android</span>
       </div>
       <a href="https://play.google.com/store/apps/details?id=com.medexcel.app"
          target="_blank" rel="noopener"
-         style="flex-shrink:0;background:#a78bfa;color:#000000;font-size:12px;font-weight:700;
-           padding:7px 14px;border-radius:100px;text-decoration:none;white-space:nowrap;letter-spacing:0.01em;">
+         style="flex-shrink:0;background:#a78bfa;color:#000000;font-size:11px;font-weight:700;
+           padding:5px 12px;border-radius:100px;text-decoration:none;white-space:nowrap;">
         Download
       </a>
       <button id="app-banner-close"
-              style="flex-shrink:0;background:rgba(255,255,255,0.06);border:none;color:#94a3b8;
-                width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;
-                display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+              style="flex-shrink:0;background:none;border:none;color:#94a3b8;
+                width:24px;height:24px;cursor:pointer;font-size:14px;
+                display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
   </div>
   <script>
     (function () {
-      var isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
-      var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var isNative  = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
       if (isNative || isIOS || dismissed) return;
 
       var banner = document.getElementById('app-download-banner');
-      var nudged = []; // track every element we pushed up
+      banner.style.display = 'block';
 
-      /* ── 1. POSITION ──────────────────────────────────────────── */
-      function positionBanner() {
-        var nav  = document.getElementById('globalBottomNav');
-        var navH = nav ? nav.offsetHeight : 0;
-        banner.style.bottom = (navH + 12) + 'px';
-        banner.style.display = 'block';
+      // Push page content down so banner doesn't cover anything
+      function applyOffset() {
+        var h = banner.offsetHeight;
+        // Nudge fixed headers if any
+        document.querySelectorAll('#appHeader, [data-banner-offset]').forEach(function(el) {
+          el.style.top = h + 'px';
+        });
       }
+      requestAnimationFrame(function() { requestAnimationFrame(applyOffset); });
 
-      /* ── 2. UNIVERSAL NUDGE ───────────────────────────────────── */
-      // Finds every element whose painted bottom sits within 20px of the
-      // viewport edge — regardless of whether it's fixed, sticky, or
-      // absolute inside a fixed container — and floats it up.
-      function nudgeBottomZone() {
-        var bh  = banner.offsetHeight + 16;  // banner height + gap
-        var vh  = window.innerHeight;
-        var els = document.querySelectorAll('*');
-        for (var i = 0; i < els.length; i++) {
-          var el = els[i];
-          if (el === banner || el.closest('#app-download-banner') || el.closest('#globalBottomNav') || el.id === 'globalBottomNav') continue;
-          var cs   = window.getComputedStyle(el);
-          var pos  = cs.position;
-          if (pos !== 'fixed' && pos !== 'sticky' && pos !== 'absolute') continue;
-          var rect = el.getBoundingClientRect();
-          // Only care about elements that visually sit near the bottom edge
-          if (rect.bottom < vh - 20 || rect.height < 1) continue;
-          var origBottom = el.style.bottom;
-          var curBottom  = parseFloat(cs.bottom) || 0;
-          nudged.push({ el: el, orig: origBottom });
-          el.style.transition = 'bottom 0.25s ease';
-          el.style.bottom     = (curBottom + bh) + 'px';
-        }
-      }
-
-      /* ── 3. OVERLAY DETECTION ─────────────────────────────────── */
-      // Hides banner whenever a sheet/modal/backdrop is open so it
-      // never fights with dialogs.  Uses MutationObserver on classList.
-      function syncVisibility() {
-        var overlay = document.querySelector(
-          '.sheet-backdrop.open, .modal-backdrop.show, ' +
-          '[class*="backdrop"].open, [class*="modal"].show'
-        );
-        if (overlay) {
-          banner.style.opacity       = '0';
-          banner.style.pointerEvents = 'none';
-          banner.style.transform     = 'translateX(-50%) translateY(8px)';
-        } else {
-          banner.style.opacity       = '1';
-          banner.style.pointerEvents = '';
-          banner.style.transform     = 'translateX(-50%) translateY(0)';
-        }
-      }
-
-      var observer = new MutationObserver(syncVisibility);
-
-      /* ── 4. DISMISS ───────────────────────────────────────────── */
       document.getElementById('app-banner-close').addEventListener('click', function () {
         sessionStorage.setItem('mx_banner_dismissed', '1');
-        // Restore every element we nudged
-        nudged.forEach(function (item) {
-          item.el.style.bottom = item.orig;
-        });
-        nudged = [];
-        observer.disconnect();
         banner.style.display = 'none';
-      });
-
-      /* ── 5. INIT ──────────────────────────────────────────────── */
-      positionBanner();
-      // Two rAF frames so layout is fully painted before we measure
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          nudgeBottomZone();
-          observer.observe(document.body, {
-            subtree: true, attributes: true, attributeFilter: ['class', 'style']
-          });
+        document.querySelectorAll('#appHeader, [data-banner-offset]').forEach(function(el) {
+          el.style.top = '';
         });
       });
     })();
