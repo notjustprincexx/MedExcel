@@ -101,11 +101,12 @@
   </script>
   <!-- ── Scrollbar fix (desktop mode) ─────────────────────────────────── -->
   <style>
-    /* Force scrollbar to always render on main content areas */
-    html.desktop-mode .home-main   { overflow-y: scroll !important; }
+    /* Force scrollbar on ALL view scroll containers */
+    html.desktop-mode #app-shell main,
+    html.desktop-mode .home-main,
     html.desktop-mode .create-main { overflow-y: scroll !important; }
 
-    /* Webkit — dark mode (default theme) */
+    /* Webkit — dark mode (default) */
     html.desktop-mode ::-webkit-scrollbar              { width: 6px !important; height: 6px !important; }
     html.desktop-mode ::-webkit-scrollbar-track        { background: rgba(255,255,255,0.04) !important; border-radius: 3px !important; }
     html.desktop-mode ::-webkit-scrollbar-thumb        { background: rgba(148,163,184,0.5) !important; border-radius: 3px !important; }
@@ -117,12 +118,14 @@
     html.desktop-mode.light-mode ::-webkit-scrollbar-thumb:hover  { background: rgba(71,85,105,0.8) !important; }
 
     /* Firefox — dark */
+    html.desktop-mode #app-shell main,
     html.desktop-mode .home-main,
     html.desktop-mode .create-main {
       scrollbar-width: thin !important;
       scrollbar-color: rgba(148,163,184,0.5) rgba(255,255,255,0.04) !important;
     }
     /* Firefox — light */
+    html.desktop-mode.light-mode #app-shell main,
     html.desktop-mode.light-mode .home-main,
     html.desktop-mode.light-mode .create-main {
       scrollbar-color: rgba(71,85,105,0.5) rgba(0,0,0,0.06) !important;
