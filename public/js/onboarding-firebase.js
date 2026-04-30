@@ -188,3 +188,7 @@ import {
       openLogin(false);
     }
   };
+
+  // Wire buttons directly — don't rely on onboarding.js calling window.webGoogleSignIn
+  document.getElementById('btnGoogle')  ?.addEventListener('click', window.webGoogleSignIn);
+  document.getElementById('lmGoogleBtn')?.addEventListener('click', window.webGoogleSignIn);
