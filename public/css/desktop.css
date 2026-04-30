@@ -212,6 +212,15 @@ html.desktop-mode #yourRankBar > div {
   margin: 0 auto;
 }
 
+/* Keep yourRankBar stuck to viewport bottom in desktop mode */
+html.desktop-mode #yourRankBar {
+  position: fixed !important;
+  bottom: 12px !important;
+  left: 260px !important;
+  right: 0 !important;
+  padding: 0 1rem 0.5rem !important;
+}
+
 /* ── Also support genuine wide screens (real desktop browser) ── */
 @media (min-width: 1024px) {
   body { flex-direction: row !important; overflow: hidden !important; }
@@ -230,6 +239,7 @@ html.desktop-mode #yourRankBar > div {
   #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; overflow: visible !important; }
   #view-leaderboard, #view-profile { overflow-y: scroll !important; overflow-x: hidden !important; }
   #yourRankBar > div { max-width: 720px; margin: 0 auto; }
+  #yourRankBar { position: fixed !important; bottom: 12px !important; left: 260px !important; right: 0 !important; padding: 0 1rem 0.5rem !important; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */
