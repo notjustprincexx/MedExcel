@@ -104,7 +104,10 @@
     /* Force scrollbar on ALL view scroll containers */
     html.desktop-mode #app-shell main,
     html.desktop-mode .home-main,
-    html.desktop-mode .create-main { overflow-y: scroll !important; }
+    html.desktop-mode .create-main,
+    html.desktop-mode #quizContainer,
+    html.desktop-mode #studyPracticeArea,
+    html.desktop-mode #groupDetailBackdrop { overflow-y: scroll !important; }
 
     /* Webkit — dark mode (default) */
     html.desktop-mode ::-webkit-scrollbar              { width: 6px !important; height: 6px !important; }
@@ -120,14 +123,20 @@
     /* Firefox — dark */
     html.desktop-mode #app-shell main,
     html.desktop-mode .home-main,
-    html.desktop-mode .create-main {
+    html.desktop-mode .create-main,
+    html.desktop-mode #quizContainer,
+    html.desktop-mode #studyPracticeArea,
+    html.desktop-mode #groupDetailBackdrop {
       scrollbar-width: thin !important;
       scrollbar-color: rgba(148,163,184,0.5) rgba(255,255,255,0.04) !important;
     }
     /* Firefox — light */
     html.desktop-mode.light-mode #app-shell main,
     html.desktop-mode.light-mode .home-main,
-    html.desktop-mode.light-mode .create-main {
+    html.desktop-mode.light-mode .create-main,
+    html.desktop-mode.light-mode #quizContainer,
+    html.desktop-mode.light-mode #studyPracticeArea,
+    html.desktop-mode.light-mode #groupDetailBackdrop {
       scrollbar-color: rgba(71,85,105,0.5) rgba(0,0,0,0.06) !important;
     }
   </style>
