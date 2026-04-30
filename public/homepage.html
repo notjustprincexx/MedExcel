@@ -1522,12 +1522,19 @@
           var homeBtn = document.getElementById('homeAvatarBtn');
           var sAvatar = document.getElementById('sidebarAvatarEl');
           if (homeBtn && sAvatar) {
-            var img = homeBtn.querySelector('img');
-            if (img && img.src) {
-              sAvatar.innerHTML = '<img src="' + img.src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\'">';
+            if (homeBtn.children.length > 0) {
+              // Clone whatever applyAvatar put in homeBtn (img, div sprite, or span)
+              sAvatar.innerHTML = homeBtn.innerHTML;
+              var child = sAvatar.firstElementChild;
+              if (child) {
+                child.style.width = '100%';
+                child.style.height = '100%';
+                child.style.borderRadius = '50%';
+                if (child.tagName === 'IMG') child.style.objectFit = 'cover';
+              }
             } else {
-              var init = document.getElementById('homeAvatarInitial');
-              if (init && init.textContent !== '?') sAvatar.textContent = init.textContent;
+              var txt = homeBtn.textContent.trim();
+              sAvatar.textContent = txt || '?';
             }
           }
           var greeting = document.getElementById('greetingTitle');
@@ -1540,7 +1547,7 @@
           if (sBadge) {
             var plan = window.userPlan || '';
             var isPremium = plan === 'premium' || plan === 'premium_trial' || plan === 'elite';
-            sBadge.textContent = isPremium ? '\u2736 Premium' : 'Free Plan';
+            sBadge.textContent = isPremium ? '💎 Premium' : 'Free Plan';
             sBadge.classList.toggle('premium', isPremium);
           }
         }
