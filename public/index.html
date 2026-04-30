@@ -486,8 +486,9 @@
     (function() {
       var isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
       var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var isDesktop = !/Mobile|Android/i.test(navigator.userAgent) || window.matchMedia('(min-width:1024px)').matches;
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
-      if (!isNative && !isIOS && !dismissed) {
+      if (!isNative && !isIOS && !isDesktop && !dismissed) {
         var _banner = document.getElementById('app-download-banner');
         _banner.style.bottom = '12px';
         _banner.style.display = 'block';
@@ -548,8 +549,9 @@
     (function () {
       var isNative  = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
       var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var isDesktop = !/Mobile|Android/i.test(navigator.userAgent) || window.matchMedia('(min-width:1024px)').matches;
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
-      if (isNative || isIOS || dismissed) return;
+      if (isNative || isIOS || isDesktop || dismissed) return;
 
       var banner    = document.getElementById('app-download-banner');
       var btn       = document.getElementById('app-banner-btn');
