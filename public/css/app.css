@@ -34,9 +34,10 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
         
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        /* Hide scrollbars on mobile; desktop-mode restores them via desktop.css */
+        html:not(.desktop-mode) ::-webkit-scrollbar { width: 0px; background: transparent; }
+        html:not(.desktop-mode) .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        html:not(.desktop-mode) .hide-scroll::-webkit-scrollbar { display: none; }
         
         /* SPA VIEW TOGGLING */
         .app-view {

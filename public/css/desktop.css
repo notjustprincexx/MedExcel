@@ -199,37 +199,31 @@ html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
   .layout-wrapper { padding-bottom: 0 !important; }
 }
 
-/* ── Desktop scrollbar restore ───────────────────────────────────────────── */
-/* Mobile hides all scrollbars globally; bring them back on desktop          */
+/* ── Desktop scrollbar styling ───────────────────────────────────────────── */
+/* app.css hides scrollbars inside html:not(.desktop-mode), so in desktop    */
+/* mode the browser default kicks in. We just make it slimmer + themed.      */
 html.desktop-mode ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
-  background: transparent;
 }
 html.desktop-mode ::-webkit-scrollbar-track {
   background: transparent;
 }
 html.desktop-mode ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--border-color);
   border-radius: 3px;
 }
 html.desktop-mode ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.32);
+  background: var(--text-muted);
 }
 
-/* Re-enable scrollbars for .hide-scroll containers in desktop mode          */
-html.desktop-mode .hide-scroll {
-  -ms-overflow-style: auto;
+/* Firefox */
+html.desktop-mode * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-}
-html.desktop-mode .hide-scroll::-webkit-scrollbar {
-  display: block;
-  width: 6px;
+  scrollbar-color: var(--border-color) transparent;
 }
 
-/* Cap the leaderboard list height so it scrolls inside the view             */
-/* instead of relying on a fixed max-height that was tuned for mobile        */
+/* Leaderboard: remove hardcoded mobile max-height so it fills the view */
 html.desktop-mode #leaderboardList {
   max-height: none !important;
   flex: 1;
