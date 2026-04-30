@@ -1446,7 +1446,18 @@
         // Move #yourRankBar to body so position:fixed works without ancestor containing blocks
         if (document.documentElement.classList.contains('desktop-mode')) {
             var rankBar = document.getElementById('yourRankBar');
-            if (rankBar) document.body.appendChild(rankBar);
+            if (rankBar) {
+                document.body.appendChild(rankBar);
+                // Watch leaderboard view — hide bar when leaderboard is not active
+                var lbView = document.getElementById('view-leaderboard');
+                if (lbView) {
+                    new MutationObserver(function() {
+                        if (!lbView.classList.contains('active')) {
+                            rankBar.style.display = 'none';
+                        }
+                    }).observe(lbView, { attributes: true, attributeFilter: ['class'] });
+                }
+            }
         }
 
         const nav = document.getElementById('globalBottomNav');
