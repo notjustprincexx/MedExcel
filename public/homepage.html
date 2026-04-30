@@ -45,6 +45,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js" defer></script>
   <script src="https://js.paystack.co/v1/inline.js"></script>
 
+  <!-- Apply desktop-mode class BEFORE CSS loads to prevent scrollbar flash -->
+  <script>
+    (function(){
+      var ua = navigator.userAgent;
+      if (!/Mobile|Android/i.test(ua) || window.matchMedia('(min-width:1024px)').matches) {
+        document.documentElement.classList.add('desktop-mode');
+      }
+    })();
+  </script>
   <!-- App Styles -->
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/desktop.css">
@@ -769,7 +778,7 @@
         </main>
     </section>
 
-    <section id="view-leaderboard" class="app-view">
+    <section id="view-leaderboard" class="app-view" style="position:relative;">
         <!-- Header -->
         <header style="padding:1.5rem 1.25rem 0.75rem;flex-shrink:0;position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;gap:1rem;">
             <div>
