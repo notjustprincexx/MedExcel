@@ -101,16 +101,24 @@
   </script>
   <!-- ── Scrollbar fix (desktop mode) ─────────────────────────────────── -->
   <style>
-    /* Homepage: scroll on full-width section so scrollbar sits at browser edge */
-    html.desktop-mode #view-home { overflow-y: scroll !important; overflow-x: hidden !important; }
-    html.desktop-mode .home-main { overflow: visible !important; }
+    /* Scroll at section level → scrollbar at screen edge */
+    html.desktop-mode #view-home,
+    html.desktop-mode #view-leaderboard,
+    html.desktop-mode #view-profile     { overflow-y: scroll !important; overflow-x: hidden !important; }
 
-    /* All other scroll containers */
-    html.desktop-mode #app-shell main,
+    /* Inner content must NOT own the scroll */
+    html.desktop-mode .home-main,
+    html.desktop-mode #view-leaderboard > main,
+    html.desktop-mode #view-profile > main { overflow: visible !important; }
+
+    /* Other containers that still need their own scroll */
     html.desktop-mode .create-main,
     html.desktop-mode #quizContainer,
     html.desktop-mode #studyPracticeArea,
     html.desktop-mode #groupDetailBackdrop { overflow-y: scroll !important; }
+
+    /* Constrain yourRankBar inner content */
+    html.desktop-mode #yourRankBar > div { max-width: 720px; margin: 0 auto; }
 
     /* Webkit — dark mode (default) */
     html.desktop-mode ::-webkit-scrollbar              { width: 6px !important; height: 6px !important; }
@@ -125,7 +133,8 @@
 
     /* Firefox — dark */
     html.desktop-mode #view-home,
-    html.desktop-mode #app-shell main,
+    html.desktop-mode #view-leaderboard,
+    html.desktop-mode #view-profile,
     html.desktop-mode .create-main,
     html.desktop-mode #quizContainer,
     html.desktop-mode #studyPracticeArea,
@@ -135,7 +144,8 @@
     }
     /* Firefox — light */
     html.desktop-mode.light-mode #view-home,
-    html.desktop-mode.light-mode #app-shell main,
+    html.desktop-mode.light-mode #view-leaderboard,
+    html.desktop-mode.light-mode #view-profile,
     html.desktop-mode.light-mode .create-main,
     html.desktop-mode.light-mode #quizContainer,
     html.desktop-mode.light-mode #studyPracticeArea,

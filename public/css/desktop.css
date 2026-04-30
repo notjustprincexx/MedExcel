@@ -196,6 +196,20 @@ html.desktop-mode #view-profile > main {
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
+  overflow: visible !important;
+}
+
+/* Scroll at section level so scrollbar is at screen edge */
+html.desktop-mode #view-leaderboard,
+html.desktop-mode #view-profile {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
+
+/* Constrain the purple rank bar inner content */
+html.desktop-mode #yourRankBar > div {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 /* ── Also support genuine wide screens (real desktop browser) ── */
@@ -213,7 +227,9 @@ html.desktop-mode #view-profile > main {
   .crypto-card { width: unset !important; }
   .create-main { max-width: 640px; margin: 0 auto; padding-bottom: 2rem !important; }
   .layout-wrapper { padding-bottom: 0 !important; }
-  #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; }
+  #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; overflow: visible !important; }
+  #view-leaderboard, #view-profile { overflow-y: scroll !important; overflow-x: hidden !important; }
+  #yourRankBar > div { max-width: 720px; margin: 0 auto; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */
