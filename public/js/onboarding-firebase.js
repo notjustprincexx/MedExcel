@@ -6,7 +6,7 @@ import {
     signInWithEmailAndPassword, signInAnonymously,
     onAuthStateChanged, createUserWithEmailAndPassword,
     updateProfile, sendPasswordResetEmail,
-    GoogleAuthProvider, signInWithCredential
+    GoogleAuthProvider, signInWithCredential, signInWithPopup
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import {
     getFirestore, doc, getDoc, setDoc, serverTimestamp
@@ -167,3 +167,29 @@ import {
       showDialog(e.message, 'Error', { hideCancel: true });
     }
   });
+  /* ── Web Google Sign-In (browser only; native uses onNativeLogin) ── */
+  async function webGoogleSignIn() {
+    // Skip on native — Capacitor handles Google sign-in via onNativeLogin bridge
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) return;
+
+    closeLogin();
+    showOverlay(true, 'Signing in with Google…');
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged fires → syncUserDoc → goAfterLogin
+    } catch (err) {
+      showOverlay(false);
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        await showDialog(err.message, 'Google Sign-In Failed', { hideCancel: true });
+      }
+      openLogin(false);
+    }
+  }
+
+  const btnGoogle   = document.getElementById('btnGoogle');
+  const lmGoogleBtn = document.getElementById('lmGoogleBtn');
+  if (btnGoogle)   btnGoogle.addEventListener('click', webGoogleSignIn);
+  if (lmGoogleBtn) lmGoogleBtn.addEventListener('click', webGoogleSignIn);
