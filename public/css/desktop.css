@@ -198,3 +198,39 @@ html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
   .create-main { max-width: 640px; margin: 0 auto; padding-bottom: 2rem !important; }
   .layout-wrapper { padding-bottom: 0 !important; }
 }
+
+/* ── Desktop scrollbar restore ───────────────────────────────────────────── */
+/* Mobile hides all scrollbars globally; bring them back on desktop          */
+html.desktop-mode ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+html.desktop-mode ::-webkit-scrollbar-track {
+  background: transparent;
+}
+html.desktop-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+html.desktop-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* Re-enable scrollbars for .hide-scroll containers in desktop mode          */
+html.desktop-mode .hide-scroll {
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+html.desktop-mode .hide-scroll::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+
+/* Cap the leaderboard list height so it scrolls inside the view             */
+/* instead of relying on a fixed max-height that was tuned for mobile        */
+html.desktop-mode #leaderboardList {
+  max-height: none !important;
+  flex: 1;
+}
