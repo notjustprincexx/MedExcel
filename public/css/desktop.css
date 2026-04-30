@@ -147,6 +147,13 @@ html.desktop-mode .home-main {
   margin: 0 auto;
   width: 100%;
   padding-bottom: 3rem !important;
+  overflow: visible !important; /* scrollbar lives on #view-home, not here */
+}
+
+/* Push homepage scrollbar to browser edge by scrolling on the full-width section */
+html.desktop-mode #view-home {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
 }
 
 /* Promo carousel → 3-column grid */
@@ -183,6 +190,14 @@ html.desktop-mode .create-main {
 /* Study/Library view */
 html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
 
+/* Constrain leaderboard and profile content width to match homepage */
+html.desktop-mode #view-leaderboard > main,
+html.desktop-mode #view-profile > main {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
 /* ── Also support genuine wide screens (real desktop browser) ── */
 @media (min-width: 1024px) {
   body { flex-direction: row !important; overflow: hidden !important; }
@@ -200,32 +215,27 @@ html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */
+/* app.css hides scrollbars inside html:not(.desktop-mode), so in desktop    */
+/* mode the browser default kicks in. We just make it slimmer + themed.      */
 html.desktop-mode ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 html.desktop-mode ::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 3px;
+  background: transparent;
 }
 html.desktop-mode ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
+  background: var(--border-color);
   border-radius: 3px;
 }
 html.desktop-mode ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+  background: var(--text-muted);
 }
 
 /* Firefox */
 html.desktop-mode * {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
-/* Force scrollbar to always render (prevents overlay/hidden scrollbar behavior) */
-html.desktop-mode .home-main,
-html.desktop-mode .create-main {
-  overflow-y: scroll !important;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 /* Leaderboard: remove hardcoded mobile max-height so it fills the view */
