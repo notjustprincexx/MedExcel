@@ -227,9 +227,10 @@ html.desktop-mode #view-profile {
 }
 
 /* Constrain the purple rank bar inner content */
-html.desktop-mode #yourRankBar > div {
-  max-width: 720px;
-  margin: 0 auto;
+/* Remove transform from page transition animation so position:fixed children work correctly */
+@keyframes pageEnterDesktop { from { opacity: 0; } to { opacity: 1; } }
+html.desktop-mode .app-view.active {
+  animation: pageEnterDesktop 0.28s ease forwards !important;
 }
 
 /* Keep yourRankBar stuck to viewport bottom in desktop mode */
@@ -239,6 +240,14 @@ html.desktop-mode #yourRankBar {
   left: 260px !important;
   right: 0 !important;
   padding: 0 1rem 0.5rem !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+html.desktop-mode #yourRankBar > div {
+  width: 100% !important;
+  max-width: 720px !important;
+  margin: 0 !important;
 }
 
 /* ── Also support genuine wide screens (real desktop browser) ── */
@@ -261,8 +270,8 @@ html.desktop-mode #yourRankBar {
   #bossFightView > div, #_progressPage > div:last-child { max-width: 720px; margin: 0 auto; width: 100%; }
   #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; overflow: visible !important; }
   #view-leaderboard, #view-profile { overflow-y: scroll !important; overflow-x: hidden !important; }
-  #yourRankBar > div { max-width: 720px; margin: 0 auto; }
-  #yourRankBar { position: fixed !important; bottom: 12px !important; left: 260px !important; right: 0 !important; padding: 0 1rem 0.5rem !important; }
+  #yourRankBar > div { width: 100% !important; max-width: 720px !important; margin: 0 !important; }
+  #yourRankBar { position: fixed !important; bottom: 12px !important; left: 260px !important; right: 0 !important; padding: 0 1rem 0.5rem !important; display: flex !important; justify-content: center !important; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */

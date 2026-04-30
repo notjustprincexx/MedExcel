@@ -1443,6 +1443,12 @@
     // Hide bottom nav when keyboard opens, show when it closes
     // Uses Capacitor Keyboard plugin (native) with visualViewport fallback for web
     document.addEventListener('DOMContentLoaded', function() {
+        // Move #yourRankBar to body so position:fixed works without ancestor containing blocks
+        if (document.documentElement.classList.contains('desktop-mode')) {
+            var rankBar = document.getElementById('yourRankBar');
+            if (rankBar) document.body.appendChild(rankBar);
+        }
+
         const nav = document.getElementById('globalBottomNav');
         if (!nav) return;
 
