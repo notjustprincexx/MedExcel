@@ -187,8 +187,28 @@ html.desktop-mode .create-main {
   padding-bottom: 2rem !important;
 }
 
-/* Study/Library view */
-html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
+/* Hide scrollbar on tab filter row in desktop mode — not needed there */
+html.desktop-mode .tab-scroll { scrollbar-width: none !important; }
+html.desktop-mode .tab-scroll::-webkit-scrollbar { display: none !important; }
+
+/* Create view — scroll at section level */
+html.desktop-mode #view-create { overflow-y: scroll !important; overflow-x: hidden !important; }
+html.desktop-mode .create-main { overflow: visible !important; }
+
+/* Boss Fight & Progress overlays — offset sidebar, constrain width, kill horizontal scrollbar */
+html.desktop-mode #bossFightView,
+html.desktop-mode #_progressPage {
+  left: 260px !important;
+  overflow-x: hidden !important;
+}
+
+/* Constrain inner content of boss fight and progress page */
+html.desktop-mode #bossFightView > div,
+html.desktop-mode #_progressPage > div:last-child {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
 
 /* Constrain leaderboard and profile content width to match homepage */
 html.desktop-mode #view-leaderboard > main,
@@ -234,8 +254,11 @@ html.desktop-mode #yourRankBar {
   .promo-dots-container { display: none !important; }
   .crypto-scroll-container { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; overflow: visible !important; gap: 0.75rem !important; }
   .crypto-card { width: unset !important; }
-  .create-main { max-width: 640px; margin: 0 auto; padding-bottom: 2rem !important; }
+  #view-create { overflow-y: scroll !important; overflow-x: hidden !important; }
+  .create-main { overflow: visible !important; }
   .layout-wrapper { padding-bottom: 0 !important; }
+  #bossFightView, #_progressPage { left: 260px !important; overflow-x: hidden !important; }
+  #bossFightView > div, #_progressPage > div:last-child { max-width: 720px; margin: 0 auto; width: 100%; }
   #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; overflow: visible !important; }
   #view-leaderboard, #view-profile { overflow-y: scroll !important; overflow-x: hidden !important; }
   #yourRankBar > div { max-width: 720px; margin: 0 auto; }

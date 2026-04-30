@@ -104,11 +104,13 @@
     /* Scroll at section level → scrollbar at screen edge */
     html.desktop-mode #view-home,
     html.desktop-mode #view-leaderboard,
+    html.desktop-mode #view-create,
     html.desktop-mode #view-profile     { overflow-y: scroll !important; overflow-x: hidden !important; }
 
     /* Inner content must NOT own the scroll */
     html.desktop-mode .home-main,
     html.desktop-mode #view-leaderboard > main,
+    html.desktop-mode #view-create > *,
     html.desktop-mode #view-profile > main { overflow: visible !important; }
 
     /* Other containers that still need their own scroll */
