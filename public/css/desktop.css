@@ -204,7 +204,8 @@ html.desktop-mode #view-profile > main {
   .desktop-sidebar { display: flex !important; }
   #app-shell { flex: 1; position: relative; height: 100vh; overflow: hidden; min-width: 0; }
   .bottom-nav { display: none !important; }
-  .home-main { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 3rem !important; }
+  #view-home { overflow-y: scroll !important; overflow-x: hidden !important; }
+  .home-main { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 3rem !important; overflow: visible !important; }
   .promo-carousel { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; overflow: visible !important; scroll-snap-type: none !important; gap: 1rem !important; }
   .promo-consultation-card { min-width: unset !important; scroll-snap-align: none !important; min-height: 170px !important; }
   .promo-dots-container { display: none !important; }
@@ -212,31 +213,19 @@ html.desktop-mode #view-profile > main {
   .crypto-card { width: unset !important; }
   .create-main { max-width: 640px; margin: 0 auto; padding-bottom: 2rem !important; }
   .layout-wrapper { padding-bottom: 0 !important; }
+  #view-leaderboard > main, #view-profile > main { max-width: 720px; margin: 0 auto; width: 100%; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */
-/* app.css hides scrollbars inside html:not(.desktop-mode), so in desktop    */
-/* mode the browser default kicks in. We just make it slimmer + themed.      */
-html.desktop-mode ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-html.desktop-mode ::-webkit-scrollbar-track {
-  background: transparent;
-}
-html.desktop-mode ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-html.desktop-mode ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Firefox */
-html.desktop-mode * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
-}
+html.desktop-mode ::-webkit-scrollbar { width: 6px; height: 6px; }
+html.desktop-mode ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+html.desktop-mode ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.5); border-radius: 3px; }
+html.desktop-mode ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.8); }
+html.desktop-mode.light-mode ::-webkit-scrollbar-track { background: rgba(0,0,0,0.06); }
+html.desktop-mode.light-mode ::-webkit-scrollbar-thumb { background: rgba(71,85,105,0.5); }
+html.desktop-mode.light-mode ::-webkit-scrollbar-thumb:hover { background: rgba(71,85,105,0.8); }
+html.desktop-mode * { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.5) rgba(255,255,255,0.04); }
+html.desktop-mode.light-mode * { scrollbar-color: rgba(71,85,105,0.5) rgba(0,0,0,0.06); }
 
 /* Leaderboard: remove hardcoded mobile max-height so it fills the view */
 html.desktop-mode #leaderboardList {
