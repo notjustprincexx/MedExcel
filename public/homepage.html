@@ -1458,15 +1458,36 @@
 
     <!-- App Bundle (all views combined = 1 request) -->
 
-  <!-- Desktop Sidebar Sync -->
+  <!-- Desktop Mode Detection + Sidebar Sync -->
   <script>
     (function() {
+      // Detect desktop: UA has no "Mobile" keyword (covers Chrome Desktop Mode on Android)
+      // OR screen is genuinely wide
+      function isDesktop() {
+        var ua = navigator.userAgent;
+        var noMobile = !/Mobile|Android/i.test(ua);
+        var wideScreen = window.matchMedia('(min-width: 1024px)').matches;
+        return noMobile || wideScreen;
+      }
+
+      // Apply/remove desktop-mode class immediately (before paint = no flash)
+      function applyDesktopMode() {
+        document.documentElement.classList.toggle('desktop-mode', isDesktop());
+      }
+      applyDesktopMode();
+
+      // Re-check if window resizes (e.g. real browser resize)
+      window.matchMedia('(min-width: 1024px)').addListener(applyDesktopMode);
+
+      // Sidebar nav active state sync
       function syncSidebarNav(viewId) {
         document.querySelectorAll('.ds-nav-item').forEach(function(item) {
           item.classList.toggle('active', item.getAttribute('data-view') === viewId);
         });
       }
+
       window.addEventListener('load', function() {
+        // Wrap navigateTo to sync sidebar
         var orig = window.navigateTo;
         if (orig) {
           window.navigateTo = function(viewId) {
@@ -1474,6 +1495,8 @@
             syncSidebarNav(viewId);
           };
         }
+
+        // MutationObserver fallback
         var observer = new MutationObserver(function(mutations) {
           mutations.forEach(function(m) {
             if (m.target.classList && m.target.classList.contains('active') && m.target.classList.contains('app-view')) {
@@ -1485,6 +1508,7 @@
           observer.observe(v, { attributes: true, attributeFilter: ['class'] });
         });
 
+        // Sync user info into sidebar
         function syncUser() {
           var init = document.getElementById('homeAvatarInitial');
           var sAvatar = document.getElementById('sidebarAvatarEl');
@@ -1498,7 +1522,7 @@
           var sBadge = document.getElementById('sidebarUserBadge');
           if (sBadge) {
             var premium = document.body.dataset.premium === 'true';
-            sBadge.textContent = premium ? '✦ Premium' : 'Free Plan';
+            sBadge.textContent = premium ? '\u2736 Premium' : 'Free Plan';
             sBadge.classList.toggle('premium', premium);
           }
         }
