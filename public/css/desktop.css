@@ -200,14 +200,13 @@ html.desktop-mode .layout-wrapper { padding-bottom: 0 !important; }
 }
 
 /* ── Desktop scrollbar styling ───────────────────────────────────────────── */
-/* app.css hides scrollbars inside html:not(.desktop-mode), so in desktop    */
-/* mode the browser default kicks in. We just make it slimmer + themed.      */
 html.desktop-mode ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 html.desktop-mode ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
+  border-radius: 3px;
 }
 html.desktop-mode ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
@@ -220,7 +219,13 @@ html.desktop-mode ::-webkit-scrollbar-thumb:hover {
 /* Firefox */
 html.desktop-mode * {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Force scrollbar to always render (prevents overlay/hidden scrollbar behavior) */
+html.desktop-mode .home-main,
+html.desktop-mode .create-main {
+  overflow-y: scroll !important;
 }
 
 /* Leaderboard: remove hardcoded mobile max-height so it fills the view */
