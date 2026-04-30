@@ -319,7 +319,7 @@
       <div class="ds-user-avatar" id="sidebarAvatarEl">?</div>
       <div class="ds-user-info">
         <div class="ds-user-name" id="sidebarUserName">Loading...</div>
-        <div class="ds-user-badge" id="sidebarUserBadge">Free Plan</div>
+        <div class="ds-user-badge" id="sidebarUserBadge" onclick="event.stopPropagation();navigateTo('view-payment')" style="cursor:pointer;">Free Plan</div>
       </div>
     </div>
   </div>
@@ -1519,9 +1519,17 @@
 
         // Sync user info into sidebar
         function syncUser() {
-          var init = document.getElementById('homeAvatarInitial');
+          var homeBtn = document.getElementById('homeAvatarBtn');
           var sAvatar = document.getElementById('sidebarAvatarEl');
-          if (init && sAvatar && init.textContent !== '?') sAvatar.textContent = init.textContent;
+          if (homeBtn && sAvatar) {
+            var img = homeBtn.querySelector('img');
+            if (img && img.src) {
+              sAvatar.innerHTML = '<img src="' + img.src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none'">';
+            } else {
+              var init = document.getElementById('homeAvatarInitial');
+              if (init && init.textContent !== '?') sAvatar.textContent = init.textContent;
+            }
+          }
           var greeting = document.getElementById('greetingTitle');
           var sName = document.getElementById('sidebarUserName');
           if (greeting && sName) {
@@ -1530,17 +1538,26 @@
           }
           var sBadge = document.getElementById('sidebarUserBadge');
           if (sBadge) {
-            var premium = document.body.dataset.premium === 'true';
-            sBadge.textContent = premium ? '\u2736 Premium' : 'Free Plan';
-            sBadge.classList.toggle('premium', premium);
+            var plan = window.userPlan || '';
+            var isPremium = plan === 'premium' || plan === 'premium_trial' || plan === 'elite';
+            sBadge.textContent = isPremium ? '\u2736 Premium' : 'Free Plan';
+            sBadge.classList.toggle('premium', isPremium);
           }
         }
         setTimeout(syncUser, 1500);
         setTimeout(syncUser, 4000);
+        // Re-sync badge whenever firebase.js updates the plan
+        var _origUpdatePlanIcon = window.updatePlanIcon;
+        window.updatePlanIcon = function(plan) {
+          if (_origUpdatePlanIcon) _origUpdatePlanIcon(plan);
+          syncUser();
+        };
         var g = document.getElementById('greetingTitle');
         if (g) new MutationObserver(syncUser).observe(g, { childList: true, subtree: true, characterData: true });
         var a = document.getElementById('homeAvatarInitial');
         if (a) new MutationObserver(syncUser).observe(a, { childList: true, subtree: true, characterData: true });
+        var hBtn = document.getElementById('homeAvatarBtn');
+        if (hBtn) new MutationObserver(syncUser).observe(hBtn, { childList: true, subtree: true });
       });
     })();
   </script>
@@ -1838,8 +1855,9 @@
     (function () {
       var isNative  = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
       var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var isDesktopMode = document.documentElement.classList.contains('desktop-mode');
       var dismissed = sessionStorage.getItem('mx_banner_dismissed');
-      if (isNative || isIOS || dismissed) return;
+      if (isNative || isIOS || isDesktopMode || dismissed) return;
 
       var banner    = document.getElementById('app-download-banner');
       var btn       = document.getElementById('app-banner-btn');
