@@ -180,8 +180,12 @@
   /* ── Native Google bridge ── */
   window.startGoogleLogin = function() {
     if (window.Android && window.Android.startGoogleSignIn) {
+      // Native Android — delegate to Java bridge
       showOverlay(true, 'Signing in…');
       window.Android.startGoogleSignIn();
+    } else if (window.webGoogleSignIn) {
+      // Web browser — handled by onboarding-firebase.js via signInWithPopup
+      window.webGoogleSignIn();
     } else {
       showDialog(
         'Google sign-in is only available inside the MedExcel app.',

@@ -168,7 +168,7 @@ import {
     }
   });
   /* ── Web Google Sign-In (browser only; native uses onNativeLogin) ── */
-  async function webGoogleSignIn() {
+  window.webGoogleSignIn = async function() {
     // Skip on native — Capacitor handles Google sign-in via onNativeLogin bridge
     if (window.Capacitor && window.Capacitor.isNativePlatform()) return;
 
@@ -187,9 +187,4 @@ import {
       }
       openLogin(false);
     }
-  }
-
-  const btnGoogle   = document.getElementById('btnGoogle');
-  const lmGoogleBtn = document.getElementById('lmGoogleBtn');
-  if (btnGoogle)   btnGoogle.addEventListener('click', webGoogleSignIn);
-  if (lmGoogleBtn) lmGoogleBtn.addEventListener('click', webGoogleSignIn);
+  };
