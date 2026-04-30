@@ -1524,7 +1524,7 @@
           if (homeBtn && sAvatar) {
             var img = homeBtn.querySelector('img');
             if (img && img.src) {
-              sAvatar.innerHTML = '<img src="' + img.src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none'">';
+              sAvatar.innerHTML = '<img src="' + img.src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\'">';
             } else {
               var init = document.getElementById('homeAvatarInitial');
               if (init && init.textContent !== '?') sAvatar.textContent = init.textContent;
