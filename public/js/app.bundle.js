@@ -1368,6 +1368,23 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 }
             }
 
+            function getTargetEl(targetId) {
+                if (!targetId) return null;
+                // On desktop-mode the bottom nav is hidden — map to sidebar equivalents
+                var isDesktop = document.documentElement.classList.contains('desktop-mode');
+                if (isDesktop) {
+                    var map = {
+                        'nav-create':      document.querySelector('.ds-create-btn'),
+                        'nav-study':       document.querySelector('[data-view="view-study"]'),
+                        'nav-leaderboard': document.querySelector('[data-view="view-leaderboard"]'),
+                        'nav-profile':     document.querySelector('[data-view="view-profile"]'),
+                        'nav-home':        document.querySelector('[data-view="view-home"]'),
+                    };
+                    if (map[targetId]) return map[targetId];
+                }
+                return document.getElementById(targetId);
+            }
+
             function showStep(idx) {
                 cur = idx;
                 var s = STEPS[idx];
@@ -1379,7 +1396,7 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                 }
 
                 if (s.target) {
-                    var el = document.getElementById(s.target);
+                    var el = getTargetEl(s.target);
                     if (el) {
                         el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
