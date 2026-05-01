@@ -508,110 +508,119 @@
   }
   .lm-google:active { transform: scale(0.97); }
   .lm-google svg { width: 20px; height: 20px; flex-shrink: 0; }
-/* ════════════════════════════════════════════════
-   DESKTOP  (≥ 768px) — full-screen landing page
-════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   DESKTOP  ≥ 768px  —  full-screen landing page
+   Overrides any previous phone-frame styles
+═══════════════════════════════════════════════════ */
 @media (min-width: 768px) {
 
-  /* Full screen — no phone frame */
-  html, body { overflow: hidden; }
-
-  .viewport {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
+  /* ── Full screen base ── */
+  html, body {
+    overflow: hidden;
+    background: var(--bg);
   }
 
-  /* Each slide fills the screen */
-  .slide { width: 100vw; flex: 0 0 100vw; }
+  .viewport {
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--bg);
+  }
 
-  /* Slide inner: wider and centered */
+  .slider-track { width: 100%; }
+
+  .slide {
+    flex: 0 0 100vw;
+    width: 100vw;
+  }
+
+  /* Slide inner — wide, centered */
   .slide-inner {
-    max-width: 1100px;
+    max-width: 1140px !important;
+    width: 100%;
     margin: 0 auto;
   }
 
-  /* ── Get Started: fixed bottom-center ── */
+  /* ── Get Started — bottom center ── */
   .get-started {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     right: auto;
-    width: 260px;
+    width: 240px;
     max-width: none;
     bottom: 40px;
+    margin: 0;
   }
 
-  /* ════ SLIDE 1 — side by side ════ */
+  /* ══ SLIDE 1 — headline left, card stack right ══ */
   #slide1 .slide-inner {
     display: flex;
+    flex-direction: row;
     align-items: flex-start;
-    padding: 80px 60px 0;
-    gap: 40px;
     height: 100%;
+    padding: 80px 60px 100px;
+    gap: 48px;
   }
 
   .headline-wrap {
     position: static;
-    padding: 0;
-    flex: 0 0 320px;
-    padding-top: 40px;
-    animation: fadeDown 0.5s ease 0.08s both;
+    flex: 0 0 300px;
+    padding: 40px 0 0 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: fadeDown 0.5s ease 0.08s forwards;
   }
 
-  .headline {
-    font-size: clamp(36px, 4vw, 56px);
-  }
+  .headline { font-size: clamp(34px, 3.2vw, 52px); }
 
-  /* Card stack takes right side */
   .card-stack {
     position: relative;
     flex: 1;
     top: auto; left: auto; right: auto; bottom: auto;
     height: 100%;
-    min-height: 500px;
+    min-height: 480px;
   }
 
-  /* ════ SLIDE 2 ════ */
+  /* ══ SLIDE 2 — headline left, card right ══ */
   #slide2 .slide-inner {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    height: 100%;
     padding: 60px 60px 100px;
     gap: 60px;
-    height: 100%;
   }
 
-  .s2-headline-wrap {
-    padding: 0;
-    flex: 0 0 320px;
-  }
-
-  .s2-headline { font-size: clamp(36px, 4vw, 56px); }
+  .s2-headline-wrap { flex: 0 0 300px; padding: 0; }
+  .s2-headline      { font-size: clamp(34px, 3.2vw, 52px); }
 
   .s2-card-area {
     flex: 1;
     padding: 0;
     justify-content: flex-start;
+    align-items: center;
   }
 
-  .scene { max-width: 460px; }
+  .scene { max-width: 480px; width: 100%; }
 
-  /* ════ SLIDE 3 — side by side ════ */
+  /* ══ SLIDE 3 — image left, text+buttons right ══ */
   #slide3 .slide-inner {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    padding: 0 80px;
-    gap: 60px;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
     height: 100%;
+    padding: 0 80px !important;
+    gap: 60px;
   }
 
   .s3-student-images-container {
-    flex: 0 0 380px;
+    flex: 0 0 360px;
     height: 100%;
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 60px 0;
@@ -619,40 +628,42 @@
 
   .s3-student-img {
     width: 100%;
-    max-width: 380px;
-    transform: none;
+    max-width: 360px;
+    transform: none !important;
+    max-height: 80%;
+    object-fit: contain;
   }
 
-  .s3-text {
-    margin-bottom: 28px;
-  }
+  .s3-text { margin-bottom: 28px; }
+  .s3-headline { font-size: clamp(42px, 4.5vw, 64px); }
+  .s3-buttons { max-width: 380px; }
 
-  .s3-headline {
-    font-size: clamp(44px, 5vw, 68px);
-  }
-
-  .s3-buttons {
-    max-width: 380px;
-  }
-
-  /* ── Login modal: backdrop + centered card ── */
-  .login-modal {
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  /* Slide 3 text area */
+  .s3-right-col {
+    flex: 1;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
-    transform: none;
+  }
+
+  /* ══ LOGIN MODAL — centered card on backdrop ══ */
+  .login-modal {
+    background: rgba(0,0,0,0.55) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease !important;
   }
   .login-modal.show {
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
+
   .lm-card {
     width: 420px;
     max-height: 88vh;
@@ -660,7 +671,7 @@
     background: var(--surface);
     border-radius: 28px;
     border: 1px solid var(--border);
-    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
     transform: translateY(16px) scale(0.97);
     opacity: 0;
     transition: transform 0.32s cubic-bezier(0.25,1,0.2,1), opacity 0.3s ease;
@@ -670,11 +681,12 @@
     transform: translateY(0) scale(1);
     opacity: 1;
   }
+
   .lm-header { padding: 32px 28px 20px; }
   .lm-form   { padding: 0 28px 32px; overflow-y: visible; }
 }
 
-/* lm-card invisible on mobile */
+/* lm-card: invisible wrapper on mobile */
 @media (max-width: 767px) {
   .lm-card { display: contents; }
 }
