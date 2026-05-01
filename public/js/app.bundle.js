@@ -1316,32 +1316,56 @@ window.showCustomUpgradeModal = function(maxAllowed) {
                     return;
                 }
 
-                var ttW = Math.round(W * 0.62);
-                tt.style.width = ttW + 'px';
-
                 var pad = 12;
                 var cx = rect.x + rect.w / 2;
                 var ttH = tt.offsetHeight || 130;
-                var spaceAbove = rect.y - pad;
 
-                var isNavTarget = rect.y > H * 0.75;
-                var left;
-                if (isNavTarget) {
-                    left = pad;
+                // Desktop: nav is a left sidebar (element hugs the left edge)
+                var isDesktop = W >= 768;
+                var isSidebarTarget = isDesktop && rect.x < W * 0.25;
+                // Mobile: nav is at the bottom of screen
+                var isBottomNavTarget = !isDesktop && rect.y > H * 0.75;
+
+                var ttW, left;
+
+                if (isSidebarTarget) {
+                    // Place tooltip to the right of the sidebar element,
+                    // vertically centered on it
+                    ttW = Math.min(360, W - rect.x - rect.w - pad * 3);
+                    tt.style.width = ttW + 'px';
+                    left = rect.x + rect.w + 16;
+                    var ttTop = Math.max(pad, Math.min(H - ttH - pad, rect.y + rect.h / 2 - ttH / 2));
+                    tt.style.top  = ttTop + 'px';
+                    tt.style.left = left + 'px';
+                    // Left-pointing tail
+                    var tailDiv = document.createElement('div');
+                    tailDiv.style.cssText = 'position:absolute;left:-12px;top:' +
+                        Math.max(12, Math.min(ttH - 22, rect.y + rect.h / 2 - ttTop - 6)) + 'px;' +
+                        'width:0;height:0;border-top:6px solid transparent;' +
+                        'border-bottom:6px solid transparent;border-right:12px solid rgba(139,92,246,0.55);';
+                    tt.appendChild(tailDiv);
                 } else {
-                    left = Math.max(pad, Math.min(W - ttW - pad, cx - ttW / 2));
-                }
+                    ttW = Math.round(W * 0.62);
+                    tt.style.width = ttW + 'px';
+                    var spaceAbove = rect.y - pad;
 
-                var tailLeft = Math.max(14, Math.min(ttW - 26, cx - left - 11));
+                    if (isBottomNavTarget) {
+                        left = pad;
+                    } else {
+                        left = Math.max(pad, Math.min(W - ttW - pad, cx - ttW / 2));
+                    }
 
-                if (spaceAbove >= ttH + 14) {
-                    tt.style.top = (rect.y - ttH - 12) + 'px';
-                    tt.appendChild(makeTail('down', tailLeft));
-                } else {
-                    tt.style.top = (rect.y + rect.h + 12) + 'px';
-                    tt.appendChild(makeTail('up', tailLeft));
+                    var tailLeft = Math.max(14, Math.min(ttW - 26, cx - left - 11));
+
+                    if (spaceAbove >= ttH + 14) {
+                        tt.style.top = (rect.y - ttH - 12) + 'px';
+                        tt.appendChild(makeTail('down', tailLeft));
+                    } else {
+                        tt.style.top = (rect.y + rect.h + 12) + 'px';
+                        tt.appendChild(makeTail('up', tailLeft));
+                    }
+                    tt.style.left = left + 'px';
                 }
-                tt.style.left = left + 'px';
             }
 
             function showStep(idx) {
