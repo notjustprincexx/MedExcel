@@ -88,9 +88,9 @@
 </div>
 
 
-<button class="get-started" id="btnMainCta">Get Started</button>
-
 <div class="viewport" id="vp">
+
+<button class="get-started" id="btnMainCta">Get Started</button>
   
   <div class="slider-track" id="track">
 
@@ -231,7 +231,6 @@
           <img src="student.svg" alt="Students using MedExcel" class="s3-student-img" />
         </div>
 
-        <div class="s3-right">
         <div class="s3-text">
           <div class="s3-kicker">Built for medical students</div>
           <h2 class="s3-headline">Your exam<br>edge starts<br><span>here.</span></h2>
@@ -259,10 +258,13 @@
             <a href="javascript:void(0)" onclick="window._showOnboardingPrivacy()" style="color:rgba(255,255,255,0.75);text-decoration:underline;font-weight:600;">Privacy Policy</a>
           </p>
         </div>
-        </div><!-- /.s3-right -->
 
       </div>
-    </div></div></div><div id="loginModal" class="login-modal">
+    </div></div></div>
+
+</div><!-- /#vp -->
+
+<div id="loginModal" class="login-modal">
   <div class="lm-card">
   <div class="lm-header">
     <button class="lm-close" id="lmClose">
@@ -444,7 +446,7 @@
         var cta = document.getElementById('btnMainCta');
         if (typeof autoSlideTimer !== 'undefined') clearTimeout(autoSlideTimer);
         window._blockAutoSlide = true;
-        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-200vw)'; }
+        if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(-' + (2 * vp.offsetWidth) + 'px)'; }
         if (cta) cta.style.display = 'none';
         if (vp) vp.style.overflow = 'hidden';
         setTimeout(function() {
