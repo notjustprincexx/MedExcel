@@ -288,7 +288,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.syncUserStreak = async function(uid, streakCount, lastDate) {
-            try { await updateDoc(doc(window.db, "users", uid), { streak: streakCount, lastCheckIn: lastDate }); } 
+            try {
+                await updateDoc(doc(window.db, "users", uid), { streak: streakCount, lastCheckIn: lastDate });
+                // Mirror streak to /leaderboard so group leaderboards can read it
+                // without needing access to other users' /users docs.
+                await setDoc(doc(window.db, "leaderboard", uid), { streak: streakCount }, { merge: true });
+            }
             catch(e) { console.error("Failed to sync streak to cloud", e); window.logClientError?.('syncStreak', e); }
         };
 
@@ -1359,9 +1364,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             requestAnimationFrame(function() { page.style.transform = 'translateX(0)'; });
 
             // Fetch extra data and re-render
+            // Reads /leaderboard/{uid} (public to all auth users) instead of
+            // /users/{uid} which is now restricted to own doc only.
             try {
                 const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-                const snap = await getDoc(doc(db, 'users', uid));
+                const snap = await getDoc(doc(db, 'leaderboard', uid));
                 if (snap.exists()) {
                     renderPage(snap.data());
                 }
@@ -3005,8 +3012,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (deleteBtn) deleteBtn.style.display = g.createdBy === currentUid ? 'flex' : 'none';
                 if (leaveBtn)  leaveBtn.style.display  = g.createdBy !== currentUid ? 'flex' : 'none';
 
-                // Fetch live user docs for streak + weeklyXp
-                const userDocs = await Promise.all(memberUids.map(uid => getDoc(doc(db, 'users', uid)).catch(() => null)));
+                // Fetch live leaderboard docs for streak + weeklyXp.
+                // Uses /leaderboard/{uid} (readable by all auth users) instead of
+                // /users/{uid} which is now restricted to own doc only.
+                const userDocs = await Promise.all(memberUids.map(uid => getDoc(doc(db, 'leaderboard', uid)).catch(() => null)));
                 const liveData = {};
                 userDocs.forEach((snap, i) => { if (snap?.exists()) liveData[memberUids[i]] = snap.data(); });
 
