@@ -1151,7 +1151,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Pinned Your Rank Bar
             const bar = document.getElementById('yourRankBar');
             if (currentUserRank > 0 && bar) {
-                const me        = users[currentUserRank - 1];
+                // BUG FIX: users[] is sorted by weeklyXp so rank position ≠ array index.
+                // Always find the current user by uid, not by (rank - 1) index offset.
+                const me        = users.find(u => u.uid === currentUserId) || users[currentUserRank - 1];
                 const monthlyXp = me.monthlyRankXp || 0;
                 const rank      = window.getUserRank(monthlyXp);
                 const nextRank  = RANKS[rank.index + 1];
