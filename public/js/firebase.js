@@ -1054,8 +1054,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             if (users.length === 0) {
                 ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
                 ['xp1','xp2','xp3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
-                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">No activity this week in your league yet — go study!</div>`;
-                document.getElementById('yourRankBar').style.display = 'none';
+                if (listContainer) listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">No activity this week in your league yet — go study!</div>`;
+                const rb = document.getElementById('yourRankBar'); if (rb) rb.style.display = 'none';
                 return;
             }
 
@@ -1082,8 +1082,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             });
 
             // Ranked list (4–20)
-            listContainer.innerHTML = '';
-            if (users.length <= 3) {
+            if (listContainer) listContainer.innerHTML = '';
+            if (listContainer && users.length <= 3) {
                 listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} active in your league this week. Keep studying!</div>`;
             }
 
@@ -1099,7 +1099,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const proPill = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite'
                     ? `<span style="font-size:0.55rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;letter-spacing:0.03em;">PRO</span>`
                     : '';
-                listContainer.innerHTML += `
+                if (listContainer) listContainer.innerHTML += `
                     <div onclick="window.openUserProfile('${user.uid}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
                         <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
                             <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;">${rank}</span>
@@ -1164,7 +1164,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (tierPill)   tierPill.textContent    = rank.name;
                 if (tierBar)    tierBar.style.width     = pct + '%';
 
-                bar.style.display = 'block';
+                if (bar) bar.style.display = 'block';
             } else if (bar) {
                 bar.style.display = 'none';
             }
