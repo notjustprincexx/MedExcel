@@ -1061,18 +1061,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.renderLeaderboardDOM = function(allUsers, currentUserId) {
-            // Always show weekly XP, filtered to same tier as current user
+            // Always show monthly rank XP (the field that determines league rank and promotion)
             const myMonthlyXp = allUsers.find(u => u.uid === currentUserId)?.monthlyRankXp || 0;
             const myRank = window.getUserRank ? window.getUserRank(myMonthlyXp) : { name: 'Bronze', index: 0 };
 
-            // Filter to same tier, sort by weeklyXp
+            // Filter to same tier, sort by monthlyRankXp (league is a monthly competition)
             let users = [...allUsers]
                 .filter(u => {
                     const r = window.getUserRank ? window.getUserRank(u.monthlyRankXp || 0) : { index: 0 };
                     return r.index === myRank.index;
                 })
-                .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
-                .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId);
+                .sort((a, b) => (b.monthlyRankXp || 0) - (a.monthlyRankXp || 0))
+                .filter(u => (u.monthlyRankXp || 0) > 0 || u.uid === currentUserId);
 
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
@@ -1103,7 +1103,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const boxEl  = document.getElementById(slot.boxId);
                 if (!u) { if(nameEl) nameEl.textContent='—'; if(xpEl) xpEl.textContent=''; return; }
                 if (nameEl) nameEl.textContent = u.displayName;
-                if (xpEl)   xpEl.innerHTML = `${window.formatXP(u.weeklyXp || 0)}<br>${lbRankPill(u.monthlyRankXp||0)}`;
+                if (xpEl)   xpEl.innerHTML = `${window.formatXP(u.monthlyRankXp || 0)}<br>${lbRankPill(u.monthlyRankXp||0)}`;
                 if (boxEl) {
                     const size = i === 0 ? 60 : 44;
                     boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId, false);
@@ -1143,7 +1143,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             </div>
                         </div>
                         <div style="flex-shrink:0;margin-left:0.75rem;text-align:right;">
-                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user.weeklyXp||0)}</span>
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user.monthlyRankXp||0)}</span>
                         </div>
                     </div>`;
             });
