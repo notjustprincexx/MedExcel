@@ -1037,11 +1037,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 window.renderLeaderboardDOM(window._lbUsers, currentUserId);
             } catch(e) {
+                console.error('[loadLeaderboard] error:', e?.code, e?.message, e);
+                window.logClientError?.('loadLeaderboard', e);
                 const lc = document.getElementById('leaderboardList');
                 if (lc) {
-                    lc.innerHTML = e.message?.includes("index")
+                    const msg = e?.message || e?.code || 'Unknown error';
+                    lc.innerHTML = msg.includes("index")
                         ? `<div style="text-align:center;color:#f59e0b;padding:1.5rem;font-size:0.875rem;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Firebase index required.</div>`
-                        : `<div style="text-align:center;color:var(--text-muted);padding:1.5rem;font-size:0.875rem;">Failed to load leaderboard.</div>`;
+                        : `<div style="text-align:center;color:var(--text-muted);padding:1.5rem;font-size:0.875rem;">Failed to load leaderboard.<br><span style="font-size:0.7rem;opacity:0.6;">${window.escapeHTML?.(msg) ?? msg}</span></div>`;
                 }
             }
         };
