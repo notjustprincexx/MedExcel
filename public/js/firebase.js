@@ -352,9 +352,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const nextXp = RANKS[i + 1]?.minXp;
                 const label = nextXp ? `${r.minXp.toLocaleString()} – ${(nextXp - 1).toLocaleString()} monthly XP` : `${r.minXp.toLocaleString()}+ monthly XP`;
                 return `<div style="display:flex;align-items:center;gap:0.875rem;padding:0.75rem;border-radius:0.875rem;background:${isCurrent ? 'rgba(139,92,246,0.1)' : 'transparent'};border:1px solid ${isCurrent ? 'rgba(139,92,246,0.25)' : 'transparent'};">
-                    <div style="filter:${isUnlocked ? 'none' : 'grayscale(1) opacity(0.35)'};">${svg}</div>
+                    <div style="opacity:${isUnlocked ? '1' : '0.55'};">${svg}</div>
                     <div style="flex:1;">
-                        <div style="font-size:0.9rem;font-weight:800;color:${isUnlocked ? r.barColor : 'var(--text-muted)'};">${r.name} ${isCurrent ? '<span style="font-size:0.65rem;background:var(--accent-btn);color:white;padding:1px 6px;border-radius:9999px;vertical-align:middle;">Current</span>' : ''}</div>
+                        <div style="font-size:0.9rem;font-weight:800;color:${isUnlocked ? r.barColor : 'var(--text-muted)'};">${r.name} ${isCurrent ? '<span style="font-size:0.65rem;background:var(--accent-btn);color:white;padding:1px 6px;border-radius:9999px;vertical-align:middle;">Current</span>' : ''}${!isUnlocked ? ' <span style="font-size:0.7rem;opacity:0.5;">🔒</span>' : ''}</div>
                         <div style="font-size:0.72rem;color:var(--text-muted);">${label}</div>
                     </div>
                 </div>`;
@@ -1065,8 +1065,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const myMonthlyXp = allUsers.find(u => u.uid === currentUserId)?.monthlyRankXp || 0;
             const myRank = window.getUserRank ? window.getUserRank(myMonthlyXp) : { name: 'Bronze', index: 0 };
 
-            // Filter to same tier, sort by monthlyRankXp (league is a monthly competition)
-            let users = [...allUsers]
+            // Filter to same tier first, sort by monthlyRankXp
+            const sameTier = [...allUsers]
                 .filter(u => {
                     const r = window.getUserRank ? window.getUserRank(u.monthlyRankXp || 0) : { index: 0 };
                     return r.index === myRank.index;
@@ -1074,13 +1074,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 .sort((a, b) => (b.monthlyRankXp || 0) - (a.monthlyRankXp || 0))
                 .filter(u => (u.monthlyRankXp || 0) > 0 || u.uid === currentUserId);
 
+            // SMART FALLBACK: if fewer than 5 people share this tier, show all active
+            // users globally so higher-ranked users are never stuck in a ghost league.
+            const MIN_LEAGUE_SIZE = 5;
+            const isGlobalFallback = sameTier.length < MIN_LEAGUE_SIZE;
+            let users = isGlobalFallback
+                ? [...allUsers]
+                    .sort((a, b) => (b.monthlyRankXp || 0) - (a.monthlyRankXp || 0))
+                    .filter(u => (u.monthlyRankXp || 0) > 0 || u.uid === currentUserId)
+                : sameTier;
+
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
             skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
             // Update ranked section label
             const topLabel = document.querySelector('#lbRankedSection span');
-            if (topLabel) topLabel.textContent = myRank.name + ' League — Top 20';
+            if (topLabel) topLabel.textContent = isGlobalFallback ? 'Global Rankings — Top 20' : myRank.name + ' League — Top 20';
 
             if (users.length === 0) {
                 ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
@@ -1130,6 +1140,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const proPill = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite'
                     ? `<span style="font-size:0.55rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;letter-spacing:0.03em;">PRO</span>`
                     : '';
+                const userTier = window.getUserRank ? window.getUserRank(user.monthlyRankXp || 0) : { name: 'Bronze', barColor: '#d97706' };
+                const tierPill = isGlobalFallback
+                    ? `<span style="font-size:0.55rem;font-weight:700;color:${userTier.barColor};border:1px solid ${userTier.barColor};padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;opacity:0.8;">${userTier.name}</span>`
+                    : '';
                 if (listContainer) listContainer.innerHTML += `
                     <div onclick="window.openUserProfile('${user.uid}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
                         <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
@@ -1137,7 +1151,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
                                 <div style="display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:wrap;">
-                                    <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${window.escapeHTML(user.displayName||'?')}${proPill}</div>
+                                    <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${window.escapeHTML(user.displayName||'?')}${proPill}${tierPill}</div>
                                     ${isMe ? '<span style="font-size:0.625rem;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;white-space:nowrap;flex-shrink:0;">YOU</span>' : ''}
                                 </div>
                             </div>
