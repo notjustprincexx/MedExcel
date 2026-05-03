@@ -201,6 +201,7 @@
                 if (targetViewId === 'view-profile' && typeof window.updateThemeUI === 'function') window.updateThemeUI();
                 if (targetViewId === 'view-create' && typeof window.goBackToSelection === 'function') window.goBackToSelection();
                 if (targetViewId === 'view-payment' && typeof window.loadGeoPricing === 'function') window.loadGeoPricing();
+                if (targetViewId === 'view-payment' && typeof window.initPaymentPageState === 'function') window.initPaymentPageState();
                 if (targetViewId === 'view-leaderboard' && typeof window.silentRefreshLeaderboard === 'function') window.silentRefreshLeaderboard();
             } catch(e) { console.warn("View init skipped:", e); }
 
@@ -6112,23 +6113,19 @@ window._activatePremium = async function(ref) {
         var uBtn = document.getElementById('tab-btn-profile');
         if (!pTab || !uTab) return;
 
-        // Reset both to inactive
-        [pBtn, uBtn].forEach(function(btn) {
-            if (!btn) return;
-            btn.style.color = 'var(--text-muted)';
-            btn.style.fontWeight = '700';
-            btn.style.borderBottom = '2.5px solid transparent';
-        });
+        var activeShadow = '0 2px 8px rgba(139,92,246,0.3)';
 
         if (tab === 'planner') {
             pTab.style.display = 'block';
             uTab.style.display = 'none';
-            if (pBtn) { pBtn.style.color = 'var(--accent-btn)'; pBtn.style.fontWeight = '800'; pBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; }
+            if (pBtn) { pBtn.style.background = 'var(--accent-btn)'; pBtn.style.color = 'var(--btn-text)'; pBtn.style.boxShadow = activeShadow; }
+            if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--text-muted)'; uBtn.style.boxShadow = 'none'; }
             window.initPlanner();
         } else {
             pTab.style.display = 'none';
             uTab.style.display = 'block';
-            if (uBtn) { uBtn.style.color = 'var(--accent-btn)'; uBtn.style.fontWeight = '800'; uBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; }
+            if (uBtn) { uBtn.style.background = 'var(--accent-btn)'; uBtn.style.color = 'var(--btn-text)'; uBtn.style.boxShadow = activeShadow; }
+            if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--text-muted)'; pBtn.style.boxShadow = 'none'; }
         }
     };
 
@@ -6212,17 +6209,16 @@ window._activatePremium = async function(ref) {
     }
 
     window._plannerOpenDeck = function(id) {
-        // q.id is a number; HTML attrs pass strings — must convert or === fails silently
-        var parsedId = isNaN(Number(id)) ? id : Number(id);
         window.navigateTo('view-study');
         setTimeout(function() {
             if (window.loadQuizOverview) {
-                window.loadQuizOverview(parsedId);
+                window.loadQuizOverview(id);
+                // Give the overview a moment to render, then auto-start
                 setTimeout(function() {
                     if (window.startPractice) window.startPractice(false);
                 }, 80);
             }
-        }, 120);
+        }, 100);
     };
 
     // ── EXAM COUNTDOWN ────────────────────────────────────────────

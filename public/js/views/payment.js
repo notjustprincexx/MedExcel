@@ -4,6 +4,72 @@
         var _payCurrentPlan = 'monthly';
         var _payCdInterval = null;
 
+        // ── Grey-out logic ────────────────────────────────────────────────────────
+        // Maps app plan names → which payment card ID is "current"
+        var _PLAN_CARD_MAP = {
+            'premium':         'monthly',
+            'premium_monthly': 'monthly',
+            'premium_yearly':  'yearly',
+            'premium_exam':    'exam',
+            'premium_trial':   'trial',
+        };
+
+        window.initPaymentPageState = function() {
+            var activePlan = window.userPlan || 'free';
+            var currentCard = _PLAN_CARD_MAP[activePlan] || null; // null = free, no card to lock
+
+            var cards = ['monthly', 'yearly', 'exam', 'trial'];
+            cards.forEach(function(key) {
+                var cardEl = document.getElementById('pCard' + key.charAt(0).toUpperCase() + key.slice(1));
+                if (!cardEl) return;
+
+                // Remove any previously applied lock styling first
+                cardEl.removeAttribute('data-plan-locked');
+                cardEl.style.opacity = '';
+                cardEl.style.pointerEvents = '';
+                cardEl.style.cursor = '';
+                var existingBadge = cardEl.querySelector('.current-plan-badge');
+                if (existingBadge) existingBadge.remove();
+
+                if (key === currentCard) {
+                    // Grey out and lock this card
+                    cardEl.setAttribute('data-plan-locked', 'true');
+                    cardEl.style.opacity = '0.45';
+                    cardEl.style.pointerEvents = 'none';
+                    cardEl.style.cursor = 'default';
+
+                    // Inject "Current Plan" badge at the top of the card
+                    var badge = document.createElement('span');
+                    badge.className = 'current-plan-badge';
+                    badge.textContent = 'Current Plan';
+                    badge.style.cssText = [
+                        'position:absolute', 'top:-11px', 'right:1rem',
+                        'font-size:.6rem', 'font-weight:800', 'letter-spacing:.05em',
+                        'background:var(--text-muted)', 'color:var(--bg-body)',
+                        'padding:3px 10px', 'border-radius:9999px', 'white-space:nowrap',
+                        'z-index:2'
+                    ].join(';');
+                    cardEl.appendChild(badge);
+
+                    // If this was the default-selected plan, auto-switch to a non-locked plan
+                    if (_payCurrentPlan === key) {
+                        var fallback = cards.find(function(k) { return k !== key && document.getElementById('pCard' + k.charAt(0).toUpperCase() + k.slice(1)); });
+                        if (fallback) window.switchPayPlan(fallback);
+                    }
+                }
+            });
+
+            // If user is already on any paid plan, update header text
+            if (activePlan && activePlan !== 'free') {
+                var header = document.querySelector('#view-payment header span');
+                if (header) header.textContent = 'Manage Your Plan';
+                var ctaBtn = document.getElementById('payCTABtn');
+                if (ctaBtn && ctaBtn.textContent.toLowerCase().includes('get premium')) {
+                    // CTA stays as-is — they may be upgrading from monthly → yearly
+                }
+            }
+        };
+
         function _payGetCountdownEnd() {
             var end = sessionStorage.getItem('payCountdownEnd');
             if (!end) { end = Date.now() + (23 * 3600000 + 59 * 60000 + 59000); sessionStorage.setItem('payCountdownEnd', end); }
@@ -24,6 +90,10 @@
 
         window.switchPayPlan = function(plan) {
             try {
+                // Don't allow selecting the card that matches the user's current plan
+                var lockedCard = _PLAN_CARD_MAP[window.userPlan || 'free'];
+                if (plan === lockedCard) return;
+
                 _payCurrentPlan = plan;
                 var cM = document.getElementById('pCardMonthly'), cY = document.getElementById('pCardYearly');
                 var dealBox = document.getElementById('payDealBox'), ctaEl = document.getElementById('payCTABtn');
