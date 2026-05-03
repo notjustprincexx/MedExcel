@@ -2440,7 +2440,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 if (data.lastCheckIn) { localStreak = { count: data.streak || 0, lastDate: data.lastCheckIn }; localStorage.setItem(storageKey, JSON.stringify(localStreak)); }
                 if (!localStreak) localStreak = { count: 0, lastDate: null };
 
-                window.userStats = { xp: data.xp || 0, weeklyXp: data.weeklyXp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
+                // ── BUG FIX: always take the higher of Firestore XP and localStorage XP.
+                //    If a previous addXP Firestore write failed (permissions, offline, etc.)
+                //    the local value is correct and we must never discard it.
+                const _localStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {};
+                const _trustedXp       = Math.max(data.xp       || 0, _localStats.xp       || 0);
+                const _trustedWeeklyXp = Math.max(data.weeklyXp || 0, _localStats.weeklyXp || 0);
+                window.userStats = { xp: _trustedXp, weeklyXp: _trustedWeeklyXp, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
+                // If local was ahead of Firestore, push the correct values back up now
+                if (_trustedXp > (data.xp || 0) || _trustedWeeklyXp > (data.weeklyXp || 0)) {
+                    setDoc(doc(db, 'users', user.uid), { xp: _trustedXp, weeklyXp: _trustedWeeklyXp }, { merge: true }).catch(() => {});
+                    setDoc(doc(db, 'leaderboard', user.uid), { xp: _trustedXp, weeklyXp: _trustedWeeklyXp }, { merge: true }).catch(() => {});
+                }
 
                 // Seed week key so addXP doesn't wipe weeklyXp on first call this session
                 const _wkKey = (function() {
@@ -2473,7 +2484,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 // Profile & limits UI
                 const pStreak = document.getElementById("profileStreakCount"); if(pStreak) pStreak.textContent = currentStreakCount;
                 const studyStreak = document.getElementById("studyStreakDisplay"); if(studyStreak) studyStreak.textContent = `${currentStreakCount} Day`;
-                const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(data.xp || 0);
+                const sXp = document.getElementById("studyXpDisplay"); if(sXp) sXp.textContent = window.formatXP(window.userStats.xp);
                 {
                     let memberDate = null;
                     // Primary: Firebase Auth creation time — always present for every account
@@ -2527,7 +2538,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // Plan icon, XP level, achievements, library
                 window.updatePlanIcon(window.userPlan);
-                window.updateProfileXP(data.xp || 0);
+                window.updateProfileXP(window.userStats.xp);
                 window.renderAchievements(data.achievements || []);
                 // Re-apply avatar now userPlan is known so premium ring shows
                 window.applyAvatar();
