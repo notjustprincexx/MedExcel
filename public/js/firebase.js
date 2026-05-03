@@ -266,7 +266,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
-                    // Mirror leaderboard fields so /leaderboard query works for all auth users
                     const _lbAvatarIdx = window._cachedUserData?.avatarIndex ?? null;
                     const _lbPhoto = window._cachedUserData?.photoBase64 || null;
                     const _lbPlan = window._cachedUserData?.plan || 'free';
@@ -1048,7 +1047,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const myRank = window.getUserRank ? window.getUserRank(myMonthlyXp) : { name: 'Bronze', index: 0 };
 
             // Filter to same tier, sort by weeklyXp
-            let users = [...allUsers]
+            let leagueUsers = [...allUsers]
                 .filter(u => {
                     const r = window.getUserRank ? window.getUserRank(u.monthlyRankXp || 0) : { index: 0 };
                     return r.index === myRank.index;
@@ -1056,13 +1055,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
                 .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId);
 
+            // If fewer than 3 users in current league, fall back to global cross-league view
+            const isGlobalFallback = leagueUsers.filter(u => u.uid !== currentUserId).length < 2;
+            let users = isGlobalFallback
+                ? [...allUsers]
+                    .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
+                    .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId)
+                : leagueUsers;
+
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
             skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
             // Update ranked section label
             const topLabel = document.querySelector('#lbRankedSection span');
-            if (topLabel) topLabel.textContent = myRank.name + ' League — Top 20';
+            if (topLabel) topLabel.textContent = isGlobalFallback ? 'Global Rankings — Top 20' : myRank.name + ' League — Top 20';
 
             if (users.length === 0) {
                 ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
@@ -2059,7 +2066,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // Save base64 directly to Firestore — no Storage bucket needed
                 await updateDoc(doc(db, 'users', uid), { photoBase64: base64, avatarIndex: null });
-                setDoc(doc(db, 'leaderboard', uid), { photoBase64: base64, avatarIndex: null }, { merge: true }).catch(() => {});
                 localStorage.setItem('medexcel_photo_' + uid, base64);
                 localStorage.removeItem('medexcel_avatar_' + uid);
 
@@ -2086,7 +2092,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Save to Firestore
             if (window.currentUser?.uid) {
                 try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index, photoBase64: null }).catch(() => {}); } catch(e) {}
-                setDoc(doc(db, "leaderboard", window.currentUser.uid), { avatarIndex: index, photoBase64: null }, { merge: true }).catch(() => {});
             }
             window.applyAvatar();
             // Highlight in picker
@@ -2330,8 +2335,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                     window.applyAvatar();
 
-                    // Sync leaderboard doc on login — ensures /leaderboard/{uid} exists for all users
-                    // so loadLeaderboard (which queries /leaderboard) can see everyone
                     setDoc(doc(db, "leaderboard", user.uid), {
                         xp: data.xp || 0,
                         weeklyXp: data.weeklyXp || 0,
