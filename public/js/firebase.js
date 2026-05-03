@@ -326,13 +326,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         ];
 
         // ── RANK SYSTEM ──────────────────────────────────────────────────────
-        const RANKS = [
+        const RANKS = window.RANKS = [
             { name: 'Bronze',   minXp: 0,    col: 0, barColor: '#d97706' },
             { name: 'Silver',   minXp: 150,  col: 1, barColor: '#94a3b8' },
             { name: 'Gold',     minXp: 500,  col: 2, barColor: '#fbbf24' },
             { name: 'Amethyst', minXp: 1200, col: 3, barColor: '#8b5cf6' },
             { name: 'Emerald',  minXp: 2500, col: 4, barColor: '#10b981' },
         ];
+
+        // Returns the monthlyRankXp a user starts the new month with after demotion.
+        // Each league drops one tier; Bronze stays at 0; Silver lands halfway into Bronze.
+        window.getDemotionXp = function(currentMonthlyXp) {
+            const rank = window.getUserRank(currentMonthlyXp);
+            if (rank.index === 0) return 0;   // Bronze → 0
+            if (rank.index === 1) return 75;  // Silver → halfway into Bronze
+            return RANKS[rank.index - 1].minXp; // Gold/Amethyst/Emerald → floor of league below
+        };
 
         window.getUserRank = function(xp) {
             for (let i = RANKS.length - 1; i >= 0; i--) {
@@ -1055,7 +1064,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
                 .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId);
 
-            // If fewer than 3 users in current league, fall back to global cross-league view
             const isGlobalFallback = leagueUsers.filter(u => u.uid !== currentUserId).length < 2;
             let users = isGlobalFallback
                 ? [...allUsers]
@@ -2458,6 +2466,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     window.userStats.weeklyXp = 0;
                     localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
                     updateDoc(doc(db, 'users', user.uid), { weeklyXp: 0 }).catch(() => {});
+                    setDoc(doc(db, 'leaderboard', user.uid), { weeklyXp: 0 }, { merge: true }).catch(() => {});
                 }
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
 
@@ -2536,9 +2545,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const currentMonthKey = new Date().toISOString().slice(0, 7);
                 let monthlyRankXp = data.monthlyRankXp || 0;
                 if (data.rankMonth && data.rankMonth !== currentMonthKey) {
-                    // New month — reset rank XP
-                    monthlyRankXp = 0;
-                    updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }).catch(() => {});
+                    // New month — demote one league instead of full reset.
+                    // Bronze stays at 0; Silver→0, Gold→150, Amethyst→500, Emerald→1200.
+                    monthlyRankXp = window.getDemotionXp(data.monthlyRankXp || 0);
+                    updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: monthlyRankXp, rankMonth: currentMonthKey }).catch(() => {});
+                    setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp: monthlyRankXp }, { merge: true }).catch(() => {});
                 } else if (!data.rankMonth) {
                     updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
                 }
