@@ -2604,12 +2604,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
 
                 // Sync full leaderboard profile on every login — ensures /leaderboard doc
-                // stays current even for users who haven't gained XP recently
+                // stays current even for users who haven't gained XP recently.
+                // MUST use window.userStats (trusted max values) NOT data.xp — /users XP fields
+                // are stale because Firestore rules block client writes to xp/monthlyRankXp.
                 const _lbName = data.displayName || user.displayName || user.email?.split('@')[0] || 'User';
                 setDoc(doc(db, 'leaderboard', user.uid), {
                     uid: user.uid, displayName: _lbName,
-                    xp: data.xp || 0, weeklyXp: data.weeklyXp || 0,
-                    monthlyRankXp: monthlyRankXp, rankMonth: currentMonthKey,
+                    xp: window.userStats.xp,
+                    weeklyXp: window.userStats.weeklyXp,
+                    monthlyRankXp: window.userStats.monthlyRankXp,
+                    rankMonth: currentMonthKey,
                     plan: data.plan || 'free',
                     avatarIndex: data.avatarIndex ?? null,
                     photoBase64: data.photoBase64 || null,
