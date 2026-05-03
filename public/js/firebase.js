@@ -256,28 +256,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
             localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
             if (window.currentUser) {
-                try {
-                    let dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : "User");
-                    await setDoc(doc(db, "users", window.currentUser.uid), { 
-                        uid: window.currentUser.uid, 
-                        xp: window.userStats.xp, 
-                        weeklyXp: window.userStats.weeklyXp,
-                        monthlyRankXp: window.userStats.monthlyRankXp,
-                        rankMonth: monthKey,
-                        displayName: dName 
-                    }, { merge: true });
-                    // Mirror XP to /leaderboard (publicly readable by all authenticated users)
-                    // /users is locked to own-doc-only reads, so leaderboard queries must use this collection
-                    const lbMirror = {
-                        uid: window.currentUser.uid, displayName: dName,
-                        xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp,
-                        monthlyRankXp: window.userStats.monthlyRankXp, rankMonth: monthKey,
-                    };
-                    if (window._cachedUserData?.plan)       lbMirror.plan       = window._cachedUserData.plan;
-                    if (window._cachedUserData?.avatarIndex != null) lbMirror.avatarIndex = window._cachedUserData.avatarIndex;
-                    if (window._cachedUserData?.photoBase64) lbMirror.photoBase64 = window._cachedUserData.photoBase64;
-                    setDoc(doc(db, "leaderboard", window.currentUser.uid), lbMirror, { merge: true }).catch(() => {});
-                } catch (e) { console.error("Failed to sync XP", e); window.logClientError?.('addXP_sync', e); }
+                const dName = window.currentUser.displayName || (window.currentUser.email ? window.currentUser.email.split('@')[0] : "User");
+
+                // /leaderboard write is ALWAYS independent — never blocked by a /users failure.
+                // (Firestore rules block client writes of xp/monthlyRankXp on /users, so that
+                //  write often throws. The leaderboard write must never be inside the same try block.)
+                const lbMirror = {
+                    uid: window.currentUser.uid, displayName: dName,
+                    xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp,
+                    monthlyRankXp: window.userStats.monthlyRankXp, rankMonth: monthKey,
+                };
+                if (window._cachedUserData?.plan)            lbMirror.plan        = window._cachedUserData.plan;
+                if (window._cachedUserData?.avatarIndex != null) lbMirror.avatarIndex = window._cachedUserData.avatarIndex;
+                if (window._cachedUserData?.photoBase64)     lbMirror.photoBase64 = window._cachedUserData.photoBase64;
+                setDoc(doc(db, "leaderboard", window.currentUser.uid), lbMirror, { merge: true })
+                    .catch(e => { console.error("Failed to sync leaderboard XP", e); window.logClientError?.('addXP_lb', e); });
+
+                // /users write is fire-and-forget — rules may block xp fields, that's fine.
+                setDoc(doc(db, "users", window.currentUser.uid), {
+                    uid: window.currentUser.uid, xp: window.userStats.xp,
+                    weeklyXp: window.userStats.weeklyXp, monthlyRankXp: window.userStats.monthlyRankXp,
+                    rankMonth: monthKey, displayName: dName
+                }, { merge: true }).catch(() => {});
             }
             // Update UI elements
             const uiXP1 = document.getElementById('studyXpDisplay'); if(uiXP1) uiXP1.textContent = window.formatXP(window.userStats.xp);
