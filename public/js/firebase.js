@@ -266,6 +266,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
+                    // Mirror leaderboard fields so /leaderboard query works for all auth users
+                    const _lbAvatarIdx = window._cachedUserData?.avatarIndex ?? null;
+                    const _lbPhoto = window._cachedUserData?.photoBase64 || null;
+                    const _lbPlan = window._cachedUserData?.plan || 'free';
+                    setDoc(doc(db, "leaderboard", window.currentUser.uid), {
+                        xp: window.userStats.xp,
+                        weeklyXp: window.userStats.weeklyXp,
+                        monthlyRankXp: window.userStats.monthlyRankXp,
+                        displayName: dName,
+                        avatarIndex: _lbAvatarIdx,
+                        photoBase64: _lbPhoto,
+                        plan: _lbPlan
+                    }, { merge: true }).catch(() => {});
                 } catch (e) { console.error("Failed to sync XP", e); window.logClientError?.('addXP_sync', e); }
             }
             // Update UI elements
@@ -975,7 +988,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             try {
                 const uiXP = document.getElementById('currentUserXp');
                 if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
-                const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
+                const q = query(collection(db, "leaderboard"), orderBy("xp", "desc"), limit(50));
                 const snap = await getDocs(q);
                 let fetched = [];
                 let currentUserInList = false;
@@ -2046,6 +2059,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // Save base64 directly to Firestore — no Storage bucket needed
                 await updateDoc(doc(db, 'users', uid), { photoBase64: base64, avatarIndex: null });
+                setDoc(doc(db, 'leaderboard', uid), { photoBase64: base64, avatarIndex: null }, { merge: true }).catch(() => {});
                 localStorage.setItem('medexcel_photo_' + uid, base64);
                 localStorage.removeItem('medexcel_avatar_' + uid);
 
@@ -2072,6 +2086,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Save to Firestore
             if (window.currentUser?.uid) {
                 try { updateDoc(doc(db, "users", window.currentUser.uid), { avatarIndex: index, photoBase64: null }).catch(() => {}); } catch(e) {}
+                setDoc(doc(db, "leaderboard", window.currentUser.uid), { avatarIndex: index, photoBase64: null }, { merge: true }).catch(() => {});
             }
             window.applyAvatar();
             // Highlight in picker
@@ -2314,6 +2329,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         localStorage.setItem('medexcel_avatar_' + user.uid, String(data.defaultAvatar));
                     }
                     window.applyAvatar();
+
+                    // Sync leaderboard doc on login — ensures /leaderboard/{uid} exists for all users
+                    // so loadLeaderboard (which queries /leaderboard) can see everyone
+                    setDoc(doc(db, "leaderboard", user.uid), {
+                        xp: data.xp || 0,
+                        weeklyXp: data.weeklyXp || 0,
+                        monthlyRankXp: data.monthlyRankXp || 0,
+                        displayName: data.displayName || user.email?.split('@')[0] || 'User',
+                        avatarIndex: data.avatarIndex ?? null,
+                        photoBase64: data.photoBase64 || null,
+                        plan: data.plan || 'free',
+                        streak: data.streak || 0
+                    }, { merge: true }).catch(() => {});
 
                     // Send login notification email — only on fresh login, not session restore
                     if (sessionStorage.getItem('medexcel_just_logged_in')) {
