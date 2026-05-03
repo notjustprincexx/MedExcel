@@ -2462,10 +2462,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const _localStats = JSON.parse(localStorage.getItem('medexcel_user_stats')) || {};
                 const _trustedXp       = Math.max(data.xp       || 0, _localStats.xp       || 0);
                 const _trustedWeeklyXp = Math.max(data.weeklyXp || 0, _localStats.weeklyXp || 0);
-                window.userStats = { xp: _trustedXp, weeklyXp: _trustedWeeklyXp, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
+                // monthlyRankXp is handled more carefully below (needs month-key guard + leaderboard fetch)
+                // but seed it here so userStats is never momentarily 0
+                window.userStats = { xp: _trustedXp, weeklyXp: _trustedWeeklyXp, monthlyRankXp: data.monthlyRankXp || _localStats.monthlyRankXp || 0, level: 1, streak: localStreak.count, count: localStreak.count, lastDate: localStreak.lastDate };
                 // If local was ahead of Firestore, push the correct values back up now
                 if (_trustedXp > (data.xp || 0) || _trustedWeeklyXp > (data.weeklyXp || 0)) {
-                    setDoc(doc(db, 'users', user.uid), { xp: _trustedXp, weeklyXp: _trustedWeeklyXp }, { merge: true }).catch(() => {});
                     setDoc(doc(db, 'leaderboard', user.uid), { xp: _trustedXp, weeklyXp: _trustedWeeklyXp }, { merge: true }).catch(() => {});
                 }
 
@@ -2561,14 +2562,42 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 // Monthly rank reset
                 const currentMonthKey = new Date().toISOString().slice(0, 7);
-                let monthlyRankXp = data.monthlyRankXp || 0;
+                let monthlyRankXp;
+
                 if (data.rankMonth && data.rankMonth !== currentMonthKey) {
-                    // New month — reset rank XP
+                    // Genuine new month — reset rank XP everywhere
                     monthlyRankXp = 0;
                     updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }).catch(() => {});
-                } else if (!data.rankMonth) {
-                    updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
+                    setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }, { merge: true }).catch(() => {});
+                    localStorage.setItem('medexcel_monthkey_' + user.uid, currentMonthKey);
+                } else {
+                    // Same month — trust the HIGHEST of: Firestore /users, Firestore /leaderboard (written
+                    // by addXP since /users writes are blocked by rules), and localStorage.
+                    // Only use localStorage if it's from THIS month (month key matches).
+                    const _localMonthKey = localStorage.getItem('medexcel_monthkey_' + user.uid);
+                    const _localMonthlyXp = (_localMonthKey === currentMonthKey) ? (_localStats.monthlyRankXp || 0) : 0;
+
+                    // Also read /leaderboard doc (client can write here, unlike /users)
+                    let _lbMonthlyXp = 0;
+                    try {
+                        const _lbDoc = await getDoc(doc(db, 'leaderboard', user.uid));
+                        if (_lbDoc.exists()) {
+                            const _lbData = _lbDoc.data();
+                            if (_lbData.rankMonth === currentMonthKey) _lbMonthlyXp = _lbData.monthlyRankXp || 0;
+                        }
+                    } catch(_) {}
+
+                    monthlyRankXp = Math.max(data.monthlyRankXp || 0, _localMonthlyXp, _lbMonthlyXp);
+
+                    if (!data.rankMonth) {
+                        updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
+                    }
+                    // Heal Firestore if local/leaderboard was ahead
+                    if (monthlyRankXp > (data.monthlyRankXp || 0)) {
+                        setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp, rankMonth: currentMonthKey }, { merge: true }).catch(() => {});
+                    }
                 }
+
                 if (window._cachedUserData) window._cachedUserData.monthlyRankXp = monthlyRankXp;
                 window.userStats.monthlyRankXp = monthlyRankXp;
                 window.updateRankDisplay(monthlyRankXp, true);
