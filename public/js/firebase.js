@@ -266,6 +266,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
+                    // Mirror XP to /leaderboard (publicly readable by all authenticated users)
+                    // /users is locked to own-doc-only reads, so leaderboard queries must use this collection
+                    const lbMirror = {
+                        uid: window.currentUser.uid, displayName: dName,
+                        xp: window.userStats.xp, weeklyXp: window.userStats.weeklyXp,
+                        monthlyRankXp: window.userStats.monthlyRankXp, rankMonth: monthKey,
+                    };
+                    if (window._cachedUserData?.plan)       lbMirror.plan       = window._cachedUserData.plan;
+                    if (window._cachedUserData?.avatarIndex != null) lbMirror.avatarIndex = window._cachedUserData.avatarIndex;
+                    if (window._cachedUserData?.photoBase64) lbMirror.photoBase64 = window._cachedUserData.photoBase64;
+                    setDoc(doc(db, "leaderboard", window.currentUser.uid), lbMirror, { merge: true }).catch(() => {});
                 } catch (e) { console.error("Failed to sync XP", e); window.logClientError?.('addXP_sync', e); }
             }
             // Update UI elements
@@ -975,7 +986,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             try {
                 const uiXP = document.getElementById('currentUserXp');
                 if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
-                const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
+                const q = query(collection(db, "leaderboard"), orderBy("xp", "desc"), limit(50));
                 const snap = await getDocs(q);
                 let fetched = [];
                 let currentUserInList = false;
@@ -2535,6 +2546,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.userStats.monthlyRankXp = monthlyRankXp;
                 window.updateRankDisplay(monthlyRankXp, true);
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
+
+                // Sync full leaderboard profile on every login — ensures /leaderboard doc
+                // stays current even for users who haven't gained XP recently
+                const _lbName = data.displayName || user.displayName || user.email?.split('@')[0] || 'User';
+                setDoc(doc(db, 'leaderboard', user.uid), {
+                    uid: user.uid, displayName: _lbName,
+                    xp: data.xp || 0, weeklyXp: data.weeklyXp || 0,
+                    monthlyRankXp: monthlyRankXp, rankMonth: currentMonthKey,
+                    plan: data.plan || 'free',
+                    avatarIndex: data.avatarIndex ?? null,
+                    photoBase64: data.photoBase64 || null,
+                    streak: data.streak || 0,
+                }, { merge: true }).catch(() => {});
 
                 window.updateHomeContinueCard();
                 window.renderLibrary('all', '');
