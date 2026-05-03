@@ -266,18 +266,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         rankMonth: monthKey,
                         displayName: dName 
                     }, { merge: true });
-                    const _lbAvatarIdx = window._cachedUserData?.avatarIndex ?? null;
-                    const _lbPhoto = window._cachedUserData?.photoBase64 || null;
-                    const _lbPlan = window._cachedUserData?.plan || 'free';
-                    setDoc(doc(db, "leaderboard", window.currentUser.uid), {
-                        xp: window.userStats.xp,
-                        weeklyXp: window.userStats.weeklyXp,
-                        monthlyRankXp: window.userStats.monthlyRankXp,
-                        displayName: dName,
-                        avatarIndex: _lbAvatarIdx,
-                        photoBase64: _lbPhoto,
-                        plan: _lbPlan
-                    }, { merge: true }).catch(() => {});
                 } catch (e) { console.error("Failed to sync XP", e); window.logClientError?.('addXP_sync', e); }
             }
             // Update UI elements
@@ -326,22 +314,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         ];
 
         // ── RANK SYSTEM ──────────────────────────────────────────────────────
-        const RANKS = window.RANKS = [
+        const RANKS = [
             { name: 'Bronze',   minXp: 0,    col: 0, barColor: '#d97706' },
             { name: 'Silver',   minXp: 150,  col: 1, barColor: '#94a3b8' },
             { name: 'Gold',     minXp: 500,  col: 2, barColor: '#fbbf24' },
             { name: 'Amethyst', minXp: 1200, col: 3, barColor: '#8b5cf6' },
             { name: 'Emerald',  minXp: 2500, col: 4, barColor: '#10b981' },
         ];
-
-        // Returns the monthlyRankXp a user starts the new month with after demotion.
-        // Each league drops one tier; Bronze stays at 0; Silver lands halfway into Bronze.
-        window.getDemotionXp = function(currentMonthlyXp) {
-            const rank = window.getUserRank(currentMonthlyXp);
-            if (rank.index === 0) return 0;   // Bronze → 0
-            if (rank.index === 1) return 75;  // Silver → halfway into Bronze
-            return RANKS[rank.index - 1].minXp; // Gold/Amethyst/Emerald → floor of league below
-        };
 
         window.getUserRank = function(xp) {
             for (let i = RANKS.length - 1; i >= 0; i--) {
@@ -996,7 +975,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             try {
                 const uiXP = document.getElementById('currentUserXp');
                 if (uiXP) { uiXP.classList.remove('skeleton'); uiXP.style.cssText=''; uiXP.textContent = window.formatXP(window.userStats?.xp || 0); }
-                const q = query(collection(db, "leaderboard"), orderBy("xp", "desc"), limit(50));
+                const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(50));
                 const snap = await getDocs(q);
                 let fetched = [];
                 let currentUserInList = false;
@@ -1039,7 +1018,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     } catch(e) { /* non-fatal — user just won't appear if fetch fails */ }
                 }
                 window._lbUsers = fetched;
-                window.renderLeaderboardDOM(fetched, currentUserId);
+
+                // ── BUG FIX: Firestore writes can lag or fail, so the freshly-fetched
+                //    data may show 0 XP for the current user even though they've already
+                //    earned XP this session.  Always prefer the higher of the live local
+                //    value (window.userStats) vs what Firestore just returned.
+                if (currentUserId && window.userStats) {
+                    const meIdx = window._lbUsers.findIndex(u => u.uid === currentUserId);
+                    if (meIdx >= 0) {
+                        const liveXp      = window.userStats.xp           || 0;
+                        const liveWeekly  = window.userStats.weeklyXp     || 0;
+                        const liveMonthly = window.userStats.monthlyRankXp || 0;
+                        if (liveXp      > (window._lbUsers[meIdx].xp           || 0)) window._lbUsers[meIdx].xp           = liveXp;
+                        if (liveWeekly  > (window._lbUsers[meIdx].weeklyXp     || 0)) window._lbUsers[meIdx].weeklyXp     = liveWeekly;
+                        if (liveMonthly > (window._lbUsers[meIdx].monthlyRankXp || 0)) window._lbUsers[meIdx].monthlyRankXp = liveMonthly;
+                    }
+                }
+
+                window.renderLeaderboardDOM(window._lbUsers, currentUserId);
             } catch(e) {
                 const lc = document.getElementById('leaderboardList');
                 if (lc) {
@@ -1056,7 +1052,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const myRank = window.getUserRank ? window.getUserRank(myMonthlyXp) : { name: 'Bronze', index: 0 };
 
             // Filter to same tier, sort by weeklyXp
-            let leagueUsers = [...allUsers]
+            let users = [...allUsers]
                 .filter(u => {
                     const r = window.getUserRank ? window.getUserRank(u.monthlyRankXp || 0) : { index: 0 };
                     return r.index === myRank.index;
@@ -1064,20 +1060,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
                 .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId);
 
-            const isGlobalFallback = leagueUsers.filter(u => u.uid !== currentUserId).length < 2;
-            let users = isGlobalFallback
-                ? [...allUsers]
-                    .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
-                    .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId)
-                : leagueUsers;
-
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
             skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
             // Update ranked section label
             const topLabel = document.querySelector('#lbRankedSection span');
-            if (topLabel) topLabel.textContent = isGlobalFallback ? 'Global Rankings — Top 20' : myRank.name + ' League — Top 20';
+            if (topLabel) topLabel.textContent = myRank.name + ' League — Top 20';
 
             if (users.length === 0) {
                 ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
@@ -2343,17 +2332,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     }
                     window.applyAvatar();
 
-                    setDoc(doc(db, "leaderboard", user.uid), {
-                        xp: data.xp || 0,
-                        weeklyXp: data.weeklyXp || 0,
-                        monthlyRankXp: data.monthlyRankXp || 0,
-                        displayName: data.displayName || user.email?.split('@')[0] || 'User',
-                        avatarIndex: data.avatarIndex ?? null,
-                        photoBase64: data.photoBase64 || null,
-                        plan: data.plan || 'free',
-                        streak: data.streak || 0
-                    }, { merge: true }).catch(() => {});
-
                     // Send login notification email — only on fresh login, not session restore
                     if (sessionStorage.getItem('medexcel_just_logged_in')) {
                         sessionStorage.removeItem('medexcel_just_logged_in');
@@ -2466,7 +2444,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     window.userStats.weeklyXp = 0;
                     localStorage.setItem('medexcel_weekkey_' + user.uid, _wkKey);
                     updateDoc(doc(db, 'users', user.uid), { weeklyXp: 0 }).catch(() => {});
-                    setDoc(doc(db, 'leaderboard', user.uid), { weeklyXp: 0 }, { merge: true }).catch(() => {});
                 }
                 localStorage.setItem('medexcel_user_stats', JSON.stringify(window.userStats));
 
@@ -2545,11 +2522,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const currentMonthKey = new Date().toISOString().slice(0, 7);
                 let monthlyRankXp = data.monthlyRankXp || 0;
                 if (data.rankMonth && data.rankMonth !== currentMonthKey) {
-                    // New month — demote one league instead of full reset.
-                    // Bronze stays at 0; Silver→0, Gold→150, Amethyst→500, Emerald→1200.
-                    monthlyRankXp = window.getDemotionXp(data.monthlyRankXp || 0);
-                    updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: monthlyRankXp, rankMonth: currentMonthKey }).catch(() => {});
-                    setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp: monthlyRankXp }, { merge: true }).catch(() => {});
+                    // New month — reset rank XP
+                    monthlyRankXp = 0;
+                    updateDoc(doc(db, 'users', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }).catch(() => {});
                 } else if (!data.rankMonth) {
                     updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
                 }

@@ -161,7 +161,9 @@ window.checkAnswerMatch = function(selectedKey, selectedValue, correctAnswer) {
 
 window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             if (cardData.answered) return; cardData.answered = true;
-            const selectedKey = selectedBtn.dataset.key; let selectedIsCorrect = false;
+            const selectedKey = selectedBtn.dataset.key;
+            cardData.selectedKey = selectedKey; // persisted so going back can restore visual state
+            let selectedIsCorrect = false;
             const answer = cardData.back || cardData.answer || "No answer provided";
 
             allButtons.forEach(btn => {
@@ -241,6 +243,44 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             if (isMCQMode) {
                 const buttons = viewContainer.querySelectorAll('.create-mcq-option');
                 buttons.forEach(btn => btn.addEventListener('click', () => window.handleCreateMCQSelection(btn, card, buttons)));
+
+                // ── BUG FIX: if this card was already answered, restore the visual state
+                //    (highlighted correct/wrong option + explanation) so going back shows answers
+                if (card.answered && card.selectedKey) {
+                    const answer = card.back || card.answer || '';
+                    let selectedIsCorrect = false;
+                    buttons.forEach(btn => {
+                        const key = btn.dataset.key; const value = btn.dataset.value;
+                        const isThisCorrect = (
+                            String(answer).trim().toLowerCase() === String(value).trim().toLowerCase() ||
+                            String(answer).trim().toLowerCase() === String(key).trim().toLowerCase()   ||
+                            String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase() + '.') ||
+                            String(answer).trim().toLowerCase().startsWith(String(key).trim().toLowerCase() + ')')
+                        );
+                        btn.disabled = true; btn.style.opacity = '0.5';
+                        if (isThisCorrect) {
+                            btn.style.background = 'rgba(16, 185, 129, 0.1)';
+                            btn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                            btn.style.color = 'var(--accent-green)';
+                            btn.style.opacity = '1';
+                            if (key === card.selectedKey) selectedIsCorrect = true;
+                        } else if (key === card.selectedKey) {
+                            btn.style.background = 'rgba(239, 68, 68, 0.1)';
+                            btn.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                            btn.style.color = 'var(--accent-red)';
+                            btn.style.opacity = '1';
+                        }
+                    });
+                    const explArea = document.getElementById('createExplanationArea');
+                    if (explArea) {
+                        explArea.innerHTML = `<div style="margin-bottom: 0.5rem; font-size: 0.8125rem;">${
+                            selectedIsCorrect
+                                ? '<span style="color: var(--accent-green); font-weight: 700;"><i class="fas fa-check-circle"></i> Correct</span>'
+                                : `<span style="color: var(--accent-red); font-weight: 700;"><i class="fas fa-times-circle"></i> Incorrect</span> <span style="margin-left: 0.5rem; color: var(--text-muted); font-size: 0.75rem;">Answer: <b style="color: var(--text-main);">${window.escapeHTML(answer)}</b></span>`
+                        }</div>${card.explanation ? `<div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); color: var(--text-main); font-size: 0.875rem; line-height: 1.5;"><span style="font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.375rem; font-size: 0.75rem; text-transform: uppercase;">Explanation</span> ${window.escapeHTML(card.explanation)}</div>` : ''}`;
+                        explArea.style.display = 'flex';
+                    }
+                }
             } else {
                 const fc = document.getElementById('flashcardElement');
                 fc.addEventListener('click', () => { const inner = document.getElementById('flipInner'); inner.style.transform = inner.style.transform.includes('180deg') ? 'rotateY(0deg)' : 'rotateY(180deg)'; });
