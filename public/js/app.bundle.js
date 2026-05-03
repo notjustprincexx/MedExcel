@@ -5974,3 +5974,611 @@ window._activatePremium = async function(ref) {
     }
 
 })();
+//  STUDY PLANNER  –  MedExcel
+// ═══════════════════════════════════════════════════════════════
+(function() {
+
+    // ── MBBS Curriculum (3-level: Subject → Topic → Subtopics[]) ──
+    var CURRICULUM = {
+        'Anatomy': {
+            'Upper Limb':       ['Bones & Joints','Muscles & Movements','Brachial Plexus','Blood Supply','Dermatomes & Sensation'],
+            'Lower Limb':       ['Bones & Joints','Muscles & Movements','Lumbosacral Plexus','Femoral & Sciatic Nerves','Blood Supply'],
+            'Thorax':           ['Thoracic Wall','Lungs & Pleura','Heart & Pericardium','Mediastinum','Diaphragm'],
+            'Abdomen & Pelvis': ['Anterior Abdominal Wall','GI Tract Anatomy','Liver, Biliary & Pancreas','Kidneys & Adrenals','Pelvic Floor & Organs'],
+            'Head & Neck':      ['Skull & Scalp','Cranial Nerves','Orbit & Eye','Ear & Nose','Neck Triangles & Thyroid'],
+            'Neuroanatomy':     ['Cerebral Cortex','Brainstem & Cerebellum','Spinal Cord','Autonomic Nervous System','Ventricular System & CSF'],
+            'Embryology':       ['Gametogenesis & Fertilization','Gastrulation & Folding','Organogenesis','Common Congenital Anomalies']
+        },
+        'Physiology': {
+            'Cardiovascular':   ['Cardiac Cycle & Output','Electrical Activity & ECG','Blood Pressure Regulation','Microcirculation','Heart Sounds'],
+            'Respiratory':      ['Lung Volumes & Capacities','Gas Exchange & Transport','Control of Breathing','Pulmonary Circulation','V/Q Ratio'],
+            'Renal':            ['GFR & Filtration','Tubular Reabsorption','Acid-Base Balance','Electrolyte Regulation','Micturition'],
+            'GI Physiology':    ['Salivary & Gastric Secretion','Intestinal Absorption','Liver & Bile','Pancreatic Secretion','Gut Motility'],
+            'Endocrine':        ['Hypothalamus-Pituitary Axis','Thyroid Physiology','Adrenal Physiology','Insulin & Glucagon','Reproductive Hormones'],
+            'Neurophysiology':  ['Resting & Action Potential','Synaptic Transmission','Sensory Pathways','Motor Control','Reflexes'],
+            'Reproductive':     ['Male Reproductive Physiology','Female Reproductive Cycle','Pregnancy Physiology','Fetal Circulation']
+        },
+        'Biochemistry': {
+            'Carbohydrate Metabolism': ['Glycolysis','TCA Cycle','Glycogen Metabolism','Gluconeogenesis','Pentose Phosphate Pathway'],
+            'Lipid Metabolism':        ['Fatty Acid Synthesis & Oxidation','Ketone Bodies','Cholesterol Metabolism','Lipoproteins'],
+            'Protein Metabolism':      ['Amino Acid Catabolism','Urea Cycle','One-Carbon Metabolism','Haem Synthesis'],
+            'Enzymes':                 ['Enzyme Kinetics','Michaelis-Menten','Inhibition Types','Allosteric Regulation'],
+            'Molecular Biology':       ['DNA Replication','Transcription & Translation','Gene Regulation','Mutations & Repair'],
+            'Vitamins & Minerals':     ['Fat-Soluble Vitamins','Water-Soluble Vitamins','Trace Elements','Deficiency Syndromes']
+        },
+        'Pharmacology': {
+            'Analgesics & Anti-inflammatory': ['NSAIDs Mechanism & Uses','Opioid Analgesics','COX-2 Inhibitors','Gout Treatment'],
+            'Antibiotics':     ['Penicillins & Cephalosporins','Tetracyclines & Chloramphenicol','Fluoroquinolones','Aminoglycosides','Macrolides & Sulfonamides','Carbapenems & Glycopeptides'],
+            'Antifungals & Antivirals': ['Azoles & Polyenes','Echinocandins','Antiretrovirals','Antiherpes Agents'],
+            'Antimalarials & Anti-TB': ['Chloroquine, ACTs & Resistance','Anti-TB First Line','Anti-TB Second Line','Antiparasitic Agents'],
+            'Cardiovascular Drugs':    ['Antihypertensives','Antiarrhythmics','Antianginals','Heart Failure Drugs','Anticoagulants'],
+            'CNS Drugs':               ['Antiepileptics','Antipsychotics','Antidepressants','Anxiolytics & Hypnotics','Anaesthesia & NMBs'],
+            'Autonomic Pharmacology':  ['Cholinergics & Anticholinergics','Adrenergics & Blockers','Ganglion Blockers'],
+            'Endocrine Pharmacology':  ['Insulin & OHAs','Thyroid Drugs','Corticosteroids','Sex Hormones','Prostaglandins']
+        },
+        'Pathology': {
+            'General Pathology': ['Cell Injury & Adaptations','Inflammation — Acute','Inflammation — Chronic','Wound Healing & Repair','Haemodynamic Disturbances','Neoplasia & Carcinogenesis'],
+            'Cardiovascular':    ['Atherosclerosis & IHD','Hypertensive Heart Disease','Cardiomyopathies','Valvular Disease','Rheumatic Heart Disease'],
+            'Respiratory':       ['Obstructive Lung Disease','Restrictive Lung Disease','Pneumonia & Infections','Lung Tumours','Pleural Disease'],
+            'GI Pathology':      ['Peptic Ulcer Disease','IBD','Colorectal Carcinoma','Liver Cirrhosis','Hepatocellular Carcinoma'],
+            'Renal Pathology':   ['Glomerulonephritis','Nephrotic vs Nephritic','Tubular Disorders','Renal Cell Carcinoma','Urinary Tract Infections'],
+            'Neuro Pathology':   ['CNS Infections','Stroke Pathology','Neurodegenerative Diseases','CNS Tumours'],
+            'Genetic Disorders': ['Mendelian Disorders','Chromosomal Disorders','Lysosomal Storage Diseases','Mitochondrial Disorders']
+        },
+        'Microbiology': {
+            'Bacteriology':   ['Gram-positive Cocci (Staph & Strep)','Gram-negative Rods (E. coli, Klebsiella)','Gram-negative Cocci','Mycobacteria (TB & Leprosy)','Spirochaetes','Anaerobes','Atypicals (Chlamydia, Mycoplasma)'],
+            'Virology':       ['DNA Viruses (Herpes, Pox, Adeno)','RNA Viruses (Influenza, Measles, Polio)','Retroviruses & HIV','Hepatitis Viruses','Arboviral Infections'],
+            'Mycology':       ['Superficial Mycoses','Systemic Mycoses','Opportunistic Fungi'],
+            'Parasitology':   ['Intestinal Protozoa','Blood & Tissue Protozoa (Malaria, Leishmania)','Nematodes','Cestodes & Trematodes'],
+            'Immunology':     ['Innate Immunity','Adaptive Immunity','Hypersensitivity Reactions','Autoimmunity','Immunodeficiencies','Vaccines & Immunisation'],
+            'Microbiology Lab': ['Sterilization & Disinfection','Culture Media','Sensitivity & Susceptibility','Serology & PCR']
+        },
+        'Haematology': {
+            'Anaemias':          ['Iron-deficiency Anaemia','Megaloblastic Anaemia','Haemolytic Anaemia','Sickle Cell & Thalassaemia','Aplastic Anaemia'],
+            'White Cell Disorders': ['Leukaemias (ALL, AML, CLL, CML)','Lymphomas (Hodgkin & NHL)','Plasma Cell Disorders'],
+            'Haemostasis':       ['Platelet Function & Disorders','Coagulation Cascade','DIC','Anticoagulation Therapy','Von Willebrand Disease'],
+            'Transfusion Medicine': ['Blood Groups (ABO & Rh)','Cross-matching','Transfusion Reactions','Blood Products & Indications']
+        },
+        'Chemical Pathology': {
+            'Organ Function Tests': ['Liver Function Tests','Renal Function Tests','Cardiac Markers','Thyroid Function Tests','Pancreatic Enzymes'],
+            'Metabolic Disorders': ['Diabetes & Glucose Regulation','Dyslipidemias','Electrolyte Imbalances','Acid-Base Disorders'],
+            'Nutrition':           ['Protein-Energy Malnutrition','Vitamin Deficiencies','Trace Element Disorders','Obesity & Metabolic Syndrome'],
+            'Lab Interpretation':  ['Reference Ranges','QC & Lab Errors','Point-of-Care Testing','Tumour Markers']
+        },
+        'Histopathology': {
+            'Basic Tissues':    ['Epithelium','Connective Tissue','Muscle Tissue','Nervous Tissue'],
+            'Organ Histology':  ['Cardiovascular Histology','Respiratory Histology','GI Histology','Renal Histology','Endocrine Histology','Reproductive Histology'],
+            'Staining Techniques': ['H&E Staining','Special Stains (PAS, Masson)','Immunohistochemistry','Electron Microscopy Basics'],
+            'Cytopathology':    ['Fine Needle Aspiration','Cervical Cytology','Sputum & Body Fluids']
+        },
+        'Surgery': {
+            'Surgical Principles': ['Wound Healing & Sutures','Surgical Infections & Antibiotics','Fluid & Electrolytes in Surgery','Shock Management','Perioperative Care'],
+            'Trauma':              ['Head Injury & ICP','Chest Trauma','Abdominal Trauma','Fracture Management','Spinal Injuries'],
+            'Abdominal Surgery':   ['Appendicitis','Intestinal Obstruction','GI Perforation','Hernia','Colorectal Surgery'],
+            'Breast & Endocrine':  ['Breast Lumps & Cancer','Thyroid Surgery','Parathyroid & Adrenal Surgery'],
+            'Urology':             ['BPH & Prostate Cancer','Renal Calculi','Testicular Disorders','Urological Emergencies'],
+            'Orthopaedics':        ['Common Fractures','Bone Tumours','Osteoarthritis & Joint Replacement','Paediatric Orthopaedics']
+        },
+        'Medicine': {
+            'Cardiology':       ['Hypertension','Coronary Artery Disease','Heart Failure','Arrhythmias','Valvular Heart Disease'],
+            'Pulmonology':      ['Asthma','COPD','Pneumonia','Pleural Effusion','Lung Carcinoma','Pulmonary Embolism'],
+            'Nephrology':       ['Acute Kidney Injury','Chronic Kidney Disease','Glomerular Disease','Nephrotic Syndrome','Renal Replacement'],
+            'Gastroenterology': ['Peptic Ulcer Disease','IBD','Liver Cirrhosis','Hepatitis','Pancreatitis'],
+            'Endocrinology':    ['Diabetes Mellitus','Thyroid Disorders','Cushing & Addison','Pituitary Disorders','Calcium Disorders'],
+            'Neurology':        ['Stroke & TIA','Epilepsy','Meningitis','Peripheral Neuropathy','Movement Disorders'],
+            'Infectious Diseases': ['Malaria','Typhoid','HIV/AIDS','Tuberculosis','Sepsis Management'],
+            'Rheumatology':     ['Rheumatoid Arthritis','SLE','Gout','Osteoarthritis','Vasculitides']
+        },
+        'Obs & Gynae': {
+            'Obstetrics':           ['Normal Pregnancy & ANC','First Trimester Complications','Antepartum Haemorrhage','Pre-eclampsia & Eclampsia','Normal & Abnormal Labour','Postpartum Complications'],
+            'Gynaecology':          ['Menstrual Disorders','PCOS','Endometriosis & Fibroids','Pelvic Inflammatory Disease','Contraception','Gynaecological Malignancies'],
+            'Neonatology Basics':   ['Birth Asphyxia','Neonatal Jaundice','Neonatal Infections','Congenital Malformations']
+        },
+        'Paediatrics': {
+            'Growth & Development': ['Developmental Milestones','Growth Charts & Failure to Thrive','Puberty'],
+            'Neonatology':          ['Prematurity','Respiratory Distress Syndrome','Neonatal Sepsis','Congenital Heart Disease'],
+            'Infections':           ['Childhood Fever','Measles & Meningitis','Malaria in Children','Helminthiases'],
+            'Nutrition':            ['Protein-Energy Malnutrition','Micronutrient Deficiencies','Childhood Obesity'],
+            'Emergencies':          ['Febrile Seizures','Acute Gastroenteritis & Dehydration','Status Epilepticus','Epiglottitis & Croup'],
+            'Genetic & Metabolic':  ['Down Syndrome','Inborn Errors of Metabolism','Sickle Cell in Children']
+        },
+        'Community Health': {
+            'Epidemiology':         ['Disease Measurement (Incidence, Prevalence)','Study Designs','Bias & Confounding','Screening & Diagnosis'],
+            'Disease Control':      ['Disease Surveillance','Contact Tracing','Outbreak Investigation','Quarantine & Isolation'],
+            'Maternal & Child Health': ['Antenatal Care Programs','Immunisation Schedule','Child Survival Strategies','Family Planning'],
+            'Environmental Health': ['Water & Sanitation','Vector Control','Occupational Health','Climate & Health'],
+            'Health Systems':       ['Primary Health Care','Health Financing','PHC in Nigeria','Health Indicators & MDGs/SDGs']
+        }
+    };
+
+    function _uid() { return window.currentUser ? window.currentUser.uid : 'guest'; }
+    function _examKey()   { return 'medexcel_exams_'   + _uid(); }
+    function _topicKey()  { return 'medexcel_topics_'  + _uid(); }
+    function _logKey()    { return 'medexcel_studylog_' + _uid(); }
+
+    function _loadExams()  { try { return JSON.parse(localStorage.getItem(_examKey()) || '[]'); } catch(e) { return []; } }
+    function _saveExams(e) { localStorage.setItem(_examKey(), JSON.stringify(e)); }
+    function _loadTopics() { try { return JSON.parse(localStorage.getItem(_topicKey()) || '{}'); } catch(e) { return {}; } }
+    function _saveTopics(t){ localStorage.setItem(_topicKey(), JSON.stringify(t)); }
+    function _loadLog()    { try { return JSON.parse(localStorage.getItem(_logKey()) || '{}'); } catch(e) { return {}; } }
+
+    function _escH(s) { return window.escapeHTML ? window.escapeHTML(s) : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ── Tab switch ────────────────────────────────────────────────
+    window.switchProfileTab = function(tab) {
+        var pTab = document.getElementById('profile-tab-planner');
+        var uTab = document.getElementById('profile-tab-profile');
+        var pBtn = document.getElementById('tab-btn-planner');
+        var uBtn = document.getElementById('tab-btn-profile');
+        if (!pTab || !uTab) return;
+
+        // Reset both to inactive
+        [pBtn, uBtn].forEach(function(btn) {
+            if (!btn) return;
+            btn.style.color = 'var(--text-muted)';
+            btn.style.fontWeight = '700';
+            btn.style.borderBottom = '2.5px solid transparent';
+        });
+
+        if (tab === 'planner') {
+            pTab.style.display = 'block';
+            uTab.style.display = 'none';
+            if (pBtn) { pBtn.style.color = 'var(--accent-btn)'; pBtn.style.fontWeight = '800'; pBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; }
+            window.initPlanner();
+        } else {
+            pTab.style.display = 'none';
+            uTab.style.display = 'block';
+            if (uBtn) { uBtn.style.color = 'var(--accent-btn)'; uBtn.style.fontWeight = '800'; uBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; }
+        }
+    };
+
+    // ── Main init (called on navigateTo view-profile) ─────────────
+    window.initPlanner = function() {
+        var pTab = document.getElementById('profile-tab-planner');
+        if (!pTab || pTab.style.display === 'none') return;
+        _renderTodayPlan();
+        _renderExams();
+        _renderWeekStrip();
+        _renderChecklist();
+    };
+
+    // ── TODAY'S PLAN ──────────────────────────────────────────────
+    function _renderTodayPlan() {
+        var lbl  = document.getElementById('plannerDateLabel');
+        var list = document.getElementById('plannerTodayList');
+        var badge= document.getElementById('plannerGoalBadge');
+        if (!list) return;
+
+        var today   = new Date();
+        var options = { weekday:'long', month:'long', day:'numeric' };
+        if (lbl) lbl.textContent = today.toLocaleDateString(undefined, options);
+
+        var DAY_MS  = 86400000;
+        var now     = Date.now();
+        var quizzes = (window.quizzes || []).filter(function(q){ return !q._pending && q.questions && q.questions.length > 0; });
+        var scored  = quizzes.filter(function(q){ return q.stats && q.stats.attempts > 0; }).map(function(q){
+            var total   = q.questions.length;
+            var pct     = total > 0 ? Math.round((q.stats.bestScore / total) * 100) : 0;
+            var lastMs  = (q.stats.lastAttemptedAt) ? new Date(q.stats.lastAttemptedAt).getTime() : 0;
+            var daysAgo = (lastMs > 0) ? Math.floor((now - lastMs) / DAY_MS) : null;
+            return { q:q, pct:pct, daysAgo:daysAgo };
+        });
+
+        var items = [];
+        // 1. Weak decks first (<60%)
+        scored.filter(function(s){ return s.pct < 60; }).sort(function(a,b){ return a.pct - b.pct; }).slice(0,2).forEach(function(s){
+            items.push({ q:s.q, reason:'Needs work', badge:'#8b5cf6', sub: s.pct + '% best score' });
+        });
+        // 2. Stale decks (≥5 days, and we actually have a valid date)
+        scored.filter(function(s){ return s.daysAgo !== null && s.daysAgo >= 5; }).sort(function(a,b){ return b.daysAgo - a.daysAgo; }).slice(0,2).forEach(function(s){
+            if (items.length < 4 && !items.find(function(i){ return i.q.id === s.q.id; })) {
+                var dLabel = s.daysAgo >= 30 ? Math.floor(s.daysAgo/30) + 'mo ago' : s.daysAgo + 'd ago';
+                items.push({ q:s.q, reason:'Due for review', badge:'#f59e0b', sub: dLabel });
+            }
+        });
+        // 3. Never-attempted decks
+        quizzes.filter(function(q){ return !q.stats || q.stats.attempts === 0; }).slice(0,2).forEach(function(q){
+            if (items.length < 4) items.push({ q:q, reason:'New deck', badge:'#34d399', sub: q.questions.length + ' questions' });
+        });
+
+        if (badge) badge.textContent = items.length > 0 ? items.length + ' items' : '—';
+
+        if (items.length === 0) {
+            list.innerHTML = '<div style="padding:1.25rem;display:flex;gap:12px;align-items:center;">' +
+                '<div style="width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,0.1);color:var(--accent-btn);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">🌱</div>' +
+                '<div><div style="font-size:0.9rem;font-weight:700;color:var(--text-main);margin-bottom:2px;">Nothing queued yet</div>' +
+                '<div style="font-size:0.8rem;color:var(--text-muted);">Generate your first quiz and it will appear here automatically.</div></div></div>';
+            return;
+        }
+
+        list.innerHTML = items.map(function(item, i) {
+            var isLast = i === items.length - 1;
+            return '<div style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;' + (isLast ? '' : 'border-bottom:1px solid var(--border-color);') + 'cursor:pointer;" onclick="window._plannerOpenDeck(\'' + String(item.q.id) + '\')">' +
+                '<div style="width:40px;height:40px;border-radius:10px;background:' + item.badge + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                    '<i class="fas fa-book-open" style="color:' + item.badge + ';font-size:0.875rem;"></i>' +
+                '</div>' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _escH(item.q.title || 'Untitled') + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">' +
+                        '<span style="font-size:0.6rem;font-weight:700;color:' + item.badge + ';background:' + item.badge + '18;padding:2px 7px;border-radius:9999px;">' + item.reason + '</span>' +
+                        '<span style="font-size:0.72rem;color:var(--text-muted);">' + item.sub + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="width:34px;height:34px;border-radius:50%;background:var(--accent-btn);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(139,92,246,0.3);">' +
+                    '<i class="fas fa-play" style="font-size:0.7rem;color:white;margin-left:2px;"></i>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    window._plannerOpenDeck = function(id) {
+        // q.id is a number; HTML attrs pass strings — must convert or === fails silently
+        var parsedId = isNaN(Number(id)) ? id : Number(id);
+        window.navigateTo('view-study');
+        setTimeout(function() {
+            if (window.loadQuizOverview) {
+                window.loadQuizOverview(parsedId);
+                setTimeout(function() {
+                    if (window.startPractice) window.startPractice(false);
+                }, 80);
+            }
+        }, 120);
+    };
+
+    // ── EXAM COUNTDOWN ────────────────────────────────────────────
+    function _renderExams() {
+        var list  = document.getElementById('plannerExamList');
+        if (!list) return;
+        var exams = _loadExams().filter(function(e){ return e && e.name && e.date; })
+                                .sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
+
+        if (exams.length === 0) {
+            list.innerHTML = '<div style="padding:1.25rem;display:flex;gap:12px;align-items:center;">' +
+                '<div style="width:40px;height:40px;border-radius:50%;background:rgba(251,191,36,0.1);color:#fbbf24;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">📅</div>' +
+                '<div><div style="font-size:0.9rem;font-weight:700;color:var(--text-main);margin-bottom:2px;">No exams added yet</div>' +
+                '<div style="font-size:0.8rem;color:var(--text-muted);">Tap "+ Add Exam" to start your countdown.</div></div></div>';
+            return;
+        }
+
+        var now = Date.now();
+        list.innerHTML = exams.map(function(exam, i) {
+            var examDate = new Date(exam.date);
+            examDate.setHours(23,59,59,999);
+            var daysLeft = Math.ceil((examDate.getTime() - now) / 86400000);
+            var isPast   = daysLeft < 0;
+            var color    = isPast ? '#94a3b8' : daysLeft <= 7 ? '#ef4444' : daysLeft <= 14 ? '#f59e0b' : '#34d399';
+            var label    = isPast ? 'Done' : daysLeft === 0 ? 'Today!' : daysLeft === 1 ? 'Tomorrow' : daysLeft + ' days';
+            var isLast   = i === exams.length - 1;
+
+            return '<div style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;' + (isLast ? '' : 'border-bottom:1px solid var(--border-color);') + '">' +
+                '<div style="width:48px;height:48px;border-radius:10px;background:' + color + '15;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:1px solid ' + color + '30;">' +
+                    '<div style="font-size:1rem;font-weight:900;color:' + color + ';line-height:1;">' + (isPast ? '✓' : (daysLeft === 0 ? '!' : Math.abs(daysLeft))) + '</div>' +
+                    '<div style="font-size:0.5rem;font-weight:700;color:' + color + ';text-transform:uppercase;">' + (isPast ? 'done' : 'days') + '</div>' +
+                '</div>' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:0.875rem;font-weight:700;color:' + (isPast ? 'var(--text-muted)' : 'var(--text-main)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _escH(exam.name) + '</div>' +
+                    '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + examDate.toLocaleDateString(undefined, {weekday:'short',month:'short',day:'numeric'}) + ' · ' + label + '</div>' +
+                '</div>' +
+                '<button onclick="window._deleteExam(' + i + ')" style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.08);border:none;cursor:pointer;color:#f87171;font-size:0.7rem;display:flex;align-items:center;justify-content:center;">' +
+                    '<i class="fas fa-trash"></i>' +
+                '</button>' +
+            '</div>';
+        }).join('');
+    }
+
+    window.openAddExamModal = function() {
+        var overlay = document.getElementById('addExamModalOverlay');
+        var sheet   = document.getElementById('addExamModalSheet');
+        var dateIn  = document.getElementById('addExamDate');
+        if (!overlay || !sheet) return;
+        // Set min date to today
+        dateIn.min = new Date().toISOString().split('T')[0];
+        overlay.style.display = 'flex';
+        requestAnimationFrame(function(){ sheet.style.transform = 'translateY(0)'; });
+    };
+
+    window.closeAddExamModal = function() {
+        var sheet   = document.getElementById('addExamModalSheet');
+        var overlay = document.getElementById('addExamModalOverlay');
+        if (!sheet) return;
+        sheet.style.transform = 'translateY(100%)';
+        setTimeout(function(){ if(overlay) overlay.style.display = 'none'; }, 320);
+    };
+
+    window.saveExam = function() {
+        var name = (document.getElementById('addExamName') || {}).value || '';
+        var date = (document.getElementById('addExamDate') || {}).value || '';
+        if (!name.trim() || !date) { alert('Please fill in both exam name and date.'); return; }
+        var exams = _loadExams();
+        exams.push({ name: name.trim(), date: date });
+        _saveExams(exams);
+        document.getElementById('addExamName').value = '';
+        document.getElementById('addExamDate').value = '';
+        window.closeAddExamModal();
+        _renderExams();
+    };
+
+    window._deleteExam = function(idx) {
+        var exams = _loadExams();
+        exams.splice(idx, 1);
+        _saveExams(exams);
+        _renderExams();
+    };
+
+    // ── WEEKLY ACTIVITY STRIP ─────────────────────────────────────
+    function _renderWeekStrip() {
+        var strip = document.getElementById('plannerWeekStrip');
+        var total = document.getElementById('plannerWeekTotal');
+        if (!strip) return;
+
+        var log    = _loadLog();
+        var DAY_MS = 86400000;
+        var now    = Date.now();
+        var days   = [];
+        var weekQs = 0;
+
+        for (var i = 6; i >= 0; i--) {
+            var d   = new Date(now - i * DAY_MS);
+            var key = d.toISOString().split('T')[0];
+            var qs  = (log[key] && log[key].questions) || 0;
+            weekQs += qs;
+            days.push({ label: d.toLocaleDateString(undefined, {weekday:'short'}), val: qs, isToday: i === 0, key: key });
+        }
+
+        if (total) total.textContent = weekQs + ' questions this week';
+
+        var maxVal = Math.max.apply(null, days.map(function(d){ return d.val; }).concat([1]));
+        strip.innerHTML = days.map(function(d) {
+            var hPct = Math.max(6, Math.round((d.val / maxVal) * 72));
+            var bg   = d.isToday ? 'var(--accent-btn)' : d.val > 0 ? 'rgba(139,92,246,0.35)' : 'var(--border-color)';
+            var lc   = d.isToday ? 'var(--accent-btn)' : 'var(--text-muted)';
+            var fw   = d.isToday ? '800' : '600';
+            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">' +
+                '<div style="font-size:0.6rem;color:var(--text-muted);">' + (d.val > 0 ? d.val : '') + '</div>' +
+                '<div style="flex:1;display:flex;align-items:flex-end;width:100%;justify-content:center;">' +
+                    '<div style="width:clamp(8px,65%,24px);height:' + hPct + 'px;background:' + bg + ';border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>' +
+                '</div>' +
+                '<span style="font-size:0.625rem;font-weight:' + fw + ';color:' + lc + ';">' + d.label + '</span>' +
+            '</div>';
+        }).join('');
+    }
+
+    // ── TOPIC CHECKLIST ───────────────────────────────────────────
+    function _reopen(safeSubj, safeTopic) {
+        var sp = document.getElementById('subjitems-' + safeSubj);
+        var sc = document.getElementById('chevron-' + safeSubj);
+        if (sp) sp.style.display = 'block';
+        if (sc) sc.style.transform = 'rotate(180deg)';
+        if (safeTopic) {
+            var tp = document.getElementById('tpanel-' + safeTopic);
+            var tc = document.getElementById('tchev-' + safeTopic);
+            if (tp) tp.style.display = 'block';
+            if (tc) tc.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    function _renderChecklist() {
+        var accordion  = document.getElementById('plannerChecklistAccordion');
+        var progressEl = document.getElementById('plannerChecklistProgress');
+        var ringEl     = document.getElementById('plannerChecklistRing');
+        if (!accordion) return;
+
+        var saved    = _loadTopics();
+        var subjects = Object.keys(CURRICULUM);
+        var total = 0, done = 0;
+
+        subjects.forEach(function(subj) {
+            var topics = CURRICULUM[subj];
+            Object.keys(topics).forEach(function(topic) {
+                topics[topic].forEach(function(sub) {
+                    total++;
+                    if (saved[subj] && saved[subj][topic] && saved[subj][topic][sub]) done++;
+                });
+                var cust = (saved[subj] && saved[subj][topic] && saved[subj][topic]['__custom__']) || {};
+                Object.keys(cust).forEach(function(k) { total++; if (cust[k]) done++; });
+            });
+            var custT = (saved[subj] && saved[subj]['__customTopics__']) || {};
+            Object.keys(custT).forEach(function(k) { total++; if (custT[k]) done++; });
+        });
+
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        if (progressEl) progressEl.textContent = done + ' / ' + total + ' subtopics covered (' + pct + '%)';
+        if (ringEl) {
+            var R = 15, circ = 2 * Math.PI * R;
+            var dash = (pct / 100 * circ).toFixed(1) + ' ' + circ.toFixed(1);
+            var rc = pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : 'var(--accent-btn)';
+            ringEl.innerHTML = '<svg width="36" height="36" style="transform:rotate(-90deg);"><circle cx="18" cy="18" r="' + R + '" fill="none" stroke="var(--border-color)" stroke-width="3"/><circle cx="18" cy="18" r="' + R + '" fill="none" stroke="' + rc + '" stroke-width="3" stroke-linecap="round" stroke-dasharray="' + dash + '"/></svg>';
+        }
+
+        accordion.innerHTML = subjects.map(function(subj) {
+            var topicMap  = CURRICULUM[subj];
+            var topicKeys = Object.keys(topicMap);
+            var savedSubj = saved[subj] || {};
+            var safeSubj  = subj.replace(/[^a-zA-Z0-9]/g, '_');
+
+            var sDone = 0, sTotal = 0;
+            topicKeys.forEach(function(t) {
+                topicMap[t].forEach(function(s) { sTotal++; if (savedSubj[t] && savedSubj[t][s]) sDone++; });
+                var c = (savedSubj[t] && savedSubj[t]['__custom__']) || {};
+                Object.keys(c).forEach(function(k) { sTotal++; if (c[k]) sDone++; });
+            });
+            var custT = savedSubj['__customTopics__'] || {};
+            Object.keys(custT).forEach(function(k) { sTotal++; if (custT[k]) sDone++; });
+
+            var sPct = sTotal > 0 ? Math.round((sDone / sTotal) * 100) : 0;
+            var sc   = sPct === 100 ? '#34d399' : sPct >= 50 ? '#fbbf24' : 'var(--accent-btn)';
+
+            var topicRows = topicKeys.map(function(topic) {
+                var subs       = topicMap[topic];
+                var safeTopic  = (safeSubj + '_' + topic).replace(/[^a-zA-Z0-9]/g, '_');
+                var savedTopic = savedSubj[topic] || {};
+                var custSubs   = savedTopic['__custom__'] || {};
+                var custKeys   = Object.keys(custSubs);
+                var tDone      = subs.filter(function(s) { return savedTopic[s]; }).length +
+                                 custKeys.filter(function(k) { return custSubs[k]; }).length;
+                var tTotal     = subs.length + custKeys.length;
+                var tc         = tDone === tTotal && tTotal > 0 ? '#34d399' : tDone > 0 ? '#fbbf24' : 'var(--border-color)';
+
+                var subRows = subs.map(function(sub) {
+                    var chk = !!(savedTopic[sub]);
+                    return '<div style="display:flex;align-items:center;gap:10px;padding:0.4rem 0;border-bottom:1px solid var(--border-color);">' +
+                        '<div onclick="window._toggleSub(\'' + _escH(subj) + '\',\'' + _escH(topic) + '\',\'' + _escH(sub) + '\',false)" style="width:18px;height:18px;border-radius:5px;border:2px solid ' + (chk ? '#34d399' : 'var(--border-color)') + ';background:' + (chk ? '#34d399' : 'transparent') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.15s;">' + (chk ? '<i class="fas fa-check" style="font-size:0.5rem;color:white;"></i>' : '') + '</div>' +
+                        '<span style="flex:1;font-size:0.775rem;color:' + (chk ? 'var(--text-muted)' : 'var(--text-main)') + ';' + (chk ? 'text-decoration:line-through;' : '') + '">' + _escH(sub) + '</span>' +
+                    '</div>';
+                }).join('');
+
+                var custSubRows = custKeys.map(function(k) {
+                    var chk = !!(custSubs[k]);
+                    return '<div style="display:flex;align-items:center;gap:10px;padding:0.4rem 0;border-bottom:1px solid var(--border-color);">' +
+                        '<div onclick="window._toggleSub(\'' + _escH(subj) + '\',\'' + _escH(topic) + '\',\'' + _escH(k) + '\',true)" style="width:18px;height:18px;border-radius:5px;border:2px solid ' + (chk ? '#34d399' : 'var(--border-color)') + ';background:' + (chk ? '#34d399' : 'transparent') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.15s;">' + (chk ? '<i class="fas fa-check" style="font-size:0.5rem;color:white;"></i>' : '') + '</div>' +
+                        '<span style="flex:1;font-size:0.775rem;color:' + (chk ? 'var(--text-muted)' : 'var(--text-main)') + ';' + (chk ? 'text-decoration:line-through;' : '') + '">' + _escH(k) + '</span>' +
+                        '<button onclick="window._deleteSubTopic(\'' + _escH(subj) + '\',\'' + _escH(topic) + '\',\'' + _escH(k) + '\')" style="width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,0.08);border:none;cursor:pointer;color:#f87171;font-size:0.55rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>' +
+                    '</div>';
+                }).join('');
+
+                return '<div style="border-bottom:1px solid var(--border-color);">' +
+                    '<div onclick="window._toggleTopicPanel(\'' + safeTopic + '\')" style="display:flex;align-items:center;gap:10px;padding:0.7rem 1rem 0.7rem 1.5rem;cursor:pointer;">' +
+                        '<div style="width:7px;height:7px;border-radius:50%;background:' + tc + ';flex-shrink:0;"></div>' +
+                        '<span style="flex:1;font-size:0.825rem;font-weight:700;color:var(--text-main);">' + _escH(topic) + '</span>' +
+                        '<span style="font-size:0.65rem;color:var(--text-muted);margin-right:6px;">' + tDone + '/' + tTotal + '</span>' +
+                        '<i id="tchev-' + safeTopic + '" class="fas fa-chevron-down" style="color:var(--text-muted);font-size:0.6rem;transition:transform 0.2s;"></i>' +
+                    '</div>' +
+                    '<div id="tpanel-' + safeTopic + '" style="display:none;padding:0 1rem 0.5rem 2.5rem;">' +
+                        subRows + custSubRows +
+                        '<div style="display:flex;align-items:center;gap:6px;padding-top:0.5rem;">' +
+                            '<input id="newsub-' + safeTopic + '" type="text" placeholder="Add subtopic…" maxlength="60" style="flex:1;padding:0.4rem 0.625rem;border-radius:0.5rem;border:1px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.75rem;font-family:inherit;outline:none;" onkeydown="if(event.key===\'Enter\')window._addSubTopic(\'' + _escH(subj) + '\',\'' + _escH(topic) + '\',\'' + safeTopic + '\')">' +
+                            '<button onclick="window._addSubTopic(\'' + _escH(subj) + '\',\'' + _escH(topic) + '\',\'' + safeTopic + '\')" style="width:26px;height:26px;border-radius:0.5rem;border:none;background:var(--accent-btn);color:white;cursor:pointer;font-size:0.7rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><i class="fas fa-plus"></i></button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+
+            var custTopicRows = Object.keys(custT).map(function(k) {
+                var chk = !!(custT[k]);
+                return '<div style="display:flex;align-items:center;gap:10px;padding:0.7rem 1rem 0.7rem 1.5rem;border-bottom:1px solid var(--border-color);">' +
+                    '<div onclick="window._toggleCustomTopicRow(\'' + _escH(subj) + '\',\'' + _escH(k) + '\')" style="width:18px;height:18px;border-radius:5px;border:2px solid ' + (chk ? '#34d399' : 'var(--border-color)') + ';background:' + (chk ? '#34d399' : 'transparent') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.15s;">' + (chk ? '<i class="fas fa-check" style="font-size:0.5rem;color:white;"></i>' : '') + '</div>' +
+                    '<span style="flex:1;font-size:0.825rem;font-weight:700;color:' + (chk ? 'var(--text-muted)' : 'var(--text-main)') + ';' + (chk ? 'text-decoration:line-through;' : '') + '">' + _escH(k) + '</span>' +
+                    '<button onclick="window._deleteCustomTopicRow(\'' + _escH(subj) + '\',\'' + _escH(k) + '\')" style="width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,0.08);border:none;cursor:pointer;color:#f87171;font-size:0.55rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+
+            return '<div style="border-bottom:1px solid var(--border-color);">' +
+                '<div onclick="window._toggleChecklistSubject(\'' + safeSubj + '\')" style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;cursor:pointer;">' +
+                    '<div style="flex:1;">' +
+                        '<div style="font-size:0.875rem;font-weight:800;color:var(--text-main);margin-bottom:4px;">' + _escH(subj) + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                            '<div style="flex:1;height:3px;background:var(--border-color);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:' + sPct + '%;background:' + sc + ';border-radius:9999px;transition:width 0.4s;"></div></div>' +
+                            '<span style="font-size:0.65rem;font-weight:700;color:' + sc + ';flex-shrink:0;">' + sDone + '/' + sTotal + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<i id="chevron-' + safeSubj + '" class="fas fa-chevron-down" style="color:var(--text-muted);font-size:0.7rem;transition:transform 0.2s;"></i>' +
+                '</div>' +
+                '<div id="subjitems-' + safeSubj + '" style="display:none;">' +
+                    topicRows + custTopicRows +
+                    '<div style="display:flex;align-items:center;gap:6px;padding:0.625rem 1.25rem;">' +
+                        '<input id="newtopic-' + safeSubj + '" type="text" placeholder="Add topic…" maxlength="60" style="flex:1;padding:0.5rem 0.75rem;border-radius:0.625rem;border:1px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.8rem;font-family:inherit;outline:none;" onkeydown="if(event.key===\'Enter\')window._addCustomTopicRow(\'' + safeSubj + '\',\'' + _escH(subj) + '\')">' +
+                        '<button onclick="window._addCustomTopicRow(\'' + safeSubj + '\',\'' + _escH(subj) + '\')" style="width:30px;height:30px;border-radius:0.625rem;border:none;background:var(--accent-btn);color:white;cursor:pointer;font-size:0.8rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><i class="fas fa-plus"></i></button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    window._toggleChecklistSubject = function(safeSubj) {
+        var p = document.getElementById('subjitems-' + safeSubj);
+        var c = document.getElementById('chevron-' + safeSubj);
+        if (!p) return;
+        var open = p.style.display !== 'none';
+        p.style.display = open ? 'none' : 'block';
+        if (c) c.style.transform = open ? '' : 'rotate(180deg)';
+    };
+
+    window._toggleTopicPanel = function(safeTopic) {
+        var p = document.getElementById('tpanel-' + safeTopic);
+        var c = document.getElementById('tchev-' + safeTopic);
+        if (!p) return;
+        var open = p.style.display !== 'none';
+        p.style.display = open ? 'none' : 'block';
+        if (c) c.style.transform = open ? '' : 'rotate(180deg)';
+    };
+
+    window._toggleSub = function(subj, topic, sub, isCustom) {
+        var t = _loadTopics();
+        if (!t[subj]) t[subj] = {};
+        if (!t[subj][topic]) t[subj][topic] = {};
+        if (isCustom) {
+            if (!t[subj][topic]['__custom__']) t[subj][topic]['__custom__'] = {};
+            t[subj][topic]['__custom__'][sub] = !t[subj][topic]['__custom__'][sub];
+        } else {
+            t[subj][topic][sub] = !t[subj][topic][sub];
+        }
+        _saveTopics(t);
+        var safeSubj  = subj.replace(/[^a-zA-Z0-9]/g, '_');
+        var safeTopic = (safeSubj + '_' + topic).replace(/[^a-zA-Z0-9]/g, '_');
+        _renderChecklist();
+        _reopen(safeSubj, safeTopic);
+    };
+
+    window._addSubTopic = function(subj, topic, safeTopic) {
+        var input = document.getElementById('newsub-' + safeTopic);
+        if (!input || !input.value.trim()) return;
+        var val = input.value.trim();
+        var t = _loadTopics();
+        if (!t[subj]) t[subj] = {};
+        if (!t[subj][topic]) t[subj][topic] = {};
+        if (!t[subj][topic]['__custom__']) t[subj][topic]['__custom__'] = {};
+        t[subj][topic]['__custom__'][val] = false;
+        _saveTopics(t);
+        input.value = '';
+        var safeSubj = subj.replace(/[^a-zA-Z0-9]/g, '_');
+        _renderChecklist();
+        _reopen(safeSubj, safeTopic);
+    };
+
+    window._deleteSubTopic = function(subj, topic, sub) {
+        var t = _loadTopics();
+        if (t[subj] && t[subj][topic] && t[subj][topic]['__custom__']) {
+            delete t[subj][topic]['__custom__'][sub];
+            _saveTopics(t);
+            var safeSubj  = subj.replace(/[^a-zA-Z0-9]/g, '_');
+            var safeTopic = (safeSubj + '_' + topic).replace(/[^a-zA-Z0-9]/g, '_');
+            _renderChecklist();
+            _reopen(safeSubj, safeTopic);
+        }
+    };
+
+    window._addCustomTopicRow = function(safeSubj, subj) {
+        var input = document.getElementById('newtopic-' + safeSubj);
+        if (!input || !input.value.trim()) return;
+        var val = input.value.trim();
+        var t = _loadTopics();
+        if (!t[subj]) t[subj] = {};
+        if (!t[subj]['__customTopics__']) t[subj]['__customTopics__'] = {};
+        t[subj]['__customTopics__'][val] = false;
+        _saveTopics(t);
+        input.value = '';
+        _renderChecklist();
+        _reopen(safeSubj, null);
+    };
+
+    window._toggleCustomTopicRow = function(subj, topic) {
+        var t = _loadTopics();
+        if (!t[subj]) t[subj] = {};
+        if (!t[subj]['__customTopics__']) t[subj]['__customTopics__'] = {};
+        t[subj]['__customTopics__'][topic] = !t[subj]['__customTopics__'][topic];
+        _saveTopics(t);
+        _renderChecklist();
+        _reopen(subj.replace(/[^a-zA-Z0-9]/g, '_'), null);
+    };
+
+    window._deleteCustomTopicRow = function(subj, topic) {
+        var t = _loadTopics();
+        if (t[subj] && t[subj]['__customTopics__']) {
+            delete t[subj]['__customTopics__'][topic];
+            _saveTopics(t);
+            _renderChecklist();
+            _reopen(subj.replace(/[^a-zA-Z0-9]/g, '_'), null);
+        }
+    };
+
+})();

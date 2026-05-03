@@ -315,11 +315,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         // ── RANK SYSTEM ──────────────────────────────────────────────────────
         const RANKS = [
-            { name: 'Bronze',   minXp: 0,    maxXp: 249,  col: 0, barColor: '#d97706' },
-            { name: 'Silver',   minXp: 250,  maxXp: 999,  col: 1, barColor: '#94a3b8' },
-            { name: 'Gold',     minXp: 1000, maxXp: 2499, col: 2, barColor: '#fbbf24' },
-            { name: 'Amethyst', minXp: 2500, maxXp: 4999, col: 3, barColor: '#8b5cf6' },
-            { name: 'Emerald',  minXp: 5000, maxXp: Infinity, col: 4, barColor: '#10b981' },
+            { name: 'Bronze',   minXp: 0,    col: 0, barColor: '#d97706' },
+            { name: 'Silver',   minXp: 150,  col: 1, barColor: '#94a3b8' },
+            { name: 'Gold',     minXp: 500,  col: 2, barColor: '#fbbf24' },
+            { name: 'Amethyst', minXp: 1200, col: 3, barColor: '#8b5cf6' },
+            { name: 'Emerald',  minXp: 2500, col: 4, barColor: '#10b981' },
         ];
 
         window.getUserRank = function(xp) {
@@ -378,6 +378,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             const posY = -Math.round(s * (row === 0 ? 1.091 : 2.392));
             return `<div style="width:${s}px;height:${h}px;background-image:url('rank.svg');background-size:${bgSz}px ${bgSz}px;background-position:${posX}px ${posY}px;background-repeat:no-repeat;display:inline-block;"></div>`;
         }
+        window.rankBadgeSVG_public = rankBadgeSVG;
 
         window.updateRankDisplay = function(xp, fromLoad) {
             const rank     = window.getUserRank(xp);
@@ -852,57 +853,48 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         }
 
         // Tab state
-        window._lbTab = 'alltime';
+        window._lbTab = 'league';
         window._lbUsers = [];
         window._lbUserId = null;
 
         window.switchLbTab = function(tab) {
             window._lbTab = tab;
-            const allBtn    = document.getElementById('lbTabAllTime');
-            const wkBtn     = document.getElementById('lbTabWeek');
+            const leagueBtn = document.getElementById('lbTabLeague');
             const grpBtn    = document.getElementById('lbTabGroups');
-            const rnkBtn    = document.getElementById('lbTabRanks');
             const podium    = document.getElementById('podiumContainer');
             const ranked    = document.getElementById('lbRankedSection');
             const grpPanel  = document.getElementById('groupsPanel');
-            const rnkPanel  = document.getElementById('ranksPanel');
             const rankBar   = document.getElementById('yourRankBar');
 
-            [allBtn, wkBtn, grpBtn, rnkBtn].forEach(btn => {
+            [leagueBtn, grpBtn].forEach(btn => {
                 if (!btn) return;
-                btn.style.background = 'transparent';
-                btn.style.color      = 'var(--text-muted)';
-                btn.style.boxShadow  = 'none';
+                btn.style.color        = 'var(--text-muted)';
+                btn.style.fontWeight   = '700';
+                btn.style.borderBottom = '2.5px solid transparent';
             });
 
-            // Hide all panels first
-            if (podium)   podium.style.display   = 'none';
-            if (ranked)   ranked.style.display   = 'none';
-            if (grpPanel) grpPanel.style.display  = 'none';
-            if (rnkPanel) rnkPanel.style.display  = 'none';
-            if (rankBar)  rankBar.style.display   = 'none';
-
-            const activate = btn => { if (btn) { btn.style.background='var(--accent-btn)'; btn.style.color='var(--btn-text)'; btn.style.boxShadow='0 2px 8px rgba(139,92,246,0.3)'; } };
+            const activate = btn => {
+                if (!btn) return;
+                btn.style.color        = 'var(--accent-btn)';
+                btn.style.fontWeight   = '800';
+                btn.style.borderBottom = '2.5px solid var(--accent-btn)';
+            };
 
             if (tab === 'groups') {
+                if (podium)   podium.style.display   = 'none';
+                if (ranked)   ranked.style.display   = 'none';
+                if (rankBar)  rankBar.style.display   = 'none';
+                if (grpPanel) grpPanel.style.display  = 'flex';
                 activate(grpBtn);
-                if (grpPanel) grpPanel.style.display = 'flex';
                 window.loadMyGroups();
-            } else if (tab === 'ranks') {
-                activate(rnkBtn);
-                if (rnkPanel) rnkPanel.style.display = 'flex';
-                window.renderRanksLeaderboard();
             } else {
-                if (podium) podium.style.display = 'flex';
-                if (ranked) ranked.style.display = '';
-                if (rankBar) rankBar.style.display = 'block';
-                if (tab === 'alltime') {
-                    activate(allBtn);
-                    if (window._lbUsers.length) window.renderLeaderboardDOM(window._lbUsers, window._lbUserId);
-                } else {
-                    activate(wkBtn);
-                    if (window._lbUserId) window.loadLeaderboard(window._lbUserId);
-                }
+                // league tab
+                if (grpPanel) grpPanel.style.display  = 'none';
+                if (podium)   podium.style.display    = 'flex';
+                if (ranked)   ranked.style.display    = '';
+                if (rankBar)  rankBar.style.display   = 'block';
+                activate(leagueBtn);
+                if (window._lbUserId) window.loadLeaderboard(window._lbUserId);
             }
         };
 
@@ -1038,64 +1030,61 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
 
         window.renderLeaderboardDOM = function(allUsers, currentUserId) {
-            const useWeekly = window._lbTab === 'week';
-            let users = [...allUsers].sort((a,b) => (useWeekly ? b.weeklyXp - a.weeklyXp : b.xp - a.xp));
-            if (useWeekly) users = users.filter(u => u.weeklyXp > 0);
+            // Always show weekly XP, filtered to same tier as current user
+            const myMonthlyXp = allUsers.find(u => u.uid === currentUserId)?.monthlyRankXp || 0;
+            const myRank = window.getUserRank ? window.getUserRank(myMonthlyXp) : { name: 'Bronze', index: 0 };
+
+            // Filter to same tier, sort by weeklyXp
+            let users = [...allUsers]
+                .filter(u => {
+                    const r = window.getUserRank ? window.getUserRank(u.monthlyRankXp || 0) : { index: 0 };
+                    return r.index === myRank.index;
+                })
+                .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
+                .filter(u => (u.weeklyXp || 0) > 0 || u.uid === currentUserId);
 
             const listContainer = document.getElementById('leaderboardList');
             const skeletons = ['name1','xp1','avatarBox1','name2','xp2','avatarBox2','name3','xp3','avatarBox3'];
             skeletons.forEach(id => { const el = document.getElementById(id); if (el) { el.classList.remove('skeleton'); el.style.width='auto'; el.style.height='auto'; } });
 
+            // Update ranked section label
+            const topLabel = document.querySelector('#lbRankedSection span');
+            if (topLabel) topLabel.textContent = myRank.name + ' League — Top 20';
+
             if (users.length === 0) {
-                ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='---'; });
+                ['name1','name2','name3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
                 ['xp1','xp2','xp3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
-                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">${useWeekly ? 'No activity this week yet — go study!' : 'No users have earned XP yet!'}</div>`;
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:2rem 1rem;font-size:0.875rem;font-weight:500;">No activity this week in your league yet — go study!</div>`;
                 document.getElementById('yourRankBar').style.display = 'none';
                 return;
             }
 
-            const xpField = useWeekly ? 'weeklyXp' : 'xp';
-
-            // Helper: rank change arrow (only on all-time tab when we have prev data)
-            const rankArrow = (uid, currentRank) => {
-                if (useWeekly || !window._lbPrevRanks) return '';
-                const prev = window._lbPrevRanks.get(uid);
-                if (prev === undefined) return '<span style="font-size:0.6rem;font-weight:800;color:var(--accent-btn);background:rgba(139,92,246,0.12);padding:1px 5px;border-radius:9999px;margin-left:3px;vertical-align:middle;">NEW</span>';
-                const delta = prev - currentRank; // positive = moved up
-                if (delta === 0) return '';
-                if (delta > 0) return `<span style="font-size:0.65rem;font-weight:800;color:#10b981;margin-left:3px;vertical-align:middle;">▲${delta}</span>`;
-                return `<span style="font-size:0.65rem;font-weight:800;color:#f87171;margin-left:3px;vertical-align:middle;">▼${Math.abs(delta)}</span>`;
-            };
-
             // Podium top 3
             const podiumSlots = [
-                { nameId:'name1', xpId:'xp1', boxId:'avatarBox1', avatarId:'avatar1' },
-                { nameId:'name2', xpId:'xp2', boxId:'avatarBox2', avatarId:'avatar2' },
-                { nameId:'name3', xpId:'xp3', boxId:'avatarBox3', avatarId:'avatar3' },
+                { nameId:'name1', xpId:'xp1', boxId:'avatarBox1' },
+                { nameId:'name2', xpId:'xp2', boxId:'avatarBox2' },
+                { nameId:'name3', xpId:'xp3', boxId:'avatarBox3' },
             ];
-            const podiumOrder = [users[0], users[1], users[2]];
             podiumSlots.forEach((slot, i) => {
-                const u = podiumOrder[i];
+                const u = users[i];
                 const nameEl = document.getElementById(slot.nameId);
                 const xpEl   = document.getElementById(slot.xpId);
                 const boxEl  = document.getElementById(slot.boxId);
                 if (!u) { if(nameEl) nameEl.textContent='—'; if(xpEl) xpEl.textContent=''; return; }
                 if (nameEl) nameEl.textContent = u.displayName;
-                if (xpEl) {
-                    xpEl.innerHTML = `${window.formatXP(u[xpField])}<br>${lbRankPill(u.monthlyRankXp||0)}`;
-                }
+                if (xpEl)   xpEl.innerHTML = `${window.formatXP(u.weeklyXp || 0)}<br>${lbRankPill(u.monthlyRankXp||0)}`;
                 if (boxEl) {
-                    const size = i === 0 ? 76 : 56;
+                    const size = i === 0 ? 60 : 44;
                     boxEl.innerHTML = lbAvatarHTML(u, size, currentUserId, false);
                     boxEl.style.cursor = 'pointer';
                     boxEl.onclick = () => window.openUserProfile(u.uid);
                 }
             });
 
-            // Ranked list (ranks 4–20)
+            // Ranked list (4–20)
             listContainer.innerHTML = '';
             if (users.length <= 3) {
-                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} so far. Be the one to break in!</div>`;
+                listContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 1rem;font-size:0.8125rem;">Only ${users.length} user${users.length===1?'':'s'} active in your league this week. Keep studying!</div>`;
             }
 
             let currentUserRank = -1;
@@ -1103,7 +1092,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const rank = index + 1;
                 if (user.uid === currentUserId) currentUserRank = rank;
                 if (rank <= 3 || rank > 20) return;
-
                 const isMe = user.uid === currentUserId;
                 const avatarHTML = lbAvatarHTML(user, 40, currentUserId);
                 const rowBg = isMe ? 'background:rgba(139,92,246,0.1);border-color:var(--accent-btn);' : 'background:transparent;border-color:var(--border-color);';
@@ -1111,7 +1099,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 const proPill = user.plan === 'premium' || user.plan === 'premium_trial' || user.plan === 'elite'
                     ? `<span style="font-size:0.55rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f97316);color:white;padding:1px 5px;border-radius:9999px;margin-left:4px;vertical-align:middle;letter-spacing:0.03em;">PRO</span>`
                     : '';
-
                 listContainer.innerHTML += `
                     <div onclick="window.openUserProfile('${user.uid}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;border-radius:0.875rem;border:1px solid;${rowBg}animation:fadeIn 0.3s ease-out forwards;opacity:0;animation-delay:${(index-3)*0.04}s;">
                         <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:0;">
@@ -1119,16 +1106,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                             ${avatarHTML}
                             <div style="min-width:0;flex:1;">
                                 <div style="display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:wrap;">
-                                    <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">
-                                        ${window.escapeHTML(user.displayName || '?')}${proPill}
-                                    </div>
-                                    ${rankArrow(user.uid, rank)}
+                                    <div style="font-size:0.875rem;font-weight:700;${nameCls}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${window.escapeHTML(user.displayName||'?')}${proPill}</div>
                                     ${isMe ? '<span style="font-size:0.625rem;padding:2px 7px;background:var(--accent-btn);color:white;border-radius:9999px;font-weight:800;white-space:nowrap;flex-shrink:0;">YOU</span>' : ''}
                                 </div>
                             </div>
                         </div>
                         <div style="flex-shrink:0;margin-left:0.75rem;text-align:right;">
-                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user[xpField])}</span>
+                            <span style="font-size:0.8125rem;font-weight:700;color:var(--text-muted);">${window.formatXP(user.weeklyXp||0)}</span>
                         </div>
                     </div>`;
             });
@@ -1136,9 +1120,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             // Pinned Your Rank Bar
             const bar = document.getElementById('yourRankBar');
             if (currentUserRank > 0 && bar) {
-                const me = users[currentUserRank - 1];
-                const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
+                const me        = users[currentUserRank - 1];
+                const monthlyXp = me.monthlyRankXp || 0;
+                const rank      = window.getUserRank(monthlyXp);
+                const nextRank  = RANKS[rank.index + 1];
+                const pct       = nextRank
+                    ? Math.min(100, Math.round(((monthlyXp - rank.minXp) / (nextRank.minXp - rank.minXp)) * 100))
+                    : 100;
+                const xpLabel   = nextRank
+                    ? `${monthlyXp.toLocaleString()} / ${nextRank.minXp.toLocaleString()} XP`
+                    : `${monthlyXp.toLocaleString()} XP · Max`;
+
+                // Bar always stays purple
+                const barInner = document.getElementById('yourRankBarInner');
+                if (barInner) barInner.style.background = 'var(--accent-btn)';
+
+                // Avatar
                 const avatarWrap = document.getElementById('yourRankAvatarWrap');
+                const saved = localStorage.getItem('medexcel_avatar_' + (window.currentUser?.uid || 'guest'));
                 if (avatarWrap) {
                     if (saved !== null && AVATAR_GRID) {
                         const a = AVATAR_GRID[parseInt(saved)];
@@ -1147,17 +1146,31 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                         avatarWrap.textContent = window.getInitial ? window.getInitial(me.displayName) : me.displayName.charAt(0).toUpperCase();
                     }
                 }
+
+                // Badge
+                const badgeEl = document.getElementById('yourRankBadge');
+                if (badgeEl) badgeEl.innerHTML = rankBadgeSVG(rank.col, 28);
+
+                // Text
                 const rankNameEl = document.getElementById('yourRankName');
                 const rankXpEl   = document.getElementById('yourRankXp');
                 const rankNumEl  = document.getElementById('yourRankNum');
+                const tierPill   = document.getElementById('yourTierPill');
+                const tierBar    = document.getElementById('yourTierBar');
+
                 if (rankNameEl) rankNameEl.textContent = me.displayName;
-                if (rankXpEl)   rankXpEl.textContent   = window.formatXP(me[xpField]);
+                if (rankXpEl)   rankXpEl.textContent   = xpLabel;
                 if (rankNumEl)  rankNumEl.textContent   = `#${currentUserRank}`;
+                if (tierPill)   tierPill.textContent    = rank.name;
+                if (tierBar)    tierBar.style.width     = pct + '%';
+
                 bar.style.display = 'block';
             } else if (bar) {
                 bar.style.display = 'none';
             }
         };
+
+        // Render the League hero card (rank badge + progress bar)
 
         // Stale-while-revalidate: show cache instantly, refresh silently in background
         window.silentRefreshLeaderboard = function() {
