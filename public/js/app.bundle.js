@@ -6350,7 +6350,7 @@ window._activatePremium = async function(ref) {
                         '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">' + ago + (a.resolved ? ' · ✅ Resolved' : '') + '</div>' +
                     '</div>' +
                     '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
-                        (!a.resolved ? '<button onclick="window._generateAlertQuiz(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:4px 8px;cursor:pointer;white-space:nowrap;">⚡ Quiz</button>' : '') +
+                        (!a.resolved ? '<button onclick="window._generateAlertQuiz(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:4px 8px;cursor:pointer;white-space:nowrap;">⚡ Generate</button>' : '') +
                         '<button onclick="window._toggleAlertResolved(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:var(--bg-body);color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:4px 8px;cursor:pointer;">' + (a.resolved ? 'Undo' : 'Done') + '</button>' +
                         '<button onclick="window._deleteAlert(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:rgba(239,68,68,0.1);color:#ef4444;border:none;border-radius:0.5rem;padding:4px 8px;cursor:pointer;">Delete</button>' +
                     '</div>' +
@@ -6392,23 +6392,77 @@ window._activatePremium = async function(ref) {
         var alerts = _loadAlerts();
         var alert = alerts.find(function(a){ return String(a.id) === String(id); });
         if (!alert) return;
-        // Pre-fill the create page with the alert text and navigate there
+
+        // Smart type detection: scan for keyword signals
+        var text = alert.text.toLowerCase();
+        var flashKeywords = ['mechanism', 'pathway', 'explain', 'stages', 'steps', 'process',
+                             'definition', 'define', 'describe', 'how does', 'what is', 'list'];
+        var mcqKeywords   = ['which', 'most common', 'first line', 'drug of choice', 'treatment',
+                             'diagnosis', 'types of', 'classify', 'management', 'complication'];
+        var flashScore = flashKeywords.filter(function(k){ return text.indexOf(k) !== -1; }).length;
+        var mcqScore   = mcqKeywords.filter(function(k){ return text.indexOf(k) !== -1; }).length;
+        // Short topic-style hints (≤ 80 chars, no sentence) default to MCQ
+        var isShortTopic = alert.text.length <= 80 && alert.text.indexOf('.') === -1;
+        var type = (flashScore > mcqScore) ? 'Flashcards' : 'Multiple Choice';
+        if (isShortTopic && flashScore === 0) type = 'Multiple Choice';
+
+        // Mark as generated
+        alerts = alerts.map(function(a) {
+            if (String(a.id) === String(id)) a.quizGenerated = true;
+            return a;
+        });
+        _saveAlerts(alerts);
+
+        window._generateFromHint(alert.text, type);
+    };
+
+    // Core helper: navigate to create view, open correct type, switch paste tab, fill text
+    window._generateFromHint = function(text, type) {
+        window.closeLecturerCapture();
         window.closeLecturerList();
         window.navigateTo('view-create');
         setTimeout(function() {
-            var pasteArea = document.getElementById('pasteArea') || document.getElementById('textPasteInput');
-            if (pasteArea) {
-                pasteArea.value = alert.text;
-                pasteArea.dispatchEvent(new Event('input'));
+            // Open the right creation type (Flashcards or Multiple Choice)
+            if (typeof window.openCreateView === 'function') {
+                window.openCreateView(type);
             }
-            // Mark as quiz generated
-            alerts = _loadAlerts();
-            alerts = alerts.map(function(a) {
-                if (String(a.id) === String(id)) a.quizGenerated = true;
-                return a;
-            });
-            _saveAlerts(alerts);
-        }, 400);
+            setTimeout(function() {
+                // Switch to the paste tab
+                if (typeof window.switchSourceTab === 'function') {
+                    window.switchSourceTab('paste');
+                }
+                // Fill the textarea and trigger the paste handler
+                var ta = document.getElementById('pasteTextarea');
+                if (ta) {
+                    ta.value = text;
+                    if (typeof window.handlePasteInput === 'function') {
+                        window.handlePasteInput(ta);
+                    } else {
+                        ta.dispatchEvent(new Event('input'));
+                    }
+                    setTimeout(function() { ta.focus(); ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+                }
+            }, 150);
+        }, 420);
+    };
+
+    // Save the hint AND immediately navigate to generate
+    window.saveAndGenerateHint = function(type) {
+        var inp = document.getElementById('lecturerCaptureInput');
+        var text = inp ? inp.value.trim() : '';
+        if (!text) { if (inp) { inp.focus(); inp.style.borderColor = '#ef4444'; setTimeout(function(){ inp.style.borderColor = ''; }, 1200); } return; }
+        var alerts = _loadAlerts();
+        alerts.unshift({
+            id: Date.now(),
+            text: text,
+            subject: _laSelectedSubject || null,
+            createdAt: new Date().toISOString(),
+            resolved: false,
+            quizGenerated: true
+        });
+        _saveAlerts(alerts);
+        _renderLecturerAlertCard();
+        window._generateFromHint(text, type);
     };
 
     // Sync from Firestore on login
