@@ -97,64 +97,105 @@
             cIconBox.classList.remove('skeleton');
 
             if (window.quizzes && window.quizzes.length > 0) {
-                const attempted = window.quizzes.filter(q => q.stats && q.stats.attempts > 0);
+                const validQuizzes = window.quizzes.filter(q => !q._pending && q.questions && q.questions.length > 0);
+                const attempted = validQuizzes.filter(q => q.stats && q.stats.attempts > 0);
+
+                // Best score % helper
+                const pctOf = q => {
+                    const total = q.questions ? q.questions.length : 0;
+                    return total > 0 ? Math.round(((q.stats && q.stats.bestScore) || 0) / total * 100) : 0;
+                };
+
                 const lastAttempted = attempted.length > 0
                     ? attempted.reduce((a, b) => {
-                        const ta = a.stats?.lastAttemptedAt ? new Date(a.stats.lastAttemptedAt).getTime() : a.id;
-                        const tb = b.stats?.lastAttemptedAt ? new Date(b.stats.lastAttemptedAt).getTime() : b.id;
+                        const ta = a.stats && a.stats.lastAttemptedAt ? new Date(a.stats.lastAttemptedAt).getTime() : 0;
+                        const tb = b.stats && b.stats.lastAttemptedAt ? new Date(b.stats.lastAttemptedAt).getTime() : 0;
                         return ta > tb ? a : b;
                       })
                     : null;
-                const lastCreated = window.quizzes[window.quizzes.length - 1];
-                let lastQuiz;
+
+                // Smart selection:
+                // 1. Last attempted < 80%  -> keep showing it (still needs work)
+                // 2. Last attempted >= 80% -> find next weakest deck
+                // 3. Nothing attempted     -> show newest created
+                // 4. All mastered          -> "all caught up", offer replay
+                let showQuiz = null;
+                let cardState = 'normal';
+
                 if (!lastAttempted) {
-                    lastQuiz = lastCreated;
+                    showQuiz = validQuizzes.length > 0 ? validQuizzes[validQuizzes.length - 1] : null;
+                    cardState = showQuiz ? 'normal' : 'empty';
                 } else {
-                    const attemptedTime = lastAttempted.stats?.lastAttemptedAt
-                        ? new Date(lastAttempted.stats.lastAttemptedAt).getTime()
-                        : lastAttempted.id;
-                    lastQuiz = lastCreated.id > attemptedTime ? lastCreated : lastAttempted;
+                    const lastBestPct = pctOf(lastAttempted);
+                    if (lastBestPct < 80) {
+                        showQuiz = lastAttempted;
+                        cardState = 'normal';
+                    } else {
+                        // Last one mastered — find weakest remaining
+                        const nextUp = attempted
+                            .filter(q => q.id !== lastAttempted.id)
+                            .sort((a, b) => pctOf(a) - pctOf(b))[0]
+                            || validQuizzes.filter(q => !q.stats || q.stats.attempts === 0)[0];
+
+                        if (nextUp) {
+                            showQuiz = nextUp;
+                            cardState = 'next';
+                        } else {
+                            // Everything mastered — offer replay
+                            showQuiz = lastAttempted;
+                            cardState = 'done';
+                        }
+                    }
                 }
 
-                const totalQs   = lastQuiz.questions ? lastQuiz.questions.length : 0;
-                const attempts  = lastQuiz.stats ? lastQuiz.stats.attempts : 0;
-                const lastScore = lastQuiz.stats ? lastQuiz.stats.lastScore : 0;
-                const bestScore = lastQuiz.stats ? lastQuiz.stats.bestScore : 0;
-                const isMCQ     = lastQuiz.type && lastQuiz.type.includes('Multiple');
+                if (!showQuiz || cardState === 'empty') {
+                    cIconBox.innerHTML = '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>';
+                    cTitle.textContent = 'No decks yet';
+                    cProgress.textContent = 'Create';
+                    cProgress.style.background = 'rgba(139,92,246,0.1)';
+                    cProgress.style.color = 'var(--accent-btn)';
+                    cMeta.innerHTML = '<span>Generate your first quiz</span>';
+                    window._continueQuizId = null;
+                    window.renderRecentDecks();
+                    return;
+                }
 
-                window._continueQuizId = lastQuiz.id;
+                const totalQs   = showQuiz.questions ? showQuiz.questions.length : 0;
+                const attempts  = showQuiz.stats ? showQuiz.stats.attempts : 0;
+                const lastScore = showQuiz.stats ? showQuiz.stats.lastScore : 0;
+                const bestScore = showQuiz.stats ? showQuiz.stats.bestScore : 0;
+                const isMCQ     = showQuiz.type && showQuiz.type.includes('Multiple');
+                const bestPct   = pctOf(showQuiz);
+                const lastPct   = totalQs > 0 ? Math.round((lastScore / totalQs) * 100) : 0;
+
+                window._continueQuizId = showQuiz.id;
                 cIconBox.innerHTML = isMCQ
                     ? '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A855F7"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient><linearGradient id="cfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7E22CE"/><stop offset="100%" stop-color="#581C87"/></linearGradient><linearGradient id="cw3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient><filter id="cds"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#4C1D95" flood-opacity="0.15"/></filter><filter id="ces"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#581C87" flood-opacity="0.25"/></filter></defs><path d="M 140 60 H 300 L 420 180 V 420 Q 420 460 380 460 H 140 Q 100 460 100 420 V 100 Q 100 60 140 60 Z" fill="url(#cdg)" filter="url(#cds)"/><path d="M 300 60 V 140 Q 300 180 340 180 H 420 Z" fill="url(#cfg)"/><path d="M 140 62 H 298 M 102 100 V 420" stroke="#D8B4FE" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/><g filter="url(#ces)" fill="url(#cw3)"><circle cx="180" cy="180" r="28"/><rect x="230" y="166" width="110" height="28" rx="14"/><circle cx="180" cy="260" r="28"/><rect x="230" y="246" width="110" height="28" rx="14"/><circle cx="180" cy="340" r="28"/><rect x="230" y="326" width="110" height="28" rx="14"/></g></svg>'
                     : '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>';
                 cIconBox.style.color = isMCQ ? '#8b5cf6' : '#60a5fa';
-                cTitle.textContent = lastQuiz.title || 'Untitled';
+                cTitle.textContent = showQuiz.title || 'Untitled';
 
-                if (attempts === 0) {
-                    cProgress.textContent = `${totalQs} items`;
+                if (cardState === 'done') {
+                    cProgress.textContent = bestPct + '%';
+                    cProgress.style.background = 'rgba(52,211,153,0.12)';
+                    cProgress.style.color = 'var(--accent-green)';
+                    cMeta.innerHTML = '<span>All caught up!</span> <span style="opacity:0.5">|</span> <span>Replay?</span>';
+                } else if (attempts === 0) {
+                    cProgress.textContent = totalQs + ' items';
                     cProgress.style.background = 'rgba(139,92,246,0.1)';
                     cProgress.style.color = 'var(--accent-btn)';
-                    cMeta.innerHTML = `<span>${lastQuiz.subject || 'GENERAL'}</span> • <span>Not started</span>`;
+                    cMeta.innerHTML = '<span>' + (showQuiz.subject || 'GENERAL') + '</span> • <span>Not started</span>';
                 } else if (isMCQ) {
-                    const lastPct = totalQs > 0 ? Math.round((lastScore / totalQs) * 100) : 0;
-                    const bestPct = totalQs > 0 ? Math.round((bestScore / totalQs) * 100) : 0;
-                    cProgress.textContent = `${lastPct}%`;
+                    cProgress.textContent = lastPct + '%';
                     cProgress.style.background = lastPct >= 80 ? 'rgba(52,211,153,0.12)' : lastPct >= 50 ? 'rgba(251,191,36,0.12)' : 'rgba(248,113,113,0.12)';
                     cProgress.style.color = lastPct >= 80 ? 'var(--accent-green)' : lastPct >= 50 ? 'var(--accent-yellow)' : '#f87171';
-                    cMeta.innerHTML = `<span>Best: ${bestPct}%</span> • <span>${attempts} attempt${attempts !== 1 ? 's' : ''}</span>`;
+                    cMeta.innerHTML = '<span>Best: ' + bestPct + '%</span> • <span>' + attempts + ' attempt' + (attempts !== 1 ? 's' : '') + '</span>';
                 } else {
-                    cProgress.textContent = `${totalQs} cards`;
+                    cProgress.textContent = totalQs + ' cards';
                     cProgress.style.background = 'rgba(96,165,250,0.12)';
                     cProgress.style.color = '#60a5fa';
-                    cMeta.innerHTML = `<span>Reviewed ${attempts}×</span> • <span>${lastQuiz.subject || 'GENERAL'}</span>`;
+                    cMeta.innerHTML = '<span>Reviewed ' + attempts + 'x</span> • <span>' + (showQuiz.subject || 'GENERAL') + '</span>';
                 }
-            } else {
-                cIconBox.innerHTML = '<svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="48" y="48" width="416" height="416" rx="96" fill="#7C3AED"/><rect x="120" y="140" width="168" height="232" rx="32" fill="#FFFFFF" opacity="0.6" transform="rotate(-20 204 256)"/><rect x="216" y="128" width="168" height="232" rx="32" fill="#FFFFFF" transform="rotate(18 300 244)"/></svg>';
-                cIconBox.style.color = '#60a5fa';
-                cTitle.textContent = 'No recent activity';
-                cProgress.textContent = 'Start';
-                cProgress.style.background = 'rgba(139,92,246,0.1)';
-                cProgress.style.color = 'var(--accent-btn)';
-                cMeta.innerHTML = '<span>Create your first deck</span>';
             }
             window.renderRecentDecks();
         };
@@ -6211,6 +6252,12 @@ window._activatePremium = async function(ref) {
             if (unresolved.length > 0) {
                 countEl.textContent = unresolved.length;
                 countEl.style.display = '';
+                // Urgency colour based on oldest unresolved flag
+                var now = Date.now();
+                var oldestH = Math.max.apply(null, unresolved.map(function(a){
+                    return (now - new Date(a.createdAt).getTime()) / 3600000;
+                }));
+                countEl.style.background = oldestH >= 48 ? '#ef4444' : oldestH >= 24 ? '#f59e0b' : '#ef4444';
             } else {
                 countEl.style.display = 'none';
             }
@@ -6509,20 +6556,33 @@ window._activatePremium = async function(ref) {
         });
 
         var items = [];
+
+        // ── Inject unresolved exam flags at the top ──────────────
+        var unresolvedFlags = _loadAlerts().filter(function(a){ return !a.resolved; });
+        unresolvedFlags.slice(0, 2).forEach(function(a) {
+            var ageMs  = now - new Date(a.createdAt).getTime();
+            var ageH   = ageMs / 3600000;
+            // Urgency colour: fresh=purple, 24h+=amber, 48h+=red
+            var colour = ageH < 24 ? '#8b5cf6' : ageH < 48 ? '#f59e0b' : '#ef4444';
+            var ageLbl = ageH < 1 ? 'Just now' : ageH < 24 ? Math.floor(ageH) + 'h ago' :
+                         Math.floor(ageH / 24) === 1 ? 'Yesterday' : Math.floor(ageH / 24) + 'd ago';
+            items.push({ _flag: true, alert: a, colour: colour, ageLbl: ageLbl });
+        });
+
         // 1. Weak decks first (<60%)
         scored.filter(function(s){ return s.pct < 60; }).sort(function(a,b){ return a.pct - b.pct; }).slice(0,2).forEach(function(s){
             items.push({ q:s.q, reason:'Needs work', badge:'#8b5cf6', sub: s.pct + '% best score' });
         });
         // 2. Stale decks (≥5 days, and we actually have a valid date)
         scored.filter(function(s){ return s.daysAgo !== null && s.daysAgo >= 5; }).sort(function(a,b){ return b.daysAgo - a.daysAgo; }).slice(0,2).forEach(function(s){
-            if (items.length < 4 && !items.find(function(i){ return i.q.id === s.q.id; })) {
+            if (items.length < 6 && !items.find(function(i){ return i.q && i.q.id === s.q.id; })) {
                 var dLabel = s.daysAgo >= 30 ? Math.floor(s.daysAgo/30) + 'mo ago' : s.daysAgo + 'd ago';
                 items.push({ q:s.q, reason:'Due for review', badge:'#f59e0b', sub: dLabel });
             }
         });
         // 3. Never-attempted decks
         quizzes.filter(function(q){ return !q.stats || q.stats.attempts === 0; }).slice(0,2).forEach(function(q){
-            if (items.length < 4) items.push({ q:q, reason:'New deck', badge:'#34d399', sub: q.questions.length + ' questions' });
+            if (items.length < 6) items.push({ q:q, reason:'New deck', badge:'#34d399', sub: q.questions.length + ' questions' });
         });
 
         if (badge) badge.textContent = items.length > 0 ? items.length + ' items' : '—';
@@ -6537,7 +6597,28 @@ window._activatePremium = async function(ref) {
 
         list.innerHTML = items.map(function(item, i) {
             var isLast = i === items.length - 1;
-            return '<div style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;' + (isLast ? '' : 'border-bottom:1px solid var(--border-color);') + 'cursor:pointer;" onclick="window._plannerOpenDeck(\'' + String(item.q.id) + '\')">' +
+            var border = isLast ? '' : 'border-bottom:1px solid var(--border-color);';
+
+            // ── Flag row ──────────────────────────────────────────
+            if (item._flag) {
+                var a = item.alert;
+                return '<div style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;' + border + '">' +
+                    '<div style="width:40px;height:40px;border-radius:10px;background:' + item.colour + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                        '<span style="font-size:1rem;">⚡</span>' +
+                    '</div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-size:0.875rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _escH(a.text) + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">' +
+                            '<span style="font-size:0.6rem;font-weight:700;color:' + item.colour + ';background:' + item.colour + '18;padding:2px 7px;border-radius:9999px;">Exam Flag</span>' +
+                            '<span style="font-size:0.72rem;color:var(--text-muted);">' + item.ageLbl + (a.subject ? ' · ' + _escH(a.subject) : '') + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button onclick="window._generateAlertQuiz(\'' + a.id + '\')" style="font-size:0.7rem;font-weight:700;background:' + item.colour + ';color:#fff;border:none;border-radius:9999px;padding:6px 12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Generate</button>' +
+                '</div>';
+            }
+
+            // ── Regular quiz row ──────────────────────────────────
+            return '<div style="display:flex;align-items:center;gap:12px;padding:0.875rem 1.25rem;' + border + 'cursor:pointer;" onclick="window._plannerOpenDeck(\'' + String(item.q.id) + '\')">' +
                 '<div style="width:40px;height:40px;border-radius:10px;background:' + item.badge + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
                     '<i class="fas fa-book-open" style="color:' + item.badge + ';font-size:0.875rem;"></i>' +
                 '</div>' +
