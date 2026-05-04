@@ -1497,9 +1497,9 @@ let currentStreakCount = 0;
             if (window.updatePromoTodayProgress) window.updatePromoTodayProgress();
 
             if (localStorage.getItem('medexcel_onboarding_v1')) {
-                const _iv = document.getElementById('interactiveView');
-                const _onResultsPage = _iv && _iv.style.display !== 'none' && _iv.innerHTML.trim() !== '';
-                if (_onResultsPage) {
+                // Use explicit flag set by the results renderer — DOM-based detection
+                // is unreliable because interactiveView is visible during results too
+                if (window._onStudyResultsPage || window._onCreateResultsPage) {
                     window._pendingStreakModal = true;
                 } else {
                     setTimeout(() => window.openStreakModal(), 600);
@@ -1695,6 +1695,12 @@ let currentStreakCount = 0;
 
         window.closePracticeMobile = function() {
             window.exitStudyQuizMode();
+            // Results page is being dismissed — fire pending streak modal now
+            window._onStudyResultsPage = false;
+            if (window._pendingStreakModal) {
+                window._pendingStreakModal = false;
+                setTimeout(function() { if (typeof window.openStreakModal === 'function') window.openStreakModal(); }, 400);
+            }
             if (window.innerWidth < 1024) {
                 document.getElementById('libraryPanel').classList.remove('hidden');
                 document.getElementById('studyPracticePanel').classList.remove('active');
@@ -1729,6 +1735,7 @@ let currentStreakCount = 0;
         };
 
         window.startPractice = function(exam) {
+            window._onStudyResultsPage = false; // starting new session, results page is gone
             isExamMode = exam;
             currentQuestionIndex = 0;
             examScore = 0;
@@ -2044,6 +2051,7 @@ if (nextBtn) {
                 : 0;
             window._streakBonusXP = 0;
             if (totalXP > 0) await window.addXP(totalXP);
+            window._onStudyResultsPage = true; // flag: streak modal must wait until this page is dismissed
             window.commitStreakOnAction?.();
 
             currentQuiz.stats.attempts++;
@@ -2837,6 +2845,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
                     </div>`;
             }
             viewContainer.innerHTML = html;
+            window._onCreateResultsPage = true; // streak modal must wait until results are dismissed
             window.animateValue("animatedXP", 0, window.finalEarnedXP, 1500);
             if (isMCQMode) window.animateValue("animatedAcc", 0, percentage, 1500);
         };
@@ -2845,6 +2854,7 @@ window.handleCreateMCQSelection = function(selectedBtn, cardData, allButtons) {
             const btn = document.querySelector('.btn-claim-xp');
             if (btn) { btn.textContent = "CLAIMING..."; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.7'; }
             try { await window.addXP(window.finalEarnedXP); } catch(e) {}
+            window._onCreateResultsPage = false;
             window.commitStreakOnAction?.();
             window.goBackToSelection();
             window.updateHomeContinueCard();
