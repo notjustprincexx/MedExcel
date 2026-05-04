@@ -6239,14 +6239,14 @@ window._activatePremium = async function(ref) {
     }
 
     window._plannerOpenDeck = function(id) {
+        // id comes in as a string from the onclick attribute — coerce to match stored type
+        var quiz = (window.quizzes || []).find(function(q) { return String(q.id) === String(id); });
+        if (!quiz) { console.warn('_plannerOpenDeck: quiz not found for id', id); return; }
+
         window.navigateTo('view-study');
         setTimeout(function() {
             if (window.loadQuizOverview) {
-                window.loadQuizOverview(id);
-                // Give the overview a moment to render, then auto-start
-                setTimeout(function() {
-                    if (window.startPractice) window.startPractice(false);
-                }, 80);
+                window.loadQuizOverview(quiz.id); // pass the real id value (correct type)
             }
         }, 100);
     };
