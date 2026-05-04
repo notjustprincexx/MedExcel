@@ -410,7 +410,7 @@
                     <!-- SLIDE 1: Today's progress with ring -->
                     <a href="javascript:void(0)" onclick="navigateTo('view-study')" class="promo-consultation-card">
                         <div class="promo-bg-shape"></div>
-                        <div class="promo-text-area" style="display:flex;flex-direction:column;justify-content:center;gap:0.375rem;max-width:52%;overflow:hidden;">
+                        <div class="promo-text-area" style="display:flex;flex-direction:column;justify-content:center;gap:0.375rem;max-width:58%;overflow:hidden;">
                             <!-- Daily challenge label -->
                             <div style="font-size:0.5rem;font-weight:800;letter-spacing:0.08em;opacity:0.65;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="promoDayLabel">Daily Challenge</div>
                             <!-- Ring + text row -->
@@ -428,8 +428,8 @@
                                     </div>
                                 </div>
                                 <div style="flex:1;min-width:0;">
-                                    <div style="font-size:0.8rem;font-weight:800;line-height:1.25;margin-bottom:0.1rem;word-break:break-word;" id="promoTodayChallenge">15 MCQs today</div>
-                                    <div style="font-size:0.65rem;opacity:0.8;line-height:1.3;" id="promoTodayMsg">Start the week strong</div>
+                                    <div style="font-size:0.8rem;font-weight:800;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" id="promoTodayChallenge">15 MCQs today</div>
+                                    <div style="font-size:0.63rem;opacity:0.75;line-height:1.2;margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;" id="promoTodayMsg">Start the week strong</div>
                                 </div>
                             </div>
                             <div class="bg-white/20 border border-white/10 text-white py-1.5 px-4 rounded-full text-xs font-bold backdrop-blur-sm inline-block" style="align-self:flex-start;white-space:nowrap;">Study Now</div>
@@ -1022,12 +1022,14 @@
                 </button>
                 <!-- Lecturer Alert button — only visible when Study Planner tab is active -->
                 <div id="lecturerAlertHeaderBtn" style="margin-left:auto;display:none;align-items:center;gap:6px;padding-bottom:2px;">
-                    <button onclick="window.openLecturerCapture()" title="Log a lecturer hint to generate quiz material" style="background:rgba(139,92,246,0.1);border:1.5px solid rgba(139,92,246,0.25);border-radius:9999px;cursor:pointer;padding:4px 10px 4px 8px;display:flex;align-items:center;gap:5px;color:var(--accent-btn);transition:background 0.2s;" ontouchstart="this.style.background='rgba(139,92,246,0.2)'" ontouchend="this.style.background='rgba(139,92,246,0.1)'">
-                        <span style="font-size:0.875rem;">⚡</span>
-                        <span style="font-size:0.72rem;font-weight:800;letter-spacing:0.01em;">Log Hint</span>
-                        <span id="lecturerAlertCount" style="display:none;font-size:0.6rem;font-weight:800;background:rgba(239,68,68,0.15);color:#ef4444;padding:1px 6px;border-radius:9999px;"></span>
-                    </button>
-                    <button onclick="window.openLecturerList()" title="View all hints" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-muted);font-size:0.7rem;font-weight:700;">All</button>
+                    <div style="position:relative;display:inline-flex;">
+                        <button onclick="window.openLecturerCapture()" title="Capture an exam-important lecturer hint" style="background:rgba(139,92,246,0.12);border:1.5px solid rgba(139,92,246,0.3);border-radius:9999px;cursor:pointer;padding:5px 12px 5px 9px;display:flex;align-items:center;gap:5px;color:var(--accent-btn);transition:background 0.2s;" ontouchstart="this.style.background='rgba(139,92,246,0.22)'" ontouchend="this.style.background='rgba(139,92,246,0.12)';">
+                            <span style="font-size:0.8rem;line-height:1;">⚡</span>
+                            <span style="font-size:0.73rem;font-weight:800;letter-spacing:0.02em;">Exam Flag</span>
+                        </button>
+                        <span id="lecturerAlertCount" style="display:none;position:absolute;top:-5px;right:-5px;font-size:0.58rem;font-weight:800;background:#ef4444;color:#fff;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 4px;border-radius:9999px;box-sizing:border-box;pointer-events:none;"></span>
+                    </div>
+                    <button onclick="window.openLecturerList()" title="View all flags" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-muted);font-size:0.7rem;font-weight:700;">All</button>
                 </div>
             </div>
         </header>
@@ -1098,9 +1100,9 @@
 
         <!-- ═══ LECTURER ALERT LIST SUB-PAGE ═══ -->
         <div id="lecturerListPage" style="display:none;position:absolute;inset:0;background:var(--bg-body);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-            <div style="padding:calc(env(safe-area-inset-top,0px)+14px) 1.25rem 0.75rem;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--bg-body);z-index:2;">
-                <button onclick="window.closeLecturerList()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px;"><i class="fas fa-arrow-left"></i></button>
-                <div style="font-size:1rem;font-weight:800;color:var(--text-main);">Lecturer Alerts</div>
+            <div style="padding:calc(env(safe-area-inset-top,0px)+14px) 1rem 0.75rem;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg-body);z-index:2;">
+                <button onclick="window.closeLecturerList()" style="width:2.25rem;height:2.25rem;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-main);font-size:0.875rem;flex-shrink:0;"><i class="fas fa-arrow-left"></i></button>
+                <div style="font-size:1rem;font-weight:800;color:var(--text-main);">Exam Flags</div>
             </div>
             <div id="lecturerListContent" style="padding:1rem;"></div>
         </div>
@@ -2138,7 +2140,7 @@
 
   <!-- ═══ LECTURER ALERT CAPTURE SHEET ═══ -->
   <div id="lecturerCaptureBackdrop" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);" onclick="if(event.target===this)window.closeLecturerCapture()">
-    <div id="lecturerCaptureSheet" style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px)+1.25rem);transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);">
+    <div id="lecturerCaptureSheet" style="position:absolute;bottom:0;left:0;right:0;top:18%;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px)+1.25rem);transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);overflow-y:auto;-webkit-overflow-scrolling:touch;">
         <div style="width:36px;height:4px;background:var(--border-color);border-radius:9999px;margin:0 auto 1rem;"></div>
 
         <!-- Header -->
@@ -2147,7 +2149,7 @@
                 <span style="font-size:1.1rem;">⚡</span>
             </div>
             <div>
-                <div style="font-size:0.9375rem;font-weight:800;color:var(--text-main);line-height:1.2;">Log a Lecturer Hint</div>
+                <div style="font-size:0.9375rem;font-weight:800;color:var(--text-main);line-height:1.2;">Capture a Lecturer Hint</div>
                 <div style="font-size:0.725rem;color:var(--text-muted);margin-top:2px;line-height:1.4;">Write down what your lecturer flagged as important — then instantly turn it into flashcards or a quiz.</div>
             </div>
         </div>
