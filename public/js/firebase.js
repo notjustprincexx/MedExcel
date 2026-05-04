@@ -2571,31 +2571,42 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                     setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp: 0, rankMonth: currentMonthKey }, { merge: true }).catch(() => {});
                     localStorage.setItem('medexcel_monthkey_' + user.uid, currentMonthKey);
                 } else {
-                    // Same month — trust the HIGHEST of: Firestore /users, Firestore /leaderboard (written
-                    // by addXP since /users writes are blocked by rules), and localStorage.
-                    // Only use localStorage if it's from THIS month (month key matches).
-                    const _localMonthKey = localStorage.getItem('medexcel_monthkey_' + user.uid);
-                    const _localMonthlyXp = (_localMonthKey === currentMonthKey) ? (_localStats.monthlyRankXp || 0) : 0;
+                    // Same month (or no month on record yet) — trust the HIGHEST of all sources.
+                    // /users.monthlyRankXp is stale (Firestore rules block client writes).
+                    // /leaderboard is the authoritative source written by addXP.
+                    // localStorage is the local source-of-truth.
+                    // NOTE: do NOT gate localStorage on _localMonthKey — users who earned XP
+                    // before the month-key was introduced would have no key but correct XP.
 
-                    // Also read /leaderboard doc (client can write here, unlike /users)
+                    // Read /leaderboard doc — the only place addXP can successfully write
                     let _lbMonthlyXp = 0;
                     try {
                         const _lbDoc = await getDoc(doc(db, 'leaderboard', user.uid));
                         if (_lbDoc.exists()) {
                             const _lbData = _lbDoc.data();
-                            if (_lbData.rankMonth === currentMonthKey) _lbMonthlyXp = _lbData.monthlyRankXp || 0;
+                            // Accept if same month OR if no rankMonth recorded (doc pre-dates tracking)
+                            if (!_lbData.rankMonth || _lbData.rankMonth === currentMonthKey) {
+                                _lbMonthlyXp = _lbData.monthlyRankXp || 0;
+                            }
                         }
                     } catch(_) {}
 
-                    monthlyRankXp = Math.max(data.monthlyRankXp || 0, _localMonthlyXp, _lbMonthlyXp);
+                    // Take the highest of ALL sources — never let a 0 from a stale/missing
+                    // source overwrite a real value from another source
+                    monthlyRankXp = Math.max(
+                        data.monthlyRankXp        || 0,  // /users (usually 0 — rules block it)
+                        _localStats.monthlyRankXp || 0,  // localStorage (most up-to-date locally)
+                        _lbMonthlyXp,                    // /leaderboard (written by addXP)
+                        window.userStats.monthlyRankXp || 0  // already-seeded value
+                    );
 
                     if (!data.rankMonth) {
                         updateDoc(doc(db, 'users', user.uid), { rankMonth: currentMonthKey }).catch(() => {});
                     }
-                    // Heal Firestore if local/leaderboard was ahead
-                    if (monthlyRankXp > (data.monthlyRankXp || 0)) {
-                        setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp, rankMonth: currentMonthKey }, { merge: true }).catch(() => {});
-                    }
+                    // Always write the authoritative value back to /leaderboard
+                    setDoc(doc(db, 'leaderboard', user.uid), { monthlyRankXp, rankMonth: currentMonthKey }, { merge: true }).catch(() => {});
+                    // Also persist the month key for future logins
+                    localStorage.setItem('medexcel_monthkey_' + user.uid, currentMonthKey);
                 }
 
                 if (window._cachedUserData) window._cachedUserData.monthlyRankXp = monthlyRankXp;
@@ -2622,6 +2633,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
                 window.updateHomeContinueCard();
                 window.renderLibrary('all', '');
+                // Sync topic checklist from Firestore (so it persists across devices)
+                if (typeof window._syncTopicsFromFirestore === 'function') window._syncTopicsFromFirestore();
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 

@@ -6100,7 +6100,37 @@ window._activatePremium = async function(ref) {
     function _loadExams()  { try { return JSON.parse(localStorage.getItem(_examKey()) || '[]'); } catch(e) { return []; } }
     function _saveExams(e) { localStorage.setItem(_examKey(), JSON.stringify(e)); }
     function _loadTopics() { try { return JSON.parse(localStorage.getItem(_topicKey()) || '{}'); } catch(e) { return {}; } }
-    function _saveTopics(t){ localStorage.setItem(_topicKey(), JSON.stringify(t)); }
+    function _saveTopics(t){
+        localStorage.setItem(_topicKey(), JSON.stringify(t));
+        // Sync to Firestore so checklist persists across devices/reinstalls
+        var uid = _uid();
+        if (uid && uid !== 'guest' && window.db && window._setDoc && window._doc) {
+            window._setDoc(window._doc(window.db, 'users', uid), { topicChecklist: t }, { merge: true })
+                .catch(function(e) { console.warn('Checklist Firestore sync failed:', e?.message); });
+        }
+    }
+    // Called once on login to pull Firestore checklist and merge with localStorage
+    // (takes the union of checked items so neither source loses data)
+    window._syncTopicsFromFirestore = async function() {
+        var uid = _uid();
+        if (!uid || uid === 'guest' || !window.db) return;
+        try {
+            var snap = await window._firestoreGetDoc(window._doc(window.db, 'users', uid));
+            if (!snap.exists()) return;
+            var remote = snap.data().topicChecklist;
+            if (!remote || typeof remote !== 'object') return;
+            var local = _loadTopics();
+            // Deep merge — any item checked in either source stays checked
+            Object.keys(remote).forEach(function(subj) {
+                if (!local[subj]) local[subj] = {};
+                Object.keys(remote[subj]).forEach(function(topic) {
+                    if (!local[subj][topic]) local[subj][topic] = {};
+                    Object.assign(local[subj][topic], remote[subj][topic]);
+                });
+            });
+            localStorage.setItem(_topicKey(), JSON.stringify(local));
+        } catch(e) { console.warn('Checklist Firestore load failed:', e?.message); }
+    };
     function _loadLog()    { try { return JSON.parse(localStorage.getItem(_logKey()) || '{}'); } catch(e) { return {}; } }
 
     function _escH(s) { return window.escapeHTML ? window.escapeHTML(s) : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -6118,14 +6148,14 @@ window._activatePremium = async function(ref) {
         if (tab === 'planner') {
             pTab.style.display = 'block';
             uTab.style.display = 'none';
-            if (pBtn) { pBtn.style.background = 'var(--accent-btn)'; pBtn.style.color = 'var(--btn-text)'; pBtn.style.boxShadow = activeShadow; }
-            if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--text-muted)'; uBtn.style.boxShadow = 'none'; }
+            if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--accent-btn)'; pBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; pBtn.style.fontWeight = '800'; pBtn.style.boxShadow = 'none'; }
+            if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--text-muted)'; uBtn.style.borderBottom = '2.5px solid transparent'; uBtn.style.fontWeight = '700'; uBtn.style.boxShadow = 'none'; }
             window.initPlanner();
         } else {
             pTab.style.display = 'none';
             uTab.style.display = 'block';
-            if (uBtn) { uBtn.style.background = 'var(--accent-btn)'; uBtn.style.color = 'var(--btn-text)'; uBtn.style.boxShadow = activeShadow; }
-            if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--text-muted)'; pBtn.style.boxShadow = 'none'; }
+            if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--accent-btn)'; uBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; uBtn.style.fontWeight = '800'; uBtn.style.boxShadow = 'none'; }
+            if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--text-muted)'; pBtn.style.borderBottom = '2.5px solid transparent'; pBtn.style.fontWeight = '700'; pBtn.style.boxShadow = 'none'; }
         }
     };
 
