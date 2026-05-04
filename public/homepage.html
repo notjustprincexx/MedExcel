@@ -1011,7 +1011,7 @@
 
     <section id="view-profile" class="app-view" style="background:var(--bg-body);">
         <header class="shrink-0 sticky top-0 z-40" style="background:var(--bg-body);padding:calc(env(safe-area-inset-top,0px) + 14px) 1.25rem 0;">
-            <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border-color);">
+            <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border-color);align-items:center;">
                 <button id="tab-btn-profile" onclick="window.switchProfileTab('profile')"
                     style="padding:0.5rem 1.25rem 0.5rem 0;font-size:0.875rem;font-weight:800;letter-spacing:0.01em;border:none;background:transparent;color:var(--accent-btn);cursor:pointer;border-bottom:2.5px solid var(--accent-btn);margin-bottom:-1.5px;transition:color 0.2s,border-color 0.2s;white-space:nowrap;">
                     Profile
@@ -1020,11 +1020,34 @@
                     style="padding:0.5rem 1.25rem 0.5rem 0;font-size:0.875rem;font-weight:700;letter-spacing:0.01em;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:color 0.2s,border-color 0.2s;white-space:nowrap;">
                     Study Planner
                 </button>
+                <!-- Lecturer Alert button — only visible when Study Planner tab is active -->
+                <div id="lecturerAlertHeaderBtn" style="margin-left:auto;display:none;align-items:center;gap:6px;padding-bottom:2px;">
+                    <button onclick="window.openLecturerCapture()" title="Capture lecturer hint" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;gap:5px;color:var(--text-muted);">
+                        <span style="font-size:1rem;">⚡</span>
+                        <span id="lecturerAlertCount" style="display:none;font-size:0.6rem;font-weight:800;background:rgba(239,68,68,0.15);color:#ef4444;padding:1px 6px;border-radius:9999px;"></span>
+                    </button>
+                    <button onclick="window.openLecturerList()" title="View all alerts" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-muted);font-size:0.7rem;font-weight:700;">All</button>
+                </div>
             </div>
         </header>
 
         <!-- ═══ PLANNER TAB ═══ -->
         <div id="profile-tab-planner" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1rem 8rem;">
+
+            <!-- LECTURER ALERTS CARD — only shown when there are unresolved alerts -->
+            <div id="lecturerAlertCard" style="display:none;background:var(--bg-surface);border-radius:1.25rem;overflow:hidden;border:1px solid rgba(239,68,68,0.25);margin-bottom:1rem;">
+                <div style="padding:0.875rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:1rem;">⚡</span>
+                        <div>
+                            <div style="font-size:0.875rem;font-weight:800;color:var(--text-main);">Lecturer Alerts</div>
+                            <div id="lecturerAlertCardSub" style="font-size:0.7rem;color:#ef4444;font-weight:600;"></div>
+                        </div>
+                    </div>
+                    <button onclick="window.openLecturerList()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:none;border-radius:0.625rem;padding:0.3rem 0.875rem;font-size:0.72rem;font-weight:700;cursor:pointer;">View</button>
+                </div>
+                <div id="lecturerAlertCardList" style="border-top:1px solid rgba(239,68,68,0.1);"></div>
+            </div>
 
             <!-- TODAY'S PLAN -->
             <div style="background:var(--bg-surface);border-radius:1.25rem;overflow:hidden;border:1px solid var(--border-color);margin-bottom:1rem;">
@@ -1071,6 +1094,15 @@
             </div>
 
         </div><!-- /#profile-tab-planner -->
+
+        <!-- ═══ LECTURER ALERT LIST SUB-PAGE ═══ -->
+        <div id="lecturerListPage" style="display:none;position:absolute;inset:0;background:var(--bg-body);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+            <div style="padding:calc(env(safe-area-inset-top,0px)+14px) 1.25rem 0.75rem;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--bg-body);z-index:2;">
+                <button onclick="window.closeLecturerList()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px;"><i class="fas fa-arrow-left"></i></button>
+                <div style="font-size:1rem;font-weight:800;color:var(--text-main);">Lecturer Alerts</div>
+            </div>
+            <div id="lecturerListContent" style="padding:1rem;"></div>
+        </div>
 
         <!-- ═══ PROFILE TAB ═══ -->
         <main id="profile-tab-profile" style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1rem 8rem;">
@@ -2102,6 +2134,29 @@
     })();
   </script>
   <!-- ===== End Download Banner ===== -->
+
+  <!-- ═══ LECTURER ALERT CAPTURE SHEET ═══ -->
+  <div id="lecturerCaptureBackdrop" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);" onclick="if(event.target===this)window.closeLecturerCapture()">
+    <div id="lecturerCaptureSheet" style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;padding:1.25rem 1.25rem calc(env(safe-area-inset-bottom,0px)+1.25rem);transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);">
+        <div style="width:36px;height:4px;background:var(--border-color);border-radius:9999px;margin:0 auto 1.25rem;"></div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:4px;">⚡ Capture Lecturer Hint</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem;">What did your lecturer flag as important?</div>
+        <textarea id="lecturerCaptureInput" placeholder="e.g. Brachial plexus injuries — C5/C6 most common…" rows="3"
+            style="width:100%;border-radius:0.875rem;border:1.5px solid var(--border-color);background:var(--bg-body);color:var(--text-main);font-size:0.9rem;padding:0.75rem;resize:none;font-family:inherit;outline:none;box-sizing:border-box;"></textarea>
+        <button onclick="window.openLecturerSubjectPicker()" id="lecturerSubjectBtn" style="width:100%;margin-top:0.625rem;padding:0.625rem;border-radius:0.875rem;border:1.5px solid var(--border-color);background:var(--bg-body);color:var(--text-muted);font-size:0.825rem;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-tag" style="font-size:0.75rem;"></i> <span id="lecturerSubjectLabel">Tag a subject (optional)</span>
+        </button>
+        <button onclick="window.saveLecturerAlert()" style="width:100%;margin-top:0.75rem;padding:0.875rem;border-radius:var(--radius-btn);border:none;background:var(--accent-btn);color:var(--btn-text);font-size:0.9375rem;font-weight:700;cursor:pointer;">Save Alert</button>
+    </div>
+  </div>
+
+  <!-- ═══ SUBJECT PICKER FOR ALERTS ═══ -->
+  <div id="lecturerSubjectPickerBackdrop" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.5);" onclick="if(event.target===this)window.closeLecturerSubjectPicker()">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-surface);border-radius:1.5rem 1.5rem 0 0;max-height:60vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px)+1rem);">
+        <div style="padding:1rem 1.25rem;font-size:0.9rem;font-weight:800;color:var(--text-main);border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--bg-surface);">Pick a subject</div>
+        <div id="lecturerSubjectList" style="padding:0.5rem 0;"></div>
+    </div>
+  </div>
 
 </body>
 </html>

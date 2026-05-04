@@ -2635,6 +2635,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
                 window.renderLibrary('all', '');
                 // Sync topic checklist from Firestore (so it persists across devices)
                 if (typeof window._syncTopicsFromFirestore === 'function') window._syncTopicsFromFirestore();
+                // Sync lecturer alerts from Firestore
+                if (typeof window._syncLecturerAlertsFromFirestore === 'function') window._syncLecturerAlertsFromFirestore();
                 // Check passive achievements (XP milestones, deck count, streak)
                 setTimeout(() => window.checkAchievements({}), 2000);
 

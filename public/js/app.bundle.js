@@ -6160,12 +6160,16 @@ window._activatePremium = async function(ref) {
             uTab.style.display = 'none';
             if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--accent-btn)'; pBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; pBtn.style.fontWeight = '800'; pBtn.style.boxShadow = 'none'; }
             if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--text-muted)'; uBtn.style.borderBottom = '2.5px solid transparent'; uBtn.style.fontWeight = '700'; uBtn.style.boxShadow = 'none'; }
+            var alertBtn = document.getElementById('lecturerAlertHeaderBtn');
+            if (alertBtn) { alertBtn.style.display = 'flex'; }
             window.initPlanner();
         } else {
             pTab.style.display = 'none';
             uTab.style.display = 'block';
             if (uBtn) { uBtn.style.background = 'transparent'; uBtn.style.color = 'var(--accent-btn)'; uBtn.style.borderBottom = '2.5px solid var(--accent-btn)'; uBtn.style.fontWeight = '800'; uBtn.style.boxShadow = 'none'; }
             if (pBtn) { pBtn.style.background = 'transparent'; pBtn.style.color = 'var(--text-muted)'; pBtn.style.borderBottom = '2.5px solid transparent'; pBtn.style.fontWeight = '700'; pBtn.style.boxShadow = 'none'; }
+            var alertBtn = document.getElementById('lecturerAlertHeaderBtn');
+            if (alertBtn) { alertBtn.style.display = 'none'; }
         }
     };
 
@@ -6177,6 +6181,255 @@ window._activatePremium = async function(ref) {
         _renderExams();
         _renderWeekStrip();
         _renderChecklist();
+        _renderLecturerAlertCard(); // render alert card at top if unresolved alerts exist
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // ── LECTURER ALERTS ──────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════
+    var _LA_KEY = function() { return 'medexcel_lecturer_alerts_' + _uid(); };
+    var _laSelectedSubject = null;
+
+    function _loadAlerts() {
+        try { return JSON.parse(localStorage.getItem(_LA_KEY()) || '[]'); } catch(e) { return []; }
+    }
+    function _saveAlerts(arr) {
+        localStorage.setItem(_LA_KEY(), JSON.stringify(arr));
+        // Sync to Firestore
+        var uid = _uid();
+        if (uid && uid !== 'guest' && window.db && window._setDoc && window._doc) {
+            window._setDoc(window._doc(window.db, 'users', uid), { lecturerAlerts: arr }, { merge: true }).catch(function(){});
+        }
+        _updateAlertBadge();
+    }
+
+    function _updateAlertBadge() {
+        var alerts = _loadAlerts();
+        var unresolved = alerts.filter(function(a) { return !a.resolved; });
+        var countEl = document.getElementById('lecturerAlertCount');
+        if (countEl) {
+            if (unresolved.length > 0) {
+                countEl.textContent = unresolved.length;
+                countEl.style.display = '';
+            } else {
+                countEl.style.display = 'none';
+            }
+        }
+    }
+
+    function _renderLecturerAlertCard() {
+        var alerts = _loadAlerts();
+        var unresolved = alerts.filter(function(a) { return !a.resolved; });
+        var card = document.getElementById('lecturerAlertCard');
+        var sub  = document.getElementById('lecturerAlertCardSub');
+        var list = document.getElementById('lecturerAlertCardList');
+        if (!card) return;
+
+        if (unresolved.length === 0) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        if (sub) sub.textContent = unresolved.length + ' unresolved ' + (unresolved.length === 1 ? 'hint' : 'hints');
+        if (list) {
+            list.innerHTML = unresolved.slice(0, 2).map(function(a) {
+                return '<div style="padding:0.75rem 1.25rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(239,68,68,0.08);">' +
+                    '<span style="font-size:0.7rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.1);padding:2px 7px;border-radius:9999px;flex-shrink:0;">' + (a.subject || 'General') + '</span>' +
+                    '<span style="font-size:0.8rem;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window.escapeHTML(a.text) + '</span>' +
+                '</div>';
+            }).join('') + (unresolved.length > 2 ? '<div style="padding:0.5rem 1.25rem;font-size:0.72rem;color:var(--text-muted);">+' + (unresolved.length - 2) + ' more</div>' : '');
+        }
+        _updateAlertBadge();
+    }
+
+    window.openLecturerCapture = function() {
+        _laSelectedSubject = null;
+        var inp = document.getElementById('lecturerCaptureInput');
+        var lbl = document.getElementById('lecturerSubjectLabel');
+        if (inp) inp.value = '';
+        if (lbl) lbl.textContent = 'Tag a subject (optional)';
+        var bd = document.getElementById('lecturerCaptureBackdrop');
+        var sh = document.getElementById('lecturerCaptureSheet');
+        if (!bd || !sh) return;
+        bd.style.display = 'block';
+        requestAnimationFrame(function() {
+            sh.style.transform = 'translateY(0)';
+            if (inp) setTimeout(function(){ inp.focus(); }, 300);
+        });
+    };
+
+    window.closeLecturerCapture = function() {
+        var sh = document.getElementById('lecturerCaptureSheet');
+        var bd = document.getElementById('lecturerCaptureBackdrop');
+        if (sh) sh.style.transform = 'translateY(100%)';
+        setTimeout(function() { if (bd) bd.style.display = 'none'; }, 320);
+    };
+
+    window.saveLecturerAlert = function() {
+        var inp = document.getElementById('lecturerCaptureInput');
+        var text = inp ? inp.value.trim() : '';
+        if (!text) { if (inp) inp.focus(); return; }
+        var alerts = _loadAlerts();
+        alerts.unshift({
+            id: Date.now(),
+            text: text,
+            subject: _laSelectedSubject || null,
+            createdAt: new Date().toISOString(),
+            resolved: false,
+            quizGenerated: false
+        });
+        _saveAlerts(alerts);
+        window.closeLecturerCapture();
+        _renderLecturerAlertCard();
+    };
+
+    window.openLecturerSubjectPicker = function() {
+        var subjects = Object.keys(typeof CURRICULUM !== 'undefined' ? CURRICULUM : {
+            'Anatomy':1,'Physiology':1,'Biochemistry':1,'Pharmacology':1,'Pathology':1,
+            'Microbiology':1,'Community Medicine':1,'Surgery':1,'Medicine':1,'Obstetrics & Gynaecology':1
+        });
+        var listEl = document.getElementById('lecturerSubjectList');
+        if (listEl) {
+            listEl.innerHTML = subjects.map(function(s) {
+                return '<div onclick="window.selectLecturerSubject(\'' + s.replace(/'/g,"\\'") + '\')" style="padding:0.875rem 1.25rem;font-size:0.875rem;font-weight:600;color:var(--text-main);border-bottom:1px solid var(--border-color);cursor:pointer;">' + s + '</div>';
+            }).join('');
+        }
+        var bd = document.getElementById('lecturerSubjectPickerBackdrop');
+        if (bd) bd.style.display = 'block';
+    };
+
+    window.selectLecturerSubject = function(subj) {
+        _laSelectedSubject = subj;
+        var lbl = document.getElementById('lecturerSubjectLabel');
+        if (lbl) { lbl.textContent = subj; lbl.style.color = 'var(--accent-btn)'; }
+        window.closeLecturerSubjectPicker();
+    };
+
+    window.closeLecturerSubjectPicker = function() {
+        var bd = document.getElementById('lecturerSubjectPickerBackdrop');
+        if (bd) bd.style.display = 'none';
+    };
+
+    window.openLecturerList = function() {
+        var page = document.getElementById('lecturerListPage');
+        if (!page) return;
+        page.style.display = 'block';
+        _renderLecturerList();
+    };
+
+    window.closeLecturerList = function() {
+        var page = document.getElementById('lecturerListPage');
+        if (page) page.style.display = 'none';
+    };
+
+    function _renderLecturerList() {
+        var alerts = _loadAlerts();
+        var el = document.getElementById('lecturerListContent');
+        if (!el) return;
+
+        if (alerts.length === 0) {
+            el.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">' +
+                '<div style="font-size:2rem;margin-bottom:0.75rem;">⚡</div>' +
+                '<div style="font-size:0.9rem;font-weight:700;">No alerts yet</div>' +
+                '<div style="font-size:0.8rem;margin-top:4px;">Tap ⚡ in the planner header to capture a lecturer hint.</div>' +
+            '</div>';
+            return;
+        }
+
+        var unresolved = alerts.filter(function(a){ return !a.resolved; });
+        var resolved   = alerts.filter(function(a){ return  a.resolved; });
+
+        function _alertRow(a) {
+            var ago = '';
+            if (a.createdAt) {
+                var d = Math.floor((Date.now() - new Date(a.createdAt).getTime()) / 86400000);
+                ago = d === 0 ? 'Today' : d === 1 ? 'Yesterday' : d + 'd ago';
+            }
+            return '<div style="background:var(--bg-surface);border-radius:1rem;padding:0.875rem 1rem;margin-bottom:0.625rem;border:1px solid var(--border-color);">' +
+                '<div style="display:flex;align-items:flex-start;gap:8px;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        (a.subject ? '<span style="font-size:0.62rem;font-weight:700;color:var(--accent-btn);background:rgba(139,92,246,0.1);padding:1px 7px;border-radius:9999px;display:inline-block;margin-bottom:4px;">' + a.subject + '</span>' : '') +
+                        '<div style="font-size:0.875rem;color:var(--text-main);font-weight:' + (a.resolved ? '500' : '700') + ';' + (a.resolved ? 'text-decoration:line-through;opacity:0.5;' : '') + '">' + window.escapeHTML(a.text) + '</div>' +
+                        '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">' + ago + (a.resolved ? ' · ✅ Resolved' : '') + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
+                        (!a.resolved ? '<button onclick="window._generateAlertQuiz(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:var(--accent-btn);color:var(--btn-text);border:none;border-radius:0.5rem;padding:4px 8px;cursor:pointer;white-space:nowrap;">⚡ Quiz</button>' : '') +
+                        '<button onclick="window._toggleAlertResolved(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:var(--bg-body);color:var(--text-muted);border:1px solid var(--border-color);border-radius:0.5rem;padding:4px 8px;cursor:pointer;">' + (a.resolved ? 'Undo' : 'Done') + '</button>' +
+                        '<button onclick="window._deleteAlert(\'' + a.id + '\')" style="font-size:0.65rem;font-weight:700;background:rgba(239,68,68,0.1);color:#ef4444;border:none;border-radius:0.5rem;padding:4px 8px;cursor:pointer;">Delete</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        var html = '';
+        if (unresolved.length > 0) {
+            html += '<div style="font-size:0.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:0.5rem;">Unresolved · ' + unresolved.length + '</div>';
+            html += unresolved.map(_alertRow).join('');
+        }
+        if (resolved.length > 0) {
+            html += '<div style="font-size:0.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin:1rem 0 0.5rem;">Resolved · ' + resolved.length + '</div>';
+            html += resolved.map(_alertRow).join('');
+        }
+        el.innerHTML = html;
+    }
+
+    window._toggleAlertResolved = function(id) {
+        var alerts = _loadAlerts();
+        alerts = alerts.map(function(a) {
+            if (String(a.id) === String(id)) a.resolved = !a.resolved;
+            return a;
+        });
+        _saveAlerts(alerts);
+        _renderLecturerList();
+        _renderLecturerAlertCard();
+    };
+
+    window._deleteAlert = function(id) {
+        var alerts = _loadAlerts().filter(function(a){ return String(a.id) !== String(id); });
+        _saveAlerts(alerts);
+        _renderLecturerList();
+        _renderLecturerAlertCard();
+    };
+
+    window._generateAlertQuiz = function(id) {
+        var alerts = _loadAlerts();
+        var alert = alerts.find(function(a){ return String(a.id) === String(id); });
+        if (!alert) return;
+        // Pre-fill the create page with the alert text and navigate there
+        window.closeLecturerList();
+        window.navigateTo('view-create');
+        setTimeout(function() {
+            var pasteArea = document.getElementById('pasteArea') || document.getElementById('textPasteInput');
+            if (pasteArea) {
+                pasteArea.value = alert.text;
+                pasteArea.dispatchEvent(new Event('input'));
+            }
+            // Mark as quiz generated
+            alerts = _loadAlerts();
+            alerts = alerts.map(function(a) {
+                if (String(a.id) === String(id)) a.quizGenerated = true;
+                return a;
+            });
+            _saveAlerts(alerts);
+        }, 400);
+    };
+
+    // Sync from Firestore on login
+    window._syncLecturerAlertsFromFirestore = async function() {
+        var uid = _uid();
+        if (!uid || uid === 'guest' || !window.db) return;
+        try {
+            var snap = await window._firestoreGetDoc(window._doc(window.db, 'users', uid));
+            if (!snap.exists()) return;
+            var remote = snap.data().lecturerAlerts;
+            if (!Array.isArray(remote) || remote.length === 0) return;
+            var local = _loadAlerts();
+            // Merge: add any remote alerts not already in local (by id)
+            var localIds = new Set(local.map(function(a){ return String(a.id); }));
+            remote.forEach(function(a) {
+                if (!localIds.has(String(a.id))) local.push(a);
+            });
+            local.sort(function(a,b){ return new Date(b.createdAt) - new Date(a.createdAt); });
+            localStorage.setItem(_LA_KEY(), JSON.stringify(local));
+            _updateAlertBadge();
+        } catch(e) { console.warn('Lecturer alerts Firestore sync failed:', e?.message); }
     };
 
     // ── TODAY'S PLAN ──────────────────────────────────────────────
