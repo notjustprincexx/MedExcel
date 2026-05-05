@@ -184,7 +184,7 @@
                     cProgress.textContent = totalQs + ' items';
                     cProgress.style.background = 'rgba(139,92,246,0.1)';
                     cProgress.style.color = 'var(--accent-btn)';
-                    cMeta.innerHTML = '<span>' + (showQuiz.subject || 'GENERAL') + '</span> • <span>Not started</span>';
+                    cMeta.innerHTML = showQuiz.subject ? '<span>' + showQuiz.subject + '</span> • <span>Not started</span>' : '<span>Not started</span>';
                 } else if (isMCQ) {
                     cProgress.textContent = lastPct + '%';
                     cProgress.style.background = lastPct >= 80 ? 'rgba(52,211,153,0.12)' : lastPct >= 50 ? 'rgba(251,191,36,0.12)' : 'rgba(248,113,113,0.12)';
@@ -194,7 +194,7 @@
                     cProgress.textContent = totalQs + ' cards';
                     cProgress.style.background = 'rgba(96,165,250,0.12)';
                     cProgress.style.color = '#60a5fa';
-                    cMeta.innerHTML = '<span>Reviewed ' + attempts + 'x</span> • <span>' + (showQuiz.subject || 'GENERAL') + '</span>';
+                    cMeta.innerHTML = 'Reviewed ' + attempts + 'x' + (showQuiz.subject ? ' · ' + showQuiz.subject : '');
                 }
             }
             window.renderRecentDecks();
@@ -2969,6 +2969,8 @@ window.renderStudyFocusCard = function() {
     }
 
     var attempted = quizzes.filter(function(q) { return q.stats && q.stats.attempts > 0; });
+    // Skip deck already shown in Continue Studying to avoid duplication
+    var continueId = window._continueQuizId;
     var scored = attempted.map(function(q) {
         var total   = q.questions.length;
         var pct     = total > 0 ? Math.round((q.stats.bestScore / total) * 100) : 0;
@@ -2977,14 +2979,17 @@ window.renderStudyFocusCard = function() {
         return { q: q, pct: pct, daysAgo: daysAgo };
     });
 
-    var weak  = scored.filter(function(s) { return s.pct < 60; }).sort(function(a, b) { return a.pct - b.pct; });
-    var stale = scored.filter(function(s) { return s.daysAgo !== null && s.daysAgo >= 5; }).sort(function(a, b) { return b.daysAgo - a.daysAgo; });
+    var weak  = scored.filter(function(s) { return s.pct < 60 && String(s.q.id) !== String(continueId); }).sort(function(a, b) { return a.pct - b.pct; });
+    var stale = scored.filter(function(s) { return s.daysAgo !== null && s.daysAgo >= 5 && String(s.q.id) !== String(continueId); }).sort(function(a, b) { return b.daysAgo - a.daysAgo; });
 
     var icon, color, badge, title, sub;
     if (weak.length > 0) {
         icon = 'fa-book-medical'; color = '#8b5cf6'; badge = 'Needs work';
         title = window.escapeHTML(weak[0].q.title || 'Untitled');
-        sub   = 'Best score ' + weak[0].pct + '%' + (weak[0].daysAgo !== null ? ' · ' + (weak[0].daysAgo === 0 ? 'today' : weak[0].daysAgo + 'd ago') : '');
+        var attempts0 = weak[0].q.stats ? weak[0].q.stats.attempts : 0;
+        sub = attempts0 === 0
+            ? 'Not started yet' + (weak[0].daysAgo !== null ? ' · ' + (weak[0].daysAgo === 0 ? 'today' : weak[0].daysAgo + 'd ago') : '')
+            : 'Best score ' + weak[0].pct + '%' + (weak[0].daysAgo !== null ? ' · ' + (weak[0].daysAgo === 0 ? 'today' : weak[0].daysAgo + 'd ago') : '');
     } else if (stale.length > 0) {
         icon = 'fa-rotate-left'; color = '#8b5cf6'; badge = 'Due for review';
         title = window.escapeHTML(stale[0].q.title || 'Untitled');
